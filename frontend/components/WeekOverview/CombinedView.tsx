@@ -21,9 +21,9 @@ export default function CombinedView({
     const currentMonth = currentWeek.startOf("month");
 
     return (
-        <div className="flex flex-col md:flex-row gap-4 justify-center">
-            {/* Linker kolom: DaysTable */}
-            <div className="w-full md:w-3/4">
+        <div className="flex flex-col lg:flex-row gap-6 w-full">
+            {/* Tabel (2/3 breedte op large screens) */}
+            <div className="w-full lg:w-2/3">
                 <DaysTable
                     currentWeek={currentWeek}
                     localEntries={timeEntries}
@@ -32,8 +32,8 @@ export default function CombinedView({
                 />
             </div>
 
-            {/* Rechter kolom: MonthCalendar */}
-            <div className="w-full md:w-1/4">
+            {/* Maandkalender (1/3 breedte op large screens) */}
+            <div className="w-full lg:w-1/3">
                 <MonthCalendar
                     currentMonth={currentMonth}
                     timeEntries={timeEntries}

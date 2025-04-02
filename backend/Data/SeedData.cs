@@ -32,8 +32,45 @@ public static class SeedData
         if (!context.Users.Any())
         {
             context.Users.AddRange(
-                new User { Name = "Ayoub", Email = "ayoub@example.com" },
-                new User { Name = "Elmar", Email = "elmar@example.com" }
+                new User 
+                { 
+                    FirstName = "Ayoub", 
+                    LastName = "El Kaoui", 
+                    Email = "ayoub@example.com", 
+                    Address = "Voorbeeldstraat", 
+                    HouseNumber = "10", 
+                    PostalCode = "1234AB", 
+                    City = "Voorbeeldstad", 
+                    LoginName = "ayoub", 
+                    Password = "password123", // In productie: gebruik een hash
+                    Rank = "user"
+                },
+                new User 
+                { 
+                    FirstName = "Manager", 
+                    LastName = "User", 
+                    Email = "manager@example.com", 
+                    Address = "Managerlaan", 
+                    HouseNumber = "20", 
+                    PostalCode = "2345BC", 
+                    City = "Managerstad", 
+                    LoginName = "manager", 
+                    Password = "managerpass", 
+                    Rank = "manager"
+                },
+                new User 
+                { 
+                    FirstName = "Admin", 
+                    LastName = "User", 
+                    Email = "admin@example.com", 
+                    Address = "Adminweg", 
+                    HouseNumber = "30", 
+                    PostalCode = "3456CD", 
+                    City = "Adminstad", 
+                    LoginName = "admin", 
+                    Password = "adminpass", 
+                    Rank = "admin"
+                }
             );
             context.SaveChanges();
         }

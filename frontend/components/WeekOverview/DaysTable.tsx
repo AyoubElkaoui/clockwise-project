@@ -1,8 +1,9 @@
 "use client";
 import React from "react";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { TimeEntry } from "./WeekOverview";
-import DaysTableRow from "./DaysTableRow";
+import DaySubEntry from "./DaySubEntry"; // <-- Voor bewerken/verwijderen per sub-entry
+import { ClockIcon } from "@heroicons/react/24/outline";
 
 interface Props {
     currentWeek: Dayjs;
@@ -11,62 +12,84 @@ interface Props {
     onUpdateLocalEntries: (updatedEntries: TimeEntry[]) => void;
 }
 
+/**
+ * DaysTable: toont één rij per dag. Elke dag-cel bevat meerdere sub-entries (als die bestaan).
+ * In de 'Acties'-kolom staat een "Registreren"-knop om een nieuw entry te maken op die dag.
+ */
 export default function DaysTable({
                                       currentWeek,
                                       localEntries,
                                       onRegisterClick,
                                       onUpdateLocalEntries,
                                   }: Props) {
-    // Maak 7 dagen
+    // Maak de 7 dagen (ma → zo)
     const days = Array.from({ length: 7 }, (_, i) => currentWeek.add(i, "day"));
 
-    // Bouw array met rows
-    const rows: { day: Dayjs; entry?: TimeEntry }[] = [];
-
-    for (const day of days) {
-        const dayStr = day.format("YYYY-MM-DD");
-        const entries = localEntries.filter(
-            (e) => e.localStatus !== "deleted" && e.startTime.startsWith(dayStr)
-        );
-        if (entries.length === 0) {
-            rows.push({ day, entry: undefined });
-        } else {
-            for (const entry of entries) {
-                rows.push({ day, entry });
-            }
-        }
-    }
-
     return (
-        <div className="card shadow-xl overflow-x-auto max-w-5xl mx-auto">
-            <table className="table table-zebra w-full">
-                <thead>
-                <tr>
-                    <th>Dag</th>
-                    <th>Datum</th>
-                    <th>Start</th>
-                    <th>Eind</th>
-                    <th>Pauze</th>
-                    <th>KM</th>
-                    <th>Reis (€)</th>
-                    <th>Onkosten (€)</th>
-                    <th>Notities</th>
-                    <th className="text-right">Acties</th>
-                </tr>
-                </thead>
-                <tbody>
-                {rows.map(({ day, entry }, idx) => (
-                    <DaysTableRow
-                        key={idx}
-                        day={day}
-                        entry={entry}
-                        localEntries={localEntries}
-                        onRegisterClick={onRegisterClick}
-                        onUpdateLocalEntries={onUpdateLocalEntries}
-                    />
-                ))}
-                </tbody>
-            </table>
+        <div className="card bg-base-100 shadow-xl">
+            <div className="card-body p-4">
+                {/* Eventueel een titel */}
+                <h2 className="card-title text-xl mb-4">Urenregistraties</h2>
+
+                <div className="overflow-x-auto">
+                    <table className="table w-full table-zebra">
+                        <thead>
+                        <tr>
+                            <th>Dag</th>
+                            <th>Datum</th>
+                            <th>Urenregistraties</th>
+                            <th>Acties</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {days.map((day) => {
+                            const dayStr = day.format("YYYY-MM-DD");
+                            // Filter entries die niet 'deleted' zijn en die op deze dag vallen
+                            const entriesForDay = localEntries.filter(
+                                (entry) =>
+                                    entry.localStatus !== "deleted" &&
+                                    entry.startTime.startsWith(dayStr)
+                            );
+
+                            return (
+                                <tr key={dayStr}>
+                                    <td className="font-semibold">{day.format("dddd")}</td>
+                                    <td>{day.format("D MMM YYYY")}</td>
+                                    <td>
+                                        {entriesForDay.length === 0 ? (
+                                            <span className="text-sm text-gray-500">
+                          Geen uren geregistreerd
+                        </span>
+                                        ) : (
+                                            // Toon alle entries als sub-onderdelen (verticale lijst)
+                                            <div className="flex flex-col gap-3">
+                                                {entriesForDay.map((entry) => (
+                                                    <DaySubEntry
+                                                        key={entry.id}
+                                                        entry={entry}
+                                                        allEntries={localEntries}
+                                                        onUpdateLocalEntries={onUpdateLocalEntries}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <button
+                                            className="btn btn-primary btn-sm"
+                                            onClick={() => onRegisterClick(day)}
+                                        >
+                                            <ClockIcon className="w-4 h-4 mr-1" />
+                                            Registreren
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

@@ -10,19 +10,23 @@ import {
 } from "@heroicons/react/24/outline";
 import { TimeEntry } from "./WeekOverview";
 
+interface Props {
+    day: Dayjs;
+    entry: TimeEntry;
+    allEntries: TimeEntry[];
+    onRegisterClick: () => void;
+    onUpdateLocalEntries: (updated: TimeEntry[]) => void;
+    showDayInfo: boolean; // <-- nieuwe prop
+}
+
 export default function DaysTableEntryRow({
                                               day,
                                               entry,
                                               allEntries,
                                               onRegisterClick,
                                               onUpdateLocalEntries,
-                                          }: {
-    day: Dayjs;
-    entry: TimeEntry;
-    allEntries: TimeEntry[];
-    onRegisterClick: () => void;
-    onUpdateLocalEntries: (updated: TimeEntry[]) => void;
-}) {
+                                              showDayInfo,
+                                          }: Props) {
     const [isEditing, setIsEditing] = useState(false);
 
     const [startTime, setStartTime] = useState(extractTime(entry.startTime));
@@ -46,7 +50,6 @@ export default function DaysTableEntryRow({
 
     function handleCancel() {
         setIsEditing(false);
-        // revert local states
         setStartTime(extractTime(entry.startTime));
         setEndTime(extractTime(entry.endTime));
         setBreakMinutes(entry.breakMinutes);
@@ -61,7 +64,7 @@ export default function DaysTableEntryRow({
         const newStart = dayStr + "T" + startTime;
         const newEnd = dayStr + "T" + endTime;
 
-        const updated: TimeEntry = {
+        const updatedEntry: TimeEntry = {
             ...entry,
             startTime: newStart,
             endTime: newEnd,
@@ -73,23 +76,35 @@ export default function DaysTableEntryRow({
             localStatus: entry.localStatus === "draft" ? "draft" : "changed",
         };
 
-        const newList = allEntries.map((e) => (e.id === entry.id ? updated : e));
+        const newList = allEntries.map((e) =>
+            e.id === entry.id ? updatedEntry : e
+        );
         onUpdateLocalEntries(newList);
         setIsEditing(false);
     }
 
-    // read-only: bereken total hours
     const diffMin =
         dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") -
         entry.breakMinutes;
     const totalHours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
 
     if (!isEditing) {
-        // READ-ONLY
+        // READ ONLY
         return (
             <tr>
-                <td className="font-semibold">{day.format("dddd")}</td>
-                <td>{day.format("D MMM YYYY")}</td>
+                {/* Dag en Datum alleen tonen als showDayInfo == true */}
+                {showDayInfo ? (
+                    <>
+                        <td className="font-semibold">{day.format("dddd")}</td>
+                        <td>{day.format("D MMM YYYY")}</td>
+                    </>
+                ) : (
+                    <>
+                        <td />
+                        <td />
+                    </>
+                )}
+
                 <td>{dayjs(entry.startTime).format("HH:mm")}</td>
                 <td>{dayjs(entry.endTime).format("HH:mm")}</td>
                 <td>{entry.breakMinutes} min</td>
@@ -125,8 +140,18 @@ export default function DaysTableEntryRow({
         // EDIT MODE
         return (
             <tr className="bg-base-200">
-                <td className="font-semibold">{day.format("dddd")}</td>
-                <td>{day.format("D MMM YYYY")}</td>
+                {showDayInfo ? (
+                    <>
+                        <td className="font-semibold">{day.format("dddd")}</td>
+                        <td>{day.format("D MMM YYYY")}</td>
+                    </>
+                ) : (
+                    <>
+                        <td />
+                        <td />
+                    </>
+                )}
+
                 <td>
                     <input
                         type="time"

@@ -6,26 +6,26 @@ import "dayjs/locale/nl";
 import { CalendarIcon } from "@heroicons/react/24/outline";
 
 interface TimeEntry {
-    startTime: string;  // "2025-02-17T09:00"
-    endTime: string;    // ...
+    startTime: string;
+    endTime: string;
     breakMinutes: number;
     status?: string;
 }
 
 interface MonthlyOverviewProps {
-    currentMonth: Dayjs;            // bijv. dayjs("2025-02-01")
+    currentMonth: Dayjs;
     timeEntries: TimeEntry[];
-    title?: string;                 // bv. "Urenoverzicht februari 2025"
+    title?: string;
 }
 
 dayjs.extend(isoWeek);
 dayjs.locale("nl");
 
-export default function MonthlyOverview({
-                                            currentMonth,
-                                            timeEntries,
-                                            title = "Urenoverzicht",
-                                        }: MonthlyOverviewProps) {
+export default function MonthCalendar({
+                                          currentMonth,
+                                          timeEntries,
+                                          title = "Urenoverzicht",
+                                      }: MonthlyOverviewProps) {
     const monthName = currentMonth.format("MMMM");
     const year = currentMonth.format("YYYY");
 
@@ -34,19 +34,17 @@ export default function MonthlyOverview({
     const startOfCalendar = startOfMonth.startOf("isoWeek");
     const endOfCalendar = endOfMonth.endOf("isoWeek");
 
-    // Array van weken
+    // Bouw weken-array
     const weeks: { isoWeekNumber: number; days: Dayjs[] }[] = [];
     let day = startOfCalendar.clone();
     while (day.isBefore(endOfCalendar) || day.isSame(endOfCalendar, "day")) {
         const isoWeekNumber = day.isoWeek();
-        const daysOfWeek = Array.from({ length: 7 }, (_, i) =>
-            day.clone().add(i, "day")
-        );
-        weeks.push({ isoWeekNumber, days: daysOfWeek });
+        const daysOfWeek = Array.from({length: 7}, (_, i) => day.clone().add(i, "day"));
+        weeks.push({isoWeekNumber, days: daysOfWeek});
         day = day.add(1, "week");
     }
 
-    // Hulpfunctie: uren per dag
+    // Helper om uren per dag te berekenen
     function getHoursForDay(d: Dayjs): number {
         const dayStr = d.format("YYYY-MM-DD");
         const entries = timeEntries.filter((te) => te.startTime.startsWith(dayStr));
@@ -64,7 +62,6 @@ export default function MonthlyOverview({
         return d.isSame(currentMonth, "month");
     }
 
-    // We houden de kolomtotaal bij om onderaan 1 "Totaal"-rij te maken
     const colTotal = Array(7).fill(0);
     let monthTotal = 0;
 
@@ -75,17 +72,10 @@ export default function MonthlyOverview({
             rowSum += hours;
             colTotal[idx] += hours;
             monthTotal += hours;
-
-            // Als hours>0 => highlight in blauw (Elmar-stijl)
-            // Wil je Clockwise-geel? Gebruik "bg-yellow-100"
             const bgColor = hours > 0 ? "bg-blue-100" : "bg-base-100";
             const textColor = isInCurrentMonth(d) ? "text-black" : "text-gray-400";
-
             return (
-                <td
-                    key={idx}
-                    className={`border text-center align-middle w-12 h-12 ${bgColor} ${textColor}`}
-                >
+                <td key={idx} className={`border text-center w-10 h-10 ${bgColor} ${textColor}`}>
                     {hours > 0 ? hours.toFixed(1) : ""}
                 </td>
             );
@@ -93,52 +83,35 @@ export default function MonthlyOverview({
 
         return (
             <tr key={week.isoWeekNumber} className="text-center">
-                {/* Weeknummer */}
-                <td className="border font-semibold w-12 h-12 align-middle text-sm">
-                    {week.isoWeekNumber}
-                </td>
-                {/* 7 dagen */}
+                <td className="border font-semibold w-10 h-10 text-sm">{week.isoWeekNumber}</td>
                 {dayCells}
-                {/* Weektotaal */}
-                <td className="border w-12 h-12 align-middle text-center font-bold text-sm">
-                    {rowSum > 0 ? rowSum.toFixed(1) : ""}
-                </td>
+                <td className="border w-10 h-10 text-center font-bold text-sm">{rowSum > 0 ? rowSum.toFixed(1) : ""}</td>
             </tr>
         );
     });
 
-    // Laatste rij: kolomtotaal + monthTotal
     const totalRow = (
         <tr className="text-center font-semibold">
-            <td className="border w-12 h-12 text-sm">Totaal</td>
+            <td className="border w-10 h-10 text-sm">Totaal</td>
             {colTotal.map((sum, i) => (
-                <td key={i} className="border w-12 h-12 text-sm align-middle">
-                    {sum > 0 ? sum.toFixed(1) : ""}
-                </td>
+                <td key={i} className="border w-10 h-10 text-sm">{sum > 0 ? sum.toFixed(1) : ""}</td>
             ))}
-            <td className="border w-12 h-12 align-middle font-bold text-sm">
-                {monthTotal > 0 ? monthTotal.toFixed(1) : ""}
-            </td>
+            <td className="border w-10 h-10 font-bold text-sm">{monthTotal > 0 ? monthTotal.toFixed(1) : ""}</td>
         </tr>
     );
 
     return (
         <div className="max-w-sm">
-            <div className="card bg-base-100 shadow-md text-sm">
-                <div className="card-body">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <CalendarIcon className="w-5 h-5 text-primary" />
-                            <h2 className="text-md font-bold">
-                                {title} {monthName} {year}
-                            </h2>
-                        </div>
+            <div className="card bg-base-100 shadow-md">
+                <div className="card-body p-4">
+                    <div className="flex items-center gap-2">
+                        <CalendarIcon className="w-5 h-5 text-primary"/>
+                        <h2 className="text-md font-bold">
+                            {title} {monthName} {year}
+                        </h2>
                     </div>
-
-                    {/* Tabel (zonder horizontale scroll => geen overflow-x-auto) */}
                     <div className="mt-4 overflow-hidden">
-                        <table className="table-auto border-collapse">
+                        <table className="table-auto border-collapse w-full">
                             <thead>
                             <tr className="text-center bg-base-200">
                                 <th className="border w-12 h-12 text-sm">Wk</th>
@@ -161,5 +134,5 @@ export default function MonthlyOverview({
                 </div>
             </div>
         </div>
-    );
+    )
 }

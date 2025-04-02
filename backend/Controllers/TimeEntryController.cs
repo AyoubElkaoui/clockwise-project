@@ -19,7 +19,14 @@ public class TimeEntryController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TimeEntry>>> GetTimeEntries()
     {
-        return await _context.TimeEntries.Include(te => te.Project).ToListAsync();
+        // Include Project -> ThenInclude ProjectGroup -> ThenInclude Company
+        var entries = await _context.TimeEntries
+            .Include(te => te.Project)
+                .ThenInclude(p => p.ProjectGroup)
+                    .ThenInclude(pg => pg.Company)
+            .ToListAsync();
+
+        return entries;
     }
 
     // POST: api/time-entries
@@ -31,7 +38,6 @@ public class TimeEntryController : ControllerBase
             return BadRequest("Ongeldige invoer");
         }
 
-        // Als er geen status is meegegeven, stellen we de standaardstatus in:
         if (string.IsNullOrEmpty(entry.Status))
         {
             entry.Status = "opgeslagen";
@@ -86,7 +92,6 @@ public class TimeEntryController : ControllerBase
         return Ok("Uren verwijderd");
     }
 
-    // Extra endpoint voor het wijzigen van de status (bijvoorbeeld inzending)
     // POST: api/time-entries/{id}/submit
     [HttpPost("{id}/submit")]
     public async Task<IActionResult> SubmitTimeEntry(int id)
@@ -97,7 +102,6 @@ public class TimeEntryController : ControllerBase
             return NotFound();
         }
 
-        // Wijzig de status naar "ingeleverd" (of "submitted")
         entry.Status = "ingeleverd";
         _context.Entry(entry).State = EntityState.Modified;
         await _context.SaveChangesAsync();

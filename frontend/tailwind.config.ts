@@ -1,4 +1,4 @@
-// tailwind.config.ts
+// tailwind.config.ts (of .js)
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -9,9 +9,12 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Kies een font dat lijkt op het font in de Elmar-huisstijl
+        elmar: ['"Poppins"', "sans-serif"],
+      },
       colors: {
-        primary: "#2563eb",
-        secondary: "#64748b",
+        // Eventueel extra custom colors
       },
     },
   },
@@ -20,10 +23,11 @@ const config: Config = {
     themes: [
       {
         elmar: {
-          // Voorbeeld: pas deze kleuren aan je echte Elmar-kleurcodes aan
+          // Primair is de hoofdkleur (van het logo)
           primary: "#0F6DB8",
-          secondary: "#FFD600",
-          accent: "#181818",
+          // Secundair kun je bijvoorbeeld geel of grijs doen, afhankelijk van de brand
+          secondary: "#464646",
+          accent: "#E6E6E6",
           neutral: "#3D4451",
           "base-100": "#FFFFFF",
           "base-200": "#F2F2F2",
@@ -34,9 +38,7 @@ const config: Config = {
           error: "#FF5722",
         },
       },
-      // Eventueel andere thema's, of "light" / "dark"
     ],
   },
 };
-
 export default config;

@@ -4,6 +4,7 @@ import dayjs, { Dayjs } from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
+
 import {
     getTimeEntries,
     registerTimeEntry,
@@ -20,7 +21,7 @@ export interface TimeEntry {
     id?: number;
     userId: number;
     projectId: number;
-    startTime: string;    // "2025-02-17T09:00"
+    startTime: string; // "2025-02-17T09:00"
     endTime: string;
     breakMinutes: number;
     distanceKm?: number;
@@ -157,8 +158,9 @@ export default function WeekOverview() {
     }
 
     return (
-        <div className="min-h-screen bg-base-200 p-8">
-            <div className="card shadow-xl max-w-5xl mx-auto mb-6">
+        <div className="w-full mx-auto py-6 px-4">
+            {/* Header + Opslaan/Inleveren kaart */}
+            <div className="card w-full bg-base-100 shadow-lg mb-8">
                 <div className="card-body">
                     <WeekHeader
                         currentWeek={currentWeek}
@@ -166,30 +168,34 @@ export default function WeekOverview() {
                         onNextWeek={handleNextWeek}
                         onToday={handleToday}
                     />
-                    <div className="mt-4">
-                        <span className="font-semibold">Totaal uren deze week: </span>
-                        <span className="badge badge-primary badge-lg">
-              {totalHoursThisWeek.toFixed(2)} uur
-            </span>
-                    </div>
-                    <div className="flex gap-2 mt-4">
-                        <button className="btn btn-success" onClick={handleSave}>
-                            Opslaan
-                        </button>
-                        <button className="btn btn-warning" onClick={handleSubmit}>
-                            Inleveren
-                        </button>
+                    <div className="flex items-center gap-4 mt-4">
+                        <div>
+                            <span className="font-semibold text-lg">Totaal uren deze week: </span>
+                            <span className="badge badge-primary badge-lg text-lg">
+                {totalHoursThisWeek.toFixed(2)} uur
+              </span>
+                        </div>
+                        <div className="flex gap-2 ml-auto">
+                            <button className="btn btn-success" onClick={handleSave}>
+                                Opslaan
+                            </button>
+                            <button className="btn btn-warning" onClick={handleSubmit}>
+                                Inleveren
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* CombinedView in full width */}
             <CombinedView
                 currentWeek={currentWeek}
                 timeEntries={localEntries}
                 onClickRegister={openModal}
-                onUpdateLocalEntries={handleUpdateLocalEntries}  // <-- Let op
+                onUpdateLocalEntries={handleUpdateLocalEntries}
             />
 
+            {/* Modal voor nieuwe entry */}
             <TimeEntryModal
                 isOpen={isModalOpen}
                 day={selectedDay}
@@ -197,6 +203,7 @@ export default function WeekOverview() {
                 onEntrySaved={handleEntrySaved}
             />
 
+            {/* Eventuele toast */}
             {toastMessage && (
                 <ToastNotification message={toastMessage} type={toastType} />
             )}

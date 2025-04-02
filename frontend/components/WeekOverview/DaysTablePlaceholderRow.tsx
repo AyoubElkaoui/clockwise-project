@@ -19,7 +19,10 @@ export default function DaysTablePlaceholderRow({
             </td>
             <td></td>
             <td className="text-right">
-                <button className="btn btn-primary btn-sm" onClick={() => onRegisterClick(day)}>
+                <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => onRegisterClick(day)}
+                >
                     <ClockIcon className="w-4 h-4 mr-1" />
                     Registreren
                 </button>

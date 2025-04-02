@@ -17,7 +17,7 @@ namespace backend.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Fb:ValueGenerationStrategy", FbValueGenerationStrategy.IdentityColumn)
-                .HasAnnotation("ProductVersion", "9.0.2")
+                .HasAnnotation("ProductVersion", "9.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 31);
 
             modelBuilder.Entity("Company", b =>
@@ -132,17 +132,82 @@ namespace backend.Migrations
                         .HasColumnType("INTEGER")
                         .HasAnnotation("Fb:ValueGenerationStrategy", FbValueGenerationStrategy.IdentityColumn);
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("BLOB SUB_TYPE TEXT");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("HouseNumber")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("LoginName")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("Rank")
                         .IsRequired()
                         .HasColumnType("BLOB SUB_TYPE TEXT");
 
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("VacationRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasAnnotation("Fb:ValueGenerationStrategy", FbValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("TIMESTAMP");
+
+                    b.Property<double>("Hours")
+                        .HasColumnType("DOUBLE PRECISION");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("TIMESTAMP");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("VacationRequests");
                 });
 
             modelBuilder.Entity("Project", b =>
@@ -182,6 +247,17 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("VacationRequest", b =>
+                {
+                    b.HasOne("User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

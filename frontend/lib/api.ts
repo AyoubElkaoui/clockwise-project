@@ -3,10 +3,6 @@ import axios from "axios";
 
 const API_URL = "http://localhost:5203/api";
 
-export async function login(email: string) {
-    return await axios.post(`${API_URL}/users/login`, { email });
-}
-
 export async function getCompanies() {
     const res = await axios.get(`${API_URL}/companies`);
     return res.data;
@@ -40,5 +36,46 @@ export async function deleteTimeEntry(id: number) {
 }
 
 export async function submitTimeEntry(id: number) {
-  return await axios.post(`${API_URL}/time-entries/${id}/submit`);
+    return await axios.post(`${API_URL}/time-entries/${id}/submit`);
+}
+
+export async function login(userInput: string, password: string) {
+    const response = await axios.post(`${API_URL}/users/login`, {
+        userInput,
+        password,
+    });
+    return response.data;
+}
+
+export async function registerUser(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    address: string;
+    houseNumber: string;
+    postalCode: string;
+    city: string;
+    loginName: string;
+    password: string;
+}) {
+    const response = await axios.post(`${API_URL}/users/register`, data);
+    return response.data;
+}
+
+// Voeg de functie registerVacationRequest toe
+export async function registerVacationRequest(data: {
+    userId: number;
+    startDate: string;
+    endDate: string;
+    hours: number;
+    reason: string;
+    status: string;
+}) {
+    const response = await axios.post(`${API_URL}/vacation-requests`, data);
+    return response.data;
+}
+
+export async function getVacationRequests() {
+    const res = await axios.get(`${API_URL}/vacation-requests`);
+    return res.data;
 }
