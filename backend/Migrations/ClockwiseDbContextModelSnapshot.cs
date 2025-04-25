@@ -17,7 +17,7 @@ namespace backend.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Fb:ValueGenerationStrategy", FbValueGenerationStrategy.IdentityColumn)
-                .HasAnnotation("ProductVersion", "9.0.3")
+                .HasAnnotation("ProductVersion", "9.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 31);
 
             modelBuilder.Entity("Company", b =>
@@ -146,6 +146,9 @@ namespace backend.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<string>("Function")
                         .HasColumnType("BLOB SUB_TYPE TEXT");
 
                     b.Property<string>("HouseNumber")

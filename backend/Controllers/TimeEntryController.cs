@@ -108,4 +108,46 @@ public class TimeEntryController : ControllerBase
 
         return Ok("Uren ingeleverd");
     }
+    
+    [HttpPut("{id}/approve")]
+    public async Task<IActionResult> ApproveTimeEntry(int id)
+    {
+        var entry = await _context.TimeEntries.FindAsync(id);
+        if (entry == null)
+            return NotFound();
+    
+        entry.Status = "goedgekeurd";
+        await _context.SaveChangesAsync();
+    
+        return Ok();
+    }
+
+    [HttpPut("{id}/reject")]
+    public async Task<IActionResult> RejectTimeEntry(int id)
+    {
+        var entry = await _context.TimeEntries.FindAsync(id);
+        if (entry == null)
+            return NotFound();
+    
+        entry.Status = "afgekeurd";
+        await _context.SaveChangesAsync();
+    
+        return Ok();
+    }
+
+    [HttpGet("{id}/details")]
+    public async Task<ActionResult<TimeEntry>> GetTimeEntryDetails(int id)
+    {
+        var entry = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+            .ThenInclude(p => p.ProjectGroup)
+            .ThenInclude(pg => pg.Company)
+            .FirstOrDefaultAsync(te => te.Id == id);
+    
+        if (entry == null)
+            return NotFound();
+    
+        return entry;
+    }
 }

@@ -1,4 +1,3 @@
-// app/login/page.tsx (of je bestaande login component)
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,20 +12,32 @@ export default function LoginPage() {
     const handleLogin = async () => {
         try {
             const user = await login(userInput, password);
-            // Sla gegevens op in localStorage (optioneel)
+            // Sla gegevens op in localStorage
             localStorage.setItem("userId", user.id);
             localStorage.setItem("firstName", user.firstName);
             localStorage.setItem("lastName", user.lastName);
             localStorage.setItem("userRank", user.rank);
 
-            // Zet een cookie zodat de server (middleware) deze kan lezen.
-            // Let op: In productie moet je extra opties (zoals Secure en SameSite) instellen!
+            // Zet cookies zodat de server (middleware) deze kan lezen
             document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
+            document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
 
-            router.push("/");
-        } catch (e) {
-            setError("Ongeldige login");
+            // Stuur admin/manager naar het admin panel, anders naar dashboard
+            if (user.rank === "admin" || user.rank === "manager") {
+                router.push("/admin");
+            } else {
+                router.push("/dashboard");
+            }
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                console.error("Login error:", e.message);
+                setError("Ongeldige login");
+            } else {
+                console.error("Onbekende fout:", e);
+                setError("Onbekende fout bij login");
+            }
         }
+
     };
 
     return (

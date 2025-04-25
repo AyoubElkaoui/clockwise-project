@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\elkao\\Desktop\\Stage_School_Projects\\clockwise-project\\backend\\backend.csproj": {}
+    "/home/ayoub/clockwise-project/backend/backend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\elkao\\Desktop\\Stage_School_Projects\\clockwise-project\\backend\\backend.csproj": {
+    "/home/ayoub/clockwise-project/backend/backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\elkao\\Desktop\\Stage_School_Projects\\clockwise-project\\backend\\backend.csproj",
+        "projectUniqueName": "/home/ayoub/clockwise-project/backend/backend.csproj",
         "projectName": "backend",
-        "projectPath": "C:\\Users\\elkao\\Desktop\\Stage_School_Projects\\clockwise-project\\backend\\backend.csproj",
-        "packagesPath": "C:\\Users\\elkao\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\elkao\\Desktop\\Stage_School_Projects\\clockwise-project\\backend\\obj\\",
+        "projectPath": "/home/ayoub/clockwise-project/backend/backend.csproj",
+        "packagesPath": "/home/ayoub/.nuget/packages/",
+        "outputPath": "/home/ayoub/clockwise-project/backend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\elkao\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/ayoub/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -65,13 +65,13 @@
             },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[9.0.3, )"
+              "version": "[9.0.4, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.2, )"
+              "version": "[9.0.4, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -97,7 +97,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.406/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.408/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

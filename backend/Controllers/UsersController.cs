@@ -44,21 +44,35 @@ public class UsersController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<User>> Login([FromBody] UserLoginDto loginDto)
     {
-        // Zoek op Email of LoginName
-        var user = await _context.Users.FirstOrDefaultAsync(u =>
-            u.Email == loginDto.UserInput || u.LoginName == loginDto.UserInput);
+        Console.WriteLine("== LOGIN POGING ==");
+        Console.WriteLine($"UserInput ontvangen: '{loginDto.UserInput}'");
+        Console.WriteLine($"Password ontvangen:  '{loginDto.Password}'");
+
+        var input = loginDto.UserInput.Trim().ToLower();
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == input || u.LoginName.ToLower() == input);
 
         if (user == null)
+        {
+            Console.WriteLine("❌ Geen gebruiker gevonden met deze loginnaam/email.");
             return Unauthorized("Ongeldige login");
+        }
 
-        // Voor demo: vergelijken van plaintext wachtwoord (in productie: gebruik hashing)
+        Console.WriteLine($"✅ Gebruiker gevonden: {user.LoginName}");
+        Console.WriteLine($"🔐 Wachtwoord in DB:  '{user.Password}'");
+
         if (user.Password != loginDto.Password)
+        {
+            Console.WriteLine("❌ Wachtwoord komt niet overeen.");
             return Unauthorized("Ongeldig wachtwoord");
+        }
 
-        // Geef de user terug inclusief alle gegevens
+        Console.WriteLine("✅ Login succesvol!");
+
         return Ok(user);
     }
-
     /// <summary>
     /// Registreren van nieuwe gebruikers
     /// POST: /api/users/register
