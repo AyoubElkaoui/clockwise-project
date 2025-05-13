@@ -9,10 +9,12 @@ public class ClockwiseDbContext : DbContext
     public DbSet<TimeEntry> TimeEntries { get; set; }
     public DbSet<Company> Companies { get; set; }
     public DbSet<ProjectGroup> ProjectGroups { get; set; }
+    public DbSet<Activity> Activities { get; set; }
+
 
     // Nieuwe DbSet voor vakantie-aanvragen
     public DbSet<VacationRequest> VacationRequests { get; set; }
-
+        
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -42,6 +44,12 @@ public class ClockwiseDbContext : DbContext
             .HasOne(v => v.User)
             .WithMany() // Of configureer een collectie op User
             .HasForeignKey(v => v.UserId);
+        // Voeg dit toe aan de OnModelCreating methode
+        modelBuilder.Entity<Activity>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId);
+
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

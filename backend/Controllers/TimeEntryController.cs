@@ -96,7 +96,11 @@ public class TimeEntryController : ControllerBase
     [HttpPost("{id}/submit")]
     public async Task<IActionResult> SubmitTimeEntry(int id)
     {
-        var entry = await _context.TimeEntries.FindAsync(id);
+        var entry = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+            .FirstOrDefaultAsync(te => te.Id == id);
+        
         if (entry == null)
         {
             return NotFound();
@@ -104,6 +108,18 @@ public class TimeEntryController : ControllerBase
 
         entry.Status = "ingeleverd";
         _context.Entry(entry).State = EntityState.Modified;
+    
+        // Voeg activiteit toe
+        var activity = new Activity
+        {
+            UserId = entry.UserId,
+            Type = "time_entry",
+            Action = "submitted",
+            Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn ingeleverd",
+            Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+        };
+    
+        _context.Activities.Add(activity);
         await _context.SaveChangesAsync();
 
         return Ok("Uren ingeleverd");
@@ -112,28 +128,62 @@ public class TimeEntryController : ControllerBase
     [HttpPut("{id}/approve")]
     public async Task<IActionResult> ApproveTimeEntry(int id)
     {
-        var entry = await _context.TimeEntries.FindAsync(id);
+        var entry = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+            .FirstOrDefaultAsync(te => te.Id == id);
+        
         if (entry == null)
             return NotFound();
-    
+
         entry.Status = "goedgekeurd";
-        await _context.SaveChangesAsync();
     
+        // Voeg activiteit toe
+        var activity = new Activity
+        {
+            UserId = entry.UserId,
+            Type = "time_entry",
+            Action = "approved",
+            Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn goedgekeurd",
+            Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+        };
+    
+        _context.Activities.Add(activity);
+        await _context.SaveChangesAsync();
+
         return Ok();
     }
+
 
     [HttpPut("{id}/reject")]
     public async Task<IActionResult> RejectTimeEntry(int id)
     {
-        var entry = await _context.TimeEntries.FindAsync(id);
+        var entry = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+            .FirstOrDefaultAsync(te => te.Id == id);
+        
         if (entry == null)
             return NotFound();
-    
+
         entry.Status = "afgekeurd";
-        await _context.SaveChangesAsync();
     
+        // Voeg activiteit toe
+        var activity = new Activity
+        {
+            UserId = entry.UserId,
+            Type = "time_entry",
+            Action = "rejected",
+            Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn afgekeurd",
+            Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+        };
+    
+        _context.Activities.Add(activity);
+        await _context.SaveChangesAsync();
+
         return Ok();
     }
+    
 
     [HttpGet("{id}/details")]
     public async Task<ActionResult<TimeEntry>> GetTimeEntryDetails(int id)
@@ -150,4 +200,6 @@ public class TimeEntryController : ControllerBase
     
         return entry;
     }
+    
+    
 }

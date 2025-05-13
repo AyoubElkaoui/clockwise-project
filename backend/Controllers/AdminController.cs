@@ -127,17 +127,35 @@ public class AdminController : ControllerBase
     /// <summary>
     /// Verwerk een vakantie-aanvraag (goedkeuren/afkeuren)
     /// </summary>
+    // Vervang/update deze methode in AdminController.cs
+
+// Update de ProcessVacationRequest methode
     [HttpPut("vacation-requests/{id}")]
     public async Task<IActionResult> ProcessVacationRequest(int id, [FromBody] VacationStatusDto dto)
     {
-        var request = await _context.VacationRequests.FindAsync(id);
+        var request = await _context.VacationRequests
+            .Include(vr => vr.User)
+            .FirstOrDefaultAsync(vr => vr.Id == id);
+        
         if (request == null) return NotFound();
-        
+    
         request.Status = dto.Status;
-        
+    
+        // Voeg activiteit toe
+        var activity = new Activity
+        {
+            UserId = request.UserId,
+            Type = "vacation",
+            Action = dto.Status == "approved" ? "approved" : "rejected",
+            Message = $"Vakantie-aanvraag van {request.StartDate.ToString("dd-MM-yyyy")} tot {request.EndDate.ToString("dd-MM-yyyy")} is {(dto.Status == "approved" ? "goedgekeurd" : "afgekeurd")}",
+            Details = $"Uren: {request.Hours}, Reden: {request.Reason ?? "Geen reden opgegeven"}"
+        };
+    
+        _context.Activities.Add(activity);
+    
         _context.Entry(request).State = EntityState.Modified;
         await _context.SaveChangesAsync();
-        
+    
         return Ok($"Vakantie-aanvraag {dto.Status}");
     }
     

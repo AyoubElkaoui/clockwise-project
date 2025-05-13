@@ -36,6 +36,19 @@ public class VacationRequestsController : ControllerBase
         vacation.Status = "pending"; // standaard
 
         _context.VacationRequests.Add(vacation);
+    
+        // Voeg activiteit toe
+        var activity = new Activity
+        {
+            UserId = vacation.UserId,
+            Type = "vacation",
+            Action = "submitted",
+            Message = $"Vakantie-aanvraag van {vacation.StartDate.ToString("dd-MM-yyyy")} tot {vacation.EndDate.ToString("dd-MM-yyyy")} is ingediend",
+            Details = $"Uren: {vacation.Hours}, Reden: {vacation.Reason ?? "Geen reden opgegeven"}"
+        };
+    
+        _context.Activities.Add(activity);
+    
         await _context.SaveChangesAsync();
         return Ok("Vakantie aangevraagd!");
     }
