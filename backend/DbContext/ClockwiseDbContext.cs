@@ -10,6 +10,8 @@ public class ClockwiseDbContext : DbContext
     public DbSet<Company> Companies { get; set; }
     public DbSet<ProjectGroup> ProjectGroups { get; set; }
     public DbSet<Activity> Activities { get; set; }
+    
+    public DbSet<UserProject> UserProjects { get; set; }
 
 
     // Nieuwe DbSet voor vakantie-aanvragen
@@ -49,6 +51,24 @@ public class ClockwiseDbContext : DbContext
             .HasOne(a => a.User)
             .WithMany()
             .HasForeignKey(a => a.UserId);
+    // Toevoegen aan ClockwiseDbContext.cs
+
+// In OnModelCreating toevoegen:
+        modelBuilder.Entity<UserProject>()
+        .HasOne(up => up.User)
+            .WithMany()
+            .HasForeignKey(up => up.UserId);
+
+        modelBuilder.Entity<UserProject>()
+        .HasOne(up => up.Project)
+            .WithMany()
+            .HasForeignKey(up => up.ProjectId);
+
+        modelBuilder.Entity<UserProject>()
+        .HasOne(up => up.AssignedByUser)
+            .WithMany()
+            .HasForeignKey(up => up.AssignedByUserId)
+            .IsRequired(false);
 
     }
 

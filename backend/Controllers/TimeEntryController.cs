@@ -30,12 +30,30 @@ public class TimeEntryController : ControllerBase
     }
 
     // POST: api/time-entries
+    // Aanpassing in TimeEntryController.cs - CreateTimeEntry methode
     [HttpPost]
     public async Task<IActionResult> CreateTimeEntry([FromBody] TimeEntry entry)
     {
         if (entry == null)
         {
             return BadRequest("Ongeldige invoer");
+        }
+
+        // Controleer of gebruiker is toegewezen aan dit project
+        bool isAssigned = await _context.UserProjects
+            .AnyAsync(up => up.UserId == entry.UserId && up.ProjectId == entry.ProjectId);
+
+        if (!isAssigned)
+        {
+            // Controleer of de gebruiker een admin of manager is
+            var user = await _context.Users.FindAsync(entry.UserId);
+            bool isAdminOrManager = user != null && (user.Rank == "admin" || user.Rank == "manager");
+        
+            // Als geen admin/manager, weiger toegang
+            if (!isAdminOrManager)
+            {
+                return BadRequest("U bent niet toegewezen aan dit project");
+            }
         }
 
         if (string.IsNullOrEmpty(entry.Status))
@@ -200,6 +218,8 @@ public class TimeEntryController : ControllerBase
     
         return entry;
     }
+    
+    
     
     
 }

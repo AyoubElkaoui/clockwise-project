@@ -72,6 +72,7 @@ public class ActivitiesController : ControllerBase
     }
 
     // PUT: api/activities/read-all
+    // PUT: api/activities/read-all
     [HttpPut("read-all")]
     public async Task<IActionResult> MarkAllAsRead([FromQuery] int userId)
     {
@@ -85,7 +86,6 @@ public class ActivitiesController : ControllerBase
         foreach (var activity in activities)
         {
             activity.Read = true;
-            _context.Entry(activity).State = EntityState.Modified;
         }
 
         await _context.SaveChangesAsync();
