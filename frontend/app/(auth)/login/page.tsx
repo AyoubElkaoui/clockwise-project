@@ -1,7 +1,9 @@
+// app/(auth)/login/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
+import Image from "next/image";
 
 export default function LoginPage() {
     const [userInput, setUserInput] = useState("");
@@ -12,17 +14,21 @@ export default function LoginPage() {
     const handleLogin = async () => {
         try {
             const user = await login(userInput, password);
-            // Sla gegevens op in localStorage
+
+            // Wis eerst alle bestaande data
+            localStorage.clear();
+
+            // Sla nieuwe gegevens op
             localStorage.setItem("userId", user.id);
             localStorage.setItem("firstName", user.firstName);
             localStorage.setItem("lastName", user.lastName);
             localStorage.setItem("userRank", user.rank);
 
-            // Zet cookies zodat de server (middleware) deze kan lezen
+            // Zet cookies
             document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
             document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
 
-            // Stuur admin/manager naar het admin panel, anders naar dashboard
+            // Stuur naar juiste pagina
             if (user.rank === "admin" || user.rank === "manager") {
                 router.push("/admin");
             } else {
@@ -37,12 +43,19 @@ export default function LoginPage() {
                 setError("Onbekende fout bij login");
             }
         }
-
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-base-200">
             <div className="card w-96 bg-base-100 shadow-xl p-8">
+                <div className="flex justify-center mb-4">
+                    <Image
+                        src="/logo.png"
+                        alt="Elmar Services Logo"
+                        width={200}
+                        height={80}
+                    />
+                </div>
                 <h1 className="card-title justify-center mb-6">Login</h1>
                 <input
                     type="text"

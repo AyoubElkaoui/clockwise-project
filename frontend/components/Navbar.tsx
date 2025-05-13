@@ -1,14 +1,28 @@
-// components/Navbar.tsx
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
+    const handleLogout = () => {
+        // Verwijder alle localStorage items
+        localStorage.removeItem("userId");
+        localStorage.removeItem("firstName");
+        localStorage.removeItem("lastName");
+        localStorage.removeItem("userRank");
+
+        // Verwijder cookies
+        document.cookie = "userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "userRank=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+        // Redirect naar login pagina
+        window.location.href = "/login";
+    };
+
     return (
         <nav className="navbar bg-base-100 px-6 shadow-md">
             {/* Linkerzijde: logo + merknaam */}
             <div className="flex-1 flex items-center gap-2">
-                {/* Stel dat je logo in public/logo-elmar.png staat */}
                 <Link href="/">
                     <div className="flex items-center gap-2 cursor-pointer">
                         <Image
@@ -24,16 +38,12 @@ export default function Navbar() {
                 </Link>
             </div>
 
-            <div className="flex-none">
+            <div className="flex-none gap-2">
+                <NotificationBell />
+
                 <button
                     className="btn btn-error"
-                    onClick={() => {
-                        localStorage.removeItem("userId");
-                        localStorage.removeItem("firstName");
-                        localStorage.removeItem("lastName");
-                        localStorage.removeItem("userRank");
-                        window.location.href = "/login";
-                    }}
+                    onClick={handleLogout}
                 >
                     Uitloggen
                 </button>

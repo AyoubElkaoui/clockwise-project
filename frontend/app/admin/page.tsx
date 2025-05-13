@@ -7,12 +7,18 @@ import AdminRoute from "@/components/AdminRoute";
 export default function AdminDashboard() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [adminName, setAdminName] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const data = await getAdminStats();
                 setStats(data);
+
+                // Admin naam ophalen uit localStorage
+                const firstName = localStorage.getItem("firstName") || "";
+                const lastName = localStorage.getItem("lastName") || "";
+                setAdminName(`${firstName} ${lastName}`);
             } catch (error) {
                 console.error("Error fetching admin stats:", error);
             } finally {
@@ -32,7 +38,8 @@ export default function AdminDashboard() {
     return (
         <AdminRoute>
             <div className="p-6">
-                <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+                <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+                <p className="text-lg mb-6">Welkom, {adminName}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="card bg-base-100 shadow-xl">

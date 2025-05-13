@@ -1,8 +1,7 @@
-// components/WeekOverview/TimeEntryForm.tsx
 "use client";
 import React, { useEffect, useState } from "react";
 import { Dayjs } from "dayjs";
-import { getCompanies, getProjectGroups, getProjects, registerTimeEntry } from "@/lib/api";
+import { getCompanies, getProjectGroups, getProjects, registerTimeEntry, getUserProjects } from "@/lib/api";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
 
@@ -17,6 +16,7 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
     const [companies, setCompanies] = useState<any[]>([]);
     const [projectGroups, setProjectGroups] = useState<any[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
+    const [assignedProjects, setAssignedProjects] = useState<any[]>([]);
 
     // Geselecteerde waarden
     const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
@@ -33,22 +33,123 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
     const [notes, setNotes] = useState("");
 
     const [calculatedHours, setCalculatedHours] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
-        getCompanies().then(setCompanies).catch(console.error);
+        const fetchInitialData = async () => {
+            try {
+                // Haal de huidige gebruiker op uit localStorage
+                const userId = Number(localStorage.getItem("userId"));
+                if (!userId) {
+                    setError("Gebruiker niet gevonden");
+                    return;
+                }
+
+                // Haal alle bedrijven op voor de dropdown
+                const companiesData = await getCompanies();
+                setCompanies(companiesData);
+
+                // Haal de projecten op waaraan de gebruiker is toegewezen
+                const userProjectsData = await getUserProjects(userId);
+                setAssignedProjects(userProjectsData);
+
+                // Controleer of de gebruiker een admin/manager is
+                const userRank = localStorage.getItem("userRank");
+                const isAdminOrManager = userRank === "admin" || userRank === "manager";
+
+                // Als de gebruiker admin/manager is, laat dan alle projecten zien
+                if (isAdminOrManager) {
+                    // Haal normale gegevens op
+                } else if (userProjectsData.length === 0) {
+                    setError("Je bent niet toegewezen aan projecten. Neem contact op met een beheerder.");
+                }
+            } catch (error) {
+                console.error("Error fetching initial data:", error);
+                setError("Fout bij het ophalen van gegevens");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInitialData();
     }, []);
 
     useEffect(() => {
         if (selectedCompany) {
-            getProjectGroups(selectedCompany).then(setProjectGroups).catch(console.error);
+            const fetchProjectGroups = async () => {
+                try {
+                    const data = await getProjectGroups(selectedCompany);
+
+                    // Filter projectgroepen op basis van toegewezen projecten
+                    const userRank = localStorage.getItem("userRank");
+                    const isAdminOrManager = userRank === "admin" || userRank === "manager";
+
+                    if (isAdminOrManager) {
+                        // Admins en managers zien alle projectgroepen
+                        setProjectGroups(data);
+                    } else {
+                        // Reguliere gebruikers zien alleen projectgroepen waar ze toegang toe hebben
+                        const assignedProjectGroupIds = assignedProjects
+                            .filter(ap => ap.project?.projectGroup?.company?.id === selectedCompany)
+                            .map(ap => ap.project?.projectGroup?.id);
+
+                        const filteredGroups = data.filter(group =>
+                            assignedProjectGroupIds.includes(group.id)
+                        );
+
+                        setProjectGroups(filteredGroups);
+                    }
+                } catch (error) {
+                    console.error("Error fetching project groups:", error);
+                }
+            };
+
+            fetchProjectGroups();
+        } else {
+            setProjectGroups([]);
         }
-    }, [selectedCompany]);
+
+        setSelectedProjectGroup(null);
+        setSelectedProject(null);
+    }, [selectedCompany, assignedProjects]);
 
     useEffect(() => {
         if (selectedProjectGroup) {
-            getProjects(selectedProjectGroup).then(setProjects).catch(console.error);
+            const fetchProjects = async () => {
+                try {
+                    const data = await getProjects(selectedProjectGroup);
+
+                    // Filter projecten op basis van toegewezen projecten
+                    const userRank = localStorage.getItem("userRank");
+                    const isAdminOrManager = userRank === "admin" || userRank === "manager";
+
+                    if (isAdminOrManager) {
+                        // Admins en managers zien alle projecten
+                        setProjects(data);
+                    } else {
+                        // Reguliere gebruikers zien alleen projecten waar ze toegang toe hebben
+                        const assignedProjectIds = assignedProjects
+                            .map(ap => ap.projectId);
+
+                        const filteredProjects = data.filter(project =>
+                            assignedProjectIds.includes(project.id)
+                        );
+
+                        setProjects(filteredProjects);
+                    }
+                } catch (error) {
+                    console.error("Error fetching projects:", error);
+                }
+            };
+
+            fetchProjects();
+        } else {
+            setProjects([]);
         }
-    }, [selectedProjectGroup]);
+
+        setSelectedProject(null);
+    }, [selectedProjectGroup, assignedProjects]);
 
     useEffect(() => {
         const dayStr = day.format("YYYY-MM-DD");
@@ -71,9 +172,24 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
             alert("Vul start- en eindtijd in");
             return;
         }
+
+        // Controleer of gebruiker toegang heeft tot dit project
+        const userRank = localStorage.getItem("userRank");
+        const isAdminOrManager = userRank === "admin" || userRank === "manager";
+
+        if (!isAdminOrManager) {
+            const hasAccess = assignedProjects.some(ap => ap.projectId === selectedProject);
+            if (!hasAccess) {
+                alert("Je hebt geen toegang tot dit project");
+                return;
+            }
+        }
+
         const dayStr = day.format("YYYY-MM-DD");
+        const userId = Number(localStorage.getItem("userId")) || 0;
+
         const data = {
-            userId: 1,
+            userId,
             projectId: selectedProject,
             startTime: `${dayStr}T${startTime}`,
             endTime: `${dayStr}T${endTime}`,
@@ -83,6 +199,7 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
             expenses,
             notes,
         };
+
         try {
             await registerTimeEntry(data);
             onEntrySaved();
@@ -91,6 +208,46 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
             alert("Fout bij opslaan");
         }
     };
+
+    if (loading) {
+        return (
+            <div className="h-full flex items-center justify-center">
+                <div className="loading loading-spinner loading-lg"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold">{day.format("dddd D MMMM YYYY")}</h2>
+                    <button className="btn btn-sm btn-outline" onClick={onClose}>
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <p className="text-error mb-4">{error}</p>
+                        <button className="btn btn-outline" onClick={onClose}>
+                            Sluiten
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Maak lijsten van unieke bedrijven uit de toegewezen projecten
+    const assignedCompanies = assignedProjects
+        .filter(ap => ap.project?.projectGroup?.company)
+        .map(ap => ({
+            id: ap.project.projectGroup.company.id,
+            name: ap.project.projectGroup.company.name
+        }))
+        .filter((company, index, self) =>
+            index === self.findIndex(c => c.id === company.id)
+        );
 
     return (
         <div className="h-full flex flex-col">
@@ -118,11 +275,19 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
                         }}
                     >
                         <option value="">-- Kies een bedrijf --</option>
-                        {companies.map((c) => (
-                            <option key={c.id} value={c.id}>
-                                {c.name}
-                            </option>
-                        ))}
+                        {/* Toon voor reguliere gebruikers alleen toegewezen bedrijven */}
+                        {localStorage.getItem("userRank") === "admin" || localStorage.getItem("userRank") === "manager"
+                            ? companies.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))
+                            : assignedCompanies.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.name}
+                                </option>
+                            ))
+                        }
                     </select>
                 </div>
                 {/* Projectgroep */}
@@ -257,7 +422,11 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
                     Totaal uren: <span className="text-primary">{calculatedHours.toFixed(2)}</span>
                 </div>
             </div>
-            <button className="btn btn-accent w-full" onClick={handleSave}>
+            <button
+                className="btn btn-accent w-full"
+                onClick={handleSave}
+                disabled={!selectedProject}
+            >
                 Opslaan
             </button>
         </div>

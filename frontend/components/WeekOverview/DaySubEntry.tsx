@@ -6,6 +6,7 @@ import {
     PencilIcon,
     CheckIcon,
     XMarkIcon,
+    LockClosedIcon,
 } from "@heroicons/react/24/outline";
 import { TimeEntry } from "./WeekOverview";
 import { getCompanies, getProjectGroups, getProjects } from "@/lib/api";
@@ -82,6 +83,37 @@ export default function DaySubEntry({
         setSelectedProject(null);
     }, [selectedProjectGroup]);
 
+    // Bereken of deze entry bewerkbaar is op basis van de status
+    const isEditable = entry.status === "opgeslagen" || entry.status === "afgekeurd";
+
+    // Bepaal klasse op basis van status
+    const getStatusClass = () => {
+        switch (entry.status) {
+            case "goedgekeurd":
+                return "border-green-500 bg-green-50";
+            case "afgekeurd":
+                return "border-red-500 bg-red-50";
+            case "ingeleverd":
+                return "border-yellow-500 bg-yellow-50";
+            default:
+                return "border-gray-300 bg-white";
+        }
+    };
+
+    // Bepaal statuslabel
+    const getStatusLabel = () => {
+        switch (entry.status) {
+            case "goedgekeurd":
+                return <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Goedgekeurd</span>;
+            case "afgekeurd":
+                return <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">Afgekeurd</span>;
+            case "ingeleverd":
+                return <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Ingeleverd</span>;
+            default:
+                return <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">Opgeslagen</span>;
+        }
+    };
+
     /** In read‐only mode, we show times etc. */
     const isReadOnly = !isEditing;
 
@@ -102,6 +134,7 @@ export default function DaySubEntry({
     }
 
     function handleEdit() {
+        if (!isEditable) return;
         setIsEditing(true);
     }
 
@@ -141,6 +174,7 @@ export default function DaySubEntry({
             notes,
             localStatus: newLocalStatus,
             projectId: selectedProject,
+            status: entry.status === "afgekeurd" ? "opgeslagen" : entry.status // Reset afgekeurde status naar opgeslagen
         };
 
         const newList = allEntries.map((e) => (e.id === entry.id ? updated : e));
@@ -149,7 +183,7 @@ export default function DaySubEntry({
     }
 
     return (
-        <div className="bg-white p-3 rounded shadow border">
+        <div className={`p-3 rounded shadow border ${getStatusClass()}`}>
             {/* READ-ONLY MODE */}
             {isReadOnly && (
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
@@ -157,31 +191,41 @@ export default function DaySubEntry({
                         <span className="font-semibold">{projectName}</span>{" "}
                         <span className="text-xs text-gray-500 ml-1">({companyName})</span>
                         <span className="ml-2 text-xs text-gray-500">
-              {start.format("HH:mm")} - {end.format("HH:mm")}
-            </span>
+                            {start.format("HH:mm")} - {end.format("HH:mm")}
+                        </span>
                         <span className="ml-2 text-xs text-gray-500">
-              (pauze: {entry.breakMinutes} min)
-            </span>
+                            (pauze: {entry.breakMinutes} min)
+                        </span>
                         <span className="ml-2 font-semibold">{totalHours} uur</span>
                         {entry.notes && (
                             <span className="ml-2 italic text-gray-700">[{entry.notes}] </span>
                         )}
+                        <span className="ml-2">{getStatusLabel()}</span>
                     </div>
                     <div className="flex gap-2 mt-2 sm:mt-0">
-                        <button
-                            className="btn btn-xs btn-ghost text-error"
-                            title="Verwijderen"
-                            onClick={handleDelete}
-                        >
-                            <TrashIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                            className="btn btn-xs btn-ghost"
-                            title="Bewerken"
-                            onClick={handleEdit}
-                        >
-                            <PencilIcon className="w-4 h-4" />
-                        </button>
+                        {isEditable ? (
+                            <>
+                                <button
+                                    className="btn btn-xs btn-ghost text-error"
+                                    title="Verwijderen"
+                                    onClick={handleDelete}
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                    className="btn btn-xs btn-ghost"
+                                    title="Bewerken"
+                                    onClick={handleEdit}
+                                >
+                                    <PencilIcon className="w-4 h-4" />
+                                </button>
+                            </>
+                        ) : (
+                            <span className="text-xs text-gray-500 flex items-center">
+                                <LockClosedIcon className="w-4 h-4 mr-1" />
+                                {entry.status === "ingeleverd" ? "Wacht op goedkeuring" : "Vergrendeld"}
+                            </span>
+                        )}
                     </div>
                 </div>
             )}
