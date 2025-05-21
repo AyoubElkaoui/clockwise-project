@@ -55,15 +55,17 @@ export default function WeekOverview() {
         try {
             for (const entry of localEntries) {
                 if (entry.localStatus === "draft") {
-                    // Maak een kopie zonder id en localStatus
-                    const { id, localStatus, ...rest } = entry;
-                    // Cast naar het juiste type
-                    await registerTimeEntry(rest as Omit<TimeEntry, 'id' | 'localStatus'>);
+                    // Voor draft entries, stuur alles behalve id (omdat het nieuw is)
+                    // We maken een kopie zonder id property (als die bestaat)
+                    const entryCopy = { ...entry };
+                    delete entryCopy.id;
+                    delete entryCopy.localStatus;
+                    await registerTimeEntry(entryCopy as Omit<TimeEntry, 'id' | 'localStatus'>);
                 } else if (entry.localStatus === "changed" && entry.id) {
-                    // Maak een kopie zonder localStatus
-                    const { localStatus, ...rest } = entry;
-                    // Cast naar het juiste type
-                    await updateTimeEntry(entry.id, rest as Partial<TimeEntry>);
+                    // Voor changed entries, stuur alles behalve localStatus
+                    const entryCopy = { ...entry };
+                    delete entryCopy.localStatus;
+                    await updateTimeEntry(entry.id, entryCopy as Partial<TimeEntry>);
                 } else if (entry.localStatus === "deleted" && entry.id) {
                     await deleteTimeEntry(entry.id);
                 }

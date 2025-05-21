@@ -1,6 +1,6 @@
 // lib/api.ts
 import axios from "axios";
-import { TimeEntry, User, Project, ProjectGroup, Company, VacationRequest, UserProject } from "./types";
+import { TimeEntry, User} from "./types";
 
 // Exporteer de API_URL constante zodat deze beschikbaar is voor andere bestanden
 export const API_URL = "http://localhost:5203/api";

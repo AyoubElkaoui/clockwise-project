@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { API_URL } from "@/lib/api"; // Import API_URL van lib/api
+// Remove unused imports: axios and API_URL
 
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
     const router = useRouter();
@@ -29,6 +28,3 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
 
     return <>{children}</>;
 }
-
-// Voeg deze functies toe aan je lib/api.ts, niet hier!
-// Verwijder deze API functies uit AdminRoute.tsx, want ze zijn al in lib/api.ts
