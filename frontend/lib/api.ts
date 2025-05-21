@@ -2,6 +2,7 @@
 import axios from "axios";
 import { TimeEntry, User} from "./types";
 
+
 // Exporteer de API_URL constante zodat deze beschikbaar is voor andere bestanden
 export const API_URL = "https://badc-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api";
 
@@ -44,10 +45,13 @@ export async function submitTimeEntry(id: number) {
 // In je login functie, na het ontvangen van de gebruiker
 export async function login(userInput: string, password: string) {
     try {
+        console.log("Login poging starten...");
         const user = await axios.post(`${API_URL}/users/login`, {
             userInput,
             password,
         });
+
+        console.log("Login succesvol, response:", user.data);
 
         // Wis eerst alle bestaande gebruikersgegevens
         localStorage.clear();
@@ -58,9 +62,7 @@ export async function login(userInput: string, password: string) {
         localStorage.setItem("lastName", user.data.lastName);
         localStorage.setItem("userRank", user.data.rank);
 
-        // Zet cookies voor de server
-        document.cookie = `userId=${user.data.id}; path=/; max-age=3600;`;
-        document.cookie = `userRank=${user.data.rank}; path=/; max-age=3600;`;
+        console.log("Login data opgeslagen, klaar om te redirecten");
 
         return user.data;
     } catch (error) {
