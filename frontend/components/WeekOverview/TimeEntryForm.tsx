@@ -97,7 +97,7 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: TimeEntryF
                             .filter(ap => ap.project?.projectGroup?.company?.id === selectedCompany)
                             .map(ap => ap.project?.projectGroup?.id);
 
-                        const filteredGroups = data.filter(group =>
+                        const filteredGroups = data.filter((group: ProjectGroup) =>
                             assignedProjectGroupIds.includes(group.id)
                         );
 
@@ -135,7 +135,7 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: TimeEntryF
                         const assignedProjectIds = assignedProjects
                             .map(ap => ap.projectId);
 
-                        const filteredProjects = data.filter(project =>
+                        const filteredProjects = data.filter((project: Project) =>
                             assignedProjectIds.includes(project.id)
                         );
 

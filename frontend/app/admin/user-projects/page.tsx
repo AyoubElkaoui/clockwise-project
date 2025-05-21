@@ -1,4 +1,4 @@
-// Fix voor UserProjects component (vervolg)
+// Fix voor UserProjects component
 
 "use client";
 import { useState, useEffect, useCallback } from "react";
@@ -195,13 +195,13 @@ export default function AdminUserProjectsPage() {
         return project.name;
     };
 
-    // Hulpfunctie om bedrijfsnaam te vinden
-    const getCompanyName = (project?: Project) => {
-        if (!project || !project.projectGroup || !project.projectGroup.company) {
-            return "Onbekend bedrijf";
-        }
-        return project.projectGroup.company.name;
-    };
+    // Verwijder ongebruikte functie
+    // const getCompanyName = (project?: Project) => {
+    //     if (!project || !project.projectGroup || !project.projectGroup.company) {
+    //         return "Onbekend bedrijf";
+    //     }
+    //     return project.projectGroup.company.name;
+    // };
 
     if (loading) {
         return <div className="flex justify-center items-center min-h-screen">

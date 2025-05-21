@@ -1,7 +1,7 @@
 // Fix voor NotificationFeed.tsx
 
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getActivities, markActivityAsRead, markAllActivitiesAsRead } from "@/lib/api";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { Activity } from "@/lib/types";
@@ -16,7 +16,7 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
     const [error, setError] = useState<string | null>(null);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    const fetchActivities = async () => {
+    const fetchActivities = useCallback(async () => {
         try {
             setLoading(true);
             const userId = Number(localStorage.getItem("userId"));
@@ -24,14 +24,14 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
 
             const data = await getActivities(limit, userId);
             setActivities(data);
-            setUnreadCount(data.filter((a) => !a.read).length);
+            setUnreadCount(data.filter((a: Activity) => !a.read).length);
         } catch (error) {
             console.error("Error fetching activities:", error);
             setError("Kon activiteiten niet laden");
         } finally {
             setLoading(false);
         }
-    };
+    }, [limit]);
 
     useEffect(() => {
         fetchActivities();
@@ -39,7 +39,7 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
         // Ververs elke 30 seconden
         const interval = setInterval(fetchActivities, 30000);
         return () => clearInterval(interval);
-    }, [limit]);
+    }, [fetchActivities]);
 
     const handleActivityClick = async (activityId: number) => {
         if (!activities.find(a => a.id === activityId)?.read) {

@@ -4,10 +4,11 @@ import { getUsers, deleteUser } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
 import { useRouter } from "next/navigation";
 import ToastNotification from "@/components/ToastNotification";
+import { User } from "@/lib/types";
 
 export default function AdminUsersPage() {
     const router = useRouter();
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -34,7 +35,7 @@ export default function AdminUsersPage() {
         fetchUsers();
     }, []);
 
-    const filteredUsers = users.filter((user: any) => {
+    const filteredUsers = users.filter((user: User) => {
         const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
         const email = user.email.toLowerCase();
         const search = searchTerm.toLowerCase();
@@ -47,13 +48,13 @@ export default function AdminUsersPage() {
         setShowDeleteModal(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmDelete = async (): Promise<void> => {
         if (!userToDelete) return;
 
         try {
             await deleteUser(userToDelete);
             // Refresh gebruikerslijst
-            const updatedUsers = users.filter((user: any) => user.id !== userToDelete);
+            const updatedUsers = users.filter((user: User) => user.id !== userToDelete);
             setUsers(updatedUsers);
             setToastMessage("Gebruiker succesvol verwijderd");
             setToastType("success");
@@ -120,7 +121,7 @@ export default function AdminUsersPage() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {filteredUsers.map((user: any) => (
+                                {filteredUsers.map((user: User) => (
                                     <tr key={user.id}>
                                         <td>{user.id}</td>
                                         <td>{user.firstName} {user.lastName}</td>

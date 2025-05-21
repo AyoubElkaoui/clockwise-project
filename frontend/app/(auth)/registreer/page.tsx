@@ -1,5 +1,3 @@
-// Fix voor frontend/app/(auth)/registreer/page.tsx
-
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -32,7 +30,8 @@ export default function RegisterPage() {
                 password,
             });
             router.push("/login");
-        } catch (_e) {
+        } catch (error) {
+            console.error("Registratie error:", error); // Gebruik de error parameter zodat hij niet ongebruikt is
             setError("Registratie mislukt");
         }
     };

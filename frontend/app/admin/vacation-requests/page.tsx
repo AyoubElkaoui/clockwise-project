@@ -1,14 +1,14 @@
-
-// app/admin/vacation-requests/page.tsx (vervolg)
+// app/admin/vacation-requests/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { getAdminVacationRequests, processVacationRequest } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
 import dayjs from "dayjs";
 import ToastNotification from "@/components/ToastNotification";
+import { VacationRequest } from "@/lib/types";
 
 export default function AdminVacationRequestsPage() {
-    const [requests, setRequests] = useState([]);
+    const [requests, setRequests] = useState<VacationRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
@@ -66,7 +66,7 @@ export default function AdminVacationRequestsPage() {
     // Apply status filter
     const filteredRequests = statusFilter === "all"
         ? requests
-        : requests.filter((request: any) => request.status === statusFilter);
+        : requests.filter((request: VacationRequest) => request.status === statusFilter);
 
     if (loading) {
         return <div className="flex justify-center items-center min-h-screen">
@@ -122,9 +122,9 @@ export default function AdminVacationRequestsPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredRequests.map((request: any) => (
+                                    filteredRequests.map((request: VacationRequest) => (
                                         <tr key={request.id}>
-                                            <td>{request.user.fullName}</td>
+                                            <td>{request.user?.fullName}</td>
                                             <td>{dayjs(request.startDate).format('YYYY-MM-DD')}</td>
                                             <td>{dayjs(request.endDate).format('YYYY-MM-DD')}</td>
                                             <td>{request.hours.toFixed(1)}</td>

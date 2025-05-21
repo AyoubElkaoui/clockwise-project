@@ -1,7 +1,9 @@
 // lib/api.ts
 import axios from "axios";
+import { TimeEntry, User, Project, ProjectGroup, Company, VacationRequest, UserProject } from "./types";
 
-const API_URL = "http://localhost:5203/api";
+// Exporteer de API_URL constante zodat deze beschikbaar is voor andere bestanden
+export const API_URL = "http://localhost:5203/api";
 
 export async function getCompanies() {
     const res = await axios.get(`${API_URL}/companies`);
@@ -23,11 +25,11 @@ export async function getTimeEntries() {
     return res.data;
 }
 
-export async function registerTimeEntry(data: any) {
+export async function registerTimeEntry(data: Omit<TimeEntry, 'id' | 'localStatus'>) {
     return await axios.post(`${API_URL}/time-entries`, data);
 }
 
-export async function updateTimeEntry(id: number, data: any) {
+export async function updateTimeEntry(id: number, data: Partial<TimeEntry>) {
     return await axios.put(`${API_URL}/time-entries/${id}`, data);
 }
 
@@ -137,7 +139,7 @@ export async function getUser(id: number) {
     return res.data;
 }
 
-export async function updateUser(id: number, userData: any) {
+export async function updateUser(id: number, userData: Partial<User>) {
     const res = await axios.put(`${API_URL}/users/${id}`, userData);
     return res.data;
 }
@@ -242,5 +244,3 @@ export async function removeUserFromProject(userId: number, projectId: number) {
     const res = await axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`);
     return res.data;
 }
-
-

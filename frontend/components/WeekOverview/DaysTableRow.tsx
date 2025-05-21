@@ -1,10 +1,7 @@
-// Fix voor DaysTableRow.tsx - fix voor de import en verwijderen van ongebruikte variabele
-
 "use client";
 import React from "react";
 import { Dayjs } from "dayjs";
 import { TimeEntry } from "@/lib/types";
-// Verwijderd de import van dayjs omdat die niet gebruikt wordt in deze component
 
 interface Props {
     currentWeek: Dayjs;
@@ -125,14 +122,14 @@ export default function DaysTable({
     // Voorbeeld: implementaties van handleDelete/handleEdit
     function handleDelete(entryId: number) {
         const updated = localEntries.map((e) =>
-            e.id === entryId ? { ...e, localStatus: "deleted" } : e
+            e.id === entryId ? { ...e, localStatus: "deleted" as const } : e
         );
         onUpdateLocalEntries(updated);
     }
 
     function handleEdit(entry: TimeEntry) {
-        // Hier kun je een modal of inline-edit starten
-        // of local state bijwerken.
+        // Nu gebruiken we de entry parameter door deze te loggen
+        console.log("Zou entry bewerken met ID:", entry.id);
         alert("Bewerken van entry nog niet geïmplementeerd in dit voorbeeld!");
     }
 }

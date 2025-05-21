@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 import { getCompanies, getProjectGroups, createProject } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
 import ToastNotification from "@/components/ToastNotification";
+import { Company, ProjectGroup } from "@/lib/types";
 
 export default function AdminProjectsPage() {
-    const [companies, setCompanies] = useState([]);
-    const [projectGroups, setProjectGroups] = useState([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Form state
@@ -107,7 +108,7 @@ export default function AdminProjectsPage() {
                                     onChange={(e) => setSelectedCompany(e.target.value ? Number(e.target.value) : null)}
                                 >
                                     <option value="">Selecteer een bedrijf</option>
-                                    {companies.map((company: any) => (
+                                    {companies.map((company: Company) => (
                                         <option key={company.id} value={company.id}>
                                             {company.name}
                                         </option>
@@ -126,7 +127,7 @@ export default function AdminProjectsPage() {
                                     disabled={!selectedCompany}
                                 >
                                     <option value="">Selecteer een projectgroep</option>
-                                    {projectGroups.map((group: any) => (
+                                    {projectGroups.map((group: ProjectGroup) => (
                                         <option key={group.id} value={group.id}>
                                             {group.name}
                                         </option>

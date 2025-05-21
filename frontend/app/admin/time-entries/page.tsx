@@ -4,15 +4,36 @@ import { getAdminTimeEntries, getTimeEntryDetails, approveTimeEntry, rejectTimeE
 import AdminRoute from "@/components/AdminRoute";
 import dayjs from "dayjs";
 import ToastNotification from "@/components/ToastNotification";
+import { TimeEntry, User, Project, ProjectGroup, Company } from "@/lib/types";
+
+// Interface voor uitgebreide TimeEntry met geneste objecten
+interface ExtendedTimeEntry extends TimeEntry {
+    user: User;
+    project?: Project & {
+        projectGroup?: ProjectGroup & {
+            company?: Company;
+        };
+    };
+}
+
+interface UserOption {
+    id: number;
+    name: string;
+}
+
+interface ProjectOption {
+    id: number | undefined;
+    name: string | undefined;
+}
 
 export default function AdminTimeEntriesPage() {
-    const [entries, setEntries] = useState([]);
+    const [entries, setEntries] = useState<ExtendedTimeEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [entriesPerPage] = useState(20);
 
     // Selected entry for detail view
-    const [selectedEntry, setSelectedEntry] = useState<any>(null);
+    const [selectedEntry, setSelectedEntry] = useState<ExtendedTimeEntry | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     // Filters
@@ -42,18 +63,18 @@ export default function AdminTimeEntriesPage() {
     }, []);
 
     // Create unique lists of users and projects for filters
-    const users = Array.from(new Set(entries.map((entry: any) => JSON.stringify({
+    const users = Array.from(new Set(entries.map((entry: ExtendedTimeEntry) => JSON.stringify({
         id: entry.user.id,
         name: entry.user.fullName
-    })))).map(str => JSON.parse(str));
+    })))).map(str => JSON.parse(str) as UserOption);
 
-    const projects = Array.from(new Set(entries.map((entry: any) => JSON.stringify({
+    const projects = Array.from(new Set(entries.map((entry: ExtendedTimeEntry) => JSON.stringify({
         id: entry.project?.id,
         name: entry.project?.name
-    })))).map(str => JSON.parse(str));
+    })))).map(str => JSON.parse(str) as ProjectOption);
 
     // Apply filters
-    const filteredEntries = entries.filter((entry: any) => {
+    const filteredEntries = entries.filter((entry: ExtendedTimeEntry) => {
         const entryDate = dayjs(entry.startTime);
         const start = dayjs(startDate);
         const end = dayjs(endDate).endOf('day');
@@ -64,7 +85,7 @@ export default function AdminTimeEntriesPage() {
 
         const searchLower = searchTerm.toLowerCase();
         const searchMatch = !searchTerm ||
-            entry.user.fullName.toLowerCase().includes(searchLower) ||
+            (entry.user.fullName?.toLowerCase().includes(searchLower) || false) ||
             (entry.project?.name && entry.project.name.toLowerCase().includes(searchLower)) ||
             (entry.notes && entry.notes.toLowerCase().includes(searchLower));
 
@@ -77,7 +98,7 @@ export default function AdminTimeEntriesPage() {
     const currentEntries = filteredEntries.slice(indexOfFirstEntry, indexOfLastEntry);
     const totalPages = Math.ceil(filteredEntries.length / entriesPerPage);
 
-    const handleViewDetails = async (entryId: number) => {
+    const handleViewDetails = async (entryId: number): Promise<void> => {
         try {
             const details = await getTimeEntryDetails(entryId);
             setSelectedEntry(details);
@@ -90,11 +111,11 @@ export default function AdminTimeEntriesPage() {
         }
     };
 
-    const handleApprove = async (entryId: number) => {
+    const handleApprove = async (entryId: number): Promise<void> => {
         try {
             await approveTimeEntry(entryId);
             // Refresh data
-            const updatedEntries = entries.map((entry: any) =>
+            const updatedEntries = entries.map((entry: ExtendedTimeEntry) =>
                 entry.id === entryId ? { ...entry, status: "goedgekeurd" } : entry
             );
             setEntries(updatedEntries);
@@ -109,11 +130,11 @@ export default function AdminTimeEntriesPage() {
         }
     };
 
-    const handleReject = async (entryId: number) => {
+    const handleReject = async (entryId: number): Promise<void> => {
         try {
             await rejectTimeEntry(entryId);
             // Refresh data
-            const updatedEntries = entries.map((entry: any) =>
+            const updatedEntries = entries.map((entry: ExtendedTimeEntry) =>
                 entry.id === entryId ? { ...entry, status: "afgekeurd" } : entry
             );
             setEntries(updatedEntries);
@@ -178,7 +199,7 @@ export default function AdminTimeEntriesPage() {
                                     onChange={(e) => setSelectedUser(e.target.value)}
                                 >
                                     <option value="">Alle medewerkers</option>
-                                    {users.map((user: any) => (
+                                    {users.map((user: UserOption) => (
                                         <option key={user.id} value={user.id}>
                                             {user.name}
                                         </option>
@@ -196,7 +217,7 @@ export default function AdminTimeEntriesPage() {
                                     onChange={(e) => setSelectedProject(e.target.value)}
                                 >
                                     <option value="">Alle projecten</option>
-                                    {projects.map((project: any) => (
+                                    {projects.map((project: ProjectOption) => (
                                         <option key={project.id} value={project.id}>
                                             {project.name}
                                         </option>
@@ -252,7 +273,7 @@ export default function AdminTimeEntriesPage() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {currentEntries.map((entry: any) => {
+                                {currentEntries.map((entry: ExtendedTimeEntry) => {
                                     const start = dayjs(entry.startTime);
                                     const end = dayjs(entry.endTime);
                                     const diffMin = end.diff(start, 'minute') - entry.breakMinutes;
@@ -267,26 +288,26 @@ export default function AdminTimeEntriesPage() {
                                             <td>{end.format('HH:mm')}</td>
                                             <td>{hours}</td>
                                             <td>
-                                                    <span className={`badge ${
-                                                        entry.status === 'ingeleverd' ? 'badge-warning' :
-                                                            entry.status === 'goedgekeurd' ? 'badge-success' :
-                                                                entry.status === 'afgekeurd' ? 'badge-error' :
-                                                                    'badge-ghost'
-                                                    }`}>
-                                                        {entry.status}
-                                                    </span>
+                                                <span className={`badge ${
+                                                    entry.status === 'ingeleverd' ? 'badge-warning' :
+                                                        entry.status === 'goedgekeurd' ? 'badge-success' :
+                                                            entry.status === 'afgekeurd' ? 'badge-error' :
+                                                                'badge-ghost'
+                                                }`}>
+                                                    {entry.status}
+                                                </span>
                                             </td>
                                             <td>
                                                 <button
                                                     className="btn btn-sm btn-outline mr-2"
-                                                    onClick={() => handleViewDetails(entry.id)}
+                                                    onClick={() => handleViewDetails(entry.id as number)}
                                                 >
                                                     Bekijken
                                                 </button>
                                                 {entry.status !== 'goedgekeurd' && entry.status !== 'afgekeurd' && (
                                                     <button
                                                         className="btn btn-sm btn-success mr-2"
-                                                        onClick={() => handleApprove(entry.id)}
+                                                        onClick={() => handleApprove(entry.id as number)}
                                                     >
                                                         Goedkeuren
                                                     </button>
@@ -358,7 +379,7 @@ export default function AdminTimeEntriesPage() {
                                         <button
                                             className="btn btn-success"
                                             onClick={() => {
-                                                handleApprove(selectedEntry.id);
+                                                handleApprove(selectedEntry.id as number);
                                                 setShowDetailsModal(false);
                                             }}
                                         >
@@ -367,7 +388,7 @@ export default function AdminTimeEntriesPage() {
                                         <button
                                             className="btn btn-error"
                                             onClick={() => {
-                                                handleReject(selectedEntry.id);
+                                                handleReject(selectedEntry.id as number);
                                                 setShowDetailsModal(false);
                                             }}
                                         >

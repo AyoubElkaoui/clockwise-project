@@ -41,12 +41,12 @@ export default function DaysTableEntryRow({
 
     function handleDelete() {
         const updated = allEntries.map((e) =>
-            e.id === entry.id ? { ...e, localStatus: "deleted" } : e
+            e.id === entry.id ? { ...e, localStatus: "deleted" as const } : e
         );
         onUpdateLocalEntries(updated);
     }
 
-    function handleEdit() {
+        function handleEdit() {
         setIsEditing(true);
     }
 

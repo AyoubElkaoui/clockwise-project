@@ -16,24 +16,10 @@ import WeekHeader from "./WeekHeader";
 import CombinedView from "./CombinedView";
 import TimeEntryModal from "./TimeEntryModal";
 import ToastNotification from "../ToastNotification";
+import { TimeEntry as GlobalTimeEntry } from "@/lib/types"; // Import het globale TimeEntry type
 
-export interface TimeEntry {
-    id?: number;
-    userId: number;
-    projectId: number;
-    startTime: string; // "2025-02-17T09:00"
-    endTime: string;
-    breakMinutes: number;
-    distanceKm?: number;
-    travelCosts?: number;
-    expenses?: number;
-    notes: string;
-    status?: string; // "opgeslagen" | "ingeleverd" etc.
-    project?: {
-        name: string;
-    };
-    localStatus?: "draft" | "changed" | "deleted" | "synced";
-}
+// Gebruik de interface uit de types.ts
+export type TimeEntry = GlobalTimeEntry;
 
 dayjs.extend(isoWeek);
 dayjs.locale("nl");
@@ -69,11 +55,15 @@ export default function WeekOverview() {
         try {
             for (const entry of localEntries) {
                 if (entry.localStatus === "draft") {
+                    // Maak een kopie zonder id en localStatus
                     const { id, localStatus, ...rest } = entry;
-                    await registerTimeEntry(rest);
+                    // Cast naar het juiste type
+                    await registerTimeEntry(rest as Omit<TimeEntry, 'id' | 'localStatus'>);
                 } else if (entry.localStatus === "changed" && entry.id) {
+                    // Maak een kopie zonder localStatus
                     const { localStatus, ...rest } = entry;
-                    await updateTimeEntry(entry.id, rest);
+                    // Cast naar het juiste type
+                    await updateTimeEntry(entry.id, rest as Partial<TimeEntry>);
                 } else if (entry.localStatus === "deleted" && entry.id) {
                     await deleteTimeEntry(entry.id);
                 }
@@ -101,7 +91,8 @@ export default function WeekOverview() {
 
             for (const entry of relevantEntries) {
                 if (entry.id && entry.status !== "ingeleverd") {
-                    await updateTimeEntry(entry.id, { ...entry, status: "ingeleverd" });
+                    // Cast naar het juiste type
+                    await updateTimeEntry(entry.id, { ...entry, status: "ingeleverd" } as Partial<TimeEntry>);
                 }
             }
             await fetchFromDB();

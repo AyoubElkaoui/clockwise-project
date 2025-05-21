@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getCompanies, getProjectGroups, getProjects, registerTimeEntry } from "@/lib/api";
+import { Company, ProjectGroup, Project } from "@/lib/types";
 
 export default function RegisterTime() {
-    const [companies, setCompanies] = useState([]);
-    const [projectGroups, setProjectGroups] = useState([]);
-    const [projects, setProjects] = useState([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
 
     const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
     const [selectedProjectGroup, setSelectedProjectGroup] = useState<number | null>(null);
@@ -76,7 +77,7 @@ export default function RegisterTime() {
                         className="select select-bordered"
                     >
                         <option value="">Selecteer een bedrijf</option>
-                        {companies.map((comp: any) => (
+                        {companies.map((comp: Company) => (
                             <option key={comp.id} value={comp.id}>
                                 {comp.name}
                             </option>
@@ -95,7 +96,7 @@ export default function RegisterTime() {
                             className="select select-bordered"
                         >
                             <option value="">Selecteer een projectgroep</option>
-                            {projectGroups.map((pg: any) => (
+                            {projectGroups.map((pg: ProjectGroup) => (
                                 <option key={pg.id} value={pg.id}>
                                     {pg.name}
                                 </option>
@@ -115,7 +116,7 @@ export default function RegisterTime() {
                             className="select select-bordered"
                         >
                             <option value="">Selecteer een project</option>
-                            {projects.map((p: any) => (
+                            {projects.map((p: Project) => (
                                 <option key={p.id} value={p.id}>
                                     {p.name}
                                 </option>

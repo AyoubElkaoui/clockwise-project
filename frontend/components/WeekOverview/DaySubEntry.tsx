@@ -8,8 +8,9 @@ import {
     XMarkIcon,
     LockClosedIcon,
 } from "@heroicons/react/24/outline";
-import { TimeEntry } from "./WeekOverview";
+import { TimeEntry } from "@/lib/types"; // Gebruik de globale types
 import { getCompanies, getProjectGroups, getProjects } from "@/lib/api";
+import { Company, ProjectGroup, Project } from "@/lib/types";
 
 interface DaySubEntryProps {
     entry: TimeEntry;
@@ -38,13 +39,15 @@ export default function DaySubEntry({
     const [notes, setNotes] = useState(entry.notes || "");
 
     // For company → projectGroup → project
-    const existingCompanyId = entry.project?.projectGroup?.company?.id;
-    const existingProjectGroupId = entry.project?.projectGroup?.id;
+    // Cast project naar het juiste type
+    const project = entry.project as Project | undefined;
+    const existingCompanyId = project?.projectGroup?.company?.id;
+    const existingProjectGroupId = project?.projectGroup?.id;
     const existingProjectId = entry.projectId;
 
-    const [companies, setCompanies] = useState<any[]>([]);
-    const [projectGroups, setProjectGroups] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
 
     const [selectedCompany, setSelectedCompany] = useState<number | null>(
         existingCompanyId || null
@@ -123,14 +126,16 @@ export default function DaySubEntry({
     const diffMin = end.diff(start, "minute") - entry.breakMinutes;
     const totalHours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
     const projectName = entry.project?.name || "Onbekend project";
-    const companyName = entry.project?.projectGroup?.company?.name || "Onbekend bedrijf";
+    // Cast project naar het juiste type
+    const companyName = (entry.project as Project | undefined)?.projectGroup?.company?.name || "Onbekend bedrijf";
 
     function handleDelete() {
         // Mark localStatus = "deleted"
         const updated = allEntries.map((e) =>
             e.id === entry.id ? { ...e, localStatus: "deleted" } : e
         );
-        onUpdateLocalEntries(updated);
+        // Cast het resultaat naar TimeEntry[]
+        onUpdateLocalEntries(updated as TimeEntry[]);
     }
 
     function handleEdit() {
@@ -172,13 +177,13 @@ export default function DaySubEntry({
             travelCosts,
             expenses,
             notes,
-            localStatus: newLocalStatus,
+            localStatus: newLocalStatus as "draft" | "changed" | "deleted" | "synced", // cast naar de juiste types
             projectId: selectedProject,
             status: entry.status === "afgekeurd" ? "opgeslagen" : entry.status // Reset afgekeurde status naar opgeslagen
         };
 
         const newList = allEntries.map((e) => (e.id === entry.id ? updated : e));
-        onUpdateLocalEntries(newList);
+        onUpdateLocalEntries(newList as TimeEntry[]);
         setIsEditing(false);
     }
 

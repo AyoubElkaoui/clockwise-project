@@ -10,7 +10,6 @@ export default function EditUserPage() {
     const params = useParams();
     const userId = params.id;
 
-    const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
         firstName: "",
@@ -32,21 +31,22 @@ export default function EditUserPage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const userData = await getUser(userId);
-                setUser(userData);
-                setFormData({
-                    firstName: userData.firstName || "",
-                    lastName: userData.lastName || "",
-                    email: userData.email || "",
-                    loginName: userData.loginName || "",
-                    password: "",
-                    address: userData.address || "",
-                    houseNumber: userData.houseNumber || "",
-                    postalCode: userData.postalCode || "",
-                    city: userData.city || "",
-                    rank: userData.rank || "user",
-                    function: userData.function || ""
-                });
+                if (userId && typeof userId === 'string') {
+                    const userData = await getUser(Number(userId));
+                    setFormData({
+                        firstName: userData.firstName || "",
+                        lastName: userData.lastName || "",
+                        email: userData.email || "",
+                        loginName: userData.loginName || "",
+                        password: "",
+                        address: userData.address || "",
+                        houseNumber: userData.houseNumber || "",
+                        postalCode: userData.postalCode || "",
+                        city: userData.city || "",
+                        rank: userData.rank || "user",
+                        function: userData.function || ""
+                    });
+                }
             } catch (error) {
                 console.error("Error fetching user:", error);
             } finally {
@@ -68,12 +68,14 @@ export default function EditUserPage() {
         e.preventDefault();
 
         try {
-            await updateUser(userId, formData);
-            setToastMessage("Gebruiker succesvol bijgewerkt");
-            setToastType("success");
-            setTimeout(() => {
-                router.push("/admin/users");
-            }, 2000);
+            if (userId && typeof userId === 'string') {
+                await updateUser(Number(userId), formData);
+                setToastMessage("Gebruiker succesvol bijgewerkt");
+                setToastType("success");
+                setTimeout(() => {
+                    router.push("/admin/users");
+                }, 2000);
+            }
         } catch (error) {
             console.error("Error updating user:", error);
             setToastMessage("Fout bij bijwerken gebruiker");

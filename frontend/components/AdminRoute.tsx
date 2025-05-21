@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { API_URL } from "@/lib/api"; // Import API_URL van lib/api
 
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
     const router = useRouter();
@@ -29,28 +30,5 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     return <>{children}</>;
 }
 
-// Voeg deze functies toe aan je lib/api.ts
-export async function getAdminStats() {
-    const res = await axios.get(`${API_URL}/admin/stats`);
-    return res.data;
-}
-
-export async function getAdminTimeEntries() {
-    const res = await axios.get(`${API_URL}/admin/time-entries`);
-    return res.data;
-}
-
-export async function getAdminVacationRequests() {
-    const res = await axios.get(`${API_URL}/admin/vacation-requests`);
-    return res.data;
-}
-
-export async function processVacationRequest(id: number, status: "approved" | "rejected") {
-    const res = await axios.put(`${API_URL}/admin/vacation-requests/${id}`, { status });
-    return res.data;
-}
-
-export async function createProject(projectData: { name: string, projectGroupId: number }) {
-    const res = await axios.post(`${API_URL}/admin/projects`, projectData);
-    return res.data;
-}
+// Voeg deze functies toe aan je lib/api.ts, niet hier!
+// Verwijder deze API functies uit AdminRoute.tsx, want ze zijn al in lib/api.ts

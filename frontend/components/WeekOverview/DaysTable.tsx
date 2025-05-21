@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 import { TimeEntry } from "./WeekOverview";
 import DaySubEntry from "./DaySubEntry"; // <-- Voor bewerken/verwijderen per sub-entry
 import { ClockIcon } from "@heroicons/react/24/outline";

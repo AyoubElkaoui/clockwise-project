@@ -47,9 +47,9 @@ export interface TimeEntry {
     expenses?: number;
     notes: string;
     status?: string;
-    localStatus?: string;
     project?: Project;
     user?: User;
+    localStatus?: "draft" | "changed" | "deleted" | "synced";
 }
 
 export interface VacationRequest {

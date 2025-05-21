@@ -1,4 +1,4 @@
-// Fix voor NotificationBell.tsx (vervolg)
+// Fix voor NotificationBell.tsx
 
 "use client";
 import { useState, useEffect } from "react";
@@ -115,7 +115,6 @@ const NotificationBell = () => {
     };
 
     const getPriorityClass = (activity: Activity) => {
-        const type = activity.type || "";
         const action = activity.action || "";
 
         if (action === "approved" || action === "completed") return "border-l-4 border-green-500";
