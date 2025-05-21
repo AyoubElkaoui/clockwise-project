@@ -1,21 +1,22 @@
-// components/Sidebar.tsx
+// Fix voor Sidebar.tsx
+
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import dayjs, { Dayjs } from "dayjs";
 import MonthCalendar from "@/components/WeekOverview/MonthCalendar";
 import NotificationFeed from "@/components/NotificationFeed";
+import { TimeEntry } from "@/lib/types";
 
 interface SidebarProps {
     currentMonth: string | Dayjs;
-    timeEntries: any[];
+    timeEntries: TimeEntry[];
     className?: string;
 }
 
 export default function Sidebar({
                                     currentMonth,
                                     timeEntries,
-                                    className = "",
                                 }: SidebarProps) {
     const usedMonth = typeof currentMonth === 'string'
         ? dayjs(currentMonth)
@@ -35,16 +36,7 @@ export default function Sidebar({
     }, []);
 
     return (
-        <aside className={`bg-base-300 text-base-content p-4 w-1/6 flex flex-col gap-4 h-[calc(100vh-64px)] overflow-y-auto border-r border-base-200`}>
-            {/*<div>*/}
-            {/*    <Link href="/dashboard" className="text-2xl font-bold tracking-wide">*/}
-            {/*        Elmar Services*/}
-            {/*    </Link>*/}
-            {/*    <p className="text-sm mt-1 text-gray-600">*/}
-            {/*        International Building Solutions*/}
-            {/*    </p>*/}
-            {/*</div>*/}
-
+        <aside className="bg-base-300 text-base-content p-4 w-1/6 flex flex-col gap-4 h-[calc(100vh-64px)] overflow-y-auto border-r border-base-200">
             <nav className="flex flex-col gap-2">
                 <Link href="/dashboard" className="btn btn-ghost justify-start">
                     Dashboard
@@ -100,6 +92,5 @@ export default function Sidebar({
                 </button>
             </div>
         </aside>
-
     );
 }

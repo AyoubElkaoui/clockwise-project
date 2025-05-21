@@ -1,5 +1,7 @@
+// Fix voor frontend/app/admin/layout.tsx
+
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AdminRoute from "@/components/AdminRoute";
@@ -8,7 +10,7 @@ import NotificationFeed from "@/components/NotificationFeed";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const [userName, setUserName] = useState(() => {
+    const [userName] = useState(() => {
         if (typeof window !== "undefined") {
             const firstName = localStorage.getItem("firstName") || "";
             const lastName = localStorage.getItem("lastName") || "";

@@ -1,15 +1,18 @@
+// Fix voor UserProjects component (vervolg)
+
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getUsers, getCompanies, getProjectGroups, getProjects,
-    assignUserToProject, removeUserFromProject, getUserProjects, getProjectUsers} from "@/lib/api";
+    assignUserToProject, removeUserFromProject, getUserProjects} from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
 import ToastNotification from "@/components/ToastNotification";
+import { User, Company, ProjectGroup, Project, UserProject } from "@/lib/types";
 
 export default function AdminUserProjectsPage() {
-    const [users, setUsers] = useState<any[]>([]);
-    const [companies, setCompanies] = useState<any[]>([]);
-    const [projectGroups, setProjectGroups] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
 
     // State voor het toewijzen van een gebruiker aan een project
@@ -19,8 +22,8 @@ export default function AdminUserProjectsPage() {
     const [selectedProject, setSelectedProject] = useState<number | null>(null);
 
     // State voor overzicht van alle koppelingen
-    const [userProjects, setUserProjects] = useState<any[]>([]);
-    const [filteredUserProjects, setFilteredUserProjects] = useState<any[]>([]);
+    const [userProjects, setUserProjects] = useState<UserProject[]>([]);
+    const [filteredUserProjects, setFilteredUserProjects] = useState<UserProject[]>([]);
     const [filterUser, setFilterUser] = useState<number | null>(null);
     const [filterProject, setFilterProject] = useState<number | null>(null);
 
@@ -28,30 +31,30 @@ export default function AdminUserProjectsPage() {
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
 
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            try {
-                const [usersData, companiesData, userProjectsData] = await Promise.all([
-                    getUsers(),
-                    getCompanies(),
-                    getUserProjects(0) // 0 haalt alle koppelingen op
-                ]);
+    const fetchInitialData = useCallback(async () => {
+        try {
+            const [usersData, companiesData, userProjectsData] = await Promise.all([
+                getUsers(),
+                getCompanies(),
+                getUserProjects(0) // 0 haalt alle koppelingen op
+            ]);
 
-                setUsers(usersData);
-                setCompanies(companiesData);
-                setUserProjects(userProjectsData);
-                setFilteredUserProjects(userProjectsData);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                setToastMessage("Fout bij het ophalen van data");
-                setToastType("error");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchInitialData();
+            setUsers(usersData);
+            setCompanies(companiesData);
+            setUserProjects(userProjectsData);
+            setFilteredUserProjects(userProjectsData);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            setToastMessage("Fout bij het ophalen van data");
+            setToastType("error");
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
 
     useEffect(() => {
         if (selectedCompany) {
@@ -185,23 +188,15 @@ export default function AdminUserProjectsPage() {
     };
 
     // Hulpfunctie om projectnaam te vinden
-    const getProjectName = (project: any) => {
+    const getProjectName = (project?: Project) => {
         if (!project) {
-            // Als project object niet wordt meegegeven, zoek op projectId
-            const projectId = Array.isArray(arguments) && arguments.length > 0 ? arguments[0] : null;
-            if (typeof projectId === 'number') {
-                const userProject = userProjects.find(up => up.projectId === projectId);
-                if (userProject?.project?.name) {
-                    return userProject.project.name;
-                }
-            }
             return "Onbekend project";
         }
         return project.name;
     };
 
     // Hulpfunctie om bedrijfsnaam te vinden
-    const getCompanyName = (project: any) => {
+    const getCompanyName = (project?: Project) => {
         if (!project || !project.projectGroup || !project.projectGroup.company) {
             return "Onbekend bedrijf";
         }
@@ -344,14 +339,17 @@ export default function AdminUserProjectsPage() {
                                     onChange={(e) => setFilterProject(e.target.value ? Number(e.target.value) : null)}
                                 >
                                     <option value="">Alle projecten</option>
-                                    {userProjects.map(up => up.project).filter((project, index, self) =>
-                                        // Verwijder dubbele projecten
-                                        index === self.findIndex(p => p.id === project.id)
-                                    ).map((project) => (
-                                        <option key={project.id} value={project.id}>
-                                            {getProjectName(project)}
-                                        </option>
-                                    ))}
+                                    {userProjects
+                                        .filter(up => up.project)
+                                        .filter((up, index, self) =>
+                                            index === self.findIndex(p => p.project && p.project.id === up.project?.id)
+                                        )
+                                        .map((up) => (
+                                            <option key={up.project?.id} value={up.project?.id}>
+                                                {getProjectName(up.project)}
+                                            </option>
+                                        ))
+                                    }
                                 </select>
                             </div>
 

@@ -1,31 +1,13 @@
+// Fix voor frontend/app/(dashboard)/overview/page.tsx
+
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { getTimeEntries } from "@/lib/api";
+import { TimeEntry } from "@/lib/types";
 
 dayjs.extend(isBetween);
-
-export interface TimeEntry {
-    id: number;
-    userId: number;
-    projectId: number;
-    startTime: string;
-    endTime: string;
-    breakMinutes: number;
-    distanceKm: number;
-    travelCosts: number;
-    expenses: number;
-    notes: string;
-    project?: {
-        name: string;
-        projectGroup?: {
-            company?: {
-                name: string;
-            };
-        };
-    };
-}
 
 const PAGE_SIZE = 10;
 
@@ -48,6 +30,28 @@ export default function UrenOverzicht() {
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
+
+    // Filter data functie
+    const filterData = useCallback(() => {
+        const start = dayjs(startDate).startOf("day");
+        const end = dayjs(endDate).endOf("day");
+
+        let result = entries.filter((entry) => {
+            const entryDate = dayjs(entry.startTime);
+            return entryDate.isBetween(start, end, "day", "[]");
+        });
+
+        if (selectedProject) {
+            result = result.filter((entry) => entry.project?.name === selectedProject);
+        }
+        if (selectedCompany) {
+            result = result.filter(
+                (entry) => entry.project?.projectGroup?.company?.name === selectedCompany
+            );
+        }
+        setFilteredEntries(result);
+        setCurrentPage(1);
+    }, [entries, startDate, endDate, selectedProject, selectedCompany]);
 
     // Haal de entries op wanneer de component mount
     useEffect(() => {
@@ -82,28 +86,7 @@ export default function UrenOverzicht() {
     // Filter de data telkens wanneer de entries of de filters wijzigen
     useEffect(() => {
         filterData();
-    }, [entries, startDate, endDate, selectedProject, selectedCompany]);
-
-    function filterData() {
-        const start = dayjs(startDate).startOf("day");
-        const end = dayjs(endDate).endOf("day");
-
-        let result = entries.filter((entry) => {
-            const entryDate = dayjs(entry.startTime);
-            return entryDate.isBetween(start, end, "day", "[]");
-        });
-
-        if (selectedProject) {
-            result = result.filter((entry) => entry.project?.name === selectedProject);
-        }
-        if (selectedCompany) {
-            result = result.filter(
-                (entry) => entry.project?.projectGroup?.company?.name === selectedCompany
-            );
-        }
-        setFilteredEntries(result);
-        setCurrentPage(1);
-    }
+    }, [entries, startDate, endDate, selectedProject, selectedCompany, filterData]);
 
     // Bereken het totaal aantal uren voor de gefilterde periode
     const totalHours = filteredEntries.reduce((acc, entry) => {
@@ -246,8 +229,8 @@ export default function UrenOverzicht() {
                             Vorige
                         </button>
                         <span className="font-semibold">
-              Pagina {currentPage} / {totalPages || 1}
-            </span>
+                          Pagina {currentPage} / {totalPages || 1}
+                        </span>
                         <button className="btn btn-sm" onClick={() => goToPage(currentPage + 1)}>
                             Volgende
                         </button>

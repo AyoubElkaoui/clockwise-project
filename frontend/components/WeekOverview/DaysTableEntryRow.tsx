@@ -1,3 +1,5 @@
+// Fix voor DaysTableEntryRow.tsx (vervolg)
+
 "use client";
 import React, { useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
@@ -8,7 +10,7 @@ import {
     CheckIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { TimeEntry } from "./WeekOverview";
+import { TimeEntry } from "@/lib/types";
 
 interface Props {
     day: Dayjs;
@@ -82,11 +84,6 @@ export default function DaysTableEntryRow({
         onUpdateLocalEntries(newList);
         setIsEditing(false);
     }
-
-    const diffMin =
-        dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") -
-        entry.breakMinutes;
-    const totalHours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
 
     if (!isEditing) {
         // READ ONLY

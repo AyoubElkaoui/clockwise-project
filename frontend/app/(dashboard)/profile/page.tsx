@@ -1,8 +1,8 @@
-// app/account/page.tsx
+// Fix voor frontend/app/(dashboard)/profile/page.tsx
+
 "use client";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function AccountPage() {
@@ -16,7 +16,8 @@ export default function AccountPage() {
     const [loginName, setLoginName] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
-    const router = useRouter();
+    // Verwijder de router variabele aangezien die niet gebruikt wordt
+    // const router = useRouter();
 
     // Haal de gebruikersgegevens op (via een API-endpoint zoals GET /api/users/{userId})
     useEffect(() => {

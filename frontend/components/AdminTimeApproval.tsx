@@ -1,36 +1,15 @@
+// Fix voor AdminTimeApproval.tsx
+
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getAdminTimeEntries, approveTimeEntry, rejectTimeEntry } from "@/lib/api";
 import dayjs from "dayjs";
 import ToastNotification from "@/components/ToastNotification";
 import { CheckIcon, XMarkIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
+import { TimeEntry, User } from "@/lib/types";
 
-interface TimeEntryDetails {
-    id: number;
-    startTime: string;
-    endTime: string;
-    breakMinutes: number;
-    distanceKm: number;
-    travelCosts: number;
-    expenses: number;
-    notes: string;
-    status: string;
-    user: {
-        id: number;
-        fullName: string;
-    };
-    project: {
-        id: number;
-        name: string;
-        projectGroup: {
-            id: number;
-            name: string;
-            company: {
-                id: number;
-                name: string;
-            } | null;
-        } | null;
-    } | null;
+interface TimeEntryDetails extends TimeEntry {
+    user: User;
 }
 
 export default function AdminTimeApproval() {
@@ -50,11 +29,7 @@ export default function AdminTimeApproval() {
     // Filter state
     const [statusFilter, setStatusFilter] = useState("ingeleverd");
 
-    useEffect(() => {
-        fetchEntries();
-    }, []);
-
-    const fetchEntries = async () => {
+    const fetchEntries = useCallback(async () => {
         try {
             setLoading(true);
             const data = await getAdminTimeEntries();
@@ -65,7 +40,11 @@ export default function AdminTimeApproval() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchEntries();
+    }, [fetchEntries]);
 
     const showToast = (message: string, type: "success" | "error") => {
         setToastMessage(message);
@@ -116,11 +95,11 @@ export default function AdminTimeApproval() {
         }
     };
 
-
     const filteredEntries = entries.filter(entry => {
         if (statusFilter === "all") return true;
         return entry.status === statusFilter;
     });
+
     const indexOfLastEntry = currentPage * entriesPerPage;
     const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
     const currentEntries = filteredEntries.slice(indexOfFirstEntry, indexOfLastEntry);
@@ -177,7 +156,7 @@ export default function AdminTimeApproval() {
                             </td>
                         </tr>
                     )}
-                    {filteredEntries.map((entry) => {
+                    {currentEntries.map((entry) => {
                         const start = dayjs(entry.startTime);
                         const end = dayjs(entry.endTime);
                         const diffMin = end.diff(start, "minute") - entry.breakMinutes;
@@ -225,13 +204,13 @@ export default function AdminTimeApproval() {
                                             <>
                                                 <button
                                                     className="btn btn-sm btn-success"
-                                                    onClick={() => handleApprove(entry.id)}
+                                                    onClick={() => handleApprove(entry.id as number)}
                                                 >
                                                     <CheckIcon className="w-5 h-5"/>
                                                 </button>
                                                 <button
                                                     className="btn btn-sm btn-error"
-                                                    onClick={() => openRejectModal(entry.id)}
+                                                    onClick={() => openRejectModal(entry.id as number)}
                                                 >
                                                     <XMarkIcon className="w-5 h-5"/>
                                                 </button>
@@ -288,7 +267,7 @@ export default function AdminTimeApproval() {
                                     <button
                                         className="btn btn-success"
                                         onClick={() => {
-                                            handleApprove(selectedEntry.id);
+                                            handleApprove(selectedEntry.id as number);
                                             setShowDetailsModal(false);
                                         }}
                                     >
@@ -297,7 +276,7 @@ export default function AdminTimeApproval() {
                                     <button
                                         className="btn btn-error"
                                         onClick={() => {
-                                            openRejectModal(selectedEntry.id);
+                                            openRejectModal(selectedEntry.id as number);
                                             setShowDetailsModal(false);
                                         }}
                                     >

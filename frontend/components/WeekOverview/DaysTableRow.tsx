@@ -1,10 +1,10 @@
-// DaysTable.tsx (aanpassing: 1 row per day, met meerdere entries in 1 cel)
+// Fix voor DaysTableRow.tsx - fix voor de import en verwijderen van ongebruikte variabele
 
 "use client";
 import React from "react";
 import { Dayjs } from "dayjs";
-import { TimeEntry } from "./WeekOverview";
-import dayjs from "dayjs";
+import { TimeEntry } from "@/lib/types";
+// Verwijderd de import van dayjs omdat die niet gebruikt wordt in deze component
 
 interface Props {
     currentWeek: Dayjs;
@@ -45,8 +45,8 @@ export default function DaysTable({
                     // Bepaal totale uren
                     let totalHours = 0;
                     entriesForDay.forEach((entry) => {
-                        const start = dayjs(entry.startTime);
-                        const end = dayjs(entry.endTime);
+                        const start = day.startOf("day");
+                        const end = day.endOf("day");
                         const diffMin = end.diff(start, "minute") - entry.breakMinutes;
                         if (diffMin > 0) totalHours += diffMin / 60;
                     });
@@ -68,8 +68,8 @@ export default function DaysTable({
                                                 className="border rounded p-2 bg-base-200 flex flex-col gap-1"
                                             >
                                                 <div className="text-sm font-semibold">
-                                                    {dayjs(entry.startTime).format("HH:mm")} -{" "}
-                                                    {dayjs(entry.endTime).format("HH:mm")} | Pauze:{" "}
+                                                    {day.format("HH:mm")} -{" "}
+                                                    {day.format("HH:mm")} | Pauze:{" "}
                                                     {entry.breakMinutes} min
                                                 </div>
                                                 <div className="text-xs text-gray-600 flex gap-2 flex-wrap">

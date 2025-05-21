@@ -1,3 +1,5 @@
+// Fix voor frontend/app/(auth)/registreer/page.tsx
+
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +20,7 @@ export default function RegisterPage() {
 
     const handleRegister = async () => {
         try {
-            const response = await axios.post("http://localhost:5203/api/users/register", {
+            await axios.post("http://localhost:5203/api/users/register", {
                 firstName,
                 lastName,
                 email,
@@ -30,7 +32,7 @@ export default function RegisterPage() {
                 password,
             });
             router.push("/login");
-        } catch (e) {
+        } catch (_e) {
             setError("Registratie mislukt");
         }
     };

@@ -1,11 +1,14 @@
-// app/admin/page.tsx
+// Fix voor frontend/app/admin/page.tsx
+
 "use client";
 import { useState, useEffect } from "react";
 import { getAdminStats } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
+import { AdminStats } from "@/lib/types"; // Voeg dit toe aan je types.ts bestand
 
 export default function AdminDashboard() {
-    const [stats, setStats] = useState<any>(null);
+    // Specifiek type voor stats
+    const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [adminName, setAdminName] = useState("");
 
@@ -45,21 +48,21 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Gebruikers</h2>
-                            <p className="text-4xl font-bold">{stats.totalUsers}</p>
+                            <p className="text-4xl font-bold">{stats?.totalUsers || 0}</p>
                         </div>
                     </div>
 
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Uren deze maand</h2>
-                            <p className="text-4xl font-bold">{stats.hoursThisMonth.toFixed(1)}</p>
+                            <p className="text-4xl font-bold">{stats?.hoursThisMonth.toFixed(1) || "0.0"}</p>
                         </div>
                     </div>
 
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Actieve projecten</h2>
-                            <p className="text-4xl font-bold">{stats.activeProjects}</p>
+                            <p className="text-4xl font-bold">{stats?.activeProjects || 0}</p>
                         </div>
                     </div>
                 </div>
@@ -68,7 +71,7 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Te verwerken vakantie-aanvragen</h2>
-                            <p className="text-4xl font-bold">{stats.pendingVacations}</p>
+                            <p className="text-4xl font-bold">{stats?.pendingVacations || 0}</p>
                             <div className="card-actions justify-end mt-4">
                                 <button
                                     className="btn btn-primary"
@@ -83,7 +86,7 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Totale uren</h2>
-                            <p className="text-4xl font-bold">{stats.totalHours.toFixed(1)}</p>
+                            <p className="text-4xl font-bold">{stats?.totalHours.toFixed(1) || "0.0"}</p>
                             <div className="card-actions justify-end mt-4">
                                 <button
                                     className="btn btn-primary"

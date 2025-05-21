@@ -1,10 +1,17 @@
+// Fix voor NotificationFeed.tsx
+
 "use client";
 import React, { useState, useEffect } from "react";
 import { getActivities, markActivityAsRead, markAllActivitiesAsRead } from "@/lib/api";
-import { BellIcon, EnvelopeIcon, EnvelopeOpenIcon } from "@heroicons/react/24/outline";
+import { BellIcon } from "@heroicons/react/24/outline";
+import { Activity } from "@/lib/types";
 
-export default function NotificationFeed() {
-    const [activities, setActivities] = useState<any[]>([]);
+interface NotificationFeedProps {
+    limit?: number;
+}
+
+export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
+    const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -15,9 +22,9 @@ export default function NotificationFeed() {
             const userId = Number(localStorage.getItem("userId"));
             if (!userId) return;
 
-            const data = await getActivities(5, userId); // Toon de 5 meest recente activiteiten
+            const data = await getActivities(limit, userId);
             setActivities(data);
-            setUnreadCount(data.filter((a: any) => !a.read).length);
+            setUnreadCount(data.filter((a) => !a.read).length);
         } catch (error) {
             console.error("Error fetching activities:", error);
             setError("Kon activiteiten niet laden");
@@ -32,7 +39,7 @@ export default function NotificationFeed() {
         // Ververs elke 30 seconden
         const interval = setInterval(fetchActivities, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [limit]);
 
     const handleActivityClick = async (activityId: number) => {
         if (!activities.find(a => a.id === activityId)?.read) {
@@ -50,9 +57,6 @@ export default function NotificationFeed() {
 
     const handleMarkAllAsRead = async () => {
         try {
-            const userId = Number(localStorage.getItem("userId"));
-            if (!userId) return;
-
             await markAllActivitiesAsRead();
             setActivities(activities.map(a => ({ ...a, read: true })));
             setUnreadCount(0);
@@ -80,16 +84,18 @@ export default function NotificationFeed() {
         }
     };
 
-    const getActivityIcon = (activity: any) => {
-        if (activity.type === "time_entry") {
+    const getActivityIcon = (activity: Activity) => {
+        const activityType = activity.type || "";
+
+        if (activityType === "time_entry") {
             return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
             </svg>;
-        } else if (activity.type === "vacation") {
+        } else if (activityType === "vacation") {
             return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
             </svg>;
-        } else if (activity.type === "project") {
+        } else if (activityType === "project") {
             return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd" />
                 <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z" />

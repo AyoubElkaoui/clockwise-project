@@ -1,22 +1,25 @@
+// Fix voor TimeEntryForm.tsx - Vervang de 'any' types door specifieke types
+
 "use client";
 import React, { useEffect, useState } from "react";
 import { Dayjs } from "dayjs";
 import { getCompanies, getProjectGroups, getProjects, registerTimeEntry, getUserProjects } from "@/lib/api";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import dayjs from "dayjs";
+import { Company, ProjectGroup, Project, UserProject } from "@/lib/types";
 
-interface Props {
+interface TimeEntryFormProps {
     day: Dayjs;
     onClose: () => void;
     onEntrySaved: () => void;
 }
 
-export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
+export default function TimeEntryForm({ day, onClose, onEntrySaved }: TimeEntryFormProps) {
     // Data voor select-lijsten
-    const [companies, setCompanies] = useState<any[]>([]);
-    const [projectGroups, setProjectGroups] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
-    const [assignedProjects, setAssignedProjects] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [assignedProjects, setAssignedProjects] = useState<UserProject[]>([]);
 
     // Geselecteerde waarden
     const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
@@ -242,8 +245,8 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
     const assignedCompanies = assignedProjects
         .filter(ap => ap.project?.projectGroup?.company)
         .map(ap => ({
-            id: ap.project.projectGroup.company.id,
-            name: ap.project.projectGroup.company.name
+            id: ap.project?.projectGroup?.company?.id || 0,
+            name: ap.project?.projectGroup?.company?.name || ""
         }))
         .filter((company, index, self) =>
             index === self.findIndex(c => c.id === company.id)
@@ -323,7 +326,7 @@ export default function TimeEntryForm({ day, onClose, onEntrySaved }: Props) {
                         <select
                             className="select select-bordered"
                             value={selectedProject ?? ""}
-                            onChange={(e) => setSelectedProject(Number(e.target.value))}
+                            onChange={(e) => setSelectedProject(e.target.value ? Number(e.target.value) : null)}
                         >
                             <option value="">-- Kies een project --</option>
                             {projects.map((p) => (
