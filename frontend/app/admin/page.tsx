@@ -1,13 +1,12 @@
-// Fix voor frontend/app/admin/page.tsx
+// Fixed frontend/app/admin/page.tsx
 
 "use client";
 import { useState, useEffect } from "react";
 import { getAdminStats } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
-import { AdminStats } from "@/lib/types"; // Voeg dit toe aan je types.ts bestand
+import { AdminStats } from "@/lib/types";
 
 export default function AdminDashboard() {
-    // Specifiek type voor stats
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [adminName, setAdminName] = useState("");
@@ -24,6 +23,14 @@ export default function AdminDashboard() {
                 setAdminName(`${firstName} ${lastName}`);
             } catch (error) {
                 console.error("Error fetching admin stats:", error);
+                // Set default stats on error
+                setStats({
+                    totalUsers: 0,
+                    hoursThisMonth: 0,
+                    activeProjects: 0,
+                    pendingVacations: 0,
+                    totalHours: 0
+                });
             } finally {
                 setLoading(false);
             }
@@ -55,7 +62,7 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Uren deze maand</h2>
-                            <p className="text-4xl font-bold">{stats?.hoursThisMonth.toFixed(1) || "0.0"}</p>
+                            <p className="text-4xl font-bold">{(stats?.hoursThisMonth ?? 0).toFixed(1)}</p>
                         </div>
                     </div>
 
@@ -86,7 +93,7 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Totale uren</h2>
-                            <p className="text-4xl font-bold">{stats?.totalHours.toFixed(1) || "0.0"}</p>
+                            <p className="text-4xl font-bold">{(stats?.totalHours ?? 0).toFixed(1)}</p>
                             <div className="card-actions justify-end mt-4">
                                 <button
                                     className="btn btn-primary"
