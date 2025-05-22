@@ -430,7 +430,7 @@ public static class SeedData
             activities.Add(new Activity
             {
                 UserId = userProject.UserId,
-                Timestamp = userProject.AssignedDate ?? DateTime.Now.AddDays(-random.Next(0, 30)),
+                Timestamp = userProject.AssignedDate,
                 Type = "project",
                 Action = "assigned",
                 Message = message,

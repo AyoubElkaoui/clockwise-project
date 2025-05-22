@@ -18,7 +18,11 @@ builder.Services.AddControllers()
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policyBuilder =>
-        policyBuilder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+        policyBuilder
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .WithOrigins("https://jouw-frontend-naam.vercel.app") // Voeg je Vercel URL toe
+            .AllowCredentials());
 });
 
 // Voeg de database context toe (zorg dat je de juiste connection string gebruikt in je configuratie)
