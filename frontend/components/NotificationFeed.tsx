@@ -1,5 +1,4 @@
-// Fix voor NotificationFeed.tsx
-
+// frontend/components/NotificationFeed.tsx - COMPLETE VERSION
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { getActivities, markActivityAsRead, markAllActivitiesAsRead } from "@/lib/api";
@@ -24,15 +23,24 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
 
             const data = await getActivities(limit, userId);
 
-            // BELANGRIJKE FIX: Zorg ervoor dat data een array is
-            const activitiesArray = Array.isArray(data) ? data : [];
+            let activitiesArray: Activity[] = [];
+            if (Array.isArray(data)) {
+                activitiesArray = data;
+            }
 
             setActivities(activitiesArray);
-            setUnreadCount(activitiesArray.filter((a: Activity) => !a.read).length);
+
+            let unreadCountNum = 0;
+            for (const activity of activitiesArray) {
+                if (activity && !activity.read) {
+                    unreadCountNum++;
+                }
+            }
+            setUnreadCount(unreadCountNum);
+            setError(null);
         } catch (error) {
             console.error("Error fetching activities:", error);
             setError("Kon activiteiten niet laden");
-            // Bij error, zet een lege array
             setActivities([]);
             setUnreadCount(0);
         } finally {
@@ -42,30 +50,50 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
 
     useEffect(() => {
         fetchActivities();
-
-        // Ververs elke 30 seconden
         const interval = setInterval(fetchActivities, 30000);
         return () => clearInterval(interval);
     }, [fetchActivities]);
 
     const handleActivityClick = async (activityId: number) => {
-        if (!activities.find(a => a.id === activityId)?.read) {
-            try {
-                await markActivityAsRead(activityId);
-                setActivities(activities.map(a =>
-                    a.id === activityId ? { ...a, read: true } : a
-                ));
-                setUnreadCount(prev => Math.max(0, prev - 1));
-            } catch (error) {
-                console.error("Error marking activity as read:", error);
+        try {
+            let targetActivity: Activity | null = null;
+            for (const activity of activities) {
+                if (activity.id === activityId) {
+                    targetActivity = activity;
+                    break;
+                }
             }
+
+            if (targetActivity && !targetActivity.read) {
+                await markActivityAsRead(activityId);
+
+                const updatedActivities: Activity[] = [];
+                for (const activity of activities) {
+                    if (activity.id === activityId) {
+                        updatedActivities.push({ ...activity, read: true });
+                    } else {
+                        updatedActivities.push(activity);
+                    }
+                }
+
+                setActivities(updatedActivities);
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+        } catch (error) {
+            console.error("Error marking activity as read:", error);
         }
     };
 
     const handleMarkAllAsRead = async () => {
         try {
             await markAllActivitiesAsRead();
-            setActivities(activities.map(a => ({ ...a, read: true })));
+
+            const updatedActivities: Activity[] = [];
+            for (const activity of activities) {
+                updatedActivities.push({ ...activity, read: true });
+            }
+
+            setActivities(updatedActivities);
             setUnreadCount(0);
         } catch (error) {
             console.error("Error marking all as read:", error);
@@ -73,44 +101,56 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
     };
 
     const formatTimestamp = (timestamp: string) => {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
+        try {
+            if (!timestamp) return 'Onbekend';
 
-        if (diffMins < 60) {
-            return `${diffMins} min. geleden`;
-        } else if (diffHours < 24) {
-            return `${diffHours} uur geleden`;
-        } else if (diffDays < 7) {
-            return `${diffDays} dag${diffDays !== 1 ? 'en' : ''} geleden`;
-        } else {
-            return date.toLocaleDateString();
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return 'Onbekend';
+
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 60) {
+                return `${diffMins} min. geleden`;
+            } else if (diffHours < 24) {
+                return `${diffHours} uur geleden`;
+            } else if (diffDays < 7) {
+                return `${diffDays} dag${diffDays !== 1 ? 'en' : ''} geleden`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        } catch (error) {
+            return 'Onbekend';
         }
     };
 
     const getActivityIcon = (activity: Activity) => {
-        const activityType = activity.type || "";
+        try {
+            const activityType = activity.type || "";
 
-        if (activityType === "time_entry") {
-            return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            if (activityType === "time_entry") {
+                return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>;
+            } else if (activityType === "vacation") {
+                return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                </svg>;
+            } else if (activityType === "project") {
+                return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd" />
+                    <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z" />
+                </svg>;
+            }
+            return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>;
-        } else if (activityType === "vacation") {
-            return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-            </svg>;
-        } else if (activityType === "project") {
-            return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd" />
-                <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z" />
-            </svg>;
+        } catch (error) {
+            return <span>📋</span>;
         }
-        return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-        </svg>;
     };
 
     return (
@@ -147,9 +187,9 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
                 </div>
             ) : (
                 <div className="divide-y max-h-64 overflow-y-auto">
-                    {activities.map((activity) => (
+                    {activities.map((activity, index) => (
                         <div
-                            key={activity.id}
+                            key={activity.id || index}
                             className={`p-3 hover:bg-base-200 cursor-pointer flex items-start gap-3 ${!activity.read ? 'bg-base-200' : ''}`}
                             onClick={() => handleActivityClick(activity.id)}
                         >

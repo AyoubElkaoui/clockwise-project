@@ -1,4 +1,3 @@
-// app/(dashboard)/layout.tsx
 "use client";
 import { ReactNode, useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
@@ -6,10 +5,10 @@ import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { getTimeEntries } from "@/lib/api";
 import dayjs from "dayjs";
-import { TimeEntry } from "@/lib/types"; // Import the TimeEntry type
+import { TimeEntry } from "@/lib/types";
+import { safeArray } from "@/lib/type-safe-utils";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-    // Specify the type for timeEntries
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -17,12 +16,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         const fetchEntries = async () => {
             try {
                 const data = await getTimeEntries();
-                // BELANGRIJKE FIX: Zorg ervoor dat data een array is
-                const entriesArray = Array.isArray(data) ? data : [];
-                setTimeEntries(entriesArray);
+                setTimeEntries(safeArray<TimeEntry>(data));
             } catch (error) {
                 console.error("Error fetching time entries:", error);
-                // Bij error, zet een lege array
                 setTimeEntries([]);
             } finally {
                 setLoading(false);

@@ -1,5 +1,3 @@
-// Fixed frontend/app/(dashboard)/overview/page.tsx
-
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
@@ -12,91 +10,131 @@ dayjs.extend(isBetween);
 const PAGE_SIZE = 10;
 
 export default function UrenOverzicht() {
-    // State voor de ruwe entries en gefilterde entries
     const [entries, setEntries] = useState<TimeEntry[]>([]);
     const [filteredEntries, setFilteredEntries] = useState<TimeEntry[]>([]);
-
-    // Datumfilters: standaard huidige maand
     const [startDate, setStartDate] = useState(dayjs().startOf("month").format("YYYY-MM-DD"));
     const [endDate, setEndDate] = useState(dayjs().endOf("month").format("YYYY-MM-DD"));
-
-    // Extra filters: project en bedrijf
     const [selectedProject, setSelectedProject] = useState("");
     const [selectedCompany, setSelectedCompany] = useState("");
-
-    // Dropdown opties (afgeleid uit de entries)
     const [projectOptions, setProjectOptions] = useState<string[]>([]);
     const [companyOptions, setCompanyOptions] = useState<string[]>([]);
-
-    // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
 
-    // Filter data functie
+    const safeToFixed = (value: any, decimals: number = 2): string => {
+        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+            return value.toFixed(decimals);
+        }
+        return '0.' + '0'.repeat(decimals);
+    };
+
     const filterData = useCallback(() => {
-        const start = dayjs(startDate).startOf("day");
-        const end = dayjs(endDate).endOf("day");
+        try {
+            const start = dayjs(startDate).startOf("day");
+            const end = dayjs(endDate).endOf("day");
 
-        let result = entries.filter((entry) => {
-            const entryDate = dayjs(entry.startTime);
-            return entryDate.isBetween(start, end, "day", "[]");
-        });
+            let result: TimeEntry[] = [];
+            for (const entry of entries) {
+                try {
+                    const entryDate = dayjs(entry.startTime);
+                    if (entryDate.isBetween(start, end, "day", "[]")) {
+                        result.push(entry);
+                    }
+                } catch (error) {
+                    console.warn('Date filtering error for entry:', entry, error);
+                }
+            }
 
-        if (selectedProject) {
-            result = result.filter((entry) => entry.project?.name === selectedProject);
+            if (selectedProject) {
+                const temp: TimeEntry[] = [];
+                for (const entry of result) {
+                    if (entry.project?.name === selectedProject) {
+                        temp.push(entry);
+                    }
+                }
+                result = temp;
+            }
+
+            if (selectedCompany) {
+                const temp: TimeEntry[] = [];
+                for (const entry of result) {
+                    if (entry.project?.projectGroup?.company?.name === selectedCompany) {
+                        temp.push(entry);
+                    }
+                }
+                result = temp;
+            }
+
+            setFilteredEntries(result);
+            setCurrentPage(1);
+        } catch (error) {
+            console.error('Filter data error:', error);
+            setFilteredEntries([]);
         }
-        if (selectedCompany) {
-            result = result.filter(
-                (entry) => entry.project?.projectGroup?.company?.name === selectedCompany
-            );
-        }
-        setFilteredEntries(result);
-        setCurrentPage(1);
     }, [entries, startDate, endDate, selectedProject, selectedCompany]);
 
-    // Haal de entries op wanneer de component mount
     useEffect(() => {
         async function fetchData() {
             try {
                 const data = await getTimeEntries();
-                setEntries(data ?? []);
+                let safeData: TimeEntry[] = [];
+                if (Array.isArray(data)) {
+                    safeData = data;
+                }
+                setEntries(safeData);
             } catch (error) {
                 console.error("Fout bij ophalen van time entries:", error);
+                setEntries([]);
             }
         }
         fetchData();
     }, []);
 
-    // Stel de dropdown opties in op basis van de opgehaalde entries
     useEffect(() => {
-        const projectsSet = new Set<string>();
-        const companiesSet = new Set<string>();
-        entries.forEach((entry) => {
-            if (entry.project?.name) {
-                projectsSet.add(entry.project.name);
+        try {
+            const projectsSet = new Set<string>();
+            const companiesSet = new Set<string>();
+
+            for (const entry of entries) {
+                try {
+                    if (entry && entry.project && entry.project.name) {
+                        projectsSet.add(entry.project.name);
+                    }
+                    const compName = entry?.project?.projectGroup?.company?.name;
+                    if (compName) {
+                        companiesSet.add(compName);
+                    }
+                } catch (error) {
+                    console.warn('Error processing entry for options:', entry, error);
+                }
             }
-            const compName = entry.project?.projectGroup?.company?.name;
-            if (compName) {
-                companiesSet.add(compName);
-            }
-        });
-        setProjectOptions(Array.from(projectsSet));
-        setCompanyOptions(Array.from(companiesSet));
+
+            setProjectOptions(Array.from(projectsSet));
+            setCompanyOptions(Array.from(companiesSet));
+        } catch (error) {
+            console.error('Error setting options:', error);
+            setProjectOptions([]);
+            setCompanyOptions([]);
+        }
     }, [entries]);
 
-    // Filter de data telkens wanneer de entries of de filters wijzigen
     useEffect(() => {
         filterData();
     }, [entries, startDate, endDate, selectedProject, selectedCompany, filterData]);
 
-    // Bereken het totaal aantal uren voor de gefilterde periode
-    const totalHours = filteredEntries.reduce((acc, entry) => {
-        const start = dayjs(entry.startTime);
-        const end = dayjs(entry.endTime);
-        const diffMin = end.diff(start, "minute") - entry.breakMinutes;
-        return acc + (diffMin > 0 ? diffMin / 60 : 0);
-    }, 0);
+    // Safe hours calculation
+    let totalHours = 0;
+    for (const entry of filteredEntries) {
+        try {
+            if (!entry || !entry.startTime || !entry.endTime) continue;
+            const start = dayjs(entry.startTime);
+            const end = dayjs(entry.endTime);
+            const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
+            if (diffMin > 0) totalHours += diffMin / 60;
+        } catch (error) {
+            console.warn('Error calculating hours for entry:', entry, error);
+        }
+    }
 
-    // Bereken de paginering
     const totalPages = Math.ceil(filteredEntries.length / PAGE_SIZE);
     const pageStartIndex = (currentPage - 1) * PAGE_SIZE;
     const pageEntries = filteredEntries.slice(pageStartIndex, pageStartIndex + PAGE_SIZE);
@@ -109,12 +147,10 @@ export default function UrenOverzicht() {
 
     return (
         <div className="container mx-auto p-4">
-            {/* Filtercard */}
             <div className="card bg-base-100 shadow-lg mb-6">
                 <div className="card-body">
                     <h1 className="card-title text-3xl font-bold">Uren Overzicht</h1>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                        {/* Startdatum */}
                         <div>
                             <label className="label">
                                 <span className="label-text font-semibold">Startdatum</span>
@@ -126,7 +162,6 @@ export default function UrenOverzicht() {
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
                         </div>
-                        {/* Einddatum */}
                         <div>
                             <label className="label">
                                 <span className="label-text font-semibold">Einddatum</span>
@@ -138,7 +173,6 @@ export default function UrenOverzicht() {
                                 onChange={(e) => setEndDate(e.target.value)}
                             />
                         </div>
-                        {/* Project filter */}
                         <div>
                             <label className="label">
                                 <span className="label-text font-semibold">Project</span>
@@ -149,14 +183,13 @@ export default function UrenOverzicht() {
                                 onChange={(e) => setSelectedProject(e.target.value)}
                             >
                                 <option value="">(Alle)</option>
-                                {projectOptions.map((proj) => (
-                                    <option key={proj} value={proj}>
+                                {projectOptions.map((proj, index) => (
+                                    <option key={proj || index} value={proj}>
                                         {proj}
                                     </option>
                                 ))}
                             </select>
                         </div>
-                        {/* Bedrijf filter */}
                         <div>
                             <label className="label">
                                 <span className="label-text font-semibold">Bedrijf</span>
@@ -167,8 +200,8 @@ export default function UrenOverzicht() {
                                 onChange={(e) => setSelectedCompany(e.target.value)}
                             >
                                 <option value="">(Alle)</option>
-                                {companyOptions.map((comp) => (
-                                    <option key={comp} value={comp}>
+                                {companyOptions.map((comp, index) => (
+                                    <option key={comp || index} value={comp}>
                                         {comp}
                                     </option>
                                 ))}
@@ -177,13 +210,12 @@ export default function UrenOverzicht() {
                     </div>
                     <div className="mt-4">
                         <p className="font-semibold">
-                            Totaal uren in periode: {isFinite(totalHours) ? totalHours.toFixed(2) : "0.00"} uur
+                            Totaal uren in periode: {safeToFixed(totalHours)} uur
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* Tabelcard */}
             <div className="card bg-base-100 shadow-lg">
                 <div className="card-body p-4">
                     <div className="overflow-x-auto">
@@ -200,32 +232,35 @@ export default function UrenOverzicht() {
                             </tr>
                             </thead>
                             <tbody>
-                            {pageEntries.map((entry) => {
-                                const start = dayjs(entry.startTime);
-                                const end = dayjs(entry.endTime);
-                                const diffMin = end.diff(start, "minute") - entry.breakMinutes;
-                                const hours = diffMin > 0 ? (diffMin / 60) : 0;
-                                const hoursDisplay = isFinite(hours) ? hours.toFixed(2) : "0.00";
+                            {pageEntries.map((entry, index) => {
+                                try {
+                                    const start = dayjs(entry.startTime);
+                                    const end = dayjs(entry.endTime);
+                                    const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
+                                    const hours = diffMin > 0 ? (diffMin / 60) : 0;
 
-                                return (
-                                    <tr key={entry.id}>
-                                        <td>{start.format("YYYY-MM-DD")}</td>
-                                        <td>{start.format("HH:mm")}</td>
-                                        <td>{end.format("HH:mm")}</td>
-                                        <td>{hoursDisplay}</td>
-                                        <td>{entry.project?.name || "Onbekend project"}</td>
-                                        <td>
-                                            {entry.project?.projectGroup?.company?.name ||
-                                                "Onbekend bedrijf"}
-                                        </td>
-                                        <td>{entry.notes}</td>
-                                    </tr>
-                                );
+                                    return (
+                                        <tr key={entry.id || index}>
+                                            <td>{start.format("YYYY-MM-DD")}</td>
+                                            <td>{start.format("HH:mm")}</td>
+                                            <td>{end.format("HH:mm")}</td>
+                                            <td>{safeToFixed(hours)}</td>
+                                            <td>{entry.project?.projectGroup?.company?.name || "Onbekend bedrijf"}</td>
+                                            <td>{entry.notes || ""}</td>
+                                        </tr>
+                                    );
+                                } catch (error) {
+                                    console.warn('Error rendering entry:', entry, error);
+                                    return (
+                                        <tr key={index}>
+                                            <td colSpan={7}>Error loading entry</td>
+                                        </tr>
+                                    );
+                                }
                             })}
                             </tbody>
                         </table>
                     </div>
-                    {/* Paginering */}
                     <div className="flex gap-2 justify-center mt-4">
                         <button className="btn btn-sm" onClick={() => goToPage(currentPage - 1)}>
                             Vorige

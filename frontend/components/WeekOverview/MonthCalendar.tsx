@@ -1,5 +1,3 @@
-// Fixed frontend/components/WeekOverview/MonthCalendar.tsx
-
 "use client";
 import React from "react";
 import dayjs, { Dayjs } from "dayjs";
@@ -28,6 +26,14 @@ export default function MonthCalendar({
                                           timeEntries,
                                           title = "Urenoverzicht",
                                       }: MonthlyOverviewProps) {
+
+    const safeToFixed = (value: any, decimals: number = 1): string => {
+        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+            return value.toFixed(decimals);
+        }
+        return '0.' + '0'.repeat(decimals);
+    };
+
     const monthName = currentMonth.format("MMMM");
     const year = currentMonth.format("YYYY");
 
@@ -36,7 +42,6 @@ export default function MonthCalendar({
     const startOfCalendar = startOfMonth.startOf("isoWeek");
     const endOfCalendar = endOfMonth.endOf("isoWeek");
 
-    // Bouw weken-array
     const weeks: { isoWeekNumber: number; days: Dayjs[] }[] = [];
     let day = startOfCalendar.clone();
     while (day.isBefore(endOfCalendar) || day.isSame(endOfCalendar, "day")) {
@@ -46,28 +51,51 @@ export default function MonthCalendar({
         day = day.add(1, "week");
     }
 
-    // Helper om uren per dag te berekenen
     function getHoursForDay(d: Dayjs): number {
-        const dayStr = d.format("YYYY-MM-DD");
-
-        // BELANGRIJKE FIX: Zorg ervoor dat timeEntries een array is
-        const entriesArray = Array.isArray(timeEntries) ? timeEntries : [];
-        const entries = entriesArray.filter((te) => te.startTime && te.startTime.startsWith(dayStr));
-
-        let totalMinutes = 0;
-        for (const e of entries) {
-            if (e.startTime && e.endTime) {
-                const start = dayjs(e.startTime);
-                const end = dayjs(e.endTime);
-                const diff = end.diff(start, "minute") - (e.breakMinutes || 0);
-                if (diff > 0) totalMinutes += diff;
+        try {
+            const dayStr = d.format("YYYY-MM-DD");
+            let entriesArray: TimeEntry[] = [];
+            if (Array.isArray(timeEntries)) {
+                entriesArray = timeEntries;
             }
+
+            const entries: TimeEntry[] = [];
+            for (const te of entriesArray) {
+                try {
+                    if (te && te.startTime && te.startTime.startsWith(dayStr)) {
+                        entries.push(te);
+                    }
+                } catch (error) {
+                    console.warn('Error filtering time entry:', te, error);
+                }
+            }
+
+            let totalMinutes = 0;
+            for (const e of entries) {
+                try {
+                    if (e && e.startTime && e.endTime) {
+                        const start = dayjs(e.startTime);
+                        const end = dayjs(e.endTime);
+                        const diff = end.diff(start, "minute") - (e.breakMinutes || 0);
+                        if (diff > 0) totalMinutes += diff;
+                    }
+                } catch (error) {
+                    console.warn('Error calculating time for entry:', e, error);
+                }
+            }
+            return totalMinutes / 60;
+        } catch (error) {
+            console.warn('Error in getHoursForDay:', error);
+            return 0;
         }
-        return totalMinutes / 60;
     }
 
     function isInCurrentMonth(d: Dayjs) {
-        return d.isSame(currentMonth, "month");
+        try {
+            return d.isSame(currentMonth, "month");
+        } catch (error) {
+            return false;
+        }
     }
 
     const colTotal = Array(7).fill(0);
@@ -76,17 +104,27 @@ export default function MonthCalendar({
     const tableRows = weeks.map((week) => {
         let rowSum = 0;
         const dayCells = week.days.map((d, idx) => {
-            const hours = getHoursForDay(d);
-            rowSum += hours;
-            colTotal[idx] += hours;
-            monthTotal += hours;
-            const bgColor = hours > 0 ? "bg-blue-100" : "bg-base-100";
-            const textColor = isInCurrentMonth(d) ? "text-black" : "text-gray-400";
-            return (
-                <td key={idx} className={`border text-center w-10 h-10 ${bgColor} ${textColor}`}>
-                    {hours > 0 ? (isFinite(hours) ? hours.toFixed(1) : "0.0") : ""}
-                </td>
-            );
+            try {
+                const hours = getHoursForDay(d);
+                rowSum += hours;
+                colTotal[idx] += hours;
+                monthTotal += hours;
+                const bgColor = hours > 0 ? "bg-blue-100" : "bg-base-100";
+                const textColor = isInCurrentMonth(d) ? "text-black" : "text-gray-400";
+
+                return (
+                    <td key={idx} className={`border text-center w-10 h-10 ${bgColor} ${textColor}`}>
+                        {hours > 0 ? safeToFixed(hours) : ""}
+                    </td>
+                );
+            } catch (error) {
+                console.warn('Error rendering day cell:', d, error);
+                return (
+                    <td key={idx} className="border text-center w-10 h-10 bg-base-100">
+                        -
+                    </td>
+                );
+            }
         });
 
         return (
@@ -94,7 +132,7 @@ export default function MonthCalendar({
                 <td className="border font-semibold w-10 h-10 text-sm">{week.isoWeekNumber}</td>
                 {dayCells}
                 <td className="border w-10 h-10 text-center font-bold text-sm">
-                    {rowSum > 0 ? (isFinite(rowSum) ? rowSum.toFixed(1) : "0.0") : ""}
+                    {rowSum > 0 ? safeToFixed(rowSum) : ""}
                 </td>
             </tr>
         );
@@ -105,11 +143,11 @@ export default function MonthCalendar({
             <td className="border w-10 h-10 text-sm">Totaal</td>
             {colTotal.map((sum, i) => (
                 <td key={i} className="border w-10 h-10 text-sm">
-                    {sum > 0 ? (isFinite(sum) ? sum.toFixed(1) : "0.0") : ""}
+                    {sum > 0 ? safeToFixed(sum) : ""}
                 </td>
             ))}
             <td className="border w-10 h-10 font-bold text-sm">
-                {monthTotal > 0 ? (isFinite(monthTotal) ? monthTotal.toFixed(1) : "0.0") : ""}
+                {monthTotal > 0 ? safeToFixed(monthTotal) : ""}
             </td>
         </tr>
     );
@@ -148,5 +186,5 @@ export default function MonthCalendar({
                 </div>
             </div>
         </div>
-    )
+    );
 }

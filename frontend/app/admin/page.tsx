@@ -1,5 +1,3 @@
-// Fixed frontend/app/admin/page.tsx
-
 "use client";
 import { useState, useEffect } from "react";
 import { getAdminStats } from "@/lib/api";
@@ -15,15 +13,23 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             try {
                 const data = await getAdminStats();
-                setStats(data);
+                setStats(data || {
+                    totalUsers: 0,
+                    hoursThisMonth: 0,
+                    activeProjects: 0,
+                    pendingVacations: 0,
+                    totalHours: 0
+                });
 
-                // Admin naam ophalen uit localStorage
-                const firstName = localStorage.getItem("firstName") || "";
-                const lastName = localStorage.getItem("lastName") || "";
-                setAdminName(`${firstName} ${lastName}`);
+                try {
+                    const firstName = localStorage.getItem("firstName") || "";
+                    const lastName = localStorage.getItem("lastName") || "";
+                    setAdminName(`${firstName} ${lastName}`.trim() || "Administrator");
+                } catch (storageError) {
+                    setAdminName("Administrator");
+                }
             } catch (error) {
                 console.error("Error fetching admin stats:", error);
-                // Set default stats on error
                 setStats({
                     totalUsers: 0,
                     hoursThisMonth: 0,
@@ -38,6 +44,13 @@ export default function AdminDashboard() {
 
         fetchData();
     }, []);
+
+    const safeToFixed = (value: any, decimals: number = 1): string => {
+        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
+            return value.toFixed(decimals);
+        }
+        return '0.' + '0'.repeat(decimals);
+    };
 
     if (loading) {
         return <div className="flex justify-center items-center min-h-screen">
@@ -62,7 +75,7 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Uren deze maand</h2>
-                            <p className="text-4xl font-bold">{(stats?.hoursThisMonth ?? 0).toFixed(1)}</p>
+                            <p className="text-4xl font-bold">{safeToFixed(stats?.hoursThisMonth)}</p>
                         </div>
                     </div>
 
@@ -82,7 +95,13 @@ export default function AdminDashboard() {
                             <div className="card-actions justify-end mt-4">
                                 <button
                                     className="btn btn-primary"
-                                    onClick={() => window.location.href = "/admin/vacation-requests"}
+                                    onClick={() => {
+                                        try {
+                                            window.location.href = "/admin/vacation-requests";
+                                        } catch (e) {
+                                            console.error('Navigation error:', e);
+                                        }
+                                    }}
                                 >
                                     Bekijken
                                 </button>
@@ -93,11 +112,17 @@ export default function AdminDashboard() {
                     <div className="card bg-base-100 shadow-xl">
                         <div className="card-body">
                             <h2 className="card-title">Totale uren</h2>
-                            <p className="text-4xl font-bold">{(stats?.totalHours ?? 0).toFixed(1)}</p>
+                            <p className="text-4xl font-bold">{safeToFixed(stats?.totalHours)}</p>
                             <div className="card-actions justify-end mt-4">
                                 <button
                                     className="btn btn-primary"
-                                    onClick={() => window.location.href = "/admin/time-entries"}
+                                    onClick={() => {
+                                        try {
+                                            window.location.href = "/admin/time-entries";
+                                        } catch (e) {
+                                            console.error('Navigation error:', e);
+                                        }
+                                    }}
                                 >
                                     Bekijken
                                 </button>
