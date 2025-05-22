@@ -24,9 +24,24 @@ export default function AdminUsersPage() {
         const fetchUsers = async () => {
             try {
                 const data = await getUsers();
-                setUsers(data);
+
+                // SAFE ARRAY HANDLING
+                let safeData: User[] = [];
+                if (Array.isArray(data)) {
+                    safeData = data;
+                } else if (data && typeof data === 'object' && Array.isArray(data.users)) {
+                    safeData = data.users;
+                } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
+                    safeData = data.data;
+                } else {
+                    console.warn("Received non-array user data:", data);
+                    safeData = [];
+                }
+
+                setUsers(safeData);
             } catch (error) {
                 console.error("Error fetching users:", error);
+                setUsers([]);
             } finally {
                 setLoading(false);
             }
@@ -35,13 +50,31 @@ export default function AdminUsersPage() {
         fetchUsers();
     }, []);
 
-    const filteredUsers = users.filter((user: User) => {
-        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-        const email = user.email.toLowerCase();
-        const search = searchTerm.toLowerCase();
+    const filteredUsers = (() => {
+        if (!Array.isArray(users)) return [];
 
-        return fullName.includes(search) || email.includes(search);
-    });
+        if (!searchTerm.trim()) return users;
+
+        try {
+            const searchLower = searchTerm.toLowerCase();
+            return users.filter((user: User) => {
+                if (!user || typeof user !== 'object') return false;
+
+                try {
+                    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+                    const email = (user.email || '').toLowerCase();
+
+                    return fullName.includes(searchLower) || email.includes(searchLower);
+                } catch (error) {
+                    console.warn("Error filtering user:", user, error);
+                    return false;
+                }
+            });
+        } catch (error) {
+            console.error("Error filtering users:", error);
+            return users;
+        }
+    })();
 
     const handleDeleteClick = (userId: number) => {
         setUserToDelete(userId);
@@ -54,7 +87,9 @@ export default function AdminUsersPage() {
         try {
             await deleteUser(userToDelete);
             // Refresh gebruikerslijst
-            const updatedUsers = users.filter((user: User) => user.id !== userToDelete);
+            const updatedUsers = Array.isArray(users)
+                ? users.filter((user: User) => user.id !== userToDelete)
+                : [];
             setUsers(updatedUsers);
             setToastMessage("Gebruiker succesvol verwijderd");
             setToastType("success");
@@ -121,36 +156,65 @@ export default function AdminUsersPage() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {filteredUsers.map((user: User) => (
-                                    <tr key={user.id}>
-                                        <td>{user.id}</td>
-                                        <td>{user.firstName} {user.lastName}</td>
-                                        <td>{user.email}</td>
-                                        <td>{user.function || "-"}</td>
-                                        <td>
-                                                <span className={`badge ${
-                                                    user.rank === "admin" ? "badge-primary" :
-                                                        user.rank === "manager" ? "badge-secondary" : "badge-accent"
-                                                }`}>
-                                                    {user.rank}
-                                                </span>
-                                        </td>
-                                        <td>
-                                            <button
-                                                className="btn btn-sm btn-primary mr-2"
-                                                onClick={() => handleEditClick(user.id)}
-                                            >
-                                                Bewerken
-                                            </button>
-                                            <button
-                                                className="btn btn-sm btn-error"
-                                                onClick={() => handleDeleteClick(user.id)}
-                                            >
-                                                Verwijderen
-                                            </button>
+                                {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? (
+                                    filteredUsers.map((user: User, index) => {
+                                        try {
+                                            if (!user || typeof user !== 'object') {
+                                                return (
+                                                    <tr key={index}>
+                                                        <td colSpan={6}>Ongeldige gebruiker</td>
+                                                    </tr>
+                                                );
+                                            }
+
+                                            return (
+                                                <tr key={user.id || index}>
+                                                    <td>{user.id || 'Onbekend'}</td>
+                                                    <td>{`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Naamloos'}</td>
+                                                    <td>{user.email || 'Geen email'}</td>
+                                                    <td>{user.function || "-"}</td>
+                                                    <td>
+                                                        <span className={`badge ${
+                                                            user.rank === "admin" ? "badge-primary" :
+                                                                user.rank === "manager" ? "badge-secondary" : "badge-accent"
+                                                        }`}>
+                                                            {user.rank || 'onbekend'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button
+                                                            className="btn btn-sm btn-primary mr-2"
+                                                            onClick={() => handleEditClick(user.id)}
+                                                            disabled={!user.id}
+                                                        >
+                                                            Bewerken
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-error"
+                                                            onClick={() => handleDeleteClick(user.id)}
+                                                            disabled={!user.id}
+                                                        >
+                                                            Verwijderen
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        } catch (error) {
+                                            console.warn("Error rendering user:", user, error);
+                                            return (
+                                                <tr key={index}>
+                                                    <td colSpan={6}>Fout bij laden gebruiker</td>
+                                                </tr>
+                                            );
+                                        }
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={6} className="text-center text-gray-500">
+                                            {searchTerm ? 'Geen gebruikers gevonden voor deze zoekopdracht' : 'Geen gebruikers gevonden'}
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                                 </tbody>
                             </table>
                         </div>

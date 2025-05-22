@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 import ToastNotification from "@/components/ToastNotification";
 import { TimeEntry, User, Project, ProjectGroup, Company } from "@/lib/types";
 
-// Interface voor uitgebreide TimeEntry met geneste objecten
 interface ExtendedTimeEntry extends TimeEntry {
     user: User;
     project?: Project & {
@@ -32,18 +31,15 @@ export default function AdminTimeEntriesPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [entriesPerPage] = useState(20);
 
-    // Selected entry for detail view
     const [selectedEntry, setSelectedEntry] = useState<ExtendedTimeEntry | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-    // Filters
     const [startDate, setStartDate] = useState(dayjs().subtract(30, 'day').format('YYYY-MM-DD'));
     const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
     const [selectedUser, setSelectedUser] = useState("");
     const [selectedProject, setSelectedProject] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Toast
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
 
@@ -51,9 +47,24 @@ export default function AdminTimeEntriesPage() {
         const fetchEntries = async () => {
             try {
                 const data = await getAdminTimeEntries();
-                setEntries(data);
+
+                // SAFE ARRAY HANDLING
+                let safeData: ExtendedTimeEntry[] = [];
+                if (Array.isArray(data)) {
+                    safeData = data;
+                } else if (data && typeof data === 'object' && Array.isArray(data.timeEntries)) {
+                    safeData = data.timeEntries;
+                } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
+                    safeData = data.data;
+                } else {
+                    console.warn("Received non-array data:", data);
+                    safeData = [];
+                }
+
+                setEntries(safeData);
             } catch (error) {
                 console.error("Error fetching time entries:", error);
+                setEntries([]);
             } finally {
                 setLoading(false);
             }
@@ -63,40 +74,90 @@ export default function AdminTimeEntriesPage() {
     }, []);
 
     // Create unique lists of users and projects for filters
-    const users = Array.from(new Set(entries.map((entry: ExtendedTimeEntry) => JSON.stringify({
-        id: entry.user.id,
-        name: entry.user.fullName
-    })))).map(str => JSON.parse(str) as UserOption);
+    const users = (() => {
+        if (!Array.isArray(entries)) return [];
 
-    const projects = Array.from(new Set(entries.map((entry: ExtendedTimeEntry) => JSON.stringify({
-        id: entry.project?.id,
-        name: entry.project?.name
-    })))).map(str => JSON.parse(str) as ProjectOption);
+        try {
+            const userMap = new Map<number, UserOption>();
+            for (const entry of entries) {
+                if (entry?.user?.id && entry?.user?.fullName) {
+                    userMap.set(entry.user.id, {
+                        id: entry.user.id,
+                        name: entry.user.fullName
+                    });
+                }
+            }
+            return Array.from(userMap.values());
+        } catch (error) {
+            console.error("Error creating user options:", error);
+            return [];
+        }
+    })();
+
+    const projects = (() => {
+        if (!Array.isArray(entries)) return [];
+
+        try {
+            const projectMap = new Map<number, ProjectOption>();
+            for (const entry of entries) {
+                if (entry?.project?.id && entry?.project?.name) {
+                    projectMap.set(entry.project.id, {
+                        id: entry.project.id,
+                        name: entry.project.name
+                    });
+                }
+            }
+            return Array.from(projectMap.values());
+        } catch (error) {
+            console.error("Error creating project options:", error);
+            return [];
+        }
+    })();
 
     // Apply filters
-    const filteredEntries = entries.filter((entry: ExtendedTimeEntry) => {
-        const entryDate = dayjs(entry.startTime);
-        const start = dayjs(startDate);
-        const end = dayjs(endDate).endOf('day');
+    const filteredEntries = (() => {
+        if (!Array.isArray(entries)) return [];
 
-        const dateInRange = entryDate.isAfter(start) && entryDate.isBefore(end);
-        const userMatch = selectedUser ? entry.user.id === parseInt(selectedUser) : true;
-        const projectMatch = selectedProject ? entry.project?.id === parseInt(selectedProject) : true;
+        try {
+            const start = dayjs(startDate).startOf("day");
+            const end = dayjs(endDate).endOf("day");
 
-        const searchLower = searchTerm.toLowerCase();
-        const searchMatch = !searchTerm ||
-            (entry.user.fullName?.toLowerCase().includes(searchLower) || false) ||
-            (entry.project?.name && entry.project.name.toLowerCase().includes(searchLower)) ||
-            (entry.notes && entry.notes.toLowerCase().includes(searchLower));
+            return entries.filter((entry: ExtendedTimeEntry) => {
+                try {
+                    if (!entry || !entry.startTime) return false;
 
-        return dateInRange && userMatch && projectMatch && searchMatch;
-    });
+                    const entryDate = dayjs(entry.startTime);
+                    if (!entryDate.isValid()) return false;
+
+                    const dateInRange = entryDate.isBetween(start, end, "day", "[]");
+                    const userMatch = selectedUser ? entry.user?.id === parseInt(selectedUser) : true;
+                    const projectMatch = selectedProject ? entry.project?.id === parseInt(selectedProject) : true;
+
+                    const searchLower = searchTerm.toLowerCase();
+                    const searchMatch = !searchTerm ||
+                        (entry.user?.fullName?.toLowerCase().includes(searchLower) || false) ||
+                        (entry.project?.name && entry.project.name.toLowerCase().includes(searchLower)) ||
+                        (entry.notes && entry.notes.toLowerCase().includes(searchLower));
+
+                    return dateInRange && userMatch && projectMatch && searchMatch;
+                } catch (error) {
+                    console.warn("Error filtering entry:", entry, error);
+                    return false;
+                }
+            });
+        } catch (error) {
+            console.error("Error filtering entries:", error);
+            return [];
+        }
+    })();
 
     // Pagination
     const indexOfLastEntry = currentPage * entriesPerPage;
     const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
-    const currentEntries = filteredEntries.slice(indexOfFirstEntry, indexOfLastEntry);
-    const totalPages = Math.ceil(filteredEntries.length / entriesPerPage);
+    const currentEntries = Array.isArray(filteredEntries)
+        ? filteredEntries.slice(indexOfFirstEntry, indexOfLastEntry)
+        : [];
+    const totalPages = Math.ceil((filteredEntries?.length || 0) / entriesPerPage);
 
     const handleViewDetails = async (entryId: number): Promise<void> => {
         try {
@@ -115,9 +176,10 @@ export default function AdminTimeEntriesPage() {
         try {
             await approveTimeEntry(entryId);
             // Refresh data
-            const updatedEntries = entries.map((entry: ExtendedTimeEntry) =>
-                entry.id === entryId ? { ...entry, status: "goedgekeurd" } : entry
-            );
+            const updatedEntries = Array.isArray(entries)
+                ? entries.map((entry: ExtendedTimeEntry) =>
+                    entry.id === entryId ? {...entry, status: "goedgekeurd"} : entry
+                ) : [];
             setEntries(updatedEntries);
             setToastMessage("Urenregistratie goedgekeurd");
             setToastType("success");
@@ -134,9 +196,10 @@ export default function AdminTimeEntriesPage() {
         try {
             await rejectTimeEntry(entryId);
             // Refresh data
-            const updatedEntries = entries.map((entry: ExtendedTimeEntry) =>
-                entry.id === entryId ? { ...entry, status: "afgekeurd" } : entry
-            );
+            const updatedEntries = Array.isArray(entries)
+                ? entries.map((entry: ExtendedTimeEntry) =>
+                    entry.id === entryId ? {...entry, status: "afgekeurd"} : entry
+                ) : [];
             setEntries(updatedEntries);
             setToastMessage("Urenregistratie afgekeurd");
             setToastType("success");
@@ -165,9 +228,9 @@ export default function AdminTimeEntriesPage() {
                         <h2 className="card-title mb-4">Filters</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="form-control">
+                            <div>
                                 <label className="label">
-                                    <span className="label-text">Startdatum</span>
+                                    <span className="label-text font-semibold">Startdatum</span>
                                 </label>
                                 <input
                                     type="date"
@@ -177,9 +240,9 @@ export default function AdminTimeEntriesPage() {
                                 />
                             </div>
 
-                            <div className="form-control">
+                            <div>
                                 <label className="label">
-                                    <span className="label-text">Einddatum</span>
+                                    <span className="label-text font-semibold">Einddatum</span>
                                 </label>
                                 <input
                                     type="date"
@@ -189,9 +252,9 @@ export default function AdminTimeEntriesPage() {
                                 />
                             </div>
 
-                            <div className="form-control">
+                            <div>
                                 <label className="label">
-                                    <span className="label-text">Medewerker</span>
+                                    <span className="label-text font-semibold">Medewerker</span>
                                 </label>
                                 <select
                                     className="select select-bordered"
@@ -199,7 +262,7 @@ export default function AdminTimeEntriesPage() {
                                     onChange={(e) => setSelectedUser(e.target.value)}
                                 >
                                     <option value="">Alle medewerkers</option>
-                                    {users.map((user: UserOption) => (
+                                    {Array.isArray(users) && users.map((user: UserOption) => (
                                         <option key={user.id} value={user.id}>
                                             {user.name}
                                         </option>
@@ -207,9 +270,9 @@ export default function AdminTimeEntriesPage() {
                                 </select>
                             </div>
 
-                            <div className="form-control">
+                            <div>
                                 <label className="label">
-                                    <span className="label-text">Project</span>
+                                    <span className="label-text font-semibold">Project</span>
                                 </label>
                                 <select
                                     className="select select-bordered"
@@ -217,7 +280,7 @@ export default function AdminTimeEntriesPage() {
                                     onChange={(e) => setSelectedProject(e.target.value)}
                                 >
                                     <option value="">Alle projecten</option>
-                                    {projects.map((project: ProjectOption) => (
+                                    {Array.isArray(projects) && projects.map((project: ProjectOption) => (
                                         <option key={project.id} value={project.id}>
                                             {project.name}
                                         </option>
@@ -228,7 +291,7 @@ export default function AdminTimeEntriesPage() {
 
                         <div className="form-control mt-4">
                             <label className="label">
-                                <span className="label-text">Zoeken</span>
+                                <span className="label-text font-semibold">Zoeken</span>
                             </label>
                             <input
                                 type="text"
@@ -273,49 +336,80 @@ export default function AdminTimeEntriesPage() {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {currentEntries.map((entry: ExtendedTimeEntry) => {
-                                    const start = dayjs(entry.startTime);
-                                    const end = dayjs(entry.endTime);
-                                    const diffMin = end.diff(start, 'minute') - entry.breakMinutes;
-                                    const hours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
+                                {Array.isArray(currentEntries) && currentEntries.map((entry: ExtendedTimeEntry, index) => {
+                                    try {
+                                        if (!entry || !entry.startTime || !entry.endTime) {
+                                            return (
+                                                <tr key={index}>
+                                                    <td colSpan={8}>Ongeldige entry</td>
+                                                </tr>
+                                            );
+                                        }
 
-                                    return (
-                                        <tr key={entry.id}>
-                                            <td>{start.format('YYYY-MM-DD')}</td>
-                                            <td>{entry.user.fullName}</td>
-                                            <td>{entry.project?.name || 'Onbekend'}</td>
-                                            <td>{start.format('HH:mm')}</td>
-                                            <td>{end.format('HH:mm')}</td>
-                                            <td>{hours}</td>
-                                            <td>
-                                                <span className={`badge ${
-                                                    entry.status === 'ingeleverd' ? 'badge-warning' :
-                                                        entry.status === 'goedgekeurd' ? 'badge-success' :
-                                                            entry.status === 'afgekeurd' ? 'badge-error' :
-                                                                'badge-ghost'
-                                                }`}>
-                                                    {entry.status}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button
-                                                    className="btn btn-sm btn-outline mr-2"
-                                                    onClick={() => handleViewDetails(entry.id as number)}
-                                                >
-                                                    Bekijken
-                                                </button>
-                                                {entry.status !== 'goedgekeurd' && entry.status !== 'afgekeurd' && (
+                                        const start = dayjs(entry.startTime);
+                                        const end = dayjs(entry.endTime);
+
+                                        if (!start.isValid() || !end.isValid()) {
+                                            return (
+                                                <tr key={index}>
+                                                    <td colSpan={8}>Ongeldige datum</td>
+                                                </tr>
+                                            );
+                                        }
+
+                                        const diffMin = end.diff(start, 'minute') - (entry.breakMinutes || 0);
+                                        const hours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
+
+                                        return (
+                                            <tr key={entry.id || index}>
+                                                <td>{start.format('YYYY-MM-DD')}</td>
+                                                <td>{entry.user?.fullName || 'Onbekend'}</td>
+                                                <td>{entry.project?.name || 'Onbekend'}</td>
+                                                <td>{start.format('HH:mm')}</td>
+                                                <td>{end.format('HH:mm')}</td>
+                                                <td>{hours}</td>
+                                                <td>
+                                                    <span className={`badge ${
+                                                        entry.status === 'ingeleverd' ? 'badge-warning' :
+                                                            entry.status === 'goedgekeurd' ? 'badge-success' :
+                                                                entry.status === 'afgekeurd' ? 'badge-error' :
+                                                                    'badge-ghost'
+                                                    }`}>
+                                                        {entry.status || 'onbekend'}
+                                                    </span>
+                                                </td>
+                                                <td>
                                                     <button
-                                                        className="btn btn-sm btn-success mr-2"
-                                                        onClick={() => handleApprove(entry.id as number)}
+                                                        className="btn btn-sm btn-outline mr-2"
+                                                        onClick={() => handleViewDetails(entry.id as number)}
                                                     >
-                                                        Goedkeuren
+                                                        Bekijken
                                                     </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
+                                                    {entry.status !== 'goedgekeurd' && entry.status !== 'afgekeurd' && (
+                                                        <button
+                                                            className="btn btn-sm btn-success mr-2"
+                                                            onClick={() => handleApprove(entry.id as number)}
+                                                        >
+                                                            Goedkeuren
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    } catch (error) {
+                                        console.warn('Error rendering entry:', entry, error);
+                                        return (
+                                            <tr key={index}>
+                                                <td colSpan={8}>Error loading entry</td>
+                                            </tr>
+                                        );
+                                    }
                                 })}
+                                {(!Array.isArray(currentEntries) || currentEntries.length === 0) && (
+                                    <tr>
+                                        <td colSpan={8} className="text-center">Geen entries gevonden</td>
+                                    </tr>
+                                )}
                                 </tbody>
                             </table>
                         </div>
@@ -355,13 +449,22 @@ export default function AdminTimeEntriesPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <p><span className="font-bold">Medewerker:</span> {selectedEntry.user.firstName} {selectedEntry.user.lastName}</p>
-                                    <p><span className="font-bold">Project:</span> {selectedEntry.project?.name || 'Onbekend'}</p>
-                                    <p><span className="font-bold">Datum:</span> {dayjs(selectedEntry.startTime).format('DD-MM-YYYY')}</p>
-                                    <p><span className="font-bold">Tijd:</span> {dayjs(selectedEntry.startTime).format('HH:mm')} - {dayjs(selectedEntry.endTime).format('HH:mm')}</p>
+                                    <p><span
+                                        className="font-bold">Medewerker:</span> {selectedEntry.user?.firstName} {selectedEntry.user?.lastName}
+                                    </p>
+                                    <p><span
+                                        className="font-bold">Project:</span> {selectedEntry.project?.name || 'Onbekend'}
+                                    </p>
+                                    <p><span
+                                        className="font-bold">Datum:</span> {dayjs(selectedEntry.startTime).format('DD-MM-YYYY')}
+                                    </p>
+                                    <p><span
+                                        className="font-bold">Tijd:</span> {dayjs(selectedEntry.startTime).format('HH:mm')} - {dayjs(selectedEntry.endTime).format('HH:mm')}
+                                    </p>
                                 </div>
                                 <div>
-                                    <p><span className="font-bold">Pauze:</span> {selectedEntry.breakMinutes} minuten</p>
+                                    <p><span className="font-bold">Pauze:</span> {selectedEntry.breakMinutes} minuten
+                                    </p>
                                     <p><span className="font-bold">Afstand:</span> {selectedEntry.distanceKm} km</p>
                                     <p><span className="font-bold">Reiskosten:</span> €{selectedEntry.travelCosts}</p>
                                     <p><span className="font-bold">Onkosten:</span> €{selectedEntry.expenses}</p>
@@ -408,7 +511,7 @@ export default function AdminTimeEntriesPage() {
                 )}
 
                 {toastMessage && (
-                    <ToastNotification message={toastMessage} type={toastType} />
+                    <ToastNotification message={toastMessage} type={toastType}/>
                 )}
             </div>
         </AdminRoute>

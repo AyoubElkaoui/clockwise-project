@@ -18,9 +18,8 @@ import WeekHeader from "./WeekHeader";
 import CombinedView from "./CombinedView";
 import TimeEntryModal from "./TimeEntryModal";
 import ToastNotification from "../ToastNotification";
-import { TimeEntry as GlobalTimeEntry } from "@/lib/types"; // Import het globale TimeEntry type
+import { TimeEntry as GlobalTimeEntry } from "@/lib/types";
 
-// Gebruik de interface uit de types.ts
 export type TimeEntry = GlobalTimeEntry;
 
 dayjs.extend(isoWeek);
@@ -43,28 +42,44 @@ export default function WeekOverview() {
     async function fetchFromDB() {
         try {
             const data = await getTimeEntries();
-            const local = data.map((e: TimeEntry) => ({
+            // SAFE ARRAY HANDLING
+            let safeData: TimeEntry[] = [];
+            if (Array.isArray(data)) {
+                safeData = data;
+            } else if (data && typeof data === 'object' && Array.isArray(data.timeEntries)) {
+                safeData = data.timeEntries;
+            } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
+                safeData = data.data;
+            }
+
+            const local = safeData.map((e: TimeEntry) => ({
                 ...e,
                 localStatus: "synced" as const,
             }));
             setLocalEntries(local);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching time entries:", err);
+            setLocalEntries([]); // Fallback to empty array
         }
     }
 
     async function handleSave() {
         try {
+            // Safe array check
+            if (!Array.isArray(localEntries)) {
+                console.error("localEntries is not an array");
+                return;
+            }
+
             for (const entry of localEntries) {
+                if (!entry || typeof entry !== 'object') continue;
+
                 if (entry.localStatus === "draft") {
-                    // Voor draft entries, stuur alles behalve id (omdat het nieuw is)
-                    // We maken een kopie zonder id property (als die bestaat)
                     const entryCopy = { ...entry };
                     delete entryCopy.id;
                     delete entryCopy.localStatus;
                     await registerTimeEntry(entryCopy as Omit<TimeEntry, 'id' | 'localStatus'>);
                 } else if (entry.localStatus === "changed" && entry.id) {
-                    // Voor changed entries, stuur alles behalve localStatus
                     const entryCopy = { ...entry };
                     delete entryCopy.localStatus;
                     await updateTimeEntry(entry.id, entryCopy as Partial<TimeEntry>);
@@ -85,17 +100,27 @@ export default function WeekOverview() {
 
     async function handleSubmit() {
         try {
+            if (!Array.isArray(localEntries)) {
+                console.error("localEntries is not an array");
+                return;
+            }
+
             const start = currentWeek.startOf("day");
             const end = currentWeek.add(6, "day").endOf("day");
 
             const relevantEntries = localEntries.filter((e) => {
-                const dt = dayjs(e.startTime);
-                return dt.isBetween(start, end, "day", "[]");
+                if (!e || typeof e !== 'object' || !e.startTime) return false;
+                try {
+                    const dt = dayjs(e.startTime);
+                    return dt.isBetween(start, end, "day", "[]");
+                } catch (error) {
+                    console.warn("Error filtering entry:", e, error);
+                    return false;
+                }
             });
 
             for (const entry of relevantEntries) {
                 if (entry.id && entry.status !== "ingeleverd") {
-                    // Cast naar het juiste type
                     await updateTimeEntry(entry.id, { ...entry, status: "ingeleverd" } as Partial<TimeEntry>);
                 }
             }
@@ -132,29 +157,54 @@ export default function WeekOverview() {
     }
 
     function calculateTotalHoursInWeek(weekStart: Dayjs, entries: TimeEntry[]): number {
-        let totalHours = 0;
-        for (let i = 0; i < 7; i++) {
-            const day = weekStart.add(i, "day").format("YYYY-MM-DD");
-            const dayEntries = entries.filter((e) => e.startTime.startsWith(day));
-            for (const entry of dayEntries) {
-                const start = dayjs(entry.startTime);
-                const end = dayjs(entry.endTime);
-                const diffMin = end.diff(start, "minute") - entry.breakMinutes;
-                if (diffMin > 0) totalHours += diffMin / 60;
+        try {
+            if (!Array.isArray(entries)) {
+                console.warn("Entries is not an array:", entries);
+                return 0;
             }
+
+            let totalHours = 0;
+            for (let i = 0; i < 7; i++) {
+                const day = weekStart.add(i, "day").format("YYYY-MM-DD");
+                const dayEntries = entries.filter((e) => {
+                    if (!e || typeof e !== 'object' || !e.startTime) return false;
+                    return e.startTime.startsWith(day);
+                });
+
+                for (const entry of dayEntries) {
+                    try {
+                        if (!entry.startTime || !entry.endTime) continue;
+                        const start = dayjs(entry.startTime);
+                        const end = dayjs(entry.endTime);
+                        if (!start.isValid() || !end.isValid()) continue;
+
+                        const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
+                        if (diffMin > 0) totalHours += diffMin / 60;
+                    } catch (error) {
+                        console.warn("Error calculating hours for entry:", entry, error);
+                    }
+                }
+            }
+            return totalHours;
+        } catch (error) {
+            console.error("Error in calculateTotalHoursInWeek:", error);
+            return 0;
         }
-        return totalHours;
     }
 
     const totalHoursThisWeek = calculateTotalHoursInWeek(currentWeek, localEntries);
 
     function handleUpdateLocalEntries(updated: TimeEntry[]) {
-        setLocalEntries(updated);
+        if (Array.isArray(updated)) {
+            setLocalEntries(updated);
+        } else {
+            console.error("Updated entries is not an array:", updated);
+            setLocalEntries([]);
+        }
     }
 
     return (
         <div className="w-full mx-auto py-6 px-4">
-            {/* Header + Opslaan/Inleveren kaart */}
             <div className="card w-full bg-base-100 shadow-lg mb-8">
                 <div className="card-body">
                     <WeekHeader
@@ -182,15 +232,13 @@ export default function WeekOverview() {
                 </div>
             </div>
 
-            {/* CombinedView in full width */}
             <CombinedView
                 currentWeek={currentWeek}
-                timeEntries={localEntries}
+                timeEntries={Array.isArray(localEntries) ? localEntries : []}
                 onClickRegister={openModal}
                 onUpdateLocalEntries={handleUpdateLocalEntries}
             />
 
-            {/* Modal voor nieuwe entry */}
             <TimeEntryModal
                 isOpen={isModalOpen}
                 day={selectedDay}
@@ -198,7 +246,6 @@ export default function WeekOverview() {
                 onEntrySaved={handleEntrySaved}
             />
 
-            {/* Eventuele toast */}
             {toastMessage && (
                 <ToastNotification message={toastMessage} type={toastType} />
             )}

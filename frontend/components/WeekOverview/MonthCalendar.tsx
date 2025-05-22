@@ -4,6 +4,7 @@ import dayjs, { Dayjs } from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import "dayjs/locale/nl";
 import { CalendarIcon } from "@heroicons/react/24/outline";
+import { safeToFixed, safeArray } from "@/lib/type-safe-utils";
 
 interface TimeEntry {
     startTime: string;
@@ -22,18 +23,10 @@ dayjs.extend(isoWeek);
 dayjs.locale("nl");
 
 export default function MonthCalendar({
-                                          currentMonth,
-                                          timeEntries,
-                                          title = "Urenoverzicht",
-                                      }: MonthlyOverviewProps) {
-
-    const safeToFixed = (value: any, decimals: number = 1): string => {
-        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
-            return value.toFixed(decimals);
-        }
-        return '0.' + '0'.repeat(decimals);
-    };
-
+    currentMonth,
+    timeEntries,
+    title = "Urenoverzicht",
+}: MonthlyOverviewProps) {
     const monthName = currentMonth.format("MMMM");
     const year = currentMonth.format("YYYY");
 
@@ -54,10 +47,7 @@ export default function MonthCalendar({
     function getHoursForDay(d: Dayjs): number {
         try {
             const dayStr = d.format("YYYY-MM-DD");
-            let entriesArray: TimeEntry[] = [];
-            if (Array.isArray(timeEntries)) {
-                entriesArray = timeEntries;
-            }
+            const entriesArray = safeArray<TimeEntry>(timeEntries);
 
             const entries: TimeEntry[] = [];
             for (const te of entriesArray) {
@@ -76,7 +66,8 @@ export default function MonthCalendar({
                     if (e && e.startTime && e.endTime) {
                         const start = dayjs(e.startTime);
                         const end = dayjs(e.endTime);
-                        const diff = end.diff(start, "minute") - (e.breakMinutes || 0);
+                        const breakMin = typeof e.breakMinutes === 'number' ? e.breakMinutes : 0;
+                        const diff = end.diff(start, "minute") - breakMin;
                         if (diff > 0) totalMinutes += diff;
                     }
                 } catch (error) {

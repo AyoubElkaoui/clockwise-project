@@ -2,69 +2,130 @@
 import axios from "axios";
 import { TimeEntry, User} from "./types";
 
-
 // Exporteer de API_URL constante zodat deze beschikbaar is voor andere bestanden
 export const API_URL = "https://07c4-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api";
 
+// Safe response handler
+function safeApiResponse(response: any): any {
+    if (!response) return [];
+    if (response.data !== undefined) return response.data;
+    return response;
+}
+
 export async function getCompanies() {
-    const res = await axios.get(`${API_URL}/companies`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/companies`);
+        const data = safeApiResponse(res);
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error("Error fetching companies:", error);
+        return [];
+    }
 }
 
 export async function getProjectGroups(companyId: number) {
-    const res = await axios.get(`${API_URL}/projectgroups/${companyId}`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/projectgroups/${companyId}`);
+        const data = safeApiResponse(res);
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error("Error fetching project groups:", error);
+        return [];
+    }
 }
 
 export async function getProjects(projectGroupId: number) {
-    const res = await axios.get(`${API_URL}/projects?groupId=${projectGroupId}`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/projects?groupId=${projectGroupId}`);
+        const data = safeApiResponse(res);
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error("Error fetching projects:", error);
+        return [];
+    }
 }
 
 export async function getTimeEntries() {
-    const res = await axios.get(`${API_URL}/time-entries`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/time-entries`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.timeEntries)) return data.timeEntries;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected time entries response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching time entries:", error);
+        return [];
+    }
 }
 
 export async function registerTimeEntry(data: Omit<TimeEntry, 'id' | 'localStatus'>) {
-    return await axios.post(`${API_URL}/time-entries`, data);
+    try {
+        return await axios.post(`${API_URL}/time-entries`, data);
+    } catch (error) {
+        console.error("Error registering time entry:", error);
+        throw error;
+    }
 }
 
 export async function updateTimeEntry(id: number, data: Partial<TimeEntry>) {
-    return await axios.put(`${API_URL}/time-entries/${id}`, data);
+    try {
+        return await axios.put(`${API_URL}/time-entries/${id}`, data);
+    } catch (error) {
+        console.error("Error updating time entry:", error);
+        throw error;
+    }
 }
 
 export async function deleteTimeEntry(id: number) {
-    return await axios.delete(`${API_URL}/time-entries/${id}`);
+    try {
+        return await axios.delete(`${API_URL}/time-entries/${id}`);
+    } catch (error) {
+        console.error("Error deleting time entry:", error);
+        throw error;
+    }
 }
 
 export async function submitTimeEntry(id: number) {
-    return await axios.post(`${API_URL}/time-entries/${id}/submit`);
+    try {
+        return await axios.post(`${API_URL}/time-entries/${id}/submit`);
+    } catch (error) {
+        console.error("Error submitting time entry:", error);
+        throw error;
+    }
 }
 
-// In je login functie, na het ontvangen van de gebruiker
 export async function login(userInput: string, password: string) {
     try {
         console.log("Login poging starten...");
-        const user = await axios.post(`${API_URL}/users/login`, {
+        const response = await axios.post(`${API_URL}/users/login`, {
             userInput,
             password,
         });
 
-        console.log("Login succesvol, response:", user.data);
+        const user = safeApiResponse(response);
+        console.log("Login succesvol, response:", user);
+
+        if (!user || !user.id) {
+            throw new Error("Ongeldige response van server");
+        }
 
         // Wis eerst alle bestaande gebruikersgegevens
         localStorage.clear();
 
         // Sla nieuwe gegevens op
-        localStorage.setItem("userId", user.data.id);
-        localStorage.setItem("firstName", user.data.firstName);
-        localStorage.setItem("lastName", user.data.lastName);
-        localStorage.setItem("userRank", user.data.rank);
+        localStorage.setItem("userId", String(user.id));
+        localStorage.setItem("firstName", user.firstName || "");
+        localStorage.setItem("lastName", user.lastName || "");
+        localStorage.setItem("userRank", user.rank || "user");
 
         console.log("Login data opgeslagen, klaar om te redirecten");
 
-        return user.data;
+        return user;
     } catch (error) {
         console.error("Login error:", error);
         throw error;
@@ -82,11 +143,15 @@ export async function registerUser(data: {
     loginName: string;
     password: string;
 }) {
-    const response = await axios.post(`${API_URL}/users/register`, data);
-    return response.data;
+    try {
+        const response = await axios.post(`${API_URL}/users/register`, data);
+        return safeApiResponse(response);
+    } catch (error) {
+        console.error("Error registering user:", error);
+        throw error;
+    }
 }
 
-// Voeg de functie registerVacationRequest toe
 export async function registerVacationRequest(data: {
     userId: number;
     startDate: string;
@@ -95,135 +160,265 @@ export async function registerVacationRequest(data: {
     reason: string;
     status: string;
 }) {
-    const response = await axios.post(`${API_URL}/vacation-requests`, data);
-    return response.data;
+    try {
+        const response = await axios.post(`${API_URL}/vacation-requests`, data);
+        return safeApiResponse(response);
+    } catch (error) {
+        console.error("Error registering vacation request:", error);
+        throw error;
+    }
 }
 
 export async function getVacationRequests() {
-    const res = await axios.get(`${API_URL}/vacation-requests`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/vacation-requests`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.vacations)) return data.vacations;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected vacation requests response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching vacation requests:", error);
+        return [];
+    }
 }
 
-// Voeg deze functies toe aan je lib/api.ts
-
 export async function getAdminStats() {
-    const res = await axios.get(`${API_URL}/admin/stats`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/admin/stats`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error fetching admin stats:", error);
+        return {
+            totalUsers: 0,
+            hoursThisMonth: 0,
+            activeProjects: 0,
+            pendingVacations: 0,
+            totalHours: 0
+        };
+    }
 }
 
 export async function getAdminTimeEntries() {
-    const res = await axios.get(`${API_URL}/admin/time-entries`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/admin/time-entries`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.timeEntries)) return data.timeEntries;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected admin time entries response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching admin time entries:", error);
+        return [];
+    }
 }
 
 export async function getAdminVacationRequests() {
-    const res = await axios.get(`${API_URL}/admin/vacation-requests`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/admin/vacation-requests`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.vacations)) return data.vacations;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected admin vacation requests response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching admin vacation requests:", error);
+        return [];
+    }
 }
 
 export async function processVacationRequest(id: number, status: "approved" | "rejected") {
-    const res = await axios.put(`${API_URL}/admin/vacation-requests/${id}`, { status });
-    return res.data;
+    try {
+        const res = await axios.put(`${API_URL}/admin/vacation-requests/${id}`, { status });
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error processing vacation request:", error);
+        throw error;
+    }
 }
 
 export async function createProject(projectData: { name: string, projectGroupId: number }) {
-    const res = await axios.post(`${API_URL}/admin/projects`, projectData);
-    return res.data;
+    try {
+        const res = await axios.post(`${API_URL}/admin/projects`, projectData);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error creating project:", error);
+        throw error;
+    }
 }
 
 export async function getUsers() {
-    const res = await axios.get(`${API_URL}/users`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/users`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.users)) return data.users;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected users response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        return [];
+    }
 }
 
 export async function getUser(id: number) {
-    const res = await axios.get(`${API_URL}/users/${id}`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/users/${id}`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        throw error;
+    }
 }
 
 export async function updateUser(id: number, userData: Partial<User>) {
-    const res = await axios.put(`${API_URL}/users/${id}`, userData);
-    return res.data;
+    try {
+        const res = await axios.put(`${API_URL}/users/${id}`, userData);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error updating user:", error);
+        throw error;
+    }
 }
 
 export async function deleteUser(id: number) {
-    const res = await axios.delete(`${API_URL}/users/${id}`);
-    return res.data;
+    try {
+        const res = await axios.delete(`${API_URL}/users/${id}`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        throw error;
+    }
 }
 
 export async function getTimeEntryDetails(id: number) {
-    const res = await axios.get(`${API_URL}/time-entries/${id}/details`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/time-entries/${id}/details`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error fetching time entry details:", error);
+        throw error;
+    }
 }
 
 export async function approveTimeEntry(id: number) {
-    const res = await axios.put(`${API_URL}/time-entries/${id}/approve`);
-    return res.data;
+    try {
+        const res = await axios.put(`${API_URL}/time-entries/${id}/approve`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error approving time entry:", error);
+        throw error;
+    }
 }
 
 export async function rejectTimeEntry(id: number) {
-    const res = await axios.put(`${API_URL}/time-entries/${id}/reject`);
-    return res.data;
+    try {
+        const res = await axios.put(`${API_URL}/time-entries/${id}/reject`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error rejecting time entry:", error);
+        throw error;
+    }
 }
 
-// Markeer alle activiteiten als gelezen
-// in lib/api.ts
 export async function markAllActivitiesAsRead() {
     try {
         const userId = Number(localStorage.getItem("userId"));
         if (!userId) throw new Error("No user ID found");
 
         const response = await axios.put(`${API_URL}/activities/read-all?userId=${userId}`);
-        return response.data;
+        return safeApiResponse(response);
     } catch (error) {
         console.error("Error marking all activities as read:", error);
         throw error;
     }
 }
-// Voeg deze functies toe aan lib/api.ts
 
-// Haal alle activiteiten op
-// Voeg deze functies toe aan lib/api.ts
-
-// Haal alle activiteiten op
 export async function getActivities(limit: number = 10, userId?: number) {
-    let url = `${API_URL}/activities?limit=${limit}`;
-    if (userId) {
-        url += `&userId=${userId}`;
-    }
-
     try {
+        let url = `${API_URL}/activities?limit=${limit}`;
+        if (userId) {
+            url += `&userId=${userId}`;
+        }
+
         const response = await axios.get(url);
-        return response.data;
+        const data = safeApiResponse(response);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.activities)) return data.activities;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected activities response structure:", data);
+        return [];
     } catch (error) {
         console.error("Error fetching activities:", error);
-        throw error;
+        return [];
     }
 }
 
-// Markeer een activiteit als gelezen
 export async function markActivityAsRead(activityId: number) {
     try {
         const response = await axios.put(`${API_URL}/activities/${activityId}/read`);
-        return response.data;
+        return safeApiResponse(response);
     } catch (error) {
         console.error("Error marking activity as read:", error);
         throw error;
     }
 }
 
-/// Toevoegen aan frontend/lib/api.ts
 export async function getUserProjects(userId: number) {
-    const res = await axios.get(`${API_URL}/user-projects/users/${userId}`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/user-projects/users/${userId}`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.userProjects)) return data.userProjects;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected user projects response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching user projects:", error);
+        return [];
+    }
 }
 
 export async function getProjectUsers(projectId: number) {
-    const res = await axios.get(`${API_URL}/user-projects/projects/${projectId}`);
-    return res.data;
+    try {
+        const res = await axios.get(`${API_URL}/user-projects/projects/${projectId}`);
+        const data = safeApiResponse(res);
+
+        // Handle different possible response structures
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.projectUsers)) return data.projectUsers;
+        if (data && Array.isArray(data.data)) return data.data;
+
+        console.warn("Unexpected project users response structure:", data);
+        return [];
+    } catch (error) {
+        console.error("Error fetching project users:", error);
+        return [];
+    }
 }
 
-// In lib/api.ts
 export async function assignUserToProject(userId: number, projectId: number, assignedByUserId: number) {
     try {
         const res = await axios.post(`${API_URL}/user-projects`, {
@@ -231,11 +426,9 @@ export async function assignUserToProject(userId: number, projectId: number, ass
             projectId,
             assignedByUserId
         });
-        return res.data;
+        return safeApiResponse(res);
     } catch (error) {
-        // Vang de foutmelding op en gooi deze opnieuw om afgehandeld te worden door de component
         if (axios.isAxiosError(error) && error.response) {
-            // Als de server een foutmelding teruggeeft, gebruik deze
             throw new Error(error.response.data || "Fout bij toewijzen gebruiker aan project");
         }
         throw new Error("Fout bij toewijzen gebruiker aan project");
@@ -243,6 +436,11 @@ export async function assignUserToProject(userId: number, projectId: number, ass
 }
 
 export async function removeUserFromProject(userId: number, projectId: number) {
-    const res = await axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`);
-    return res.data;
+    try {
+        const res = await axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`);
+        return safeApiResponse(res);
+    } catch (error) {
+        console.error("Error removing user from project:", error);
+        throw error;
+    }
 }
