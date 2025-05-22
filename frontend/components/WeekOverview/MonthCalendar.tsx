@@ -47,13 +47,19 @@ export default function MonthCalendar({
     // Helper om uren per dag te berekenen
     function getHoursForDay(d: Dayjs): number {
         const dayStr = d.format("YYYY-MM-DD");
-        const entries = timeEntries.filter((te) => te.startTime.startsWith(dayStr));
+
+        // BELANGRIJKE FIX: Zorg ervoor dat timeEntries een array is
+        const entriesArray = Array.isArray(timeEntries) ? timeEntries : [];
+        const entries = entriesArray.filter((te) => te.startTime && te.startTime.startsWith(dayStr));
+
         let totalMinutes = 0;
         for (const e of entries) {
-            const start = dayjs(e.startTime);
-            const end = dayjs(e.endTime);
-            const diff = end.diff(start, "minute") - e.breakMinutes;
-            if (diff > 0) totalMinutes += diff;
+            if (e.startTime && e.endTime) {
+                const start = dayjs(e.startTime);
+                const end = dayjs(e.endTime);
+                const diff = end.diff(start, "minute") - (e.breakMinutes || 0);
+                if (diff > 0) totalMinutes += diff;
+            }
         }
         return totalMinutes / 60;
     }
@@ -85,7 +91,9 @@ export default function MonthCalendar({
             <tr key={week.isoWeekNumber} className="text-center">
                 <td className="border font-semibold w-10 h-10 text-sm">{week.isoWeekNumber}</td>
                 {dayCells}
-                <td className="border w-10 h-10 text-center font-bold text-sm">{rowSum > 0 ? rowSum.toFixed(1) : ""}</td>
+                <td className="border w-10 h-10 text-center font-bold text-sm">
+                    {rowSum > 0 ? rowSum.toFixed(1) : ""}
+                </td>
             </tr>
         );
     });
@@ -94,9 +102,13 @@ export default function MonthCalendar({
         <tr className="text-center font-semibold">
             <td className="border w-10 h-10 text-sm">Totaal</td>
             {colTotal.map((sum, i) => (
-                <td key={i} className="border w-10 h-10 text-sm">{sum > 0 ? sum.toFixed(1) : ""}</td>
+                <td key={i} className="border w-10 h-10 text-sm">
+                    {sum > 0 ? sum.toFixed(1) : ""}
+                </td>
             ))}
-            <td className="border w-10 h-10 font-bold text-sm">{monthTotal > 0 ? monthTotal.toFixed(1) : ""}</td>
+            <td className="border w-10 h-10 font-bold text-sm">
+                {monthTotal > 0 ? monthTotal.toFixed(1) : ""}
+            </td>
         </tr>
     );
 
