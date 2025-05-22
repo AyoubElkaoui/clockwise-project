@@ -1,3 +1,5 @@
+// Fixed frontend/components/WeekOverview/MonthCalendar.tsx
+
 "use client";
 import React from "react";
 import dayjs, { Dayjs } from "dayjs";
@@ -82,7 +84,7 @@ export default function MonthCalendar({
             const textColor = isInCurrentMonth(d) ? "text-black" : "text-gray-400";
             return (
                 <td key={idx} className={`border text-center w-10 h-10 ${bgColor} ${textColor}`}>
-                    {hours > 0 ? hours.toFixed(1) : ""}
+                    {hours > 0 ? (isFinite(hours) ? hours.toFixed(1) : "0.0") : ""}
                 </td>
             );
         });
@@ -92,7 +94,7 @@ export default function MonthCalendar({
                 <td className="border font-semibold w-10 h-10 text-sm">{week.isoWeekNumber}</td>
                 {dayCells}
                 <td className="border w-10 h-10 text-center font-bold text-sm">
-                    {rowSum > 0 ? rowSum.toFixed(1) : ""}
+                    {rowSum > 0 ? (isFinite(rowSum) ? rowSum.toFixed(1) : "0.0") : ""}
                 </td>
             </tr>
         );
@@ -103,11 +105,11 @@ export default function MonthCalendar({
             <td className="border w-10 h-10 text-sm">Totaal</td>
             {colTotal.map((sum, i) => (
                 <td key={i} className="border w-10 h-10 text-sm">
-                    {sum > 0 ? sum.toFixed(1) : ""}
+                    {sum > 0 ? (isFinite(sum) ? sum.toFixed(1) : "0.0") : ""}
                 </td>
             ))}
             <td className="border w-10 h-10 font-bold text-sm">
-                {monthTotal > 0 ? monthTotal.toFixed(1) : ""}
+                {monthTotal > 0 ? (isFinite(monthTotal) ? monthTotal.toFixed(1) : "0.0") : ""}
             </td>
         </tr>
     );

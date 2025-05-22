@@ -1,3 +1,5 @@
+// Fixed frontend/components/WeekOverview/WeekOverview.tsx
+
 "use client";
 import React, { useState, useEffect } from "react";
 import dayjs, { Dayjs } from "dayjs";
@@ -165,8 +167,8 @@ export default function WeekOverview() {
                         <div>
                             <span className="font-semibold text-lg">Totaal uren deze week: </span>
                             <span className="badge badge-primary badge-lg text-lg">
-                {totalHoursThisWeek.toFixed(2)} uur
-              </span>
+                                {isFinite(totalHoursThisWeek) ? totalHoursThisWeek.toFixed(2) : "0.00"} uur
+                            </span>
                         </div>
                         <div className="flex gap-2 ml-auto">
                             <button className="btn btn-success" onClick={handleSave}>

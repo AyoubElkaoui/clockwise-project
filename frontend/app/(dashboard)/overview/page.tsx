@@ -1,4 +1,4 @@
-// Fix voor frontend/app/(dashboard)/overview/page.tsx
+// Fixed frontend/app/(dashboard)/overview/page.tsx
 
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
@@ -177,7 +177,7 @@ export default function UrenOverzicht() {
                     </div>
                     <div className="mt-4">
                         <p className="font-semibold">
-                            Totaal uren in periode: {totalHours.toFixed(2)} uur
+                            Totaal uren in periode: {isFinite(totalHours) ? totalHours.toFixed(2) : "0.00"} uur
                         </p>
                     </div>
                 </div>
@@ -204,13 +204,15 @@ export default function UrenOverzicht() {
                                 const start = dayjs(entry.startTime);
                                 const end = dayjs(entry.endTime);
                                 const diffMin = end.diff(start, "minute") - entry.breakMinutes;
-                                const hours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
+                                const hours = diffMin > 0 ? (diffMin / 60) : 0;
+                                const hoursDisplay = isFinite(hours) ? hours.toFixed(2) : "0.00";
+
                                 return (
                                     <tr key={entry.id}>
                                         <td>{start.format("YYYY-MM-DD")}</td>
                                         <td>{start.format("HH:mm")}</td>
                                         <td>{end.format("HH:mm")}</td>
-                                        <td>{hours}</td>
+                                        <td>{hoursDisplay}</td>
                                         <td>{entry.project?.name || "Onbekend project"}</td>
                                         <td>
                                             {entry.project?.projectGroup?.company?.name ||
