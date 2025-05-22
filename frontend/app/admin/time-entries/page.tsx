@@ -80,10 +80,11 @@ export default function AdminTimeEntriesPage() {
         try {
             const userMap = new Map<number, UserOption>();
             for (const entry of entries) {
-                if (entry?.user?.id && entry?.user?.fullName) {
+                if (entry?.user?.id) {
+                    const fullName = entry.user.fullName || `${entry.user.firstName || ''} ${entry.user.lastName || ''}`.trim();
                     userMap.set(entry.user.id, {
                         id: entry.user.id,
-                        name: entry.user.fullName
+                        name: fullName || 'Onbekende gebruiker'
                     });
                 }
             }
@@ -134,8 +135,9 @@ export default function AdminTimeEntriesPage() {
                     const projectMatch = selectedProject ? entry.project?.id === parseInt(selectedProject) : true;
 
                     const searchLower = searchTerm.toLowerCase();
+                    const userName = entry.user?.fullName || `${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim();
                     const searchMatch = !searchTerm ||
-                        (entry.user?.fullName?.toLowerCase().includes(searchLower) || false) ||
+                        (userName.toLowerCase().includes(searchLower)) ||
                         (entry.project?.name && entry.project.name.toLowerCase().includes(searchLower)) ||
                         (entry.notes && entry.notes.toLowerCase().includes(searchLower));
 
@@ -327,6 +329,7 @@ export default function AdminTimeEntriesPage() {
                                 <tr>
                                     <th>Datum</th>
                                     <th>Medewerker</th>
+                                    <th>Bedrijf</th>
                                     <th>Project</th>
                                     <th>Start</th>
                                     <th>Eind</th>
@@ -341,7 +344,7 @@ export default function AdminTimeEntriesPage() {
                                         if (!entry || !entry.startTime || !entry.endTime) {
                                             return (
                                                 <tr key={index}>
-                                                    <td colSpan={8}>Ongeldige entry</td>
+                                                    <td colSpan={9}>Ongeldige entry</td>
                                                 </tr>
                                             );
                                         }
@@ -352,7 +355,7 @@ export default function AdminTimeEntriesPage() {
                                         if (!start.isValid() || !end.isValid()) {
                                             return (
                                                 <tr key={index}>
-                                                    <td colSpan={8}>Ongeldige datum</td>
+                                                    <td colSpan={9}>Ongeldige datum</td>
                                                 </tr>
                                             );
                                         }
@@ -360,11 +363,17 @@ export default function AdminTimeEntriesPage() {
                                         const diffMin = end.diff(start, 'minute') - (entry.breakMinutes || 0);
                                         const hours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
 
+                                        // GEFIXEERD: Juiste volgorde van bedrijf en project
+                                        const companyName = entry.project?.projectGroup?.company?.name || 'Onbekend bedrijf';
+                                        const projectName = entry.project?.name || 'Onbekend project';
+                                        const userName = entry.user?.fullName || `${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim() || 'Onbekend';
+
                                         return (
                                             <tr key={entry.id || index}>
-                                                <td>{start.format('YYYY-MM-DD')}</td>
-                                                <td>{entry.user?.fullName || 'Onbekend'}</td>
-                                                <td>{entry.project?.name || 'Onbekend'}</td>
+                                                <td>{start.format('DD-MM-YYYY')}</td>
+                                                <td>{userName}</td>
+                                                <td>{companyName}</td>
+                                                <td>{projectName}</td>
                                                 <td>{start.format('HH:mm')}</td>
                                                 <td>{end.format('HH:mm')}</td>
                                                 <td>{hours}</td>
@@ -379,20 +388,30 @@ export default function AdminTimeEntriesPage() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <button
-                                                        className="btn btn-sm btn-outline mr-2"
-                                                        onClick={() => handleViewDetails(entry.id as number)}
-                                                    >
-                                                        Bekijken
-                                                    </button>
-                                                    {entry.status !== 'goedgekeurd' && entry.status !== 'afgekeurd' && (
+                                                    <div className="flex gap-2">
                                                         <button
-                                                            className="btn btn-sm btn-success mr-2"
-                                                            onClick={() => handleApprove(entry.id as number)}
+                                                            className="btn btn-sm btn-outline"
+                                                            onClick={() => handleViewDetails(entry.id as number)}
                                                         >
-                                                            Goedkeuren
+                                                            Bekijken
                                                         </button>
-                                                    )}
+                                                        {entry.status !== 'goedgekeurd' && entry.status !== 'afgekeurd' && (
+                                                            <>
+                                                                <button
+                                                                    className="btn btn-sm btn-success"
+                                                                    onClick={() => handleApprove(entry.id as number)}
+                                                                >
+                                                                    Goedkeuren
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-sm btn-error"
+                                                                    onClick={() => handleReject(entry.id as number)}
+                                                                >
+                                                                    Afkeuren
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -400,14 +419,14 @@ export default function AdminTimeEntriesPage() {
                                         console.warn('Error rendering entry:', entry, error);
                                         return (
                                             <tr key={index}>
-                                                <td colSpan={8}>Error loading entry</td>
+                                                <td colSpan={9}>Error loading entry</td>
                                             </tr>
                                         );
                                     }
                                 })}
                                 {(!Array.isArray(currentEntries) || currentEntries.length === 0) && (
                                     <tr>
-                                        <td colSpan={8} className="text-center">Geen entries gevonden</td>
+                                        <td colSpan={9} className="text-center">Geen entries gevonden</td>
                                     </tr>
                                 )}
                                 </tbody>
@@ -449,25 +468,18 @@ export default function AdminTimeEntriesPage() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <p><span
-                                        className="font-bold">Medewerker:</span> {selectedEntry.user?.firstName} {selectedEntry.user?.lastName}
-                                    </p>
-                                    <p><span
-                                        className="font-bold">Project:</span> {selectedEntry.project?.name || 'Onbekend'}
-                                    </p>
-                                    <p><span
-                                        className="font-bold">Datum:</span> {dayjs(selectedEntry.startTime).format('DD-MM-YYYY')}
-                                    </p>
-                                    <p><span
-                                        className="font-bold">Tijd:</span> {dayjs(selectedEntry.startTime).format('HH:mm')} - {dayjs(selectedEntry.endTime).format('HH:mm')}
-                                    </p>
+                                    <p><span className="font-bold">Medewerker:</span> {selectedEntry.user?.fullName || `${selectedEntry.user?.firstName || ''} ${selectedEntry.user?.lastName || ''}`.trim() || 'Onbekend'}</p>
+                                    <p><span className="font-bold">Bedrijf:</span> {selectedEntry.project?.projectGroup?.company?.name || 'Onbekend bedrijf'}</p>
+                                    <p><span className="font-bold">Project:</span> {selectedEntry.project?.name || 'Onbekend project'}</p>
+                                    <p><span className="font-bold">Datum:</span> {dayjs(selectedEntry.startTime).format('DD-MM-YYYY')}</p>
+                                    <p><span className="font-bold">Tijd:</span> {dayjs(selectedEntry.startTime).format('HH:mm')} - {dayjs(selectedEntry.endTime).format('HH:mm')}</p>
                                 </div>
                                 <div>
-                                    <p><span className="font-bold">Pauze:</span> {selectedEntry.breakMinutes} minuten
-                                    </p>
+                                    <p><span className="font-bold">Pauze:</span> {selectedEntry.breakMinutes} minuten</p>
                                     <p><span className="font-bold">Afstand:</span> {selectedEntry.distanceKm} km</p>
                                     <p><span className="font-bold">Reiskosten:</span> €{selectedEntry.travelCosts}</p>
                                     <p><span className="font-bold">Onkosten:</span> €{selectedEntry.expenses}</p>
+                                    <p><span className="font-bold">Status:</span> {selectedEntry.status}</p>
                                 </div>
                             </div>
 
