@@ -1,11 +1,11 @@
 "use client";
 import WeekOverview from "@/components/WeekOverview/WeekOverview";
+import {JSX} from "react";
 
-export default function Dashboard() {
+export default function Dashboard(): JSX.Element {
     return (
-        <div className="p-4">
+        <div className="animate-fade-in">
             <WeekOverview />
         </div>
-
     );
 }
