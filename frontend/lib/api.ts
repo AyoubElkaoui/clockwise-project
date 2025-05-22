@@ -3,7 +3,7 @@ import axios from "axios";
 import { TimeEntry, User} from "./types";
 
 // Exporteer de API_URL constante zodat deze beschikbaar is voor andere bestanden
-export const API_URL = "https://07c4-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api";
+export const API_URL = "https://3df4-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api";
 
 // Safe response handler
 function safeApiResponse(response: any): any {
