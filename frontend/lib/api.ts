@@ -4,7 +4,7 @@ import { TimeEntry, User} from "./types";
 
 
 // Exporteer de API_URL constante zodat deze beschikbaar is voor andere bestanden
-export const API_URL = "https://e21ce60895378d.lhr.life/api";
+export const API_URL = "https://07c4-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api";
 
 export async function getCompanies() {
     const res = await axios.get(`${API_URL}/companies`);
