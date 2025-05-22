@@ -11,7 +11,7 @@ const NotificationBell = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showDropdown, setShowDropdown] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState("all"); // "all", "unread", "read"
+    const [activeTab, setActiveTab] = useState("all");
 
     const fetchActivities = async () => {
         try {
@@ -20,20 +20,24 @@ const NotificationBell = () => {
             if (!userId) return;
 
             const data = await getActivities(20, userId);
-            setActivities(data);
-            setUnreadCount(data.filter((a: Activity) => !a.read).length);
+
+            // BELANGRIJKE FIX: Zorg ervoor dat data een array is
+            const activitiesArray = Array.isArray(data) ? data : [];
+
+            setActivities(activitiesArray);
+            setUnreadCount(activitiesArray.filter((a: Activity) => !a.read).length);
         } catch (error) {
             console.error("Error fetching notifications:", error);
+            // Bij error, zet een lege array
+            setActivities([]);
+            setUnreadCount(0);
         } finally {
             setLoading(false);
         }
     };
 
-    // Haal activiteiten op bij het laden van de component
     useEffect(() => {
         fetchActivities();
-
-        // Polling - vernieuw elke 30 seconden
         const interval = setInterval(fetchActivities, 30000);
         return () => clearInterval(interval);
     }, []);
@@ -51,8 +55,6 @@ const NotificationBell = () => {
     const handleMarkAllAsRead = async () => {
         try {
             await markAllActivitiesAsRead();
-
-            // Update lokale state om alles als gelezen te markeren
             setActivities(prevActivities =>
                 prevActivities.map(a => ({ ...a, read: true }))
             );
@@ -66,11 +68,11 @@ const NotificationBell = () => {
         setShowDropdown(!showDropdown);
     };
 
-    // Filter activiteiten op basis van de actieve tab
-    const filteredActivities = activities.filter(activity => {
+    // BELANGRIJKE FIX: Zorg ervoor dat activities een array is voor filter
+    const filteredActivities = (Array.isArray(activities) ? activities : []).filter(activity => {
         if (activeTab === "unread") return !activity.read;
         if (activeTab === "read") return activity.read;
-        return true; // "all" tab
+        return true;
     });
 
     const formatTimestamp = (timestamp: string) => {
@@ -103,25 +105,10 @@ const NotificationBell = () => {
             return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
             </svg>;
-        } else if (activityType === "project") {
-            return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd" />
-                <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V7z" />
-            </svg>;
         }
         return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
         </svg>;
-    };
-
-    const getPriorityClass = (activity: Activity) => {
-        const action = activity.action || "";
-
-        if (action === "approved" || action === "completed") return "border-l-4 border-green-500";
-        if (action === "rejected") return "border-l-4 border-red-500";
-        if (action === "submitted" || action === "assigned") return "border-l-4 border-blue-500";
-
-        return "border-l-4 border-gray-300";
     };
 
     return (
@@ -150,7 +137,6 @@ const NotificationBell = () => {
                         </button>
                     </div>
 
-                    {/* Tabs */}
                     <div className="flex border-b">
                         <button
                             className={`flex-1 py-2 px-4 text-center ${activeTab === 'all' ? 'bg-base-200 font-semibold' : ''}`}
@@ -191,7 +177,7 @@ const NotificationBell = () => {
                             {filteredActivities.map((activity) => (
                                 <div
                                     key={activity.id}
-                                    className={`p-3 hover:bg-base-200 flex gap-3 items-start ${getPriorityClass(activity)} ${!activity.read ? 'bg-base-200' : ''}`}
+                                    className={`p-3 hover:bg-base-200 flex gap-3 items-start ${!activity.read ? 'bg-base-200' : ''}`}
                                     onClick={() => !activity.read && handleMarkAsRead(activity.id)}
                                 >
                                     <div className="shrink-0 mt-1">

@@ -23,11 +23,18 @@ export default function NotificationFeed({ limit = 5 }: NotificationFeedProps) {
             if (!userId) return;
 
             const data = await getActivities(limit, userId);
-            setActivities(data);
-            setUnreadCount(data.filter((a: Activity) => !a.read).length);
+
+            // BELANGRIJKE FIX: Zorg ervoor dat data een array is
+            const activitiesArray = Array.isArray(data) ? data : [];
+
+            setActivities(activitiesArray);
+            setUnreadCount(activitiesArray.filter((a: Activity) => !a.read).length);
         } catch (error) {
             console.error("Error fetching activities:", error);
             setError("Kon activiteiten niet laden");
+            // Bij error, zet een lege array
+            setActivities([]);
+            setUnreadCount(0);
         } finally {
             setLoading(false);
         }
