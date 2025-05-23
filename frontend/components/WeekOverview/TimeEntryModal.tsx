@@ -1,4 +1,3 @@
-// Fixed TimeEntryModal - corrected interface to accept date instead of day
 "use client";
 import React from "react";
 import { Dayjs } from "dayjs";
@@ -7,13 +6,15 @@ import TimeEntryForm from "./TimeEntryForm";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Props {
-    date: Dayjs;  // Changed from 'day' to 'date' to match your usage
-    entry?: TimeEntry | null;  // Made optional and nullable for editing
+    isOpen: boolean;
+    day: Dayjs | null;
+    entry?: TimeEntry | null;
     onClose: () => void;
+    onEntrySaved: () => void;
 }
 
-export default function TimeEntryModal({ date, entry, onClose }: Props) {
-    if (!date) return null;
+export default function TimeEntryModal({ isOpen, day, entry, onClose, onEntrySaved }: Props) {
+    if (!isOpen || !day) return null;
 
     return (
         <>
@@ -28,7 +29,6 @@ export default function TimeEntryModal({ date, entry, onClose }: Props) {
                 <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-elmar-lg border border-white/50 w-full max-w-2xl max-h-[90vh] overflow-hidden animate-fade-in">
                     {/* Header */}
                     <div className="bg-gradient-elmar text-white p-6 relative overflow-hidden">
-                        {/* Background Pattern */}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
                         <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full blur-lg"></div>
 
@@ -38,7 +38,7 @@ export default function TimeEntryModal({ date, entry, onClose }: Props) {
                                     {entry ? "✏️ Uren Bewerken" : "🕐 Uren Registreren"}
                                 </h2>
                                 <p className="text-blue-100">
-                                    {date.format("dddd, DD MMMM YYYY")}
+                                    {day.format("dddd, DD MMMM YYYY")}
                                 </p>
                             </div>
                             <button
@@ -54,10 +54,10 @@ export default function TimeEntryModal({ date, entry, onClose }: Props) {
                     {/* Content */}
                     <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
                         <TimeEntryForm
-                            day={date}  // TimeEntryForm expects 'day' prop
-                            existingEntry={entry}  // Pass existing entry for editing
+                            day={day}
+                            existingEntry={entry}
                             onClose={onClose}
-                            onEntrySaved={onClose}  // Close modal when saved
+                            onEntrySaved={onEntrySaved}
                         />
                     </div>
                 </div>

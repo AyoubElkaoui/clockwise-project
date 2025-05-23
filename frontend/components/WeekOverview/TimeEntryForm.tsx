@@ -18,19 +18,17 @@ import {
 
 interface TimeEntryFormProps {
     day: Dayjs;
-    existingEntry?: TimeEntry | null;  // For editing existing entries
+    existingEntry?: TimeEntry | null;
     onClose: () => void;
     onEntrySaved: () => void;
 }
 
 export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySaved }: TimeEntryFormProps) {
-    // Data voor select-lijsten
     const [companies, setCompanies] = useState<Company[]>([]);
     const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [assignedProjects, setAssignedProjects] = useState<UserProject[]>([]);
 
-    // Geselecteerde waarden - initialize from existing entry if editing
     const [selectedCompany, setSelectedCompany] = useState<number | null>(
         existingEntry?.project?.projectGroup?.company?.id || null
     );
@@ -41,13 +39,11 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         existingEntry?.projectId || null
     );
 
-    // Extract time from ISO string for editing
     const extractTime = (isoString?: string): string => {
         if (!isoString) return "";
         return dayjs(isoString).format("HH:mm");
     };
 
-    // Tijd en overige velden - Initialize from existing entry if editing
     const [startTime, setStartTime] = useState(extractTime(existingEntry?.startTime) || "09:00");
     const [endTime, setEndTime] = useState(extractTime(existingEntry?.endTime) || "17:00");
     const [breakMinutes, setBreakMinutes] = useState(existingEntry?.breakMinutes || 30);
@@ -75,33 +71,34 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
     const timeOptions = generateTimeOptions();
 
-    // Tijd display helpers
     const formatDisplayTime = (timeStr: string): string => {
         const [hour, minute] = timeStr.split(':');
         const h = parseInt(hour);
         const m = parseInt(minute);
 
-        let displayHour = '';
-        if (m === 0) displayHour = `${h}u`;
-        else if (m === 15) displayHour = `${h}¼u`;
-        else if (m === 30) displayHour = `${h}½u`;
-        else if (m === 45) displayHour = `${h}¾u`;
-        else displayHour = timeStr;
-
-        return displayHour;
+        if (m === 0) return `${h}:00`;
+        else if (m === 15) return `${h}:15`;
+        else if (m === 30) return `${h}:30`;
+        else if (m === 45) return `${h}:45`;
+        return timeStr;
     };
 
     const formatHours = (hours: number): string => {
         if (hours === 0) return "0u";
 
-        const wholeHours = Math.floor(hours);
-        const minutes = Math.round((hours - wholeHours) * 60);
+        // Round to nearest quarter hour
+        const roundedHours = Math.round(hours * 4) / 4;
+        const wholeHours = Math.floor(roundedHours);
+        const fraction = roundedHours - wholeHours;
 
-        if (minutes === 0) return `${wholeHours}u`;
-        else if (minutes === 15) return `${wholeHours}¼u`;
-        else if (minutes === 30) return `${wholeHours}½u`;
-        else if (minutes === 45) return `${wholeHours}¾u`;
-        else return `${hours.toFixed(2)}u`;
+        let display = wholeHours.toString();
+
+        if (fraction === 0.25) display += "¼";
+        else if (fraction === 0.5) display += "½";
+        else if (fraction === 0.75) display += "¾";
+        else if (fraction > 0) display = roundedHours.toFixed(2);
+
+        return display + "u";
     };
 
     useEffect(() => {
@@ -126,7 +123,6 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     setError("Je bent niet toegewezen aan projecten. Neem contact op met een beheerder.");
                 }
 
-                // If editing, load the related project groups and projects
                 if (existingEntry && selectedCompany) {
                     const projectGroupsData = await getProjectGroups(selectedCompany);
                     setProjectGroups(projectGroupsData);
@@ -176,7 +172,6 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             setProjectGroups([]);
         }
 
-        // Only reset if not editing
         if (!existingEntry) {
             setSelectedProjectGroup(null);
             setSelectedProject(null);
@@ -209,7 +204,6 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             setProjects([]);
         }
 
-        // Only reset if not editing
         if (!existingEntry) {
             setSelectedProject(null);
         }
@@ -221,7 +215,9 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         const endDT = dayjs(`${dayStr}T${endTime}`);
         if (endDT.isAfter(startDT)) {
             const diffMin = endDT.diff(startDT, "minute") - breakMinutes;
-            setCalculatedHours(diffMin > 0 ? diffMin / 60 : 0);
+            const hours = diffMin > 0 ? diffMin / 60 : 0;
+            // Round to nearest quarter hour
+            setCalculatedHours(Math.round(hours * 4) / 4);
         } else {
             setCalculatedHours(0);
         }
@@ -234,6 +230,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         }
         if (!startTime || !endTime) {
             setError("Vul start- en eindtijd in");
+            return;
+        }
+        if (calculatedHours === 0) {
+            setError("Eindtijd moet na starttijd zijn");
             return;
         }
 
@@ -268,38 +268,14 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
         try {
             if (existingEntry && existingEntry.id) {
-                // Update existing entry
                 await updateTimeEntry(existingEntry.id, data);
             } else {
-                // Create new entry
                 await registerTimeEntry(data);
             }
             onEntrySaved();
         } catch (err) {
             console.error(err);
             setError("Fout bij opslaan van de uren");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!existingEntry?.id) return;
-
-        if (!confirm("Weet je zeker dat je deze urenregistratie wilt verwijderen?")) {
-            return;
-        }
-
-        setIsSubmitting(true);
-        setError("");
-
-        try {
-            // You'll need to implement deleteTimeEntry in your API
-            // await deleteTimeEntry(existingEntry.id);
-            onEntrySaved();
-        } catch (err) {
-            console.error(err);
-            setError("Fout bij verwijderen van de uren");
         } finally {
             setIsSubmitting(false);
         }
@@ -438,7 +414,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <ClockIcon className="w-5 h-5 text-green-600" />
-                    Tijd Registratie
+                    Tijd Registratie (kwartierprecisie)
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -502,9 +478,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             {formatHours(calculatedHours)}
                         </span>
                     </div>
-                    {calculatedHours < 1 && startTime && endTime && (
-                        <p className="text-xs text-orange-600 mt-1">⚠️ Minder dan 1 uur</p>
+                    {calculatedHours < 0.25 && startTime && endTime && (
+                        <p className="text-xs text-orange-600 mt-1">⚠️ Minder dan een kwartier</p>
                     )}
+                    <div className="text-xs text-gray-500 mt-1">
+                        Tijd wordt automatisch afgerond op kwartiertjes
+                    </div>
                 </div>
             </div>
 
@@ -584,12 +563,13 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
                 <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                     <LightBulbIcon className="w-5 h-5 text-yellow-600" />
-                    Tips
+                    Uren Registratie Tips
                 </h4>
                 <div className="text-sm text-gray-700 space-y-1">
-                    <p>• Tijden worden automatisch afgerond op kwartieren</p>
-                    <p>• Vergeet niet je pauzetijd in te vullen</p>
-                    <p>• Reiskosten en onkosten zijn optioneel</p>
+                    <p>• Tijden worden automatisch afgerond op kwartiertjes (0:15, 0:30, 0:45, 1:00)</p>
+                    <p>• Minimaal een kwartier (0¼u) kan geregistreerd worden</p>
+                    <p>• Vergeet niet je pauzetijd in te vullen voor nauwkeurige berekening</p>
+                    <p>• Reiskosten en onkosten zijn optioneel en kunnen later worden toegevoegd</p>
                 </div>
             </div>
 
@@ -601,8 +581,30 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 </div>
             )}
 
+            {/* Validation Messages */}
+            {!selectedProject && (
+                <div className="alert alert-warning rounded-xl">
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <span>Selecteer eerst een project om door te gaan</span>
+                </div>
+            )}
+
+            {calculatedHours > 0 && calculatedHours < 0.25 && (
+                <div className="alert alert-warning rounded-xl">
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <span>Minimum registratie is een kwartier (0¼u)</span>
+                </div>
+            )}
+
+            {calculatedHours >= 12 && (
+                <div className="alert alert-warning rounded-xl">
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <span>Let op: Je registreert meer dan 12 uur. Controleer of dit correct is.</span>
+                </div>
+            )}
+
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                     className="btn btn-outline rounded-xl flex-1"
                     onClick={onClose}
@@ -614,7 +616,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 {existingEntry && (
                     <button
                         className="btn btn-error rounded-xl"
-                        onClick={handleDelete}
+                        onClick={() => {
+                            if (confirm("Weet je zeker dat je deze urenregistratie wilt verwijderen?")) {
+                                // Handle delete - you'll need to implement this
+                                onClose();
+                            }
+                        }}
                         disabled={isSubmitting}
                         title="Verwijderen"
                     >
@@ -625,7 +632,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 <button
                     className="btn bg-gradient-elmar border-0 text-white rounded-xl flex-1 hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
                     onClick={handleSave}
-                    disabled={!isFormValid || isSubmitting}
+                    disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
                 >
                     {isSubmitting ? (
                         <div className="flex items-center gap-2">

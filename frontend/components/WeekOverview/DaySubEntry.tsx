@@ -32,29 +32,47 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
     const isWeekend = date.day() === 0 || date.day() === 6;
     const canEdit = weekStatus === "concept";
 
-    // Calculate total hours for the day
-    const totalHours = entries.reduce((total, entry) => {
-        if (!entry.startTime || !entry.endTime) return total;
+    // Calculate total hours for the day with quarter-hour rounding
+    const calculateHours = (entry: TimeEntry): number => {
+        if (!entry.startTime || !entry.endTime) return 0;
 
         try {
             const start = dayjs(entry.startTime);
             const end = dayjs(entry.endTime);
             const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
-            return total + (diffMin > 0 ? diffMin / 60 : 0);
+            const hours = diffMin > 0 ? diffMin / 60 : 0;
+
+            // Round to nearest quarter hour
+            return Math.round(hours * 4) / 4;
         } catch (error) {
             console.warn("Error calculating hours for entry:", entry, error);
-            return total;
+            return 0;
         }
+    };
+
+    const totalHours = entries.reduce((total, entry) => {
+        return total + calculateHours(entry);
     }, 0);
 
     const totalExpenses = entries.reduce((total, entry) => {
         return total + (entry.expenses || 0) + (entry.travelCosts || 0);
     }, 0);
 
-    // Format hours properly (in 0.25 increments)
+    // Format hours in quarters (0.25 = ¼, 0.5 = ½, 0.75 = ¾)
     const formatHours = (hours: number): string => {
-        const rounded = Math.round(hours * 4) / 4; // Round to nearest quarter
-        return rounded.toFixed(2).replace('.00', '').replace('.25', '¼').replace('.50', '½').replace('.75', '¾');
+        if (hours === 0) return "0u";
+
+        const wholeHours = Math.floor(hours);
+        const fraction = hours - wholeHours;
+
+        let display = wholeHours.toString();
+
+        if (fraction === 0.25) display += "¼";
+        else if (fraction === 0.5) display += "½";
+        else if (fraction === 0.75) display += "¾";
+        else if (fraction > 0) display = hours.toFixed(2);
+
+        return display + "u";
     };
 
     const handleAddEntry = (): void => {
@@ -124,7 +142,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
 
                         <div className="text-right">
                             <div className={`text-lg font-bold ${getHoursColor()}`}>
-                                {formatHours(totalHours)}u
+                                {formatHours(totalHours)}
                             </div>
                             {totalExpenses > 0 && (
                                 <div className="text-xs text-purple-600">
@@ -145,6 +163,9 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                 style={{ width: `${Math.min((totalHours / 8) * 100, 100)}%` }}
                             ></div>
                         </div>
+                        <div className="text-xs text-gray-500 text-center mt-1">
+                            {((totalHours / 8) * 100).toFixed(0)}% van 8u
+                        </div>
                     </div>
 
                     {/* Compact Entries List */}
@@ -156,7 +177,6 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {/* Show first entry always, rest only if expanded */}
                             {entries.slice(0, isExpanded ? entries.length : 1).map((entry: TimeEntry, index: number) => {
                                 try {
                                     if (!entry.startTime || !entry.endTime) {
@@ -178,8 +198,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                         );
                                     }
 
-                                    const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
-                                    const hours = diffMin > 0 ? (diffMin / 60) : 0;
+                                    const hours = calculateHours(entry);
 
                                     const getEntryStatusBg = () => {
                                         switch (entry.status) {
@@ -193,27 +212,30 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                     return (
                                         <div
                                             key={entry.id || index}
-                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${getEntryStatusBg()}`}
+                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm cursor-pointer ${getEntryStatusBg()}`}
+                                            onClick={() => canEdit && handleEditEntry(entry)}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-medium text-gray-800">
                                                         {start.format("HH:mm")}-{end.format("HH:mm")}
                                                     </span>
-                                                    <span className="text-xs bg-elmar-primary text-white px-2 py-0.5 rounded-full">
-                                                        {formatHours(hours)}u
+                                                    <span className="text-xs bg-elmar-primary text-white px-2 py-0.5 rounded-full font-medium">
+                                                        {formatHours(hours)}
                                                     </span>
                                                 </div>
 
-                                                {/* Status & Edit */}
                                                 <div className="flex items-center gap-1">
-                                                    {entry.status === 'goedgekeurd' && <span className="text-xs text-green-600">✅</span>}
-                                                    {entry.status === 'afgekeurd' && <span className="text-xs text-red-600">❌</span>}
-                                                    {entry.status === 'ingeleverd' && <span className="text-xs text-yellow-600">⏳</span>}
+                                                    {entry.status === 'goedgekeurd' && <span className="text-xs">✅</span>}
+                                                    {entry.status === 'afgekeurd' && <span className="text-xs">❌</span>}
+                                                    {entry.status === 'ingeleverd' && <span className="text-xs">⏳</span>}
 
                                                     {canEdit && (
                                                         <button
-                                                            onClick={() => handleEditEntry(entry)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleEditEntry(entry);
+                                                            }}
                                                             className="p-1 hover:bg-gray-200 rounded"
                                                             title="Bewerken"
                                                         >
@@ -223,7 +245,6 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                                 </div>
                                             </div>
 
-                                            {/* Project info - compact */}
                                             <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
                                                 <BuildingOfficeIcon className="w-3 h-3" />
                                                 <span className="truncate">
@@ -238,7 +259,6 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                                 </span>
                                             </div>
 
-                                            {/* Additional info - only if space */}
                                             {(entry.expenses || entry.travelCosts || entry.notes) && (
                                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                                     {(entry.expenses || entry.travelCosts) && (
@@ -267,13 +287,12 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                 }
                             })}
 
-                            {/* Show more/less button */}
                             {entries.length > 1 && (
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}
-                                    className="w-full text-xs text-elmar-primary hover:text-elmar-secondary py-1"
+                                    className="w-full text-xs text-elmar-primary hover:text-elmar-secondary py-1 font-medium"
                                 >
-                                    {isExpanded ? `▲ Inklappen (${entries.length} entries)` : `▼ Toon alle ${entries.length} entries`}
+                                    {isExpanded ? `▲ Toon minder` : `▼ Toon alle ${entries.length} entries`}
                                 </button>
                             )}
                         </div>
@@ -286,14 +305,13 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                             className="btn btn-sm bg-gradient-elmar border-0 text-white w-full rounded-lg hover:scale-105 transition-all duration-200 mt-3"
                         >
                             <PlusIcon className="w-4 h-4 mr-1" />
-                            {entries.length === 0 ? 'Uren Toevoegen' : 'Entry +'}
+                            {entries.length === 0 ? 'Uren Toevoegen' : 'Nieuwe Entry'}
                         </button>
                     )}
 
-                    {/* Status indicator voor non-editable */}
                     {!canEdit && weekStatus !== "concept" && (
                         <div className="text-center mt-2">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 weekStatus === 'goedgekeurd' ? 'bg-green-100 text-green-800' :
                                     weekStatus === 'ingeleverd' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                             }`}>
@@ -303,7 +321,6 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                         </div>
                     )}
 
-                    {/* Lock indicator */}
                     {!canEdit && (
                         <div className="absolute top-2 right-2">
                             <LockClosedIcon className="w-4 h-4 text-gray-400" />
@@ -312,14 +329,13 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                 </div>
             </div>
 
-            {/* Time Entry Modal */}
-            {showModal && (
-                <TimeEntryModal
-                    date={date}
-                    entry={editingEntry}
-                    onClose={handleCloseModal}
-                />
-            )}
+            <TimeEntryModal
+                isOpen={showModal}
+                day={date}
+                entry={editingEntry}
+                onClose={handleCloseModal}
+                onEntrySaved={handleCloseModal}
+            />
         </>
     );
 }

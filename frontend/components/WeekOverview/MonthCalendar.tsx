@@ -74,7 +74,10 @@ export default function MonthCalendar({
                     console.warn('Error calculating time for entry:', e, error);
                 }
             }
-            return totalMinutes / 60;
+
+            const hours = totalMinutes / 60;
+            // Round to nearest quarter hour
+            return Math.round(hours * 4) / 4;
         } catch (error) {
             console.warn('Error in getHoursForDay:', error);
             return 0;
@@ -93,13 +96,13 @@ export default function MonthCalendar({
         if (hours === 0) return "";
 
         const wholeHours = Math.floor(hours);
-        const minutes = Math.round((hours - wholeHours) * 60);
+        const fraction = hours - wholeHours;
 
-        if (minutes === 0) return `${wholeHours}u`;
-        else if (minutes === 15) return `${wholeHours}¼`;
-        else if (minutes === 30) return `${wholeHours}½`;
-        else if (minutes === 45) return `${wholeHours}¾`;
-        else return `${hours.toFixed(1)}u`;
+        if (fraction === 0) return `${wholeHours}u`;
+        else if (fraction === 0.25) return `${wholeHours}¼`;
+        else if (fraction === 0.5) return `${wholeHours}½`;
+        else if (fraction === 0.75) return `${wholeHours}¾`;
+        else return `${hours.toFixed(2)}u`;
     }
 
     const colTotal = Array(7).fill(0);
