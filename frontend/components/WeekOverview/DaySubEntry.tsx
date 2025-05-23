@@ -7,8 +7,15 @@ import {
     CheckIcon,
     XMarkIcon,
     LockClosedIcon,
+    BuildingOfficeIcon,
+    ClockIcon,
+    DocumentTextIcon,
+    CurrencyEuroIcon,
+    ExclamationTriangleIcon,
+    CheckCircleIcon,
+    XCircleIcon
 } from "@heroicons/react/24/outline";
-import { TimeEntry } from "@/lib/types"; // Gebruik de globale types
+import { TimeEntry } from "@/lib/types";
 import { getCompanies, getProjectGroups, getProjects } from "@/lib/api";
 import { Company, ProjectGroup, Project } from "@/lib/types";
 
@@ -18,10 +25,6 @@ interface DaySubEntryProps {
     onUpdateLocalEntries: (updated: TimeEntry[]) => void;
 }
 
-/**
- * DaySubEntry: a single "bubble" or "card" for one TimeEntry,
- * supporting inline edit of company/project/times/notes.
- */
 export default function DaySubEntry({
                                         entry,
                                         allEntries,
@@ -39,7 +42,6 @@ export default function DaySubEntry({
     const [notes, setNotes] = useState(entry.notes || "");
 
     // For company → projectGroup → project
-    // Cast project naar het juiste type
     const project = entry.project as Project | undefined;
     const existingCompanyId = project?.projectGroup?.company?.id;
     const existingProjectGroupId = project?.projectGroup?.id;
@@ -71,7 +73,6 @@ export default function DaySubEntry({
         } else {
             setProjectGroups([]);
         }
-        // Reset PG and Project
         setSelectedProjectGroup(null);
         setSelectedProject(null);
     }, [selectedCompany]);
@@ -89,35 +90,40 @@ export default function DaySubEntry({
     // Bereken of deze entry bewerkbaar is op basis van de status
     const isEditable = entry.status === "opgeslagen" || entry.status === "afgekeurd";
 
-    // Bepaal klasse op basis van status
-    const getStatusClass = () => {
+    // Bepaal styling op basis van status
+    const getStatusStyling = () => {
         switch (entry.status) {
             case "goedgekeurd":
-                return "border-green-500 bg-green-50";
+                return {
+                    containerClass: "border-green-300 bg-gradient-to-br from-green-50 to-emerald-50",
+                    badgeClass: "badge-success",
+                    badgeText: "✅ Goedgekeurd",
+                    statusIcon: <CheckCircleIcon className="w-4 h-4 text-green-600" />
+                };
             case "afgekeurd":
-                return "border-red-500 bg-red-50";
+                return {
+                    containerClass: "border-red-300 bg-gradient-to-br from-red-50 to-pink-50",
+                    badgeClass: "badge-error",
+                    badgeText: "❌ Afgekeurd",
+                    statusIcon: <XCircleIcon className="w-4 h-4 text-red-600" />
+                };
             case "ingeleverd":
-                return "border-yellow-500 bg-yellow-50";
+                return {
+                    containerClass: "border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50",
+                    badgeClass: "badge-warning",
+                    badgeText: "⏳ Ingeleverd",
+                    statusIcon: <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600" />
+                };
             default:
-                return "border-gray-300 bg-white";
+                return {
+                    containerClass: "border-gray-200 bg-gradient-to-br from-white to-gray-50",
+                    badgeClass: "badge-ghost",
+                    badgeText: "📝 Opgeslagen",
+                    statusIcon: <DocumentTextIcon className="w-4 h-4 text-gray-600" />
+                };
         }
     };
 
-    // Bepaal statuslabel
-    const getStatusLabel = () => {
-        switch (entry.status) {
-            case "goedgekeurd":
-                return <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Goedgekeurd</span>;
-            case "afgekeurd":
-                return <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">Afgekeurd</span>;
-            case "ingeleverd":
-                return <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Ingeleverd</span>;
-            default:
-                return <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">Opgeslagen</span>;
-        }
-    };
-
-    /** In read‐only mode, we show times etc. */
     const isReadOnly = !isEditing;
 
     // Computed hours
@@ -126,15 +132,14 @@ export default function DaySubEntry({
     const diffMin = end.diff(start, "minute") - entry.breakMinutes;
     const totalHours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
     const projectName = entry.project?.name || "Onbekend project";
-    // Cast project naar het juiste type
     const companyName = (entry.project as Project | undefined)?.projectGroup?.company?.name || "Onbekend bedrijf";
 
+    const statusStyling = getStatusStyling();
+
     function handleDelete() {
-        // Mark localStatus = "deleted"
         const updated = allEntries.map((e) =>
             e.id === entry.id ? { ...e, localStatus: "deleted" } : e
         );
-        // Cast het resultaat naar TimeEntry[]
         onUpdateLocalEntries(updated as TimeEntry[]);
     }
 
@@ -177,9 +182,9 @@ export default function DaySubEntry({
             travelCosts,
             expenses,
             notes,
-            localStatus: newLocalStatus as "draft" | "changed" | "deleted" | "synced", // cast naar de juiste types
+            localStatus: newLocalStatus as "draft" | "changed" | "deleted" | "synced",
             projectId: selectedProject,
-            status: entry.status === "afgekeurd" ? "opgeslagen" : entry.status // Reset afgekeurde status naar opgeslagen
+            status: entry.status === "afgekeurd" ? "opgeslagen" : entry.status
         };
 
         const newList = allEntries.map((e) => (e.id === entry.id ? updated : e));
@@ -188,199 +193,315 @@ export default function DaySubEntry({
     }
 
     return (
-        <div className={`p-3 rounded shadow border ${getStatusClass()}`}>
-            {/* READ-ONLY MODE */}
-            {isReadOnly && (
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-                    <div className="text-sm">
-                        <span className="font-semibold">{projectName}</span>{" "}
-                        <span className="text-xs text-gray-500 ml-1">({companyName})</span>
-                        <span className="ml-2 text-xs text-gray-500">
-                            {start.format("HH:mm")} - {end.format("HH:mm")}
-                        </span>
-                        <span className="ml-2 text-xs text-gray-500">
-                            (pauze: {entry.breakMinutes} min)
-                        </span>
-                        <span className="ml-2 font-semibold">{totalHours} uur</span>
-                        {entry.notes && (
-                            <span className="ml-2 italic text-gray-700">[{entry.notes}] </span>
-                        )}
-                        <span className="ml-2">{getStatusLabel()}</span>
+        <div className={`
+            relative overflow-hidden rounded-2xl border-2 transition-all duration-300 hover:shadow-lg hover:scale-102
+            ${statusStyling.containerClass}
+        `}>
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
+
+            <div className="relative p-4">
+                {/* READ-ONLY MODE */}
+                {isReadOnly && (
+                    <div className="space-y-4">
+                        {/* Header with project info */}
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm">
+                                    {statusStyling.statusIcon}
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-800 text-lg">{projectName}</h4>
+                                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                                        <BuildingOfficeIcon className="w-4 h-4" />
+                                        {companyName}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className={`badge ${statusStyling.badgeClass} badge-lg font-semibold`}>
+                                    {statusStyling.badgeText}
+                                </span>
+                                {!isEditable && (
+                                    <div className="tooltip" data-tip={entry.status === "ingeleverd" ? "Wacht op goedkeuring" : "Vergrendeld"}>
+                                        <LockClosedIcon className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Time and Hours Info */}
+                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <ClockIcon className="w-5 h-5 text-gray-600" />
+                                    <span className="font-bold text-lg text-gray-800">
+                                        {start.format("HH:mm")} - {end.format("HH:mm")}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-2xl font-bold text-elmar-primary">{totalHours}h</span>
+                                    {entry.breakMinutes > 0 && (
+                                        <p className="text-xs text-gray-500">pauze: {entry.breakMinutes}min</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Additional Info */}
+                            {(entry.distanceKm || entry.travelCosts || entry.expenses) && (
+                                <div className="flex items-center gap-4 text-sm text-gray-600 pt-3 border-t border-gray-200">
+                                    {entry.distanceKm > 0 && (
+                                        <span className="flex items-center gap-1">
+                                            🚗 {entry.distanceKm} km
+                                        </span>
+                                    )}
+                                    {(entry.travelCosts > 0 || entry.expenses > 0) && (
+                                        <span className="flex items-center gap-1">
+                                            <CurrencyEuroIcon className="w-4 h-4 text-green-600" />
+                                            <span className="font-semibold text-green-600">
+                                                €{((entry.travelCosts || 0) + (entry.expenses || 0)).toFixed(2)}
+                                            </span>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            {entry.notes && (
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <div className="flex items-start gap-2">
+                                        <DocumentTextIcon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                        <span className="text-sm text-gray-700 italic">"{entry.notes}"</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 justify-end">
+                            {isEditable ? (
+                                <>
+                                    <button
+                                        className="btn btn-sm btn-error rounded-xl hover:scale-105 transition-all duration-200"
+                                        title="Verwijderen"
+                                        onClick={handleDelete}
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                        Verwijderen
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                                        title="Bewerken"
+                                        onClick={handleEdit}
+                                    >
+                                        <PencilIcon className="w-4 h-4" />
+                                        Bewerken
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="text-xs text-gray-500 flex items-center bg-gray-100 px-3 py-2 rounded-xl">
+                                    <LockClosedIcon className="w-4 h-4 mr-2" />
+                                    {entry.status === "ingeleverd" ? "Wacht op goedkeuring" : "Vergrendeld"}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex gap-2 mt-2 sm:mt-0">
-                        {isEditable ? (
-                            <>
+                )}
+
+                {/* EDIT MODE */}
+                {!isReadOnly && (
+                    <div className="space-y-6">
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <PencilIcon className="w-5 h-5 text-blue-600" />
+                                Entry Bewerken
+                            </h4>
+
+                            {/* Project Selection */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Bedrijf</span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={selectedCompany ?? ""}
+                                        onChange={(e) =>
+                                            setSelectedCompany(e.target.value ? Number(e.target.value) : null)
+                                        }
+                                    >
+                                        <option value="">Selecteer bedrijf</option>
+                                        {companies.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Projectgroep</span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={selectedProjectGroup ?? ""}
+                                        onChange={(e) =>
+                                            setSelectedProjectGroup(e.target.value ? Number(e.target.value) : null)
+                                        }
+                                        disabled={!selectedCompany}
+                                    >
+                                        <option value="">Selecteer groep</option>
+                                        {projectGroups.map((pg) => (
+                                            <option key={pg.id} value={pg.id}>
+                                                {pg.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Project</span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={selectedProject ?? ""}
+                                        onChange={(e) =>
+                                            setSelectedProject(e.target.value ? Number(e.target.value) : null)
+                                        }
+                                        disabled={!selectedProjectGroup}
+                                    >
+                                        <option value="">Selecteer project</option>
+                                        {projects.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Time Inputs */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Start</span>
+                                    </label>
+                                    <input
+                                        type="time"
+                                        className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Eind</span>
+                                    </label>
+                                    <input
+                                        type="time"
+                                        className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Pauze (min)</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={breakMinutes}
+                                        onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Additional Inputs */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">KM</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={distanceKm}
+                                        onChange={(e) => setDistanceKm(Number(e.target.value))}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Reis (€)</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={travelCosts}
+                                        onChange={(e) => setTravelCosts(Number(e.target.value))}
+                                    />
+                                </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Onkosten (€)</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                        value={expenses}
+                                        onChange={(e) => setExpenses(Number(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="form-control mb-6">
+                                <label className="label">
+                                    <span className="label-text font-semibold text-gray-700">Notities</span>
+                                </label>
+                                <textarea
+                                    className="textarea textarea-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl h-20"
+                                    value={notes}
+                                    onChange={(e) => setNotes(e.target.value)}
+                                    placeholder="Eventuele opmerkingen..."
+                                />
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3 justify-end">
                                 <button
-                                    className="btn btn-xs btn-ghost text-error"
-                                    title="Verwijderen"
+                                    className="btn btn-success rounded-xl hover:scale-105 transition-all duration-200"
+                                    onClick={handleSave}
+                                >
+                                    <CheckIcon className="w-4 h-4 mr-2" />
+                                    Opslaan
+                                </button>
+                                <button
+                                    className="btn btn-ghost rounded-xl hover:scale-105 transition-all duration-200"
+                                    onClick={handleCancel}
+                                >
+                                    <XMarkIcon className="w-4 h-4 mr-2" />
+                                    Annuleren
+                                </button>
+                                <button
+                                    className="btn btn-error rounded-xl hover:scale-105 transition-all duration-200"
                                     onClick={handleDelete}
                                 >
-                                    <TrashIcon className="w-4 h-4" />
+                                    <TrashIcon className="w-4 h-4 mr-2" />
+                                    Verwijderen
                                 </button>
-                                <button
-                                    className="btn btn-xs btn-ghost"
-                                    title="Bewerken"
-                                    onClick={handleEdit}
-                                >
-                                    <PencilIcon className="w-4 h-4" />
-                                </button>
-                            </>
-                        ) : (
-                            <span className="text-xs text-gray-500 flex items-center">
-                                <LockClosedIcon className="w-4 h-4 mr-1" />
-                                {entry.status === "ingeleverd" ? "Wacht op goedkeuring" : "Vergrendeld"}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* EDIT MODE */}
-            {!isReadOnly && (
-                <div className="flex flex-col gap-2">
-                    {/* Row 1: Company, ProjectGroup, Project */}
-                    <div className="flex flex-wrap gap-2">
-                        <div>
-                            <label className="label-text text-xs">Bedrijf </label>
-                            <select
-                                className="select select-bordered select-xs"
-                                value={selectedCompany ?? ""}
-                                onChange={(e) =>
-                                    setSelectedCompany(e.target.value ? Number(e.target.value) : null)
-                                }
-                            >
-                                <option value="">(kies)</option>
-                                {companies.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">Projectgroep </label>
-                            <select
-                                className="select select-bordered select-xs"
-                                value={selectedProjectGroup ?? ""}
-                                onChange={(e) =>
-                                    setSelectedProjectGroup(e.target.value ? Number(e.target.value) : null)
-                                }
-                            >
-                                <option value="">(kies)</option>
-                                {projectGroups.map((pg) => (
-                                    <option key={pg.id} value={pg.id}>
-                                        {pg.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">Project </label>
-                            <select
-                                className="select select-bordered select-xs"
-                                value={selectedProject ?? ""}
-                                onChange={(e) =>
-                                    setSelectedProject(e.target.value ? Number(e.target.value) : null)
-                                }
-                            >
-                                <option value="">(kies)</option>
-                                {projects.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.name}
-                                    </option>
-                                ))}
-                            </select>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Row 2: Start/End/Break etc. */}
-                    <div className="flex flex-wrap gap-2">
-                        <div>
-                            <label className="label-text text-xs">Start </label>
-                            <input
-                                type="time"
-                                className="input input-bordered input-xs"
-                                value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">Eind </label>
-                            <input
-                                type="time"
-                                className="input input-bordered input-xs"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">Pauze (min) </label>
-                            <input
-                                type="number"
-                                className="input input-bordered input-xs"
-                                value={breakMinutes}
-                                onChange={(e) => setBreakMinutes(Number(e.target.value))}
-                            />
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">KM </label>
-                            <input
-                                type="number"
-                                className="input input-bordered input-xs"
-                                value={distanceKm}
-                                onChange={(e) => setDistanceKm(Number(e.target.value))}
-                            />
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">Reis (€) </label>
-                            <input
-                                type="number"
-                                className="input input-bordered input-xs"
-                                value={travelCosts}
-                                onChange={(e) => setTravelCosts(Number(e.target.value))}
-                            />
-                        </div>
-                        <div>
-                            <label className="label-text text-xs">Onkosten (€) </label>
-                            <input
-                                type="number"
-                                className="input input-bordered input-xs"
-                                value={expenses}
-                                onChange={(e) => setExpenses(Number(e.target.value))}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Row 3: notes */}
-                    <div>
-                        <label className="label-text text-xs">Notities </label>
-                        <input
-                            type="text"
-                            className="input input-bordered input-sm w-full"
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Row 4: Save/Cancel/Delete */}
-                    <div className="flex gap-2 justify-end">
-                        <button className="btn btn-xs btn-success" onClick={handleSave}>
-                            <CheckIcon className="w-4 h-4" />
-                        </button>
-                        <button className="btn btn-xs btn-ghost" onClick={handleCancel}>
-                            <XMarkIcon className="w-4 h-4" />
-                        </button>
-                        <button className="btn btn-xs btn-ghost text-error" onClick={handleDelete}>
-                            <TrashIcon className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
 
-/** Extract "HH:mm" from "YYYY-MM-DDTHH:mm:ss" */
 function extractTime(isoString: string): string {
     return dayjs(isoString).format("HH:mm");
 }

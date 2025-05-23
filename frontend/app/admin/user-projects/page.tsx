@@ -1,5 +1,3 @@
-// Fix voor UserProjects component
-
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { getUsers, getCompanies, getProjectGroups, getProjects,
@@ -7,6 +5,17 @@ import { getUsers, getCompanies, getProjectGroups, getProjects,
 import AdminRoute from "@/components/AdminRoute";
 import ToastNotification from "@/components/ToastNotification";
 import { User, Company, ProjectGroup, Project, UserProject } from "@/lib/types";
+import {
+    UserPlusIcon,
+    FunnelIcon,
+    UsersIcon,
+    BuildingOfficeIcon,
+    FolderIcon,
+    TrashIcon,
+    MagnifyingGlassIcon,
+    CheckCircleIcon,
+    ExclamationTriangleIcon
+} from "@heroicons/react/24/outline";
 
 export default function AdminUserProjectsPage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -195,167 +204,197 @@ export default function AdminUserProjectsPage() {
         return project.name;
     };
 
-    // Verwijder ongebruikte functie
-    // const getCompanyName = (project?: Project) => {
-    //     if (!project || !project.projectGroup || !project.projectGroup.company) {
-    //         return "Onbekend bedrijf";
-    //     }
-    //     return project.projectGroup.company.name;
-    // };
-
     if (loading) {
-        return <div className="flex justify-center items-center min-h-screen">
-            <div className="loading loading-spinner loading-lg"></div>
-        </div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="text-center">
+                    <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
+                    <p className="text-lg font-semibold text-gray-700">Project toewijzingen laden...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
         <AdminRoute>
-            <div className="p-6">
-                <h1 className="text-3xl font-bold mb-8">Project Toewijzingen</h1>
+            <div className="container mx-auto p-6 space-y-8 animate-fade-in">
+                {/* Header Section */}
+                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+                    <div className="flex items-center gap-3 mb-4">
+                        <UserPlusIcon className="w-8 h-8" />
+                        <h1 className="text-4xl font-bold">Project Toewijzingen</h1>
+                    </div>
+                    <p className="text-blue-100 text-lg">Beheer welke medewerkers toegang hebben tot welke projecten</p>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {/* Formulier voor toewijzen van gebruiker aan project */}
-                    <div className="card bg-base-100 shadow-xl">
-                        <div className="card-body">
-                            <h2 className="card-title mb-4">Nieuwe Toewijzing</h2>
+                    <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                        <div className="card-body p-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                <UserPlusIcon className="w-6 h-6 text-elmar-primary" />
+                                Nieuwe Toewijzing
+                            </h2>
 
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text">Gebruiker</span>
-                                </label>
-                                <select
-                                    className="select select-bordered"
-                                    value={selectedUser ?? ""}
-                                    onChange={(e) => setSelectedUser(e.target.value ? Number(e.target.value) : null)}
-                                >
-                                    <option value="">Selecteer een gebruiker</option>
-                                    {users.map((user) => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.firstName} {user.lastName}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            <div className="space-y-6">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
+                                            <UsersIcon className="w-4 h-4" />
+                                            Gebruiker
+                                        </span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                        value={selectedUser ?? ""}
+                                        onChange={(e) => setSelectedUser(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">Selecteer een gebruiker</option>
+                                        {users.map((user) => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.firstName} {user.lastName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text">Bedrijf</span>
-                                </label>
-                                <select
-                                    className="select select-bordered"
-                                    value={selectedCompany ?? ""}
-                                    onChange={(e) => setSelectedCompany(e.target.value ? Number(e.target.value) : null)}
-                                >
-                                    <option value="">Selecteer een bedrijf</option>
-                                    {companies.map((company) => (
-                                        <option key={company.id} value={company.id}>
-                                            {company.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
+                                            <BuildingOfficeIcon className="w-4 h-4" />
+                                            Bedrijf
+                                        </span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                        value={selectedCompany ?? ""}
+                                        onChange={(e) => setSelectedCompany(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">Selecteer een bedrijf</option>
+                                        {companies.map((company) => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text">Projectgroep</span>
-                                </label>
-                                <select
-                                    className="select select-bordered"
-                                    value={selectedProjectGroup ?? ""}
-                                    onChange={(e) => setSelectedProjectGroup(e.target.value ? Number(e.target.value) : null)}
-                                    disabled={!selectedCompany}
-                                >
-                                    <option value="">Selecteer een projectgroep</option>
-                                    {projectGroups.map((group) => (
-                                        <option key={group.id} value={group.id}>
-                                            {group.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Projectgroep</span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                        value={selectedProjectGroup ?? ""}
+                                        onChange={(e) => setSelectedProjectGroup(e.target.value ? Number(e.target.value) : null)}
+                                        disabled={!selectedCompany}
+                                    >
+                                        <option value="">Selecteer een projectgroep</option>
+                                        {projectGroups.map((group) => (
+                                            <option key={group.id} value={group.id}>
+                                                {group.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text">Project</span>
-                                </label>
-                                <select
-                                    className="select select-bordered"
-                                    value={selectedProject ?? ""}
-                                    onChange={(e) => setSelectedProject(e.target.value ? Number(e.target.value) : null)}
-                                    disabled={!selectedProjectGroup}
-                                >
-                                    <option value="">Selecteer een project</option>
-                                    {projects.map((project) => (
-                                        <option key={project.id} value={project.id}>
-                                            {project.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
+                                            <FolderIcon className="w-4 h-4" />
+                                            Project
+                                        </span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                        value={selectedProject ?? ""}
+                                        onChange={(e) => setSelectedProject(e.target.value ? Number(e.target.value) : null)}
+                                        disabled={!selectedProjectGroup}
+                                    >
+                                        <option value="">Selecteer een project</option>
+                                        {projects.map((project) => (
+                                            <option key={project.id} value={project.id}>
+                                                {project.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <div className="card-actions justify-end">
                                 <button
-                                    className="btn btn-primary"
+                                    className="btn bg-gradient-elmar border-0 text-white rounded-xl w-full hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
                                     onClick={handleAssignUserToProject}
                                     disabled={!selectedUser || !selectedProject}
                                 >
-                                    Toewijzen
+                                    <UserPlusIcon className="w-5 h-5 mr-2" />
+                                    Gebruiker Toewijzen
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     {/* Filters voor bestaande koppelingen */}
-                    <div className="card bg-base-100 shadow-xl">
-                        <div className="card-body">
-                            <h2 className="card-title mb-4">Filter Toewijzingen</h2>
+                    <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                        <div className="card-body p-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                <FunnelIcon className="w-6 h-6 text-elmar-primary" />
+                                Filter Toewijzingen
+                            </h2>
 
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text">Filter op Gebruiker</span>
-                                </label>
-                                <select
-                                    className="select select-bordered"
-                                    value={filterUser ?? ""}
-                                    onChange={(e) => setFilterUser(e.target.value ? Number(e.target.value) : null)}
-                                >
-                                    <option value="">Alle gebruikers</option>
-                                    {users.map((user) => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.firstName} {user.lastName}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-control mb-4">
-                                <label className="label">
-                                    <span className="label-text">Filter op Project</span>
-                                </label>
-                                <select
-                                    className="select select-bordered"
-                                    value={filterProject ?? ""}
-                                    onChange={(e) => setFilterProject(e.target.value ? Number(e.target.value) : null)}
-                                >
-                                    <option value="">Alle projecten</option>
-                                    {userProjects
-                                        .filter(up => up.project)
-                                        .filter((up, index, self) =>
-                                            index === self.findIndex(p => p.project && p.project.id === up.project?.id)
-                                        )
-                                        .map((up) => (
-                                            <option key={up.project?.id} value={up.project?.id}>
-                                                {getProjectName(up.project)}
+                            <div className="space-y-6">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Filter op Gebruiker</span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                        value={filterUser ?? ""}
+                                        onChange={(e) => setFilterUser(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">Alle gebruikers</option>
+                                        {users.map((user) => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.firstName} {user.lastName}
                                             </option>
-                                        ))
-                                    }
-                                </select>
-                            </div>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            <div className="card-actions justify-end">
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold text-gray-700">Filter op Project</span>
+                                    </label>
+                                    <select
+                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                        value={filterProject ?? ""}
+                                        onChange={(e) => setFilterProject(e.target.value ? Number(e.target.value) : null)}
+                                    >
+                                        <option value="">Alle projecten</option>
+                                        {userProjects
+                                            .filter(up => up.project)
+                                            .filter((up, index, self) =>
+                                                index === self.findIndex(p => p.project && p.project.id === up.project?.id)
+                                            )
+                                            .map((up) => (
+                                                <option key={up.project?.id} value={up.project?.id}>
+                                                    {getProjectName(up.project)}
+                                                </option>
+                                            ))
+                                        }
+                                    </select>
+                                </div>
+
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-semibold text-gray-800">Totaal Toewijzingen</p>
+                                            <p className="text-sm text-gray-600">{filteredUserProjects.length} van {userProjects.length}</p>
+                                        </div>
+                                        <MagnifyingGlassIcon className="w-8 h-8 text-blue-500" />
+                                    </div>
+                                </div>
+
                                 <button
-                                    className="btn btn-ghost"
+                                    className="btn btn-outline btn-primary rounded-xl w-full hover:scale-105 transition-all duration-200"
                                     onClick={() => {
                                         setFilterUser(null);
                                         setFilterProject(null);
@@ -369,39 +408,91 @@ export default function AdminUserProjectsPage() {
                 </div>
 
                 {/* Tabel met alle user-project koppelingen */}
-                <div className="card bg-base-100 shadow-xl mt-8">
-                    <div className="card-body">
-                        <h2 className="card-title mb-4">Bestaande Toewijzingen</h2>
+                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                    <div className="card-body p-0">
+                        <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
+                            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                <CheckCircleIcon className="w-6 h-6 text-elmar-primary" />
+                                Bestaande Toewijzingen
+                            </h2>
+                            <p className="text-gray-600 mt-1">Overzicht van alle actieve project toewijzingen</p>
+                        </div>
 
                         <div className="overflow-x-auto">
                             <table className="table w-full">
-                                <thead>
+                                <thead className="bg-gray-50">
                                 <tr>
-                                    <th>Gebruiker</th>
-                                    <th>Project</th>
-                                    <th>Bedrijf</th>
-                                    <th>Toegewezen op</th>
-                                    <th>Acties</th>
+                                    <th className="text-gray-700 font-semibold">👤 Gebruiker</th>
+                                    <th className="text-gray-700 font-semibold">📁 Project</th>
+                                    <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
+                                    <th className="text-gray-700 font-semibold">📅 Toegewezen op</th>
+                                    <th className="text-gray-700 font-semibold">⚙️ Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 {filteredUserProjects.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center">Geen toewijzingen gevonden</td>
+                                        <td colSpan={5} className="text-center py-12">
+                                            <div className="flex flex-col items-center gap-4">
+                                                <ExclamationTriangleIcon className="w-16 h-16 text-gray-300" />
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gray-600">Geen toewijzingen gevonden</h3>
+                                                    <p className="text-gray-500">Probeer je filters aan te passen of voeg een nieuwe toewijzing toe</p>
+                                                </div>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ) : (
-                                    filteredUserProjects.map((up) => (
-                                        <tr key={up.id}>
-                                            <td>{getUserName(up.userId)}</td>
-                                            <td>{up.project ? getProjectName(up.project) : `Project ${up.projectId}`}</td>
-                                            <td>{up.project && up.project.projectGroup && up.project.projectGroup.company ?
-                                                up.project.projectGroup.company.name : "Onbekend bedrijf"}</td>
-                                            <td>{new Date(up.assignedDate).toLocaleDateString()}</td>
+                                    filteredUserProjects.map((up, index) => (
+                                        <tr key={up.id} className="hover:bg-gray-50 transition-colors duration-150">
+                                            <td>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="avatar placeholder">
+                                                        <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
+                                                            <span className="text-sm font-bold">
+                                                                {getUserName(up.userId).split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-gray-800">{getUserName(up.userId)}</div>
+                                                        <div className="text-sm text-gray-500">ID: {up.userId}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 bg-gradient-elmar rounded-full"></div>
+                                                    <span className="font-medium text-gray-800">
+                                                        {up.project ? getProjectName(up.project) : `Project ${up.projectId}`}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center gap-2">
+                                                    <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
+                                                    <span className="text-gray-700">
+                                                        {up.project && up.project.projectGroup && up.project.projectGroup.company
+                                                            ? up.project.projectGroup.company.name
+                                                            : "Onbekend bedrijf"}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="text-gray-600">
+                                                    {new Date(up.assignedDate).toLocaleDateString('nl-NL', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric'
+                                                    })}
+                                                </div>
+                                            </td>
                                             <td>
                                                 <button
-                                                    className="btn btn-sm btn-error"
+                                                    className="btn btn-sm btn-error rounded-xl hover:scale-105 transition-all duration-200"
                                                     onClick={() => handleRemoveUserFromProject(up.userId, up.projectId)}
                                                 >
+                                                    <TrashIcon className="w-4 h-4 mr-1" />
                                                     Verwijderen
                                                 </button>
                                             </td>
@@ -411,6 +502,26 @@ export default function AdminUserProjectsPage() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Footer met statistieken */}
+                        {filteredUserProjects.length > 0 && (
+                            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="text-sm text-gray-600">
+                                        Toont <span className="font-semibold">{filteredUserProjects.length}</span> van <span className="font-semibold">{userProjects.length}</span> toewijzingen
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                            <span className="text-gray-600">Actief</span>
+                                        </div>
+                                        <div className="text-gray-600">
+                                            {users.length} gebruikers • {companies.length} bedrijven
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
