@@ -85,7 +85,7 @@ export default function Sidebar({
     const getRankBadge = (): JSX.Element => {
         switch (userRank) {
             case "admin":
-                return <span className="badge badge-error badge-xs">Admin</span>;
+                return <span className="badge badge-error badge-s">Admin</span>;
             case "manager":
                 return <span className="badge badge-warning badge-xs">Manager</span>;
             default:

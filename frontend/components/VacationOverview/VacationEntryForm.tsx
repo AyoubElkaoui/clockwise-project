@@ -1,4 +1,4 @@
-// components/VacationOverview/VacationEntryForm.tsx
+// Enhanced VacationEntryForm with modern styling
 "use client";
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
@@ -7,6 +7,15 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isBetween from "dayjs/plugin/isBetween";
 import { useRouter } from "next/navigation";
 import { registerVacationRequest } from "@/lib/api";
+import {
+    CalendarDaysIcon,
+    ArrowLeftIcon,
+    CheckCircleIcon,
+    ExclamationTriangleIcon,
+    InformationCircleIcon,
+    ClockIcon,
+    CurrencyEuroIcon
+} from "@heroicons/react/24/outline";
 
 // Voeg dayjs plugins toe
 dayjs.extend(isSameOrBefore);
@@ -37,9 +46,9 @@ export default function VacationEntryForm() {
         const fetchVacationBalance = async () => {
             try {
                 const userId = Number(localStorage.getItem("userId")) || 0;
-                const response = await fetch(`https://3df4-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api/vacation-requests/balance/${userId}`, {
+                const response = await fetch(`http://localhost:5203/api/vacation-requests/balance/${userId}`, {
                     headers: {
-                        'ngrok-skip-browser-warning': 'true'
+                        'Content-Type': 'application/json'
                     }
                 });
 
@@ -160,215 +169,296 @@ export default function VacationEntryForm() {
 
     if (loadingBalance) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-base-200">
-                <div className="loading loading-spinner loading-lg"></div>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
+                    <p className="text-lg font-semibold text-gray-700">Vakantie gegevens laden...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-base-200 p-4">
-            <div className="card w-full max-w-2xl bg-base-100 shadow-xl p-8">
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="card-title text-3xl font-bold">🏖️ Vakantie Aanvragen</h1>
-                    <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => router.push("/vacation")}
-                    >
-                        ← Terug
-                    </button>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
+            </div>
 
-                {/* Vakantie Balans */}
-                {vacationBalance && (
-                    <div className="card bg-gradient-to-r from-blue-50 to-green-50 p-6 mb-6 border border-blue-200">
-                        <h3 className="font-bold mb-4 text-lg">💰 Jouw Vakantie Balans {vacationBalance.year}</h3>
-                        <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                            <div>
-                                <div className="text-2xl font-bold text-primary">{vacationBalance.totalHours}</div>
-                                <div className="text-xs text-gray-600">Totaal uren</div>
-                                <div className="text-xs text-gray-500">({vacationBalance.totalHours / 8} dagen)</div>
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-warning">{vacationBalance.usedHours}</div>
-                                <div className="text-xs text-gray-600">Gebruikt</div>
-                                <div className="text-xs text-gray-500">({vacationBalance.usedHours / 8} dagen)</div>
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-success">{vacationBalance.remainingHours}</div>
-                                <div className="text-xs text-gray-600">Resterend</div>
-                                <div className="text-xs text-gray-500">({vacationBalance.remainingHours / 8} dagen)</div>
-                            </div>
-                        </div>
-
-                        {/* Progress bar */}
+            <div className="relative max-w-4xl mx-auto">
+                {/* Header */}
+                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card mb-8">
+                    <div className="flex items-center justify-between">
                         <div>
-                            <div className="flex justify-between text-sm mb-1">
-                                <span>Gebruikt</span>
-                                <span>{((vacationBalance.usedHours / vacationBalance.totalHours) * 100).toFixed(1)}%</span>
+                            <div className="flex items-center gap-3 mb-4">
+                                <button
+                                    onClick={() => router.push("/vacation")}
+                                    className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
+                                >
+                                    <ArrowLeftIcon className="w-5 h-5" />
+                                </button>
+                                <CalendarDaysIcon className="w-8 h-8" />
+                                <h1 className="text-4xl font-bold">Vakantie Aanvragen</h1>
                             </div>
-                            <progress
-                                className="progress progress-warning w-full h-3"
-                                value={vacationBalance.usedHours}
-                                max={vacationBalance.totalHours}
-                            ></progress>
+                            <p className="text-blue-100 text-lg">Plan je welverdiende vakantie</p>
+                        </div>
+                        <div className="hidden md:block">
+                            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
+                                <CalendarDaysIcon className="w-16 h-16 text-white opacity-80" />
+                            </div>
                         </div>
                     </div>
-                )}
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Linker kolom - Datums */}
-                    <div className="space-y-4">
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text font-semibold">📅 Startdatum</span>
-                            </label>
-                            <input
-                                type="date"
-                                className="input input-bordered w-full"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                min={dayjs().format("YYYY-MM-DD")} // Geen vakantie in het verleden
-                            />
-                        </div>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                    {/* Main Form */}
+                    <div className="xl:col-span-2">
+                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl overflow-hidden">
+                            <div className="card-body p-8">
+                                {/* Vakantie Balans */}
+                                {vacationBalance && (
+                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-8 border border-green-200">
+                                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                            <CurrencyEuroIcon className="w-6 h-6 text-green-600" />
+                                            Jouw Vakantie Balans {vacationBalance.year}
+                                        </h3>
+                                        <div className="grid grid-cols-3 gap-6 mb-6">
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-blue-600 mb-2">{vacationBalance.totalHours}</div>
+                                                <div className="text-sm text-gray-600">Totaal uren</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.totalHours / 8} dagen)</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-orange-600 mb-2">{vacationBalance.usedHours}</div>
+                                                <div className="text-sm text-gray-600">Gebruikt</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.usedHours / 8} dagen)</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-green-600 mb-2">{vacationBalance.remainingHours}</div>
+                                                <div className="text-sm text-gray-600">Resterend</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.remainingHours / 8} dagen)</div>
+                                            </div>
+                                        </div>
 
-                        <div className="form-control">
-                            <label className="label">
-                                <span className="label-text font-semibold">📅 Einddatum</span>
-                            </label>
-                            <input
-                                type="date"
-                                className="input input-bordered w-full"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                min={startDate} // Einddatum moet na startdatum zijn
-                            />
-                        </div>
-                    </div>
+                                        {/* Progress bar */}
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="font-semibold text-gray-700">Gebruikt van totaal</span>
+                                                <span className="font-semibold text-gray-700">
+                                                    {((vacationBalance.usedHours / vacationBalance.totalHours) * 100).toFixed(1)}%
+                                                </span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-4">
+                                                <div
+                                                    className="bg-gradient-to-r from-orange-400 to-orange-600 h-4 rounded-full transition-all duration-300"
+                                                    style={{ width: `${(vacationBalance.usedHours / vacationBalance.totalHours) * 100}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                    {/* Rechter kolom - Berekening */}
-                    <div className="card bg-base-200 p-4">
-                        <h4 className="font-bold mb-3">📊 Berekening</h4>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span>Periode:</span>
-                                <span className="font-medium">
-                                    {dayjs(startDate).format('DD-MM')} t/m {dayjs(endDate).format('DD-MM')}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Totale dagen:</span>
-                                <span className="font-medium">{totalDays} dag{totalDays !== 1 ? 'en' : ''}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Werkdagen:</span>
-                                <span className="font-medium">{workDays} dag{workDays !== 1 ? 'en' : ''}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Weekenddagen:</span>
-                                <span className="font-medium">{totalDays - workDays} dag{(totalDays - workDays) !== 1 ? 'en' : ''}</span>
-                            </div>
-                            <hr className="my-2" />
-                            <div className="flex justify-between text-lg">
-                                <span className="font-bold">Uren benodigd:</span>
-                                <span className="font-bold text-primary">{requestedHours} uur</span>
-                            </div>
-                            {vacationBalance && (
-                                <div className="flex justify-between">
-                                    <span>Resterend na aanvraag:</span>
-                                    <span className={`font-bold ${canSubmit ? 'text-success' : 'text-error'}`}>
-                                        {vacationBalance.remainingHours - requestedHours} uur
-                                    </span>
+                                {/* Date Selection */}
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-200">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
+                                        Selecteer Periode
+                                    </h3>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="form-control">
+                                            <label className="label">
+                                                <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                min={dayjs().format("YYYY-MM-DD")}
+                                            />
+                                        </div>
+
+                                        <div className="form-control">
+                                            <label className="label">
+                                                <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                min={startDate}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
+
+                                {/* Reason */}
+                                <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-6 mb-8 border border-purple-200">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <InformationCircleIcon className="w-6 h-6 text-purple-600" />
+                                        Reden voor Vakantie
+                                    </h3>
+
+                                    <div className="form-control">
+                                        <textarea
+                                            className="textarea textarea-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl h-32"
+                                            value={reason}
+                                            onChange={(e) => setReason(e.target.value)}
+                                            placeholder="Beschrijf kort de reden voor je vakantie (bijv. familiebezoek, zomervakantie, etc.)"
+                                            maxLength={500}
+                                        />
+                                        <label className="label">
+                                            <span className="label-text-alt text-gray-500">{reason.length}/500 karakters</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Error Messages */}
+                                {error && (
+                                    <div className="alert alert-error rounded-xl mb-6 animate-slide-up">
+                                        <ExclamationTriangleIcon className="w-6 h-6" />
+                                        <span>{error}</span>
+                                    </div>
+                                )}
+
+                                {/* Validation Messages */}
+                                {workDays === 0 && startDate && endDate && (
+                                    <div className="alert alert-warning rounded-xl mb-6">
+                                        <ExclamationTriangleIcon className="w-6 h-6" />
+                                        <span>De geselecteerde periode valt alleen in het weekend. Selecteer een periode met werkdagen.</span>
+                                    </div>
+                                )}
+
+                                {!canSubmit && requestedHours > 0 && vacationBalance && workDays > 0 && (
+                                    <div className="alert alert-error rounded-xl mb-6">
+                                        <ExclamationTriangleIcon className="w-6 h-6" />
+                                        <span>Je hebt niet genoeg vakantie-uren voor deze aanvraag!</span>
+                                    </div>
+                                )}
+
+                                {canSubmit && requestedHours > 0 && workDays > 0 && (
+                                    <div className="alert alert-success rounded-xl mb-6">
+                                        <CheckCircleIcon className="w-6 h-6" />
+                                        <span>Perfect! Je kunt deze vakantie aanvragen.</span>
+                                    </div>
+                                )}
+
+                                {/* Submit Button */}
+                                <button
+                                    className={`btn w-full py-4 h-auto min-h-0 rounded-xl hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:transform-none ${
+                                        canSubmit && workDays > 0
+                                            ? 'bg-gradient-elmar border-0 text-white hover:shadow-elmar-hover'
+                                            : 'btn-disabled'
+                                    }`}
+                                    onClick={handleSubmit}
+                                    disabled={!canSubmit || workDays === 0 || isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <div className="flex items-center gap-2">
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                            Aanvraag indienen...
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <CalendarDaysIcon className="w-6 h-6" />
+                                            Vakantie Aanvragen ({requestedHours} uur)
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Reden */}
-                <div className="form-control mt-6">
-                    <label className="label">
-                        <span className="label-text font-semibold">📝 Reden voor vakantie</span>
-                    </label>
-                    <textarea
-                        className="textarea textarea-bordered w-full h-24"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="Beschrijf kort de reden voor je vakantie (bijv. familiebezoek, zomervakantie, etc.)"
-                        maxLength={500}
-                    />
-                    <label className="label">
-                        <span className="label-text-alt">{reason.length}/500 karakters</span>
-                    </label>
-                </div>
+                    {/* Sidebar */}
+                    <div className="xl:col-span-1 space-y-6">
+                        {/* Calculation Preview */}
+                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl">
+                            <div className="card-body p-6">
+                                <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <ClockIcon className="w-6 h-6 text-elmar-primary" />
+                                    Berekening
+                                </h3>
 
-                {/* Waarschuwingen */}
-                {workDays === 0 && startDate && endDate && (
-                    <div className="alert alert-warning mt-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.124 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <span>De geselecteerde periode valt alleen in het weekend. Selecteer een periode met werkdagen.</span>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
+                                        <span className="text-sm font-medium text-gray-700">Periode:</span>
+                                        <span className="font-semibold text-gray-800">
+                                            {dayjs(startDate).format('DD-MM')} t/m {dayjs(endDate).format('DD-MM')}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-xl">
+                                        <span className="text-sm font-medium text-gray-700">Totale dagen:</span>
+                                        <span className="font-semibold text-gray-800">{totalDays} dag{totalDays !== 1 ? 'en' : ''}</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center p-3 bg-yellow-50 rounded-xl">
+                                        <span className="text-sm font-medium text-gray-700">Werkdagen:</span>
+                                        <span className="font-semibold text-gray-800">{workDays} dag{workDays !== 1 ? 'en' : ''}</span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">
+                                        <span className="text-sm font-medium text-gray-700">Weekenddagen:</span>
+                                        <span className="font-semibold text-gray-800">{totalDays - workDays} dag{(totalDays - workDays) !== 1 ? 'en' : ''}</span>
+                                    </div>
+
+                                    <hr className="my-4" />
+
+                                    <div className="flex justify-between items-center p-4 bg-gradient-elmar text-white rounded-xl">
+                                        <span className="font-bold">Uren benodigd:</span>
+                                        <span className="text-xl font-bold">{requestedHours} uur</span>
+                                    </div>
+
+                                    {vacationBalance && (
+                                        <div className={`flex justify-between items-center p-3 rounded-xl ${
+                                            canSubmit ? 'bg-green-50' : 'bg-red-50'
+                                        }`}>
+                                            <span className="text-sm font-medium text-gray-700">Resterend na aanvraag:</span>
+                                            <span className={`font-bold ${canSubmit ? 'text-green-600' : 'text-red-600'}`}>
+                                                {vacationBalance.remainingHours - requestedHours} uur
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="card bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-2xl">
+                            <div className="card-body p-6">
+                                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <InformationCircleIcon className="w-5 h-5 text-yellow-600" />
+                                    Belangrijk om te weten
+                                </h4>
+                                <div className="space-y-2 text-sm text-gray-700">
+                                    <p>• Alleen werkdagen (maandag t/m vrijdag) tellen mee voor vakantie-uren</p>
+                                    <p>• Weekenddagen kosten geen vakantie-uren</p>
+                                    <p>• Je aanvraag moet goedgekeurd worden door je manager</p>
+                                    <p>• Je krijgt een notificatie zodra je aanvraag is behandeld</p>
+                                    <p>• Je hebt {vacationBalance?.totalHours || 200} vakantie-uren per jaar</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl">
+                            <div className="card-body p-6">
+                                <h4 className="font-bold text-gray-800 mb-3">Snelle Acties</h4>
+                                <div className="space-y-2">
+                                    <button
+                                        onClick={() => router.push("/vacation")}
+                                        className="btn btn-outline btn-primary rounded-xl w-full justify-start hover:scale-105 transition-all duration-200"
+                                    >
+                                        <ArrowLeftIcon className="w-4 h-4 mr-2" />
+                                        Terug naar Overzicht
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                )}
-
-                {!canSubmit && requestedHours > 0 && vacationBalance && workDays > 0 && (
-                    <div className="alert alert-error mt-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Je hebt niet genoeg vakantie-uren voor deze aanvraag!</span>
-                    </div>
-                )}
-
-                {canSubmit && requestedHours > 0 && workDays > 0 && (
-                    <div className="alert alert-success mt-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Perfect! Je kunt deze vakantie aanvragen.</span>
-                    </div>
-                )}
-
-                {/* Submit button */}
-                <div className="mt-6">
-                    <button
-                        className={`btn w-full ${canSubmit && workDays > 0 ? 'btn-primary' : 'btn-disabled'}`}
-                        onClick={handleSubmit}
-                        disabled={!canSubmit || workDays === 0 || isSubmitting}
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <span className="loading loading-spinner loading-sm"></span>
-                                Aanvraag indienen...
-                            </>
-                        ) : (
-                            <>
-                                🏖️ Vakantie Aanvragen ({requestedHours} uur)
-                            </>
-                        )}
-                    </button>
-                </div>
-
-                {error && (
-                    <div className="alert alert-error mt-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                {/* Info box */}
-                <div className="mt-6 p-4 bg-info bg-opacity-10 rounded-lg border border-info border-opacity-20">
-                    <h4 className="font-bold text-info mb-2">ℹ️ Belangrijk om te weten:</h4>
-                    <ul className="text-sm space-y-1 text-info-content">
-                        <li>• Alleen werkdagen (maandag t/m vrijdag) tellen mee voor vakantie-uren</li>
-                        <li>• Weekenddagen kosten geen vakantie-uren</li>
-                        <li>• Je aanvraag moet goedgekeurd worden door je manager</li>
-                        <li>• Je krijgt een notificatie zodra je aanvraag is behandeld</li>
-                        <li>• Je hebt {vacationBalance?.totalHours || 200} vakantie-uren per jaar</li>
-                    </ul>
                 </div>
             </div>
         </div>
