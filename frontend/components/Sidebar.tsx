@@ -10,6 +10,7 @@ import {
     CalendarDaysIcon,
     UserCircleIcon,
     ChartBarIcon,
+    BellIcon,
     ArrowRightOnRectangleIcon,
     CheckCircleIcon,
     ExclamationTriangleIcon
@@ -136,7 +137,7 @@ export default function Sidebar({
         else return `${wholeHours}u`;
     };
 
-    // Mini calendar data
+    // Mini calendar data - VERBETERD
     const startOfMonth = usedMonth.startOf('month');
     const endOfMonth = usedMonth.endOf('month');
     const daysInMonth = endOfMonth.date();
@@ -163,31 +164,35 @@ export default function Sidebar({
     };
 
     return (
-        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen overflow-y-auto ${className}`}>
-            {/* User Profile Header */}
-            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="avatar placeholder">
-                        <div className="bg-gradient-elmar text-white rounded-lg w-12 h-12 flex items-center justify-center shadow-md">
-                            <span className="text-sm font-bold">{userInitials}</span>
+        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen ${className}`}>
+            {/* User Profile Header - ELEGANT */}
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
+                            <span className="text-lg font-bold text-white">{userInitials}</span>
                         </div>
+                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-800 text-sm leading-tight truncate">{userName}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                            {getRankBadge()}
+                        <h3 className="font-bold text-lg leading-tight truncate">{userName}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            {userRank === "admin" && <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-medium rounded-full">Admin</span>}
+                            {userRank === "manager" && <span className="px-2 py-0.5 bg-yellow-500 text-white text-xs font-medium rounded-full">Manager</span>}
+                            {userRank === "user" && <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">Medewerker</span>}
                         </div>
-                        <p className="text-xs text-gray-500">Elmar Services</p>
+                        <p className="text-blue-100 text-sm mt-1">Elmar Services</p>
                     </div>
                 </div>
             </div>
 
-            {/* Navigation Section */}
-            <nav className="p-3 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            {/* Navigation Section - MODERN */}
+            <nav className="p-4 border-b border-gray-100">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <HomeIcon className="w-3 h-3" />
                     Navigatie
                 </h3>
-                <div className="space-y-1">
+                <div className="space-y-2">
                     {navigationItems.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
@@ -197,37 +202,46 @@ export default function Sidebar({
                                 key={item.href}
                                 href={item.href}
                                 className={`
-                                    group flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer
+                                    group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 cursor-pointer relative overflow-hidden
                                     ${isActive
-                                    ? 'bg-gradient-elmar text-white shadow-md'
-                                    : 'text-gray-700 hover:bg-blue-50 hover:text-elmar-primary'
+                                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform scale-105'
+                                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600'
                                 }
                                 `}
                             >
-                                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-elmar-primary'}`} />
-                                <div className="flex-1 min-w-0">
-                                    <div className={`font-medium text-sm truncate ${isActive ? 'text-white' : ''}`}>
+                                {isActive && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-50"></div>
+                                )}
+                                <Icon className={`w-5 h-5 flex-shrink-0 relative z-10 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-600'}`} />
+                                <div className="flex-1 min-w-0 relative z-10">
+                                    <div className={`font-semibold text-sm truncate ${isActive ? 'text-white' : ''}`}>
                                         {item.label}
                                     </div>
+                                    <div className={`text-xs opacity-75 truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
+                                        {item.description}
+                                    </div>
                                 </div>
+                                {isActive && (
+                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse relative z-10"></div>
+                                )}
                             </Link>
                         );
                     })}
                 </div>
             </nav>
 
-            {/* Mini Calendar - Improved */}
-            <div className="p-3 border-t border-gray-100 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <CalendarDaysIcon className="w-4 h-4" />
-                    {usedMonth.format('MMM YYYY')}
+            {/* Mini Calendar - ELEGANTE VERSIE */}
+            <div className="p-4 border-b border-gray-100">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <CalendarDaysIcon className="w-3 h-3" />
+                    {usedMonth.format('MMMM YYYY')}
                 </h3>
 
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-4 border border-gray-200">
                     {/* Calendar header */}
-                    <div className="grid grid-cols-7 gap-1 mb-2">
+                    <div className="grid grid-cols-7 gap-1 mb-3">
                         {['M', 'D', 'W', 'D', 'V', 'Z', 'Z'].map((day, i) => (
-                            <div key={i} className="text-xs font-semibold text-gray-600 text-center py-1">
+                            <div key={i} className="text-xs font-bold text-gray-600 text-center py-2">
                                 {day}
                             </div>
                         ))}
@@ -237,29 +251,32 @@ export default function Sidebar({
                     <div className="grid grid-cols-7 gap-1">
                         {calendarDays.map((day, index) => {
                             if (day === null) {
-                                return <div key={index} className="h-6"></div>;
+                                return <div key={index} className="h-8"></div>;
                             }
 
                             const hours = getHoursForDay(day);
                             const isToday = usedMonth.date(day).isSame(dayjs(), 'day');
 
-                            let cellClass = "h-6 w-6 flex items-center justify-center text-xs rounded cursor-pointer transition-colors ";
+                            let cellClass = "h-8 w-8 flex items-center justify-center text-xs font-medium rounded-lg cursor-pointer transition-all duration-200 relative ";
 
                             if (isToday) {
-                                cellClass += "bg-elmar-primary text-white font-bold ";
+                                cellClass += "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg transform scale-110 font-bold ";
                             } else if (hours >= 8) {
-                                cellClass += "bg-green-200 text-green-800 font-semibold ";
+                                cellClass += "bg-gradient-to-br from-green-400 to-emerald-500 text-white shadow-md hover:scale-105 ";
                             } else if (hours >= 4) {
-                                cellClass += "bg-yellow-200 text-yellow-800 ";
+                                cellClass += "bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-md hover:scale-105 ";
                             } else if (hours > 0) {
-                                cellClass += "bg-blue-200 text-blue-800 ";
+                                cellClass += "bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-md hover:scale-105 ";
                             } else {
-                                cellClass += "text-gray-600 hover:bg-gray-200 ";
+                                cellClass += "text-gray-600 hover:bg-gray-200 hover:scale-105 ";
                             }
 
                             return (
-                                <div key={index} className={cellClass} title={`${day} - ${formatHours(hours)}`}>
+                                <div key={index} className={cellClass} title={`${day} ${usedMonth.format('MMMM')} - ${formatHours(hours)}`}>
                                     {day}
+                                    {hours > 0 && !isToday && (
+                                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-white rounded-full opacity-80"></div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -267,51 +284,60 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Week Stats - Improved */}
-            <div className="p-3 border-t border-gray-100 flex-shrink-0">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
-                        <ClockIcon className="w-4 h-4" />
+            {/* Week Stats - PRACHTIGE VERSIE */}
+            <div className="p-4 border-b border-gray-100">
+                <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-xl p-5 border border-indigo-200 shadow-sm">
+                    <h4 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2">
+                        <ClockIcon className="w-4 h-4 text-indigo-600" />
                         Deze Week
                     </h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                        <div className="text-center">
-                            <div className="text-xl font-bold text-elmar-primary">{formatHours(weekHours)}</div>
-                            <div className="text-xs text-gray-600">Uren</div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="text-center bg-white/60 rounded-lg p-3 backdrop-blur-sm">
+                            <div className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                                {formatHours(weekHours)}
+                            </div>
+                            <div className="text-xs text-gray-600 font-medium">Uren</div>
                         </div>
-                        <div className="text-center">
-                            <div className="text-xl font-bold text-green-600">{workDays}</div>
-                            <div className="text-xs text-gray-600">Dagen</div>
+                        <div className="text-center bg-white/60 rounded-lg p-3 backdrop-blur-sm">
+                            <div className="text-2xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                                {workDays}
+                            </div>
+                            <div className="text-xs text-gray-600 font-medium">Dagen</div>
                         </div>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className="mb-3">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                    {/* Beautiful progress bar */}
+                    <div className="mb-4">
+                        <div className="flex justify-between text-xs font-medium text-gray-600 mb-2">
+                            <span>Voortgang</span>
+                            <span>{((weekHours / 40) * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                             <div
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                    weekHours >= 40 ? 'bg-green-500' :
-                                        weekHours >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
+                                className={`h-3 rounded-full transition-all duration-700 shadow-sm ${
+                                    weekHours >= 40 ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
+                                        weekHours >= 32 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
+                                            'bg-gradient-to-r from-blue-400 to-indigo-500'
                                 }`}
                                 style={{ width: `${Math.min((weekHours / 40) * 100, 100)}%` }}
                             ></div>
                         </div>
-                        <div className="text-xs text-gray-500 text-center mt-1">
-                            {((weekHours / 40) * 100).toFixed(0)}% van 40u
+                        <div className="text-xs text-gray-500 text-center mt-2">
+                            {formatHours(weekHours)} van 40u
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Status:</span>
+                    <div className="flex justify-center">
                         {weekHours >= 32 ? (
-                            <span className="badge badge-success badge-xs gap-1">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-full">
                                 <CheckCircleIcon className="w-3 h-3" />
-                                Goed
+                                Op Schema
                             </span>
                         ) : (
-                            <span className="badge badge-warning badge-xs gap-1">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white text-xs font-bold rounded-full">
                                 <ExclamationTriangleIcon className="w-3 h-3" />
-                                Te laag
+                                Te Laag
                             </span>
                         )}
                     </div>
@@ -321,10 +347,10 @@ export default function Sidebar({
             {/* Spacer to push logout to bottom */}
             <div className="flex-1"></div>
 
-            {/* Logout Button */}
-            <div className="p-3 border-t border-gray-100 flex-shrink-0">
+            {/* Logout Button - ELEGANT */}
+            <div className="p-4">
                 <button
-                    className="btn btn-outline btn-error btn-sm w-full rounded-lg hover:scale-105 transition-all duration-200 gap-2"
+                    className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
                     onClick={handleLogout}
                 >
                     <ArrowRightOnRectangleIcon className="w-4 h-4" />

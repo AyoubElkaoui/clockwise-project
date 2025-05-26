@@ -52,15 +52,18 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Generate time options in 15-minute intervals
+    // Generate time options in 15-minute intervals - EXTENDED HOURS
     const generateTimeOptions = () => {
         const options = [];
-        for (let hour = 6; hour <= 22; hour++) {
+        // Start van 05:00 tot 23:45 voor overwerk mogelijkheden
+        for (let hour = 5; hour <= 23; hour++) {
             for (let minute = 0; minute < 60; minute += 15) {
                 const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 options.push(timeStr);
             }
         }
+        // Voeg ook middernacht toe
+        options.push("00:00");
         return options;
     };
 
@@ -255,7 +258,13 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     useEffect(() => {
         const dayStr = day.format("YYYY-MM-DD");
         const startDT = dayjs(`${dayStr}T${startTime}`);
-        const endDT = dayjs(`${dayStr}T${endTime}`);
+        let endDT = dayjs(`${dayStr}T${endTime}`);
+
+        // Handle overnight shifts (eindtijd volgende dag)
+        if (endDT.isBefore(startDT) || endDT.isSame(startDT)) {
+            endDT = endDT.add(1, 'day');
+        }
+
         if (endDT.isAfter(startDT)) {
             const diffMin = endDT.diff(startDT, "minute") - breakMinutes;
             const hours = diffMin > 0 ? diffMin / 60 : 0;
@@ -294,11 +303,21 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         const dayStr = day.format("YYYY-MM-DD");
         const userId = Number(localStorage.getItem("userId")) || 0;
 
+        // Handle overnight shifts
+        let endTimeFormatted = `${dayStr}T${endTime}`;
+        const startTimeFormatted = `${dayStr}T${startTime}`;
+
+        // If end time is before start time, it's next day
+        if (endTime <= startTime) {
+            const nextDay = dayjs(dayStr).add(1, 'day').format("YYYY-MM-DD");
+            endTimeFormatted = `${nextDay}T${endTime}`;
+        }
+
         const data = {
             userId,
             projectId: selectedProject,
-            startTime: `${dayStr}T${startTime}`,
-            endTime: `${dayStr}T${endTime}`,
+            startTime: startTimeFormatted,
+            endTime: endTimeFormatted,
             breakMinutes,
             distanceKm,
             travelCosts,
@@ -570,6 +589,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             <option value={30}>30 min</option>
                             <option value={45}>45 min</option>
                             <option value={60}>1 uur</option>
+                            <option value={75}>1u 15min</option>
+                            <option value={90}>1u 30min</option>
+                            <option value={105}>1u 45min</option>
+                            <option value={120}>2 uur</option>
                         </select>
                     </div>
                 </div>
@@ -584,6 +607,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     </div>
                     {calculatedHours < 0.25 && startTime && endTime && (
                         <p className="text-xs text-orange-600 mt-1">⚠️ Minder dan een kwartier</p>
+                    )}
+                    {calculatedHours > 16 && (
+                        <p className="text-xs text-orange-600 mt-1">⚠️ Meer dan 16 uur - controleer of dit correct is</p>
+                    )}
+                    {endTime <= startTime && (
+                        <p className="text-xs text-blue-600 mt-1">🌙 Nachtdienst - eindigt volgende dag</p>
                     )}
                     <div className="text-xs text-gray-500 mt-1">
                         Tijd wordt automatisch afgerond op kwartiertjes
@@ -672,8 +701,9 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 <div className="text-sm text-gray-700 space-y-1">
                     <p>• Tijden worden automatisch afgerond op kwartiertjes (0:15, 0:30, 0:45, 1:00)</p>
                     <p>• Minimaal een kwartier (0¼u) kan geregistreerd worden</p>
+                    <p>• Voor nachtdiensten: eindtijd mag voor starttijd staan (dan is het volgende dag)</p>
                     <p>• Vergeet niet je pauzetijd in te vullen voor nauwkeurige berekening</p>
-                    <p>• Reiskosten en onkosten zijn optioneel en kunnen later worden toegevoegd</p>
+                    <p>• Bij overwerk (12+ uur): zorg voor voldoende pauzes</p>
                 </div>
             </div>
 
@@ -700,10 +730,17 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 </div>
             )}
 
-            {calculatedHours >= 12 && (
+            {calculatedHours >= 16 && (
                 <div className="alert alert-warning rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
-                    <span>Let op: Je registreert meer dan 12 uur. Controleer of dit correct is.</span>
+                    <span>Let op: Je registreert meer dan 16 uur. Zorg voor voldoende pauzes en check of dit correct is.</span>
+                </div>
+            )}
+
+            {endTime <= startTime && calculatedHours > 0 && (
+                <div className="alert alert-info rounded-xl">
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <span>🌙 Nachtdienst gedetecteerd - werk eindigt {dayjs(`2024-01-01T${endTime}`).format('HH:mm')} de volgende dag</span>
                 </div>
             )}
 
