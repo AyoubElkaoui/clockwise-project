@@ -29,15 +29,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const [projects, setProjects] = useState<Project[]>([]);
     const [assignedProjects, setAssignedProjects] = useState<UserProject[]>([]);
 
-    const [selectedCompany, setSelectedCompany] = useState<number | null>(
-        existingEntry?.project?.projectGroup?.company?.id || null
-    );
-    const [selectedProjectGroup, setSelectedProjectGroup] = useState<number | null>(
-        existingEntry?.project?.projectGroup?.id || null
-    );
-    const [selectedProject, setSelectedProject] = useState<number | null>(
-        existingEntry?.projectId || null
-    );
+    // FIX: Initialize with existing entry values if editing
+    const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
+    const [selectedProjectGroup, setSelectedProjectGroup] = useState<number | null>(null);
+    const [selectedProject, setSelectedProject] = useState<number | null>(null);
 
     const extractTime = (isoString?: string): string => {
         if (!isoString) return "";
@@ -110,10 +105,16 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     return;
                 }
 
+                console.log("🔄 Fetching initial data...");
+
+                // Fetch companies
                 const companiesData = await getCompanies();
+                console.log("📊 Companies loaded:", companiesData.length);
                 setCompanies(companiesData);
 
+                // Fetch user's assigned projects
                 const userProjectsData = await getUserProjects(userId);
+                console.log("🔗 User projects loaded:", userProjectsData.length);
                 setAssignedProjects(userProjectsData);
 
                 const userRank = localStorage.getItem("userRank");
@@ -121,19 +122,44 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                 if (!isAdminOrManager && userProjectsData.length === 0) {
                     setError("Je bent niet toegewezen aan projecten. Neem contact op met een beheerder.");
+                    return;
                 }
 
-                if (existingEntry && selectedCompany) {
-                    const projectGroupsData = await getProjectGroups(selectedCompany);
-                    setProjectGroups(projectGroupsData);
+                // FIX: If editing existing entry, set the correct selections
+                if (existingEntry && existingEntry.project) {
+                    console.log("✏️ Setting values for existing entry:", existingEntry);
 
-                    if (selectedProjectGroup) {
-                        const projectsData = await getProjects(selectedProjectGroup);
-                        setProjects(projectsData);
+                    const companyId = existingEntry.project.projectGroup?.company?.id;
+                    const projectGroupId = existingEntry.project.projectGroup?.id;
+                    const projectId = existingEntry.projectId;
+
+                    console.log("🎯 Setting IDs:", { companyId, projectGroupId, projectId });
+
+                    if (companyId) {
+                        setSelectedCompany(companyId);
+
+                        // Load project groups for this company
+                        const projectGroupsData = await getProjectGroups(companyId);
+                        console.log("📂 Project groups loaded for company:", projectGroupsData.length);
+                        setProjectGroups(projectGroupsData);
+
+                        if (projectGroupId) {
+                            setSelectedProjectGroup(projectGroupId);
+
+                            // Load projects for this project group
+                            const projectsData = await getProjects(projectGroupId);
+                            console.log("📋 Projects loaded for group:", projectsData.length);
+                            setProjects(projectsData);
+
+                            if (projectId) {
+                                console.log("✅ Setting selected project:", projectId);
+                                setSelectedProject(projectId);
+                            }
+                        }
                     }
                 }
             } catch (error) {
-                console.error("Error fetching initial data:", error);
+                console.error("❌ Error fetching initial data:", error);
                 setError("Fout bij het ophalen van gegevens");
             } finally {
                 setLoading(false);
@@ -141,19 +167,24 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         };
 
         fetchInitialData();
-    }, [existingEntry, selectedCompany, selectedProjectGroup]);
+    }, []); // Only run once on mount
 
+    // Handle company selection change
     useEffect(() => {
-        if (selectedCompany) {
+        if (selectedCompany && !existingEntry) { // Don't trigger for existing entries
             const fetchProjectGroups = async () => {
                 try {
+                    console.log("🏢 Loading project groups for company:", selectedCompany);
                     const data = await getProjectGroups(selectedCompany);
+
                     const userRank = localStorage.getItem("userRank");
                     const isAdminOrManager = userRank === "admin" || userRank === "manager";
 
                     if (isAdminOrManager) {
+                        console.log("👑 Admin/Manager: showing all project groups");
                         setProjectGroups(data);
                     } else {
+                        // Filter to only show project groups the user has access to
                         const assignedProjectGroupIds = assignedProjects
                             .filter(ap => ap.project?.projectGroup?.company?.id === selectedCompany)
                             .map(ap => ap.project?.projectGroup?.id);
@@ -161,51 +192,63 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                         const filteredGroups = data.filter((group: ProjectGroup) =>
                             assignedProjectGroupIds.includes(group.id)
                         );
+                        console.log("👤 User: filtered project groups:", filteredGroups.length);
                         setProjectGroups(filteredGroups);
                     }
+
+                    // Reset project group and project selections when company changes
+                    setSelectedProjectGroup(null);
+                    setSelectedProject(null);
+                    setProjects([]);
                 } catch (error) {
-                    console.error("Error fetching project groups:", error);
+                    console.error("❌ Error fetching project groups:", error);
                 }
             };
             fetchProjectGroups();
-        } else {
+        } else if (!selectedCompany && !existingEntry) {
+            // Clear dependent selections when no company is selected
             setProjectGroups([]);
-            // Only reset if not editing
-            if (!existingEntry) {
-                setSelectedProjectGroup(null);
-                setSelectedProject(null);
-            }
+            setSelectedProjectGroup(null);
+            setSelectedProject(null);
+            setProjects([]);
         }
     }, [selectedCompany, assignedProjects]);
 
+    // Handle project group selection change
     useEffect(() => {
-        if (selectedProjectGroup) {
+        if (selectedProjectGroup && !existingEntry) { // Don't trigger for existing entries
             const fetchProjects = async () => {
                 try {
+                    console.log("📂 Loading projects for project group:", selectedProjectGroup);
                     const data = await getProjects(selectedProjectGroup);
+
                     const userRank = localStorage.getItem("userRank");
                     const isAdminOrManager = userRank === "admin" || userRank === "manager";
 
                     if (isAdminOrManager) {
+                        console.log("👑 Admin/Manager: showing all projects");
                         setProjects(data);
                     } else {
+                        // Filter to only show projects the user has access to
                         const assignedProjectIds = assignedProjects.map(ap => ap.projectId);
                         const filteredProjects = data.filter((project: Project) =>
                             assignedProjectIds.includes(project.id)
                         );
+                        console.log("👤 User: filtered projects:", filteredProjects.length);
                         setProjects(filteredProjects);
                     }
+
+                    // Reset project selection when project group changes
+                    setSelectedProject(null);
                 } catch (error) {
-                    console.error("Error fetching projects:", error);
+                    console.error("❌ Error fetching projects:", error);
                 }
             };
             fetchProjects();
-        } else {
+        } else if (!selectedProjectGroup && !existingEntry) {
+            // Clear projects when no project group is selected
             setProjects([]);
-            // DON'T reset selectedProject if we're editing an existing entry
-            if (!existingEntry) {
-                setSelectedProject(null);
-            }
+            setSelectedProject(null);
         }
     }, [selectedProjectGroup, assignedProjects]);
 
@@ -268,17 +311,48 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
         try {
             if (existingEntry && existingEntry.id) {
+                console.log("✏️ Updating existing entry:", existingEntry.id);
                 await updateTimeEntry(existingEntry.id, data);
             } else {
+                console.log("💾 Creating new entry");
                 await registerTimeEntry(data);
             }
             onEntrySaved();
         } catch (err) {
-            console.error(err);
+            console.error("❌ Save error:", err);
             setError("Fout bij opslaan van de uren");
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    // Handle company change
+    const handleCompanyChange = (companyId: string) => {
+        console.log("🏢 Company changed to:", companyId);
+        const id = companyId ? Number(companyId) : null;
+        setSelectedCompany(id);
+        // Reset dependent selections
+        setSelectedProjectGroup(null);
+        setSelectedProject(null);
+        setProjectGroups([]);
+        setProjects([]);
+    };
+
+    // Handle project group change
+    const handleProjectGroupChange = (projectGroupId: string) => {
+        console.log("📂 Project group changed to:", projectGroupId);
+        const id = projectGroupId ? Number(projectGroupId) : null;
+        setSelectedProjectGroup(id);
+        // Reset dependent selection
+        setSelectedProject(null);
+        setProjects([]);
+    };
+
+    // Handle project change
+    const handleProjectChange = (projectId: string) => {
+        console.log("📋 Project changed to:", projectId);
+        const id = projectId ? Number(projectId) : null;
+        setSelectedProject(id);
     };
 
     if (loading) {
@@ -341,12 +415,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                         <select
                             className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                             value={selectedCompany ?? ""}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setSelectedCompany(val ? Number(val) : null);
-                                setSelectedProjectGroup(null);
-                                setSelectedProject(null);
-                            }}
+                            onChange={(e) => handleCompanyChange(e.target.value)}
                         >
                             <option value="">-- Kies een bedrijf --</option>
                             {localStorage.getItem("userRank") === "admin" || localStorage.getItem("userRank") === "manager"
@@ -362,6 +431,11 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                                 ))
                             }
                         </select>
+                        {selectedCompany && (
+                            <div className="text-sm text-success mt-1">
+                                ✅ Bedrijf geselecteerd
+                            </div>
+                        )}
                     </div>
 
                     {selectedCompany && (
@@ -372,14 +446,8 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             <select
                                 className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                                 value={selectedProjectGroup ?? ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setSelectedProjectGroup(val ? Number(val) : null);
-                                    // Only reset project if not editing existing entry
-                                    if (!existingEntry) {
-                                        setSelectedProject(null);
-                                    }
-                                }}
+                                onChange={(e) => handleProjectGroupChange(e.target.value)}
+                                disabled={projectGroups.length === 0}
                             >
                                 <option value="">-- Kies een projectgroep --</option>
                                 {projectGroups.map((pg) => (
@@ -388,6 +456,16 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                                     </option>
                                 ))}
                             </select>
+                            {projectGroups.length === 0 && selectedCompany && (
+                                <div className="text-sm text-warning mt-1">
+                                    ⚠️ Geen projectgroepen gevonden
+                                </div>
+                            )}
+                            {selectedProjectGroup && (
+                                <div className="text-sm text-success mt-1">
+                                    ✅ Projectgroep geselecteerd
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -399,11 +477,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             <select
                                 className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                                 value={selectedProject ?? ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    console.log("Selected project:", val); // Debug log
-                                    setSelectedProject(val ? Number(val) : null);
-                                }}
+                                onChange={(e) => handleProjectChange(e.target.value)}
                                 disabled={projects.length === 0}
                             >
                                 <option value="">-- Kies een project --</option>
@@ -415,12 +489,29 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             </select>
                             {projects.length === 0 && selectedProjectGroup && (
                                 <div className="text-sm text-warning mt-1">
-                                    Geen projecten gevonden voor deze groep
+                                    ⚠️ Geen projecten gevonden voor deze groep
+                                </div>
+                            )}
+                            {selectedProject && (
+                                <div className="text-sm text-success mt-1">
+                                    ✅ Project geselecteerd
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
+
+                {/* Debug info (only in development) */}
+                {process.env.NODE_ENV === 'development' && (
+                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+                        <strong>Debug:</strong><br/>
+                        Company: {selectedCompany || 'none'}<br/>
+                        ProjectGroup: {selectedProjectGroup || 'none'}<br/>
+                        Project: {selectedProject || 'none'}<br/>
+                        ProjectGroups available: {projectGroups.length}<br/>
+                        Projects available: {projects.length}
+                    </div>
+                )}
             </div>
 
             {/* Time Registration */}

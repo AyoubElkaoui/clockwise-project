@@ -10,7 +10,6 @@ import {
     CalendarDaysIcon,
     UserCircleIcon,
     ChartBarIcon,
-    BellIcon,
     ArrowRightOnRectangleIcon,
     CheckCircleIcon,
     ExclamationTriangleIcon
@@ -144,8 +143,9 @@ export default function Sidebar({
     const firstDayOfWeek = startOfMonth.day(); // 0 = Sunday
 
     const calendarDays = [];
-    // Empty cells for days before month starts
-    for (let i = 0; i < firstDayOfWeek; i++) {
+    // Empty cells for days before month starts (adjust for Monday start)
+    const mondayFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    for (let i = 0; i < mondayFirstDay; i++) {
         calendarDays.push(null);
     }
     // Days of the month
@@ -163,7 +163,7 @@ export default function Sidebar({
     };
 
     return (
-        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen overflow-hidden ${className}`}>
+        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen overflow-y-auto ${className}`}>
             {/* User Profile Header */}
             <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                 <div className="flex items-center gap-3">
@@ -216,39 +216,39 @@ export default function Sidebar({
                 </div>
             </nav>
 
-            {/* Mini Calendar - Compact */}
+            {/* Mini Calendar - Improved */}
             <div className="p-3 border-t border-gray-100 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <CalendarDaysIcon className="w-4 h-4" />
                     {usedMonth.format('MMM YYYY')}
                 </h3>
 
-                <div className="bg-gray-50 rounded-lg p-2">
+                <div className="bg-gray-50 rounded-lg p-3">
                     {/* Calendar header */}
-                    <div className="grid grid-cols-7 gap-0.5 mb-1">
-                        {['Z', 'M', 'D', 'W', 'D', 'V', 'Z'].map((day, i) => (
-                            <div key={i} className="text-xs font-medium text-gray-500 text-center py-1">
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['M', 'D', 'W', 'D', 'V', 'Z', 'Z'].map((day, i) => (
+                            <div key={i} className="text-xs font-semibold text-gray-600 text-center py-1">
                                 {day}
                             </div>
                         ))}
                     </div>
 
                     {/* Calendar days */}
-                    <div className="grid grid-cols-7 gap-0.5">
+                    <div className="grid grid-cols-7 gap-1">
                         {calendarDays.map((day, index) => {
                             if (day === null) {
-                                return <div key={index} className="h-5"></div>;
+                                return <div key={index} className="h-6"></div>;
                             }
 
                             const hours = getHoursForDay(day);
                             const isToday = usedMonth.date(day).isSame(dayjs(), 'day');
 
-                            let cellClass = "h-5 w-5 flex items-center justify-center text-xs rounded cursor-pointer transition-colors ";
+                            let cellClass = "h-6 w-6 flex items-center justify-center text-xs rounded cursor-pointer transition-colors ";
 
                             if (isToday) {
                                 cellClass += "bg-elmar-primary text-white font-bold ";
                             } else if (hours >= 8) {
-                                cellClass += "bg-green-200 text-green-800 ";
+                                cellClass += "bg-green-200 text-green-800 font-semibold ";
                             } else if (hours >= 4) {
                                 cellClass += "bg-yellow-200 text-yellow-800 ";
                             } else if (hours > 0) {
@@ -267,29 +267,29 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Week Stats - Compact */}
+            {/* Week Stats - Improved */}
             <div className="p-3 border-t border-gray-100 flex-shrink-0">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-2">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
                         <ClockIcon className="w-4 h-4" />
                         Deze Week
                     </h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                    <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                         <div className="text-center">
-                            <div className="text-base font-bold text-elmar-primary">{formatHours(weekHours)}</div>
+                            <div className="text-xl font-bold text-elmar-primary">{formatHours(weekHours)}</div>
                             <div className="text-xs text-gray-600">Uren</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-base font-bold text-green-600">{workDays}</div>
+                            <div className="text-xl font-bold text-green-600">{workDays}</div>
                             <div className="text-xs text-gray-600">Dagen</div>
                         </div>
                     </div>
 
-                    {/* Compact progress bar */}
-                    <div className="mb-2">
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    {/* Progress bar */}
+                    <div className="mb-3">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
-                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                className={`h-2 rounded-full transition-all duration-500 ${
                                     weekHours >= 40 ? 'bg-green-500' :
                                         weekHours >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
                                 }`}
@@ -318,7 +318,7 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Spacer */}
+            {/* Spacer to push logout to bottom */}
             <div className="flex-1"></div>
 
             {/* Logout Button */}
