@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Dayjs } from "dayjs";
-import { getCompanies, getProjectGroups, getProjects, registerTimeEntry, updateTimeEntry, getUserProjects } from "@/lib/api";
+import { getCompanies, getProjectGroups, getProjects, registerTimeEntry, updateTimeEntry, getUserProjects, getTimeEntries } from "@/lib/api";
 import dayjs from "dayjs";
 import { Company, ProjectGroup, Project, UserProject, TimeEntry } from "@/lib/types";
 import {
@@ -13,7 +13,9 @@ import {
     CheckCircleIcon,
     ExclamationTriangleIcon,
     LightBulbIcon,
-    TrashIcon
+    TrashIcon,
+    PaperAirplaneIcon,
+    BookmarkIcon
 } from "@heroicons/react/24/outline";
 
 interface TimeEntryFormProps {
@@ -28,6 +30,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [assignedProjects, setAssignedProjects] = useState<UserProject[]>([]);
+    const [existingDayHours, setExistingDayHours] = useState(0); // NEW: Voor 24-uur validatie
 
     // FIX: Initialize with existing entry values if editing
     const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
@@ -99,6 +102,34 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         return display + "u";
     };
 
+    // NEW: Fetch existing hours for 24-hour validation
+    const fetchExistingDayHours = async () => {
+        try {
+            const userId = Number(localStorage.getItem("userId"));
+            const entries = await getTimeEntries();
+            const dayStr = day.format("YYYY-MM-DD");
+
+            let totalHours = 0;
+            entries.forEach((entry: TimeEntry) => {
+                const entryDate = dayjs(entry.startTime).format("YYYY-MM-DD");
+                // Skip the current entry if editing
+                if (entryDate === dayStr && entry.userId === userId && entry.id !== existingEntry?.id) {
+                    const start = dayjs(entry.startTime);
+                    const end = dayjs(entry.endTime);
+                    const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
+                    if (diffMin > 0) {
+                        totalHours += diffMin / 60;
+                    }
+                }
+            });
+
+            setExistingDayHours(totalHours);
+        } catch (error) {
+            console.error("Error fetching existing day hours:", error);
+            setExistingDayHours(0);
+        }
+    };
+
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
@@ -119,6 +150,9 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 const userProjectsData = await getUserProjects(userId);
                 console.log("🔗 User projects loaded:", userProjectsData.length);
                 setAssignedProjects(userProjectsData);
+
+                // NEW: Fetch existing hours for the day
+                await fetchExistingDayHours();
 
                 const userRank = localStorage.getItem("userRank");
                 const isAdminOrManager = userRank === "admin" || userRank === "manager";
@@ -170,7 +204,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         };
 
         fetchInitialData();
-    }, []); // Only run once on mount
+    }, [day]); // Re-fetch when day changes
 
     // Handle company selection change
     useEffect(() => {
@@ -275,7 +309,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         }
     }, [startTime, endTime, breakMinutes, day]);
 
-    const handleSave = async () => {
+    // NEW: Check 24-hour limit
+    const totalDayHours = existingDayHours + calculatedHours;
+    const exceeds24Hours = totalDayHours > 24;
+
+    // NEW: Save functions for draft and submit
+    const handleSave = async (saveType: 'draft' | 'submit') => {
         if (!selectedProject) {
             setError("Selecteer een project");
             return;
@@ -286,6 +325,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         }
         if (calculatedHours === 0) {
             setError("Eindtijd moet na starttijd zijn");
+            return;
+        }
+        if (exceeds24Hours) {
+            setError(`Maximaal 24 uur per dag. Al geregistreerd: ${existingDayHours.toFixed(2)}u, nieuw: ${calculatedHours.toFixed(2)}u`);
             return;
         }
 
@@ -323,6 +366,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             travelCosts,
             expenses,
             notes,
+            status: saveType === 'submit' ? 'ingediend' : 'concept' // NEW: Status based on save type
         };
 
         setIsSubmitting(true);
@@ -412,10 +456,23 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             index === self.findIndex(c => c.id === company.id)
         );
 
-    const isFormValid = selectedProject && startTime && endTime && calculatedHours > 0;
+    const isFormValid = selectedProject && startTime && endTime && calculatedHours > 0 && !exceeds24Hours;
 
     return (
         <div className="space-y-6">
+            {/* 24-hour warning */}
+            {existingDayHours > 0 && (
+                <div className={`alert ${exceeds24Hours ? 'alert-error' : 'alert-warning'} rounded-xl`}>
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <div>
+                        <div className="font-semibold">Al geregistreerd op {day.format("DD-MM-YYYY")}: {existingDayHours.toFixed(2)} uur</div>
+                        <div className="text-sm">
+                            Nieuw: {calculatedHours.toFixed(2)}u | Totaal: {totalDayHours.toFixed(2)}u / 24u
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Project Selection */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -519,18 +576,6 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                         </div>
                     )}
                 </div>
-
-                {/* Debug info (only in development) */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
-                        <strong>Debug:</strong><br/>
-                        Company: {selectedCompany || 'none'}<br/>
-                        ProjectGroup: {selectedProjectGroup || 'none'}<br/>
-                        Project: {selectedProject || 'none'}<br/>
-                        ProjectGroups available: {projectGroups.length}<br/>
-                        Projects available: {projects.length}
-                    </div>
-                )}
             </div>
 
             {/* Time Registration */}
@@ -704,6 +749,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     <p>• Voor nachtdiensten: eindtijd mag voor starttijd staan (dan is het volgende dag)</p>
                     <p>• Vergeet niet je pauzetijd in te vullen voor nauwkeurige berekening</p>
                     <p>• Bij overwerk (12+ uur): zorg voor voldoende pauzes</p>
+                    <p>• <strong>Maximaal 24 uur per dag</strong> over alle projecten heen</p>
                 </div>
             </div>
 
@@ -744,10 +790,29 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 </div>
             )}
 
+            {exceeds24Hours && (
+                <div className="alert alert-error rounded-xl">
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <span>⚠️ Maximaal 24 uur per dag toegestaan!</span>
+                </div>
+            )}
+
+            {/* Status explanation */}
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
+                <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <CheckCircleIcon className="w-5 h-5 text-blue-600" />
+                    Opslaan vs Indienen
+                </h4>
+                <div className="text-sm text-gray-700 space-y-1">
+                    <p>• <strong>Opslaan als Concept:</strong> Uren worden opgeslagen maar kunnen nog bewerkt worden. Niet zichtbaar voor managers.</p>
+                    <p>• <strong>Uren Indienen:</strong> Uren worden naar de manager gestuurd voor goedkeuring. Kunnen niet meer bewerkt worden.</p>
+                </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
-                    className="btn btn-outline rounded-xl flex-1"
+                    className="btn btn-outline rounded-xl"
                     onClick={onClose}
                     disabled={isSubmitting}
                 >
@@ -770,20 +835,40 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     </button>
                 )}
 
+                {/* Save as Draft Button */}
                 <button
-                    className="btn bg-gradient-elmar border-0 text-white rounded-xl flex-1 hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
-                    onClick={handleSave}
+                    className="btn btn-outline btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                    onClick={() => handleSave('draft')}
                     disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
                 >
                     {isSubmitting ? (
                         <div className="flex items-center gap-2">
                             <span className="loading loading-spinner loading-sm"></span>
-                            {existingEntry ? "Bijwerken..." : "Opslaan..."}
+                            Opslaan...
                         </div>
                     ) : (
                         <div className="flex items-center gap-2">
-                            <CheckCircleIcon className="w-5 h-5" />
-                            {existingEntry ? `Bijwerken (${formatHours(calculatedHours)})` : `Uren Opslaan (${formatHours(calculatedHours)})`}
+                            <BookmarkIcon className="w-5 h-5" />
+                            Opslaan als Concept
+                        </div>
+                    )}
+                </button>
+
+                {/* Submit Button */}
+                <button
+                    className="btn bg-gradient-elmar border-0 text-white rounded-xl hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                    onClick={() => handleSave('submit')}
+                    disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
+                >
+                    {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                            <span className="loading loading-spinner loading-sm"></span>
+                            Indienen...
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <PaperAirplaneIcon className="w-5 h-5" />
+                            Uren Indienen ({formatHours(calculatedHours)})
                         </div>
                     )}
                 </button>

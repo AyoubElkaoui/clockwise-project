@@ -12,7 +12,8 @@ import {
     FunnelIcon,
     ArrowDownTrayIcon,
     EyeIcon,
-    MagnifyingGlassIcon
+    MagnifyingGlassIcon,
+    CheckCircleIcon
 } from "@heroicons/react/24/outline";
 
 dayjs.extend(isBetween);
@@ -46,6 +47,11 @@ export default function UrenOverzicht(): JSX.Element {
             let result: TimeEntry[] = [];
             for (const entry of entries) {
                 try {
+                    // FILTER: Only show approved entries
+                    if (entry.status !== "goedgekeurd") {
+                        continue;
+                    }
+
                     const entryDate = dayjs(entry.startTime);
                     if (entryDate.isBetween(start, end, "day", "[]")) {
                         result.push(entry);
@@ -124,11 +130,12 @@ export default function UrenOverzicht(): JSX.Element {
 
             for (const entry of entries) {
                 try {
-                    if (entry && entry.project && entry.project.name) {
+                    // Only get options from approved entries
+                    if (entry && entry.status === "goedgekeurd" && entry.project && entry.project.name) {
                         projectsSet.add(entry.project.name);
                     }
                     const compName = entry?.project?.projectGroup?.company?.name;
-                    if (compName) {
+                    if (entry && entry.status === "goedgekeurd" && compName) {
                         companiesSet.add(compName);
                     }
                 } catch (error) {
@@ -149,7 +156,7 @@ export default function UrenOverzicht(): JSX.Element {
         filterData();
     }, [entries, startDate, endDate, selectedProject, selectedCompany, searchTerm, filterData]);
 
-    // Calculate statistics
+    // Calculate statistics - ONLY for approved entries
     let totalHours = 0;
     let totalDays = 0;
     let totalExpenses = 0;
@@ -158,7 +165,7 @@ export default function UrenOverzicht(): JSX.Element {
 
     for (const entry of filteredEntries) {
         try {
-            if (!entry || !entry.startTime || !entry.endTime) continue;
+            if (!entry || !entry.startTime || !entry.endTime || entry.status !== "goedgekeurd") continue;
             const start = dayjs(entry.startTime);
             const end = dayjs(entry.endTime);
             const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
@@ -197,18 +204,18 @@ export default function UrenOverzicht(): JSX.Element {
             {/* Header Section */}
             <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
                 <div className="flex items-center gap-3 mb-4">
-                    <ClockIcon className="w-8 h-8" />
-                    <h1 className="text-4xl font-bold">Uren Overzicht</h1>
+                    <CheckCircleIcon className="w-8 h-8" />
+                    <h1 className="text-4xl font-bold">Goedgekeurde Uren</h1>
                 </div>
-                <p className="text-blue-100 text-lg">Bekijk en analyseer je geregistreerde werkuren</p>
+                <p className="text-blue-100 text-lg">Overzicht van alle goedgekeurde werkuren</p>
             </div>
 
-            {/* Statistics Cards */}
+            {/* Statistics Cards - ONLY APPROVED HOURS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-gradient-success text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm font-medium">Totaal Uren</p>
+                            <p className="text-green-100 text-sm font-medium">✅ Goedgekeurde Uren</p>
                             <p className="text-3xl font-bold">{safeToFixed(totalHours)}</p>
                         </div>
                         <ClockIcon className="w-12 h-12 text-green-200" />
@@ -218,7 +225,7 @@ export default function UrenOverzicht(): JSX.Element {
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-purple-100 text-sm font-medium">Werkdagen</p>
+                            <p className="text-purple-100 text-sm font-medium">Gewerkte Dagen</p>
                             <p className="text-3xl font-bold">{totalDays}</p>
                         </div>
                         <CalendarDaysIcon className="w-12 h-12 text-purple-200" />
@@ -252,6 +259,7 @@ export default function UrenOverzicht(): JSX.Element {
                     <div className="flex items-center gap-3 mb-6">
                         <FunnelIcon className="w-6 h-6 text-elmar-primary" />
                         <h2 className="text-2xl font-bold text-gray-800">Filters & Zoeken</h2>
+                        <span className="badge badge-success">Alleen goedgekeurde uren</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -335,7 +343,7 @@ export default function UrenOverzicht(): JSX.Element {
 
                     <div className="flex justify-between items-center mt-6">
                         <div className="text-sm text-gray-600">
-                            <span className="font-semibold">{filteredEntries.length}</span> van <span className="font-semibold">{entries.length}</span> entries gevonden
+                            <span className="font-semibold">{filteredEntries.length}</span> goedgekeurde entries van <span className="font-semibold">{entries.filter(e => e.status === "goedgekeurd").length}</span> totaal
                         </div>
                         <button
                             className="btn btn-outline btn-primary rounded-xl hover:scale-105 transition-all duration-200"
@@ -354,7 +362,7 @@ export default function UrenOverzicht(): JSX.Element {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <EyeIcon className="w-6 h-6 text-elmar-primary" />
-                                <h2 className="text-2xl font-bold text-gray-800">Urenregistraties</h2>
+                                <h2 className="text-2xl font-bold text-gray-800">Goedgekeurde Urenregistraties</h2>
                             </div>
                             <button className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200">
                                 <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
@@ -374,6 +382,7 @@ export default function UrenOverzicht(): JSX.Element {
                                 <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
                                 <th className="text-gray-700 font-semibold">📁 Project</th>
                                 <th className="text-gray-700 font-semibold">📝 Notities</th>
+                                <th className="text-gray-700 font-semibold">✅ Status</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -390,7 +399,7 @@ export default function UrenOverzicht(): JSX.Element {
                                             <td>{start.format("HH:mm")}</td>
                                             <td>{end.format("HH:mm")}</td>
                                             <td>
-                                                    <span className="badge badge-primary badge-lg font-semibold">
+                                                    <span className="badge badge-success badge-lg font-semibold">
                                                         {safeToFixed(hours)} uur
                                                     </span>
                                             </td>
@@ -403,13 +412,18 @@ export default function UrenOverzicht(): JSX.Element {
                                             <td className="text-gray-600 italic">
                                                 {entry.notes || "Geen notities"}
                                             </td>
+                                            <td>
+                                                <span className="badge badge-success">
+                                                    ✅ Goedgekeurd
+                                                </span>
+                                            </td>
                                         </tr>
                                     );
                                 } catch (error) {
                                     console.warn('Error rendering entry:', entry, error);
                                     return (
                                         <tr key={index}>
-                                            <td colSpan={7} className="text-center text-error">Error loading entry</td>
+                                            <td colSpan={8} className="text-center text-error">Error loading entry</td>
                                         </tr>
                                     );
                                 }
@@ -417,11 +431,11 @@ export default function UrenOverzicht(): JSX.Element {
 
                             {pageEntries.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-12">
+                                    <td colSpan={8} className="text-center py-12">
                                         <div className="flex flex-col items-center gap-4">
-                                            <div className="text-6xl">📊</div>
-                                            <div className="text-xl font-semibold text-gray-600">Geen entries gevonden</div>
-                                            <div className="text-gray-500">Probeer je filters aan te passen</div>
+                                            <div className="text-6xl">✅</div>
+                                            <div className="text-xl font-semibold text-gray-600">Geen goedgekeurde uren gevonden</div>
+                                            <div className="text-gray-500">Probeer je filters aan te passen of wacht tot uren zijn goedgekeurd</div>
                                         </div>
                                     </td>
                                 </tr>

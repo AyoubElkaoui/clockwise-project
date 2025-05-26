@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import dayjs, { Dayjs } from "dayjs";
 import { TimeEntry } from "@/lib/types";
+import NotificationFeed from "./NotificationFeed";
 import {
     HomeIcon,
     ClockIcon,
@@ -65,7 +66,7 @@ export default function Sidebar({
             href: "/overview",
             label: "Uren Overzicht",
             icon: ChartBarIcon,
-            description: "Bekijk je geregistreerde uren"
+            description: "Bekijk je goedgekeurde uren"
         },
         {
             href: "/vacation",
@@ -137,19 +138,17 @@ export default function Sidebar({
         else return `${wholeHours}u`;
     };
 
-    // Mini calendar data - VERBETERD
+    // Mini calendar data
     const startOfMonth = usedMonth.startOf('month');
     const endOfMonth = usedMonth.endOf('month');
     const daysInMonth = endOfMonth.date();
-    const firstDayOfWeek = startOfMonth.day(); // 0 = Sunday
+    const firstDayOfWeek = startOfMonth.day();
 
     const calendarDays = [];
-    // Empty cells for days before month starts (adjust for Monday start)
     const mondayFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
     for (let i = 0; i < mondayFirstDay; i++) {
         calendarDays.push(null);
     }
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
         calendarDays.push(day);
     }
@@ -165,7 +164,7 @@ export default function Sidebar({
 
     return (
         <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen ${className}`}>
-            {/* User Profile Header - ELEGANT */}
+            {/* User Profile Header */}
             <div className="p-6 border-b border-gray-100 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white">
                 <div className="flex items-center gap-4">
                     <div className="relative">
@@ -186,7 +185,7 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Navigation Section - MODERN */}
+            {/* Navigation Section */}
             <nav className="p-4 border-b border-gray-100">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <HomeIcon className="w-3 h-3" />
@@ -230,8 +229,19 @@ export default function Sidebar({
                 </div>
             </nav>
 
-            {/* Mini Calendar - ELEGANTE VERSIE */}
-            <div className="p-4 border-b border-gray-100">
+            {/* NotificationFeed Section - FIXED */}
+            <div className="p-4 border-b border-gray-100 flex-shrink-0">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <BellIcon className="w-3 h-3" />
+                    Notificaties
+                </h3>
+                <div className="max-h-48 overflow-hidden">
+                    <NotificationFeed limit={3} />
+                </div>
+            </div>
+
+            {/* Mini Calendar */}
+            <div className="p-4 border-b border-gray-100 flex-shrink-0">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                     <CalendarDaysIcon className="w-3 h-3" />
                     {usedMonth.format('MMMM YYYY')}
@@ -284,8 +294,8 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Week Stats - PRACHTIGE VERSIE */}
-            <div className="p-4 border-b border-gray-100">
+            {/* Week Stats */}
+            <div className="p-4 border-b border-gray-100 flex-shrink-0">
                 <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-xl p-5 border border-indigo-200 shadow-sm">
                     <h4 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2">
                         <ClockIcon className="w-4 h-4 text-indigo-600" />
@@ -307,7 +317,7 @@ export default function Sidebar({
                         </div>
                     </div>
 
-                    {/* Beautiful progress bar */}
+                    {/* Progress bar */}
                     <div className="mb-4">
                         <div className="flex justify-between text-xs font-medium text-gray-600 mb-2">
                             <span>Voortgang</span>
@@ -347,7 +357,7 @@ export default function Sidebar({
             {/* Spacer to push logout to bottom */}
             <div className="flex-1"></div>
 
-            {/* Logout Button - ELEGANT */}
+            {/* Logout Button */}
             <div className="p-4">
                 <button
                     className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
