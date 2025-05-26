@@ -163,28 +163,28 @@ export default function Sidebar({
     };
 
     return (
-        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen ${className}`}>
+        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen overflow-hidden ${className}`}>
             {/* User Profile Header */}
-            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="avatar placeholder">
-                        <div className="bg-gradient-elmar text-white rounded-xl w-14 h-14 flex items-center justify-center shadow-lg">
-                            <span className="text-lg font-bold">{userInitials}</span>
+                        <div className="bg-gradient-elmar text-white rounded-lg w-12 h-12 flex items-center justify-center shadow-md">
+                            <span className="text-sm font-bold">{userInitials}</span>
                         </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-800 text-base leading-tight truncate">{userName}</p>
+                        <p className="font-bold text-gray-800 text-sm leading-tight truncate">{userName}</p>
                         <div className="flex items-center gap-1 mt-1">
                             {getRankBadge()}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Elmar Services</p>
+                        <p className="text-xs text-gray-500">Elmar Services</p>
                     </div>
                 </div>
             </div>
 
             {/* Navigation Section */}
-            <nav className="p-4 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            <nav className="p-3 flex-shrink-0">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                     Navigatie
                 </h3>
                 <div className="space-y-1">
@@ -197,20 +197,17 @@ export default function Sidebar({
                                 key={item.href}
                                 href={item.href}
                                 className={`
-                                    group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 
+                                    group flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer
                                     ${isActive
                                     ? 'bg-gradient-elmar text-white shadow-md'
                                     : 'text-gray-700 hover:bg-blue-50 hover:text-elmar-primary'
                                 }
                                 `}
                             >
-                                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-elmar-primary'}`} />
+                                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-elmar-primary'}`} />
                                 <div className="flex-1 min-w-0">
                                     <div className={`font-medium text-sm truncate ${isActive ? 'text-white' : ''}`}>
                                         {item.label}
-                                    </div>
-                                    <div className={`text-xs truncate ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
-                                        {item.description}
                                     </div>
                                 </div>
                             </Link>
@@ -219,45 +216,45 @@ export default function Sidebar({
                 </div>
             </nav>
 
-            {/* Mini Calendar - Fixed Size */}
-            <div className="p-4 border-t border-gray-100 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            {/* Mini Calendar - Compact */}
+            <div className="p-3 border-t border-gray-100 flex-shrink-0">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                     <CalendarDaysIcon className="w-4 h-4" />
-                    {usedMonth.format('MMMM YYYY')}
+                    {usedMonth.format('MMM YYYY')}
                 </h3>
 
-                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                <div className="bg-gray-50 rounded-lg p-2">
                     {/* Calendar header */}
-                    <div className="grid grid-cols-7 gap-1 mb-2">
+                    <div className="grid grid-cols-7 gap-0.5 mb-1">
                         {['Z', 'M', 'D', 'W', 'D', 'V', 'Z'].map((day, i) => (
-                            <div key={i} className="text-xs font-semibold text-gray-500 text-center">
+                            <div key={i} className="text-xs font-medium text-gray-500 text-center py-1">
                                 {day}
                             </div>
                         ))}
                     </div>
 
                     {/* Calendar days */}
-                    <div className="grid grid-cols-7 gap-1">
+                    <div className="grid grid-cols-7 gap-0.5">
                         {calendarDays.map((day, index) => {
                             if (day === null) {
-                                return <div key={index} className="h-6"></div>;
+                                return <div key={index} className="h-5"></div>;
                             }
 
                             const hours = getHoursForDay(day);
                             const isToday = usedMonth.date(day).isSame(dayjs(), 'day');
 
-                            let cellClass = "h-6 w-6 flex items-center justify-center text-xs rounded transition-colors ";
+                            let cellClass = "h-5 w-5 flex items-center justify-center text-xs rounded cursor-pointer transition-colors ";
 
                             if (isToday) {
                                 cellClass += "bg-elmar-primary text-white font-bold ";
                             } else if (hours >= 8) {
-                                cellClass += "bg-green-100 text-green-800 ";
+                                cellClass += "bg-green-200 text-green-800 ";
                             } else if (hours >= 4) {
-                                cellClass += "bg-yellow-100 text-yellow-800 ";
+                                cellClass += "bg-yellow-200 text-yellow-800 ";
                             } else if (hours > 0) {
-                                cellClass += "bg-blue-100 text-blue-800 ";
+                                cellClass += "bg-blue-200 text-blue-800 ";
                             } else {
-                                cellClass += "text-gray-600 hover:bg-gray-100 ";
+                                cellClass += "text-gray-600 hover:bg-gray-200 ";
                             }
 
                             return (
@@ -270,29 +267,29 @@ export default function Sidebar({
                 </div>
             </div>
 
-            {/* Week Stats - Fixed */}
-            <div className="p-4 border-t border-gray-100 flex-shrink-0">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
+            {/* Week Stats - Compact */}
+            <div className="p-3 border-t border-gray-100 flex-shrink-0">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                    <h4 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-2">
                         <ClockIcon className="w-4 h-4" />
                         Deze Week
                     </h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-2">
                         <div className="text-center">
-                            <div className="text-lg font-bold text-elmar-primary">{formatHours(weekHours)}</div>
+                            <div className="text-base font-bold text-elmar-primary">{formatHours(weekHours)}</div>
                             <div className="text-xs text-gray-600">Uren</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-lg font-bold text-green-600">{workDays}</div>
+                            <div className="text-base font-bold text-green-600">{workDays}</div>
                             <div className="text-xs text-gray-600">Dagen</div>
                         </div>
                     </div>
 
-                    {/* Progress bar */}
-                    <div className="mb-3">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                    {/* Compact progress bar */}
+                    <div className="mb-2">
+                        <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
-                                className={`h-2 rounded-full transition-all duration-500 ${
+                                className={`h-1.5 rounded-full transition-all duration-500 ${
                                     weekHours >= 40 ? 'bg-green-500' :
                                         weekHours >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
                                 }`}
@@ -307,13 +304,13 @@ export default function Sidebar({
                     <div className="flex justify-between items-center">
                         <span className="text-xs text-gray-600">Status:</span>
                         {weekHours >= 32 ? (
-                            <span className="badge badge-success badge-xs">
-                                <CheckCircleIcon className="w-3 h-3 mr-1" />
+                            <span className="badge badge-success badge-xs gap-1">
+                                <CheckCircleIcon className="w-3 h-3" />
                                 Goed
                             </span>
                         ) : (
-                            <span className="badge badge-warning badge-xs">
-                                <ExclamationTriangleIcon className="w-3 h-3 mr-1" />
+                            <span className="badge badge-warning badge-xs gap-1">
+                                <ExclamationTriangleIcon className="w-3 h-3" />
                                 Te laag
                             </span>
                         )}
@@ -325,9 +322,9 @@ export default function Sidebar({
             <div className="flex-1"></div>
 
             {/* Logout Button */}
-            <div className="p-4 border-t border-gray-100 flex-shrink-0">
+            <div className="p-3 border-t border-gray-100 flex-shrink-0">
                 <button
-                    className="btn btn-outline btn-error btn-sm w-full rounded-xl hover:scale-105 transition-all duration-200 gap-2"
+                    className="btn btn-outline btn-error btn-sm w-full rounded-lg hover:scale-105 transition-all duration-200 gap-2"
                     onClick={handleLogout}
                 >
                     <ArrowRightOnRectangleIcon className="w-4 h-4" />

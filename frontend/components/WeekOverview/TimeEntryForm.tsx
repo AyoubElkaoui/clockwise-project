@@ -170,13 +170,13 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             fetchProjectGroups();
         } else {
             setProjectGroups([]);
+            // Only reset if not editing
+            if (!existingEntry) {
+                setSelectedProjectGroup(null);
+                setSelectedProject(null);
+            }
         }
-
-        if (!existingEntry) {
-            setSelectedProjectGroup(null);
-            setSelectedProject(null);
-        }
-    }, [selectedCompany, assignedProjects, existingEntry]);
+    }, [selectedCompany, assignedProjects]);
 
     useEffect(() => {
         if (selectedProjectGroup) {
@@ -399,7 +399,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             <select
                                 className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                                 value={selectedProject ?? ""}
-                                onChange={(e) => setSelectedProject(e.target.value ? Number(e.target.value) : null)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    console.log("Selected project:", val); // Debug log
+                                    setSelectedProject(val ? Number(val) : null);
+                                }}
+                                disabled={projects.length === 0}
                             >
                                 <option value="">-- Kies een project --</option>
                                 {projects.map((p) => (
@@ -408,6 +413,11 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                                     </option>
                                 ))}
                             </select>
+                            {projects.length === 0 && selectedProjectGroup && (
+                                <div className="text-sm text-warning mt-1">
+                                    Geen projecten gevonden voor deze groep
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
