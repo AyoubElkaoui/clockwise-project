@@ -89,17 +89,15 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
         // Round to nearest quarter hour
         const roundedHours = Math.round(hours * 4) / 4;
-        const wholeHours = Math.floor(roundedHours);
-        const fraction = roundedHours - wholeHours;
 
-        let display = wholeHours.toString();
-
-        if (fraction === 0.25) display += "¼";
-        else if (fraction === 0.5) display += "½";
-        else if (fraction === 0.75) display += "¾";
-        else if (fraction > 0) display = roundedHours.toFixed(2);
-
-        return display + "u";
+        // Use decimal notation instead of fractions
+        if (roundedHours % 1 === 0) {
+            // Whole number
+            return `${roundedHours}u`;
+        } else {
+            // Decimal with 2 decimal places, then remove trailing zeros
+            return `${roundedHours.toFixed(2).replace(/\.?0+$/, '')}u`;
+        }
     };
 
     // NEW: Fetch existing hours for 24-hour validation
@@ -642,25 +640,48 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     </div>
                 </div>
 
-                {/* Hours Display */}
-                <div className="mt-4 p-4 bg-white/80 rounded-xl border border-green-200">
+                {/* Hours Display with Save Button */}
+                <div className="mt-4 p-4 bg-gradient-elmar text-white rounded-xl border border-green-200">
                     <div className="flex items-center justify-between">
-                        <span className="font-semibold text-gray-700">Totaal werkuren:</span>
-                        <span className="text-2xl font-bold text-elmar-primary">
-                            {formatHours(calculatedHours)}
-                        </span>
+                        <div>
+                            <span className="font-semibold text-blue-100">Totaal werkuren:</span>
+                            <div className="text-3xl font-bold mt-1">
+                                {formatHours(calculatedHours)}
+                            </div>
+                        </div>
+
+                        {/* Quick Save Button */}
+                        {isFormValid && calculatedHours >= 0.25 && (
+                            <button
+                                className="btn btn-success rounded-xl hover:scale-105 transition-all duration-200"
+                                onClick={() => handleSave('submit')}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <span className="loading loading-spinner loading-sm"></span>
+                                ) : (
+                                    <>
+                                        <CheckCircleIcon className="w-5 h-5 mr-1" />
+                                        Opslaan
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
-                    {calculatedHours < 0.25 && startTime && endTime && (
-                        <p className="text-xs text-orange-600 mt-1">⚠️ Minder dan een kwartier</p>
-                    )}
-                    {calculatedHours > 16 && (
-                        <p className="text-xs text-orange-600 mt-1">⚠️ Meer dan 16 uur - controleer of dit correct is</p>
-                    )}
-                    {endTime <= startTime && (
-                        <p className="text-xs text-blue-600 mt-1">🌙 Nachtdienst - eindigt volgende dag</p>
-                    )}
-                    <div className="text-xs text-gray-500 mt-1">
-                        Tijd wordt automatisch afgerond op kwartiertjes
+
+                    <div className="mt-2 space-y-1 text-blue-100 text-sm">
+                        {calculatedHours < 0.25 && startTime && endTime && (
+                            <p>⚠️ Minder dan een kwartier</p>
+                        )}
+                        {calculatedHours > 16 && (
+                            <p>⚠️ Meer dan 16 uur - controleer of dit correct is</p>
+                        )}
+                        {endTime <= startTime && calculatedHours > 0 && (
+                            <p>🌙 Nachtdienst - eindigt volgende dag</p>
+                        )}
+                        {!exceeds24Hours && calculatedHours > 0 && (
+                            <p>Tijd wordt afgerond op kwartiertjes (0.25u)</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -744,8 +765,8 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     Uren Registratie Tips
                 </h4>
                 <div className="text-sm text-gray-700 space-y-1">
-                    <p>• Tijden worden automatisch afgerond op kwartiertjes (0:15, 0:30, 0:45, 1:00)</p>
-                    <p>• Minimaal een kwartier (0¼u) kan geregistreerd worden</p>
+                    <p>• Tijden worden automatisch afgerond op kwartiertjes (0.25, 0.5, 0.75, 1.0)</p>
+                    <p>• Minimaal een kwartier (0.25u) kan geregistreerd worden</p>
                     <p>• Voor nachtdiensten: eindtijd mag voor starttijd staan (dan is het volgende dag)</p>
                     <p>• Vergeet niet je pauzetijd in te vullen voor nauwkeurige berekening</p>
                     <p>• Bij overwerk (12+ uur): zorg voor voldoende pauzes</p>
@@ -772,7 +793,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             {calculatedHours > 0 && calculatedHours < 0.25 && (
                 <div className="alert alert-warning rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
-                    <span>Minimum registratie is een kwartier (0¼u)</span>
+                    <span>Minimum registratie is een kwartier (0.25u)</span>
                 </div>
             )}
 
@@ -806,6 +827,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 <div className="text-sm text-gray-700 space-y-1">
                     <p>• <strong>Opslaan als Concept:</strong> Uren worden opgeslagen maar kunnen nog bewerkt worden. Niet zichtbaar voor managers.</p>
                     <p>• <strong>Uren Indienen:</strong> Uren worden naar de manager gestuurd voor goedkeuring. Kunnen niet meer bewerkt worden.</p>
+                    <p>• <strong>Snelle opslaan:</strong> Gebruik de opslaan knop naast de uren voor directe indiening.</p>
                 </div>
             </div>
 

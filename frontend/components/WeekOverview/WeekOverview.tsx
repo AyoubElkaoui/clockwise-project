@@ -30,7 +30,8 @@ import {
     CurrencyEuroIcon,
     DocumentTextIcon,
     LockClosedIcon,
-    XCircleIcon
+    XCircleIcon,
+    BookmarkIcon
 } from "@heroicons/react/24/outline";
 
 export type TimeEntry = GlobalTimeEntry;
@@ -46,14 +47,14 @@ interface DayEntryProps {
     onUpdate: () => void;
     weekStatus: string;
     onShowToast: (message: string, type: "success" | "error") => void;
+    onSelectEntry: (entryId: number, selected: boolean) => void;
+    selectedEntries: Set<number>;
 }
 
-function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast }: DayEntryProps) {
+function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEntry, selectedEntries }: DayEntryProps) {
     const [showModal, setShowModal] = useState<boolean>(false);
     const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
-    const [selectedEntries, setSelectedEntries] = useState<Set<number>>(new Set());
-    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const isToday = date.isSame(dayjs(), "day");
     const isWeekend = date.day() === 0 || date.day() === 6;
@@ -118,54 +119,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast }: DayEntry
     };
 
     const handleSelectEntry = (entryId: number): void => {
-        const newSelected = new Set(selectedEntries);
-        if (newSelected.has(entryId)) {
-            newSelected.delete(entryId);
-        } else {
-            newSelected.add(entryId);
-        }
-        setSelectedEntries(newSelected);
-    };
-
-    const handleSelectAllEntries = (): void => {
-        const conceptEntries = entries.filter(entry => entry.status === "concept" || !entry.status);
-        if (selectedEntries.size === conceptEntries.length) {
-            setSelectedEntries(new Set());
-        } else {
-            setSelectedEntries(new Set(conceptEntries.map(entry => entry.id).filter(id => id !== undefined) as number[]));
-        }
-    };
-
-    const handleSubmitSelected = async (): Promise<void> => {
-        if (selectedEntries.size === 0) {
-            onShowToast("Selecteer eerst uren om in te leveren", "error");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            const entriesToSubmit = entries.filter(entry =>
-                entry.id && selectedEntries.has(entry.id)
-            );
-
-            for (const entry of entriesToSubmit) {
-                if (entry.id) {
-                    await updateTimeEntry(entry.id, {
-                        ...entry,
-                        status: "ingeleverd"
-                    });
-                }
-            }
-
-            setSelectedEntries(new Set());
-            onUpdate();
-            onShowToast(`${entriesToSubmit.length} urenregistratie(s) ingeleverd!`, "success");
-        } catch (error) {
-            console.error("Error submitting entries:", error);
-            onShowToast("Fout bij inleveren van uren", "error");
-        } finally {
-            setIsSubmitting(false);
-        }
+        onSelectEntry(entryId, !selectedEntries.has(entryId));
     };
 
     const getDayDisplayName = (): string => {
@@ -247,37 +201,6 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast }: DayEntry
                             {((totalHours / 8) * 100).toFixed(0)}% van 8u
                         </div>
                     </div>
-
-                    {/* Selection Controls */}
-                    {hasSelectableEntries && canEdit && (
-                        <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                                    <input
-                                        type="checkbox"
-                                        className="checkbox checkbox-primary checkbox-sm"
-                                        checked={selectedEntries.size === conceptEntries.length && conceptEntries.length > 0}
-                                        onChange={handleSelectAllEntries}
-                                    />
-                                    Selecteer alle ({conceptEntries.length})
-                                </label>
-                                {selectedEntries.size > 0 && (
-                                    <button
-                                        onClick={handleSubmitSelected}
-                                        disabled={isSubmitting}
-                                        className="btn btn-primary btn-xs rounded-lg gap-1"
-                                    >
-                                        {isSubmitting ? (
-                                            <span className="loading loading-spinner loading-xs"></span>
-                                        ) : (
-                                            <PaperAirplaneIcon className="w-3 h-3" />
-                                        )}
-                                        Inleveren ({selectedEntries.size})
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Entries List */}
                     {entries.length === 0 ? (
@@ -464,6 +387,7 @@ export default function WeekOverview() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDay, setSelectedDay] = useState<Dayjs | null>(null);
     const [weekStatus, setWeekStatus] = useState<string>("concept");
+    const [selectedEntries, setSelectedEntries] = useState<Set<number>>(new Set());
 
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
@@ -561,6 +485,105 @@ export default function WeekOverview() {
         }
     }
 
+    // Handle entry selection
+    const handleSelectEntry = (entryId: number, selected: boolean) => {
+        const newSelected = new Set(selectedEntries);
+        if (selected) {
+            newSelected.add(entryId);
+        } else {
+            newSelected.delete(entryId);
+        }
+        setSelectedEntries(newSelected);
+    };
+
+    // Handle select all entries for the week
+    const handleSelectAllWeek = () => {
+        const weekStart = currentWeek.startOf("day");
+        const weekEnd = currentWeek.add(6, "day").endOf("day");
+
+        const conceptEntries = localEntries.filter(entry => {
+            if (entry.status !== "concept" && entry.status) return false;
+            try {
+                const entryDate = dayjs(entry.startTime);
+                return entryDate.isBetween(weekStart, weekEnd, "day", "[]");
+            } catch {
+                return false;
+            }
+        });
+
+        if (selectedEntries.size === conceptEntries.length && conceptEntries.length > 0) {
+            setSelectedEntries(new Set());
+        } else {
+            setSelectedEntries(new Set(conceptEntries.map(entry => entry.id).filter(id => id !== undefined) as number[]));
+        }
+    };
+
+    // Save selected entries as drafts
+    const handleSaveSelected = async () => {
+        if (selectedEntries.size === 0) {
+            showToast("Selecteer eerst uren om op te slaan", "error");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const entriesToSave = localEntries.filter(entry =>
+                entry.id && selectedEntries.has(entry.id)
+            );
+
+            for (const entry of entriesToSave) {
+                if (entry.id) {
+                    await updateTimeEntry(entry.id, {
+                        ...entry,
+                        status: "concept"
+                    });
+                }
+            }
+
+            setSelectedEntries(new Set());
+            await fetchFromDB();
+            showToast(`${entriesToSave.length} urenregistratie(s) opgeslagen als concept!`, "success");
+        } catch (error) {
+            console.error("Error saving entries:", error);
+            showToast("Fout bij opslaan van uren", "error");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Submit selected entries
+    const handleSubmitSelected = async () => {
+        if (selectedEntries.size === 0) {
+            showToast("Selecteer eerst uren om in te leveren", "error");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const entriesToSubmit = localEntries.filter(entry =>
+                entry.id && selectedEntries.has(entry.id)
+            );
+
+            for (const entry of entriesToSubmit) {
+                if (entry.id) {
+                    await updateTimeEntry(entry.id, {
+                        ...entry,
+                        status: "ingeleverd"
+                    });
+                }
+            }
+
+            setSelectedEntries(new Set());
+            await fetchFromDB();
+            showToast(`${entriesToSubmit.length} urenregistratie(s) ingeleverd!`, "success");
+        } catch (error) {
+            console.error("Error submitting entries:", error);
+            showToast("Fout bij inleveren van uren", "error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     async function handleSave() {
         if (!Array.isArray(localEntries)) return;
 
@@ -649,6 +672,21 @@ export default function WeekOverview() {
     const hasUnsavedChanges = localEntries.some(entry =>
         entry.localStatus === "draft" || entry.localStatus === "changed" || entry.localStatus === "deleted"
     );
+
+    // Get selectable entries for this week
+    const weekStart = currentWeek.startOf("day");
+    const weekEnd = currentWeek.add(6, "day").endOf("day");
+    const selectableEntries = localEntries.filter(entry => {
+        if (entry.status !== "concept" && entry.status) return false;
+        try {
+            const entryDate = dayjs(entry.startTime);
+            return entryDate.isBetween(weekStart, weekEnd, "day", "[]");
+        } catch {
+            return false;
+        }
+    });
+
+    const canEdit = weekStatus === "concept";
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -739,6 +777,63 @@ export default function WeekOverview() {
                 </div>
             </div>
 
+            {/* Week Selection Controls */}
+            {canEdit && selectableEntries.length > 0 && (
+                <div className="bg-white rounded-xl p-6 shadow-elmar-card border border-blue-200">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-bold text-gray-800">Week Acties</h3>
+                            <span className="badge badge-primary">{selectableEntries.length} concept entries</span>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input
+                                type="checkbox"
+                                className="checkbox checkbox-primary"
+                                checked={selectedEntries.size === selectableEntries.length && selectableEntries.length > 0}
+                                onChange={handleSelectAllWeek}
+                            />
+                            Selecteer alle week entries ({selectableEntries.length})
+                        </label>
+                    </div>
+
+                    {selectedEntries.size > 0 && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleSaveSelected}
+                                disabled={isSaving}
+                                className="btn btn-outline btn-primary rounded-xl gap-2"
+                            >
+                                {isSaving ? (
+                                    <span className="loading loading-spinner loading-sm"></span>
+                                ) : (
+                                    <BookmarkIcon className="w-5 h-5" />
+                                )}
+                                Opslaan als Concept ({selectedEntries.size})
+                            </button>
+
+                            <button
+                                onClick={handleSubmitSelected}
+                                disabled={isSubmitting}
+                                className="btn btn-primary rounded-xl gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <span className="loading loading-spinner loading-sm"></span>
+                                ) : (
+                                    <PaperAirplaneIcon className="w-5 h-5" />
+                                )}
+                                Uren Inleveren ({selectedEntries.size})
+                            </button>
+                        </div>
+                    )}
+
+                    {selectedEntries.size === 0 && (
+                        <div className="text-sm text-gray-600">
+                            💡 Selecteer uren om ze in bulk op te slaan of in te leveren
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Compact Week Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
                 {days.map((day, index) => {
@@ -752,6 +847,8 @@ export default function WeekOverview() {
                             onUpdate={fetchFromDB}
                             weekStatus={weekStatus}
                             onShowToast={showToast}
+                            onSelectEntry={handleSelectEntry}
+                            selectedEntries={selectedEntries}
                         />
                     );
                 })}
