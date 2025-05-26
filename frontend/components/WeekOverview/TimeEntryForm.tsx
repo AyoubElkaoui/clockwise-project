@@ -202,12 +202,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             fetchProjects();
         } else {
             setProjects([]);
+            // DON'T reset selectedProject if we're editing an existing entry
+            if (!existingEntry) {
+                setSelectedProject(null);
+            }
         }
-
-        if (!existingEntry) {
-            setSelectedProject(null);
-        }
-    }, [selectedProjectGroup, assignedProjects, existingEntry]);
+    }, [selectedProjectGroup, assignedProjects]);
 
     useEffect(() => {
         const dayStr = day.format("YYYY-MM-DD");
@@ -375,7 +375,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                                 onChange={(e) => {
                                     const val = e.target.value;
                                     setSelectedProjectGroup(val ? Number(val) : null);
-                                    setSelectedProject(null);
+                                    // Only reset project if not editing existing entry
+                                    if (!existingEntry) {
+                                        setSelectedProject(null);
+                                    }
                                 }}
                             >
                                 <option value="">-- Kies een projectgroep --</option>

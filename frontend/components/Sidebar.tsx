@@ -3,8 +3,6 @@ import React, {useState, useEffect, JSX} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import dayjs, { Dayjs } from "dayjs";
-import MonthCalendar from "@/components/WeekOverview/MonthCalendar";
-import NotificationFeed from "@/components/NotificationFeed";
 import { TimeEntry } from "@/lib/types";
 import {
     HomeIcon,
@@ -13,7 +11,9 @@ import {
     UserCircleIcon,
     ChartBarIcon,
     BellIcon,
-    ArrowRightOnRectangleIcon
+    ArrowRightOnRectangleIcon,
+    CheckCircleIcon,
+    ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -99,10 +99,73 @@ export default function Sidebar({
         window.location.href = "/login";
     };
 
+    // Calculate current week hours
+    const currentWeek = dayjs().startOf('isoWeek');
+    const currentWeekEntries = timeEntries.filter(entry => {
+        try {
+            const entryDate = dayjs(entry.startTime);
+            return entryDate.isBetween(currentWeek, currentWeek.add(6, 'day'), 'day', '[]');
+        } catch {
+            return false;
+        }
+    });
+
+    const calculateHours = (entry: TimeEntry): number => {
+        if (!entry.startTime || !entry.endTime) return 0;
+        try {
+            const start = dayjs(entry.startTime);
+            const end = dayjs(entry.endTime);
+            const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
+            const hours = diffMin > 0 ? diffMin / 60 : 0;
+            return Math.round(hours * 4) / 4;
+        } catch {
+            return 0;
+        }
+    };
+
+    const weekHours = currentWeekEntries.reduce((total, entry) => total + calculateHours(entry), 0);
+    const workDays = [...new Set(currentWeekEntries.map(entry => dayjs(entry.startTime).format('YYYY-MM-DD')))].length;
+
+    const formatHours = (hours: number): string => {
+        if (hours === 0) return "0u";
+        const wholeHours = Math.floor(hours);
+        const fraction = hours - wholeHours;
+
+        if (fraction === 0.25) return `${wholeHours}¼u`;
+        else if (fraction === 0.5) return `${wholeHours}½u`;
+        else if (fraction === 0.75) return `${wholeHours}¾u`;
+        else return `${wholeHours}u`;
+    };
+
+    // Mini calendar data
+    const startOfMonth = usedMonth.startOf('month');
+    const endOfMonth = usedMonth.endOf('month');
+    const daysInMonth = endOfMonth.date();
+    const firstDayOfWeek = startOfMonth.day(); // 0 = Sunday
+
+    const calendarDays = [];
+    // Empty cells for days before month starts
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        calendarDays.push(null);
+    }
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+        calendarDays.push(day);
+    }
+
+    const getHoursForDay = (day: number): number => {
+        const date = usedMonth.date(day);
+        const dayStr = date.format('YYYY-MM-DD');
+        const dayEntries = timeEntries.filter(entry =>
+            entry.startTime && entry.startTime.startsWith(dayStr)
+        );
+        return dayEntries.reduce((total, entry) => total + calculateHours(entry), 0);
+    };
+
     return (
-        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg ${className}`}>
+        <aside className={`bg-white border-r border-gray-200 flex flex-col shadow-lg h-screen ${className}`}>
             {/* User Profile Header */}
-            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="avatar placeholder">
                         <div className="bg-gradient-elmar text-white rounded-xl w-14 h-14 flex items-center justify-center shadow-lg">
@@ -156,59 +219,110 @@ export default function Sidebar({
                 </div>
             </nav>
 
-            {/* Calendar Section - Scrollable */}
-            <div className="flex-1 overflow-hidden flex flex-col">
-                <div className="p-4 border-t border-gray-100 flex-shrink-0">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                        <ClockIcon className="w-4 h-4" />
-                        Kalender Overzicht
-                    </h3>
-                </div>
+            {/* Mini Calendar - Fixed Size */}
+            <div className="p-4 border-t border-gray-100 flex-shrink-0">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <CalendarDaysIcon className="w-4 h-4" />
+                    {usedMonth.format('MMMM YYYY')}
+                </h3>
 
-                <div className="flex-1 overflow-y-auto px-4">
-                    <div className="mb-4">
-                        <MonthCalendar
-                            currentMonth={usedMonth}
-                            timeEntries={timeEntries}
-                            title=""
-                        />
+                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                    {/* Calendar header */}
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['Z', 'M', 'D', 'W', 'D', 'V', 'Z'].map((day, i) => (
+                            <div key={i} className="text-xs font-semibold text-gray-500 text-center">
+                                {day}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Calendar days */}
+                    <div className="grid grid-cols-7 gap-1">
+                        {calendarDays.map((day, index) => {
+                            if (day === null) {
+                                return <div key={index} className="h-6"></div>;
+                            }
+
+                            const hours = getHoursForDay(day);
+                            const isToday = usedMonth.date(day).isSame(dayjs(), 'day');
+
+                            let cellClass = "h-6 w-6 flex items-center justify-center text-xs rounded transition-colors ";
+
+                            if (isToday) {
+                                cellClass += "bg-elmar-primary text-white font-bold ";
+                            } else if (hours >= 8) {
+                                cellClass += "bg-green-100 text-green-800 ";
+                            } else if (hours >= 4) {
+                                cellClass += "bg-yellow-100 text-yellow-800 ";
+                            } else if (hours > 0) {
+                                cellClass += "bg-blue-100 text-blue-800 ";
+                            } else {
+                                cellClass += "text-gray-600 hover:bg-gray-100 ";
+                            }
+
+                            return (
+                                <div key={index} className={cellClass} title={`${day} - ${formatHours(hours)}`}>
+                                    {day}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
 
-            {/* Notifications Section */}
-            <div className="p-4 border-t border-gray-100 flex-shrink-0">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <BellIcon className="w-4 h-4" />
-                    Recente Activiteit
-                </h3>
-                <div className="max-h-40 overflow-y-auto">
-                    <NotificationFeed limit={3} />
-                </div>
-            </div>
-
-            {/* Quick Stats Section */}
+            {/* Week Stats - Fixed */}
             <div className="p-4 border-t border-gray-100 flex-shrink-0">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Deze Week</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <h4 className="font-semibold text-gray-800 text-sm mb-3 flex items-center gap-2">
+                        <ClockIcon className="w-4 h-4" />
+                        Deze Week
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                         <div className="text-center">
-                            <div className="text-lg font-bold text-elmar-primary">32½u</div>
+                            <div className="text-lg font-bold text-elmar-primary">{formatHours(weekHours)}</div>
                             <div className="text-xs text-gray-600">Uren</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-lg font-bold text-green-600">4</div>
+                            <div className="text-lg font-bold text-green-600">{workDays}</div>
                             <div className="text-xs text-gray-600">Dagen</div>
                         </div>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-blue-200">
-                        <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-600">Status:</span>
-                            <span className="badge badge-success badge-xs">Ingeleverd</span>
+
+                    {/* Progress bar */}
+                    <div className="mb-3">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                                className={`h-2 rounded-full transition-all duration-500 ${
+                                    weekHours >= 40 ? 'bg-green-500' :
+                                        weekHours >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${Math.min((weekHours / 40) * 100, 100)}%` }}
+                            ></div>
                         </div>
+                        <div className="text-xs text-gray-500 text-center mt-1">
+                            {((weekHours / 40) * 100).toFixed(0)}% van 40u
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-600">Status:</span>
+                        {weekHours >= 32 ? (
+                            <span className="badge badge-success badge-xs">
+                                <CheckCircleIcon className="w-3 h-3 mr-1" />
+                                Goed
+                            </span>
+                        ) : (
+                            <span className="badge badge-warning badge-xs">
+                                <ExclamationTriangleIcon className="w-3 h-3 mr-1" />
+                                Te laag
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {/* Spacer */}
+            <div className="flex-1"></div>
 
             {/* Logout Button */}
             <div className="p-4 border-t border-gray-100 flex-shrink-0">
