@@ -15,7 +15,7 @@ export interface VacationRequest {
     id: number;
     startDate: string;
     endDate: string;
-    days: number;
+    hours: number; // Changed from days to hours
     reason: string;
     status: 'pending' | 'approved' | 'rejected';
     requestDate: string;
@@ -26,10 +26,10 @@ export interface VacationRequest {
 }
 
 export interface VacationBalance {
-    totalDays: number;
-    usedDays: number;
-    pendingDays: number;
-    remainingDays: number;
+    totalHours: number; // Changed from days to hours
+    usedHours: number;
+    pendingHours: number;
+    remainingHours: number;
 }
 
 // Mock API Functions - Vervangen door echte API als backend klaar is
@@ -57,7 +57,7 @@ const getVacationRequests = async (): Promise<VacationRequest[]> => {
             id: 1,
             startDate: '2025-06-15',
             endDate: '2025-06-19',
-            days: 5,
+            hours: 40, // 5 days * 8 hours
             reason: 'Zomervakantie',
             status: 'approved',
             requestDate: '2025-05-01',
@@ -69,7 +69,7 @@ const getVacationRequests = async (): Promise<VacationRequest[]> => {
             id: 2,
             startDate: '2025-07-15',
             endDate: '2025-07-29',
-            days: 11,
+            hours: 88, // 11 working days * 8 hours
             reason: 'Familiebezoek',
             status: 'pending',
             requestDate: '2025-05-20',
@@ -103,12 +103,12 @@ const createVacationRequest = async (request: {
     }
 
     // Fallback: simuleer succesvol aanmaken
-    const days = calculateWorkingDays(request.startDate, request.endDate);
+    const hours = calculateWorkingHours(request.startDate, request.endDate);
     const newRequest: VacationRequest = {
         id: Date.now(), // Tijdelijke ID
         startDate: request.startDate,
         endDate: request.endDate,
-        days,
+        hours,
         reason: request.reason,
         status: 'pending',
         requestDate: dayjs().format('YYYY-MM-DD'),
@@ -138,15 +138,15 @@ const getVacationBalance = async (): Promise<VacationBalance> => {
 
     // Fallback naar mock data
     return {
-        totalDays: 25,
-        usedDays: 5,
-        pendingDays: 11,
-        remainingDays: 9
+        totalHours: 200, // 25 days * 8 hours
+        usedHours: 40,
+        pendingHours: 88,
+        remainingHours: 72
     };
 };
 
-// Helper function
-const calculateWorkingDays = (start: string, end: string): number => {
+// Helper function - Calculate working hours (8 hours per working day)
+const calculateWorkingHours = (start: string, end: string): number => {
     if (!start || !end) return 0;
 
     const startDay = dayjs(start);
@@ -165,16 +165,25 @@ const calculateWorkingDays = (start: string, end: string): number => {
         currentDay = currentDay.add(1, 'day');
     }
 
-    return workingDays;
+    return workingDays * 8; // 8 hours per working day
+};
+
+// Helper function to convert hours to days for display
+const formatHoursToDays = (hours: number): string => {
+    const days = hours / 8;
+    if (days === Math.floor(days)) {
+        return `${days} dag${days !== 1 ? 'en' : ''}`;
+    }
+    return `${hours}u (${days.toFixed(1)} dagen)`;
 };
 
 export default function VacationOverview(): React.JSX.Element {
     const [requests, setRequests] = useState<VacationRequest[]>([]);
     const [balance, setBalance] = useState<VacationBalance>({
-        totalDays: 25,
-        usedDays: 0,
-        pendingDays: 0,
-        remainingDays: 25
+        totalHours: 200,
+        usedHours: 0,
+        pendingHours: 0,
+        remainingHours: 200
     });
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>("");
@@ -218,14 +227,14 @@ export default function VacationOverview(): React.JSX.Element {
             return;
         }
 
-        const days = calculateWorkingDays(startDate, endDate);
-        if (days <= 0) {
+        const hours = calculateWorkingHours(startDate, endDate);
+        if (hours <= 0) {
             setError("Selecteer geldige datums");
             return;
         }
 
-        if (days > balance.remainingDays) {
-            setError(`Onvoldoende vakantiedagen (${balance.remainingDays} beschikbaar)`);
+        if (hours > balance.remainingHours) {
+            setError(`Onvoldoende vakantie-uren (${balance.remainingHours}u beschikbaar)`);
             return;
         }
 
@@ -243,8 +252,8 @@ export default function VacationOverview(): React.JSX.Element {
                 setRequests(prev => [newRequest, ...prev]);
                 setBalance(prev => ({
                     ...prev,
-                    pendingDays: prev.pendingDays + days,
-                    remainingDays: prev.remainingDays - days
+                    pendingHours: prev.pendingHours + hours,
+                    remainingHours: prev.remainingHours - hours
                 }));
 
                 // Reset form
@@ -306,7 +315,7 @@ export default function VacationOverview(): React.JSX.Element {
         );
     }
 
-    const currentDays = calculateWorkingDays(startDate, endDate);
+    const currentHours = calculateWorkingHours(startDate, endDate);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -329,8 +338,9 @@ export default function VacationOverview(): React.JSX.Element {
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-100 text-sm font-medium">Totaal Vakantiedagen</p>
-                            <p className="text-3xl font-bold">{balance.totalDays}</p>
+                            <p className="text-blue-100 text-sm font-medium">Totaal Vakantie-uren</p>
+                            <p className="text-3xl font-bold">{balance.totalHours}u</p>
+                            <p className="text-blue-200 text-xs">{balance.totalHours / 8} dagen</p>
                         </div>
                         <CalendarDaysIcon className="w-12 h-12 text-blue-200" />
                     </div>
@@ -339,8 +349,9 @@ export default function VacationOverview(): React.JSX.Element {
                 <div className="bg-gradient-success text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm font-medium">Opgenomen Dagen</p>
-                            <p className="text-3xl font-bold">{balance.usedDays}</p>
+                            <p className="text-green-100 text-sm font-medium">Opgenomen Uren</p>
+                            <p className="text-3xl font-bold">{balance.usedHours}u</p>
+                            <p className="text-green-200 text-xs">{balance.usedHours / 8} dagen</p>
                         </div>
                         <CheckCircleIcon className="w-12 h-12 text-green-200" />
                     </div>
@@ -350,7 +361,8 @@ export default function VacationOverview(): React.JSX.Element {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">In Behandeling</p>
-                            <p className="text-3xl font-bold">{balance.pendingDays}</p>
+                            <p className="text-3xl font-bold">{balance.pendingHours}u</p>
+                            <p className="text-yellow-200 text-xs">{balance.pendingHours / 8} dagen</p>
                         </div>
                         <ClockIcon className="w-12 h-12 text-yellow-200" />
                     </div>
@@ -360,7 +372,8 @@ export default function VacationOverview(): React.JSX.Element {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-purple-100 text-sm font-medium">Beschikbaar</p>
-                            <p className="text-3xl font-bold">{balance.remainingDays}</p>
+                            <p className="text-3xl font-bold">{balance.remainingHours}u</p>
+                            <p className="text-purple-200 text-xs">{balance.remainingHours / 8} dagen</p>
                         </div>
                         <CalendarDaysIcon className="w-12 h-12 text-purple-200" />
                     </div>
@@ -419,10 +432,10 @@ export default function VacationOverview(): React.JSX.Element {
                                 <div className="alert alert-info rounded-xl">
                                     <CalendarDaysIcon className="w-6 h-6" />
                                     <span>
-                                        <strong>{currentDays} werkdagen</strong> geselecteerd
-                                        {currentDays > balance.remainingDays && (
+                                        <strong>{currentHours} uren</strong> ({currentHours / 8} werkdagen) geselecteerd
+                                        {currentHours > balance.remainingHours && (
                                             <span className="text-error ml-2">
-                                                (⚠️ Onvoldoende dagen beschikbaar: {balance.remainingDays})
+                                                (⚠️ Onvoldoende uren beschikbaar: {balance.remainingHours}u)
                                             </span>
                                         )}
                                     </span>
@@ -459,7 +472,7 @@ export default function VacationOverview(): React.JSX.Element {
                                 <button
                                     type="submit"
                                     className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200"
-                                    disabled={submitting || currentDays > balance.remainingDays}
+                                    disabled={submitting || currentHours > balance.remainingHours}
                                 >
                                     {submitting ? (
                                         <>
@@ -491,7 +504,7 @@ export default function VacationOverview(): React.JSX.Element {
                             <thead className="bg-gray-50">
                             <tr>
                                 <th className="text-gray-700 font-semibold">📅 Periode</th>
-                                <th className="text-gray-700 font-semibold">📊 Dagen</th>
+                                <th className="text-gray-700 font-semibold">⏰ Uren</th>
                                 <th className="text-gray-700 font-semibold">📝 Reden</th>
                                 <th className="text-gray-700 font-semibold">📅 Aangevraagd</th>
                                 <th className="text-gray-700 font-semibold">✅ Status</th>
@@ -506,7 +519,7 @@ export default function VacationOverview(): React.JSX.Element {
                                         </td>
                                         <td>
                                                 <span className="badge badge-primary badge-lg font-semibold">
-                                                    {request.days} dagen
+                                                    {request.hours}u ({request.hours / 8} dagen)
                                                 </span>
                                         </td>
                                         <td className="text-gray-600">{request.reason}</td>
@@ -558,22 +571,22 @@ export default function VacationOverview(): React.JSX.Element {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center p-3 bg-white/70 rounded-lg">
                                 <span className="font-medium text-gray-700">Totaal toegekend:</span>
-                                <span className="font-bold text-blue-600">{balance.totalDays} dagen</span>
+                                <span className="font-bold text-blue-600">{balance.totalHours}u ({balance.totalHours / 8} dagen)</span>
                             </div>
 
                             <div className="flex justify-between items-center p-3 bg-white/70 rounded-lg">
                                 <span className="font-medium text-gray-700">Al opgenomen:</span>
-                                <span className="font-bold text-green-600">{balance.usedDays} dagen</span>
+                                <span className="font-bold text-green-600">{balance.usedHours}u ({balance.usedHours / 8} dagen)</span>
                             </div>
 
                             <div className="flex justify-between items-center p-3 bg-white/70 rounded-lg">
                                 <span className="font-medium text-gray-700">In behandeling:</span>
-                                <span className="font-bold text-yellow-600">{balance.pendingDays} dagen</span>
+                                <span className="font-bold text-yellow-600">{balance.pendingHours}u ({balance.pendingHours / 8} dagen)</span>
                             </div>
 
                             <div className="flex justify-between items-center p-3 bg-white/70 rounded-lg border-2 border-purple-200">
                                 <span className="font-bold text-gray-700">Nog beschikbaar:</span>
-                                <span className="font-bold text-purple-600 text-lg">{balance.remainingDays} dagen</span>
+                                <span className="font-bold text-purple-600 text-lg">{balance.remainingHours}u ({balance.remainingHours / 8} dagen)</span>
                             </div>
                         </div>
 
@@ -582,20 +595,20 @@ export default function VacationOverview(): React.JSX.Element {
                             <div className="flex justify-between text-sm mb-2">
                                 <span className="font-semibold text-gray-700">Gebruikt van totaal</span>
                                 <span className="font-semibold text-gray-700">
-                                    {(((balance.usedDays + balance.pendingDays) / balance.totalDays) * 100).toFixed(1)}%
+                                    {(((balance.usedHours + balance.pendingHours) / balance.totalHours) * 100).toFixed(1)}%
                                 </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-4">
                                 <div className="flex h-4 rounded-full overflow-hidden">
                                     <div
                                         className="bg-green-500"
-                                        style={{ width: `${(balance.usedDays / balance.totalDays) * 100}%` }}
-                                        title={`Opgenomen: ${balance.usedDays} dagen`}
+                                        style={{ width: `${(balance.usedHours / balance.totalHours) * 100}%` }}
+                                        title={`Opgenomen: ${balance.usedHours}u`}
                                     ></div>
                                     <div
                                         className="bg-yellow-500"
-                                        style={{ width: `${(balance.pendingDays / balance.totalDays) * 100}%` }}
-                                        title={`In behandeling: ${balance.pendingDays} dagen`}
+                                        style={{ width: `${(balance.pendingHours / balance.totalHours) * 100}%` }}
+                                        title={`In behandeling: ${balance.pendingHours}u`}
                                     ></div>
                                 </div>
                             </div>
@@ -619,12 +632,17 @@ export default function VacationOverview(): React.JSX.Element {
                         <div className="space-y-3 text-sm text-gray-700">
                             <div className="flex items-start gap-2">
                                 <span className="text-green-600 mt-0.5">•</span>
-                                <span>Alleen werkdagen (maandag t/m vrijdag) tellen mee voor vakantiedagen</span>
+                                <span>Vakantie wordt berekend in uren (8 uur = 1 werkdag)</span>
                             </div>
 
                             <div className="flex items-start gap-2">
                                 <span className="text-green-600 mt-0.5">•</span>
-                                <span>Weekenddagen kosten geen vakantiedagen</span>
+                                <span>Alleen werkdagen (maandag t/m vrijdag) tellen mee voor vakantie-uren</span>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                                <span className="text-green-600 mt-0.5">•</span>
+                                <span>Weekenddagen kosten geen vakantie-uren</span>
                             </div>
 
                             <div className="flex items-start gap-2">
@@ -639,7 +657,7 @@ export default function VacationOverview(): React.JSX.Element {
 
                             <div className="flex items-start gap-2">
                                 <span className="text-green-600 mt-0.5">•</span>
-                                <span>Niet opgenomen vakantiedagen vervallen aan het einde van het jaar</span>
+                                <span>Niet opgenomen vakantie-uren vervallen aan het einde van het jaar</span>
                             </div>
 
                             <div className="flex items-start gap-2">
@@ -654,11 +672,11 @@ export default function VacationOverview(): React.JSX.Element {
                             <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
                                     <span className="text-gray-600">Gemiddeld per maand:</span>
-                                    <div className="font-bold text-green-600">{(balance.totalDays / 12).toFixed(1)} dagen</div>
+                                    <div className="font-bold text-green-600">{(balance.totalHours / 12).toFixed(1)}u ({(balance.totalHours / 12 / 8).toFixed(1)} dagen)</div>
                                 </div>
                                 <div>
                                     <span className="text-gray-600">Resterende weken:</span>
-                                    <div className="font-bold text-purple-600">{(balance.remainingDays / 5).toFixed(1)} weken</div>
+                                    <div className="font-bold text-purple-600">{(balance.remainingHours / 40).toFixed(1)} weken</div>
                                 </div>
                             </div>
                         </div>
@@ -667,10 +685,10 @@ export default function VacationOverview(): React.JSX.Element {
             </div>
 
             {/* Quick Actions */}
-            {balance.remainingDays > 0 && (
+            {balance.remainingHours > 0 && (
                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl p-6 text-center">
                     <h3 className="text-2xl font-bold mb-2">🌴 Plan je vakantie!</h3>
-                    <p className="mb-4">Je hebt nog <strong>{balance.remainingDays} dagen</strong> vakantie over dit jaar.</p>
+                    <p className="mb-4">Je hebt nog <strong>{balance.remainingHours} uur</strong> ({balance.remainingHours / 8} dagen) vakantie over dit jaar.</p>
                     <button
                         className="btn btn-outline btn-lg text-white border-white hover:bg-white hover:text-blue-600 rounded-xl"
                         onClick={() => setShowForm(true)}
@@ -681,10 +699,10 @@ export default function VacationOverview(): React.JSX.Element {
                 </div>
             )}
 
-            {balance.remainingDays <= 0 && (
+            {balance.remainingHours <= 0 && (
                 <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-2xl p-6 text-center">
                     <h3 className="text-2xl font-bold mb-2">⚠️ Geen vakantie meer beschikbaar</h3>
-                    <p>Je hebt al je vakantiedagen voor dit jaar gebruikt of aangevraagd.</p>
+                    <p>Je hebt al je vakantie-uren voor dit jaar gebruikt of aangevraagd.</p>
                 </div>
             )}
         </div>

@@ -1,9 +1,108 @@
-// frontend/components/NotificationBell.tsx - COMPLETE VERSION
 "use client";
 import { useState, useEffect } from "react";
-import { getActivities, markActivityAsRead, markAllActivitiesAsRead } from "@/lib/api";
 import { BellIcon, EnvelopeOpenIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
-import { Activity } from "@/lib/types";
+
+interface Activity {
+    id: number;
+    message: string;
+    details?: string;
+    type: string;
+    timestamp: string;
+    read: boolean;
+    userId: number;
+}
+
+// Mock API functions - vervang door echte API calls
+const getActivities = async (limit: number = 20, userId: number): Promise<Activity[]> => {
+    // Simuleer API call
+    try {
+        const response = await fetch(`/api/activities?limit=${limit}&userId=${userId}`);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.warn('API niet beschikbaar, gebruik mock data:', error);
+    }
+
+    // Fallback mock data
+    const mockActivities: Activity[] = [
+        {
+            id: 1,
+            message: "Uren goedgekeurd voor week 21",
+            details: "Je werkuren van 40 uur zijn goedgekeurd door je manager",
+            type: "time_entry",
+            timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min geleden
+            read: false,
+            userId: userId
+        },
+        {
+            id: 2,
+            message: "Vakantieaanvraag in behandeling",
+            details: "Je vakantieaanvraag voor 15-19 juni is ontvangen en wordt behandeld",
+            type: "vacation",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 uur geleden
+            read: false,
+            userId: userId
+        },
+        {
+            id: 3,
+            message: "Nieuwe project toegewezen",
+            details: "Je bent toegevoegd aan project 'Website Redesign' voor Acme Corp",
+            type: "project",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 dag geleden
+            read: true,
+            userId: userId
+        },
+        {
+            id: 4,
+            message: "Uren voor week 20 goedgekeurd",
+            details: "38.5 uur werkuren zijn goedgekeurd en verwerkt",
+            type: "time_entry",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 dagen geleden
+            read: true,
+            userId: userId
+        },
+        {
+            id: 5,
+            message: "Vakantie goedgekeurd",
+            details: "Je vakantieaanvraag voor 1-5 mei is goedgekeurd",
+            type: "vacation",
+            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(), // 1 week geleden
+            read: true,
+            userId: userId
+        }
+    ];
+
+    return mockActivities;
+};
+
+const markActivityAsRead = async (activityId: number): Promise<void> => {
+    try {
+        const response = await fetch(`/api/activities/${activityId}/read`, {
+            method: 'POST'
+        });
+        if (!response.ok) {
+            throw new Error('Failed to mark as read');
+        }
+    } catch (error) {
+        console.warn('API niet beschikbaar, simuleer mark as read:', error);
+        // In real app, dit zou de echte API call zijn
+    }
+};
+
+const markAllActivitiesAsRead = async (): Promise<void> => {
+    try {
+        const response = await fetch('/api/activities/mark-all-read', {
+            method: 'POST'
+        });
+        if (!response.ok) {
+            throw new Error('Failed to mark all as read');
+        }
+    } catch (error) {
+        console.warn('API niet beschikbaar, simuleer mark all as read:', error);
+        // In real app, dit zou de echte API call zijn
+    }
+};
 
 const NotificationBell = () => {
     const [activities, setActivities] = useState<Activity[]>([]);
@@ -20,7 +119,7 @@ const NotificationBell = () => {
 
             const data = await getActivities(20, userId);
 
-            // SIMPELE FIX - zorg dat het een array is
+            // Zorg dat het een array is
             let activitiesArray: Activity[] = [];
             if (Array.isArray(data)) {
                 activitiesArray = data;
@@ -28,7 +127,7 @@ const NotificationBell = () => {
 
             setActivities(activitiesArray);
 
-            // Safe unread count
+            // Tel ongelezen notificaties
             let unreadCountNum = 0;
             for (const activity of activitiesArray) {
                 if (activity && !activity.read) {
@@ -48,6 +147,7 @@ const NotificationBell = () => {
 
     useEffect(() => {
         fetchActivities();
+        // Ververs elke 30 seconden
         const interval = setInterval(fetchActivities, 30000);
         return () => clearInterval(interval);
     }, []);
@@ -56,6 +156,7 @@ const NotificationBell = () => {
         try {
             await markActivityAsRead(activityId);
 
+            // Update lokale state
             const updatedActivities: Activity[] = [];
             for (const activity of activities) {
                 if (activity.id === activityId) {
@@ -76,6 +177,7 @@ const NotificationBell = () => {
         try {
             await markAllActivitiesAsRead();
 
+            // Update lokale state
             const updatedActivities: Activity[] = [];
             for (const activity of activities) {
                 updatedActivities.push({ ...activity, read: true });
@@ -92,7 +194,7 @@ const NotificationBell = () => {
         setShowDropdown(!showDropdown);
     };
 
-    // Safe filtering zonder .filter()
+    // Filter activiteiten
     const filteredActivities: Activity[] = [];
     for (const activity of activities) {
         if (!activity) continue;
@@ -116,14 +218,16 @@ const NotificationBell = () => {
             const diffHours = Math.floor(diffMins / 60);
             const diffDays = Math.floor(diffHours / 24);
 
-            if (diffMins < 60) {
+            if (diffMins < 1) {
+                return 'Net nu';
+            } else if (diffMins < 60) {
                 return `${diffMins} min. geleden`;
             } else if (diffHours < 24) {
                 return `${diffHours} uur geleden`;
             } else if (diffDays < 7) {
                 return `${diffDays} dag${diffDays !== 1 ? 'en' : ''} geleden`;
             } else {
-                return date.toLocaleDateString();
+                return date.toLocaleDateString('nl-NL');
             }
         } catch (error) {
             return 'Onbekend';
@@ -135,19 +239,35 @@ const NotificationBell = () => {
             const activityType = activity.type || "";
 
             if (activityType === "time_entry") {
-                return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                </svg>;
+                return (
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 text-sm">⏰</span>
+                    </div>
+                );
             } else if (activityType === "vacation") {
-                return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                </svg>;
+                return (
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600 text-sm">🏖️</span>
+                    </div>
+                );
+            } else if (activityType === "project") {
+                return (
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-purple-600 text-sm">📁</span>
+                    </div>
+                );
             }
-            return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>;
+            return (
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 text-sm">📋</span>
+                </div>
+            );
         } catch (error) {
-            return <span>📋</span>;
+            return (
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 text-sm">📋</span>
+                </div>
+            );
         }
     };
 
@@ -155,111 +275,157 @@ const NotificationBell = () => {
         <div className="relative">
             <button
                 onClick={toggleDropdown}
-                className="btn btn-ghost btn-circle"
+                className="btn btn-ghost btn-circle relative"
             >
                 <div className="indicator">
                     <BellIcon className="h-6 w-6" />
                     {unreadCount > 0 && (
-                        <span className="indicator-item badge badge-primary badge-sm">{unreadCount}</span>
+                        <span className="indicator-item badge badge-primary badge-sm animate-pulse">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
                     )}
                 </div>
             </button>
 
             {showDropdown && (
-                <div className="absolute right-0 mt-2 w-96 bg-base-100 shadow-xl rounded-lg overflow-hidden z-50">
-                    <div className="flex justify-between items-center p-3 border-b">
-                        <h3 className="font-bold text-lg">Notificaties</h3>
-                        <button
-                            onClick={() => setShowDropdown(false)}
-                            className="btn btn-ghost btn-sm btn-circle"
-                        >
-                            ✕
-                        </button>
-                    </div>
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowDropdown(false)}
+                    />
 
-                    <div className="flex border-b">
-                        <button
-                            className={`flex-1 py-2 px-4 text-center ${activeTab === 'all' ? 'bg-base-200 font-semibold' : ''}`}
-                            onClick={() => setActiveTab('all')}
-                        >
-                            Alle ({activities.length})
-                        </button>
-                        <button
-                            className={`flex-1 py-2 px-4 text-center ${activeTab === 'unread' ? 'bg-base-200 font-semibold' : ''}`}
-                            onClick={() => setActiveTab('unread')}
-                        >
-                            <div className="flex items-center justify-center gap-1">
-                                <EnvelopeIcon className="h-4 w-4" />
-                                <span>Ongelezen ({unreadCount})</span>
-                            </div>
-                        </button>
-                        <button
-                            className={`flex-1 py-2 px-4 text-center ${activeTab === 'read' ? 'bg-base-200 font-semibold' : ''}`}
-                            onClick={() => setActiveTab('read')}
-                        >
-                            <div className="flex items-center justify-center gap-1">
-                                <EnvelopeOpenIcon className="h-4 w-4" />
-                                <span>Gelezen ({activities.length - unreadCount})</span>
-                            </div>
-                        </button>
-                    </div>
-
-                    {loading ? (
-                        <div className="flex justify-center p-4">
-                            <div className="loading loading-spinner loading-md"></div>
-                        </div>
-                    ) : filteredActivities.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                            Geen notificaties gevonden
-                        </div>
-                    ) : (
-                        <div className="max-h-96 overflow-y-auto">
-                            {filteredActivities.map((activity, index) => (
-                                <div
-                                    key={activity.id || index}
-                                    className={`p-3 hover:bg-base-200 flex gap-3 items-start ${!activity.read ? 'bg-base-200' : ''}`}
-                                    onClick={() => !activity.read && handleMarkAsRead(activity.id)}
-                                >
-                                    <div className="shrink-0 mt-1">
-                                        {getActivityIcon(activity)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start">
-                                            <span className="font-medium line-clamp-2">{activity.message || 'Geen bericht'}</span>
-                                            {!activity.read && (
-                                                <span className="badge badge-primary badge-sm ml-1 shrink-0">nieuw</span>
-                                            )}
-                                        </div>
-                                        {activity.details && (
-                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{activity.details}</p>
-                                        )}
-                                        <p className="text-xs text-gray-500 mt-1">{formatTimestamp(activity.timestamp)}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {unreadCount > 0 && (
-                        <div className="p-3 border-t">
+                    {/* Dropdown */}
+                    <div className="absolute right-0 mt-2 w-96 bg-base-100 shadow-xl rounded-lg overflow-hidden z-50 border border-gray-200">
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                                <BellIcon className="w-5 h-5 text-blue-600" />
+                                Notificaties
+                            </h3>
                             <button
-                                onClick={handleMarkAllAsRead}
-                                className="btn btn-sm btn-outline w-full"
+                                onClick={() => setShowDropdown(false)}
+                                className="btn btn-ghost btn-sm btn-circle"
                             >
-                                Alles markeren als gelezen
+                                ✕
                             </button>
                         </div>
-                    )}
 
-                    <div className="p-3 border-t">
-                        <button
-                            onClick={fetchActivities}
-                            className="btn btn-sm btn-outline w-full"
-                        >
-                            Vernieuwen
-                        </button>
+                        {/* Tabs */}
+                        <div className="flex border-b bg-gray-50">
+                            <button
+                                className={`flex-1 py-3 px-4 text-center text-sm font-medium transition-all duration-200 ${
+                                    activeTab === 'all'
+                                        ? 'bg-blue-500 text-white border-b-2 border-blue-600'
+                                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                                }`}
+                                onClick={() => setActiveTab('all')}
+                            >
+                                Alle ({activities.length})
+                            </button>
+                            <button
+                                className={`flex-1 py-3 px-4 text-center text-sm font-medium transition-all duration-200 ${
+                                    activeTab === 'unread'
+                                        ? 'bg-blue-500 text-white border-b-2 border-blue-600'
+                                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                                }`}
+                                onClick={() => setActiveTab('unread')}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <EnvelopeIcon className="h-4 w-4" />
+                                    <span>Ongelezen ({unreadCount})</span>
+                                </div>
+                            </button>
+                            <button
+                                className={`flex-1 py-3 px-4 text-center text-sm font-medium transition-all duration-200 ${
+                                    activeTab === 'read'
+                                        ? 'bg-blue-500 text-white border-b-2 border-blue-600'
+                                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                                }`}
+                                onClick={() => setActiveTab('read')}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <EnvelopeOpenIcon className="h-4 w-4" />
+                                    <span>Gelezen ({activities.length - unreadCount})</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        {loading ? (
+                            <div className="flex justify-center p-8">
+                                <div className="loading loading-spinner loading-md text-blue-600"></div>
+                            </div>
+                        ) : filteredActivities.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500">
+                                <div className="text-4xl mb-2">🔔</div>
+                                <div className="font-medium">Geen notificaties gevonden</div>
+                                <div className="text-sm mt-1">
+                                    {activeTab === 'unread' && 'Alle notificaties zijn gelezen'}
+                                    {activeTab === 'read' && 'Geen gelezen notificaties'}
+                                    {activeTab === 'all' && 'Er zijn nog geen notificaties'}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="max-h-96 overflow-y-auto">
+                                {filteredActivities.map((activity, index) => (
+                                    <div
+                                        key={activity.id || index}
+                                        className={`p-4 hover:bg-gray-50 flex gap-3 items-start cursor-pointer transition-all duration-200 border-b border-gray-100 ${
+                                            !activity.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                                        }`}
+                                        onClick={() => !activity.read && handleMarkAsRead(activity.id)}
+                                    >
+                                        <div className="shrink-0 mt-1">
+                                            {getActivityIcon(activity)}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className={`font-medium line-clamp-2 ${!activity.read ? 'text-gray-900' : 'text-gray-700'}`}>
+                                                    {activity.message || 'Geen bericht'}
+                                                </span>
+                                                {!activity.read && (
+                                                    <span className="badge badge-primary badge-sm ml-2 shrink-0">nieuw</span>
+                                                )}
+                                            </div>
+                                            {activity.details && (
+                                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{activity.details}</p>
+                                            )}
+                                            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                                <span>⏰</span>
+                                                {formatTimestamp(activity.timestamp)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="p-4 border-t bg-gray-50">
+                            {unreadCount > 0 && (
+                                <button
+                                    onClick={handleMarkAllAsRead}
+                                    className="btn btn-sm btn-outline btn-primary w-full mb-2"
+                                >
+                                    Alles markeren als gelezen
+                                </button>
+                            )}
+                            <button
+                                onClick={fetchActivities}
+                                className="btn btn-sm btn-ghost w-full"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    '🔄'
+                                )}
+                                Vernieuwen
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );
