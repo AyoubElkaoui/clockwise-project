@@ -7,7 +7,8 @@ import {
     ArrowRightOnRectangleIcon,
     UserCircleIcon,
     Bars3Icon,
-    XMarkIcon
+    XMarkIcon,
+    CogIcon
 } from "@heroicons/react/24/outline";
 
 export default function Navbar(): JSX.Element {
@@ -25,17 +26,14 @@ export default function Navbar(): JSX.Element {
     }, []);
 
     const handleLogout = (): void => {
-        // Verwijder alle localStorage items
         localStorage.removeItem("userId");
         localStorage.removeItem("firstName");
         localStorage.removeItem("lastName");
         localStorage.removeItem("userRank");
 
-        // Verwijder cookies
         document.cookie = "userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         document.cookie = "userRank=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-        // Redirect naar login pagina
         window.location.href = "/login";
     };
 
@@ -50,6 +48,10 @@ export default function Navbar(): JSX.Element {
         }
     };
 
+    const getUserInitials = (): string => {
+        return userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
+
     const navigationItems = [
         { href: "/dashboard", label: "Dashboard" },
         { href: "/overview", label: "Uren Overzicht" },
@@ -59,7 +61,7 @@ export default function Navbar(): JSX.Element {
 
     return (
         <>
-            <nav className="navbar bg-white shadow-elmar-card border-b border-gray-200 px-6 py-4 backdrop-blur-sm bg-white/95">
+            <nav className="navbar bg-white shadow-lg border-b border-gray-200 px-6 py-3 backdrop-blur-sm bg-white/95 sticky top-0 z-40">
                 {/* Logo & Brand Section */}
                 <div className="flex-1 flex items-center gap-4">
                     <Link href="/dashboard" className="flex items-center gap-3 hover:scale-105 transition-transform duration-200">
@@ -67,16 +69,16 @@ export default function Navbar(): JSX.Element {
                             <Image
                                 src="/logo.png"
                                 alt="Elmar Services Logo"
-                                width={50}
-                                height={50}
-                                className="rounded-lg"
+                                width={45}
+                                height={45}
+                                className="rounded-lg shadow-md"
                             />
                         </div>
-                        <div>
+                        <div className="hidden sm:block">
                             <h1 className="text-xl font-bold bg-gradient-elmar bg-clip-text text-transparent">
                                 Elmar Services
                             </h1>
-                            <p className="text-sm text-gray-600 font-medium">Uren Registratie</p>
+                            <p className="text-xs text-gray-600 font-medium">Uren Registratie</p>
                         </div>
                     </Link>
 
@@ -86,7 +88,7 @@ export default function Navbar(): JSX.Element {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="px-4 py-2 rounded-xl text-gray-700 hover:text-elmar-primary hover:bg-blue-50 transition-all duration-200 font-medium"
+                                className="px-4 py-2 rounded-xl text-gray-700 hover:text-elmar-primary hover:bg-blue-50 transition-all duration-200 font-medium text-sm"
                             >
                                 {item.label}
                             </Link>
@@ -95,22 +97,33 @@ export default function Navbar(): JSX.Element {
                 </div>
 
                 {/* Right Section */}
-                <div className="flex-none flex items-center gap-4">
+                <div className="flex-none flex items-center gap-3">
                     {/* Notifications */}
                     <NotificationBell />
 
+                    {/* Admin Panel Link */}
+                    {(userRank === "admin" || userRank === "manager") && (
+                        <Link
+                            href="/admin"
+                            className="btn btn-outline btn-primary btn-sm rounded-xl hover:scale-105 transition-all duration-200 hidden md:flex gap-2"
+                        >
+                            <CogIcon className="w-4 h-4" />
+                            Admin Panel
+                        </Link>
+                    )}
+
                     {/* User Profile Section */}
-                    <div className="hidden md:flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2">
+                    <div className="hidden md:flex items-center gap-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl px-4 py-2 border border-gray-200">
                         <div className="avatar placeholder">
-                            <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
+                            <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center shadow-md">
                                 <span className="text-sm font-bold">
-                                    {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                    {getUserInitials()}
                                 </span>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="font-semibold text-gray-800 text-sm">{userName}</p>
-                            <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-800 text-sm leading-tight">{userName}</p>
+                            <div className="flex items-center justify-end gap-1 mt-0.5">
                                 {getRankBadge()}
                             </div>
                         </div>
@@ -119,15 +132,15 @@ export default function Navbar(): JSX.Element {
                     {/* Desktop Logout Button */}
                     <button
                         onClick={handleLogout}
-                        className="hidden md:flex btn btn-outline btn-error rounded-xl hover:scale-105 transition-all duration-200"
+                        className="hidden md:flex btn btn-outline btn-error btn-sm rounded-xl hover:scale-105 transition-all duration-200 gap-2"
                     >
-                        <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                        <ArrowRightOnRectangleIcon className="w-4 h-4" />
                         Uitloggen
                     </button>
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="lg:hidden btn btn-ghost btn-square"
+                        className="lg:hidden btn btn-ghost btn-square btn-sm"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
                         {mobileMenuOpen ? (
@@ -149,17 +162,17 @@ export default function Navbar(): JSX.Element {
                                 <div className="flex items-center gap-3">
                                     <div className="avatar placeholder">
                                         <div className="bg-gradient-elmar text-white rounded-full w-12 h-12 flex items-center justify-center">
-                                            <UserCircleIcon className="w-8 h-8" />
+                                            <span className="text-sm font-bold">{getUserInitials()}</span>
                                         </div>
                                     </div>
                                     <div>
                                         <p className="font-bold text-gray-800">{userName}</p>
-                                        {getRankBadge()}
+                                        <div className="mt-1">{getRankBadge()}</div>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setMobileMenuOpen(false)}
-                                    className="btn btn-ghost btn-circle"
+                                    className="btn btn-ghost btn-circle btn-sm"
                                 >
                                     <XMarkIcon className="w-6 h-6" />
                                 </button>
@@ -177,14 +190,26 @@ export default function Navbar(): JSX.Element {
                                         {item.label}
                                     </Link>
                                 ))}
+
+                                {/* Mobile Admin Panel Link */}
+                                {(userRank === "admin" || userRank === "manager") && (
+                                    <Link
+                                        href="/admin"
+                                        className="block w-full text-left px-4 py-3 rounded-xl text-gray-700 hover:text-elmar-primary hover:bg-blue-50 transition-all duration-200 font-medium"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        <CogIcon className="w-5 h-5 inline mr-2" />
+                                        Admin Panel
+                                    </Link>
+                                )}
                             </nav>
 
                             {/* Mobile Logout */}
                             <button
                                 onClick={handleLogout}
-                                className="w-full btn btn-error rounded-xl"
+                                className="w-full btn btn-error rounded-xl gap-2"
                             >
-                                <ArrowRightOnRectangleIcon className="w-5 h-5 mr-2" />
+                                <ArrowRightOnRectangleIcon className="w-5 h-5" />
                                 Uitloggen
                             </button>
                         </div>

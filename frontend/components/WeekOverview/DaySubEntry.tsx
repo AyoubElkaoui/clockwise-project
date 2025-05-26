@@ -2,6 +2,7 @@
 import { useState } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import { TimeEntry } from "@/lib/types";
+import { updateTimeEntry } from "@/lib/api";
 import TimeEntryModal from "./TimeEntryModal";
 import {
     ClockIcon,
@@ -13,7 +14,8 @@ import {
     LockClosedIcon,
     CheckCircleIcon,
     ExclamationTriangleIcon,
-    XCircleIcon
+    XCircleIcon,
+    PaperAirplaneIcon
 } from "@heroicons/react/24/outline";
 
 interface DayEntryProps {
@@ -21,18 +23,21 @@ interface DayEntryProps {
     entries: TimeEntry[];
     onUpdate: () => void;
     weekStatus: string;
+    onShowToast: (message: string, type: "success" | "error") => void;
 }
 
-export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEntryProps) {
+export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast }: DayEntryProps) {
     const [showModal, setShowModal] = useState<boolean>(false);
     const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
     const [isExpanded, setIsExpanded] = useState<boolean>(false);
+    const [selectedEntries, setSelectedEntries] = useState<Set<number>>(new Set());
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const isToday = date.isSame(dayjs(), "day");
     const isWeekend = date.day() === 0 || date.day() === 6;
     const canEdit = weekStatus === "concept";
 
-    // Calculate total hours for the day with quarter-hour rounding
+    // Calculate hours with quarter-hour rounding
     const calculateHours = (entry: TimeEntry): number => {
         if (!entry.startTime || !entry.endTime) return 0;
 
@@ -42,7 +47,6 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
             const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
             const hours = diffMin > 0 ? diffMin / 60 : 0;
 
-            // Round to nearest quarter hour
             return Math.round(hours * 4) / 4;
         } catch (error) {
             console.warn("Error calculating hours for entry:", entry, error);
@@ -58,7 +62,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
         return total + (entry.expenses || 0) + (entry.travelCosts || 0);
     }, 0);
 
-    // Format hours in quarters (0.25 = ¼, 0.5 = ½, 0.75 = ¾)
+    // Format hours in quarters
     const formatHours = (hours: number): string => {
         if (hours === 0) return "0u";
 
@@ -91,6 +95,57 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
         onUpdate();
     };
 
+    const handleSelectEntry = (entryId: number): void => {
+        const newSelected = new Set(selectedEntries);
+        if (newSelected.has(entryId)) {
+            newSelected.delete(entryId);
+        } else {
+            newSelected.add(entryId);
+        }
+        setSelectedEntries(newSelected);
+    };
+
+    const handleSelectAllEntries = (): void => {
+        const conceptEntries = entries.filter(entry => entry.status === "concept" || !entry.status);
+        if (selectedEntries.size === conceptEntries.length) {
+            setSelectedEntries(new Set());
+        } else {
+            setSelectedEntries(new Set(conceptEntries.map(entry => entry.id).filter(id => id !== undefined) as number[]));
+        }
+    };
+
+    const handleSubmitSelected = async (): Promise<void> => {
+        if (selectedEntries.size === 0) {
+            onShowToast("Selecteer eerst uren om in te leveren", "error");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const entriesToSubmit = entries.filter(entry =>
+                entry.id && selectedEntries.has(entry.id)
+            );
+
+            for (const entry of entriesToSubmit) {
+                if (entry.id) {
+                    await updateTimeEntry(entry.id, {
+                        ...entry,
+                        status: "ingeleverd"
+                    });
+                }
+            }
+
+            setSelectedEntries(new Set());
+            onUpdate();
+            onShowToast(`${entriesToSubmit.length} urenregistratie(s) ingeleverd!`, "success");
+        } catch (error) {
+            console.error("Error submitting entries:", error);
+            onShowToast("Fout bij inleveren van uren", "error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const getDayDisplayName = (): string => {
         const dayNames = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
         return dayNames[date.day()];
@@ -117,6 +172,9 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
         return <XCircleIcon className="w-4 h-4 text-orange-500" />;
     };
 
+    const conceptEntries = entries.filter(entry => entry.status === "concept" || !entry.status);
+    const hasSelectableEntries = conceptEntries.length > 0;
+
     return (
         <>
             <div className={`
@@ -124,8 +182,8 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                 ${isToday ? 'ring-1 ring-elmar-primary ring-opacity-30' : ''}
                 ${getStatusColor()}
             `}>
-                {/* Compact Header */}
                 <div className="p-4">
+                    {/* Header */}
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             {getStatusIcon()}
@@ -168,7 +226,38 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                         </div>
                     </div>
 
-                    {/* Compact Entries List */}
+                    {/* Selection Controls */}
+                    {hasSelectableEntries && canEdit && (
+                        <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-primary checkbox-sm"
+                                        checked={selectedEntries.size === conceptEntries.length && conceptEntries.length > 0}
+                                        onChange={handleSelectAllEntries}
+                                    />
+                                    Selecteer alle ({conceptEntries.length})
+                                </label>
+                                {selectedEntries.size > 0 && (
+                                    <button
+                                        onClick={handleSubmitSelected}
+                                        disabled={isSubmitting}
+                                        className="btn btn-primary btn-xs rounded-lg gap-1"
+                                    >
+                                        {isSubmitting ? (
+                                            <span className="loading loading-spinner loading-xs"></span>
+                                        ) : (
+                                            <PaperAirplaneIcon className="w-3 h-3" />
+                                        )}
+                                        Inleveren ({selectedEntries.size})
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Entries List */}
                     {entries.length === 0 ? (
                         <div className="text-center py-3">
                             <p className="text-xs text-gray-500">
@@ -177,7 +266,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {entries.slice(0, isExpanded ? entries.length : 1).map((entry: TimeEntry, index: number) => {
+                            {entries.slice(0, isExpanded ? entries.length : 2).map((entry: TimeEntry, index: number) => {
                                 try {
                                     if (!entry.startTime || !entry.endTime) {
                                         return (
@@ -199,24 +288,33 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                     }
 
                                     const hours = calculateHours(entry);
+                                    const canSelect = (entry.status === "concept" || !entry.status) && canEdit;
+                                    const isSelected = entry.id ? selectedEntries.has(entry.id) : false;
 
                                     const getEntryStatusBg = () => {
                                         switch (entry.status) {
                                             case 'goedgekeurd': return 'bg-green-100 border-green-200';
                                             case 'afgekeurd': return 'bg-red-100 border-red-200';
                                             case 'ingeleverd': return 'bg-yellow-100 border-yellow-200';
-                                            default: return 'bg-white border-gray-200';
+                                            default: return isSelected ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200';
                                         }
                                     };
 
                                     return (
                                         <div
                                             key={entry.id || index}
-                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm cursor-pointer ${getEntryStatusBg()}`}
-                                            onClick={() => canEdit && handleEditEntry(entry)}
+                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${getEntryStatusBg()}`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
+                                                    {canSelect && (
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox checkbox-primary checkbox-sm"
+                                                            checked={isSelected}
+                                                            onChange={() => entry.id && handleSelectEntry(entry.id)}
+                                                        />
+                                                    )}
                                                     <span className="text-sm font-medium text-gray-800">
                                                         {start.format("HH:mm")}-{end.format("HH:mm")}
                                                     </span>
@@ -232,10 +330,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
 
                                                     {canEdit && (
                                                         <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleEditEntry(entry);
-                                                            }}
+                                                            onClick={() => handleEditEntry(entry)}
                                                             className="p-1 hover:bg-gray-200 rounded"
                                                             title="Bewerken"
                                                         >
@@ -287,7 +382,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus }: DayEnt
                                 }
                             })}
 
-                            {entries.length > 1 && (
+                            {entries.length > 2 && (
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}
                                     className="w-full text-xs text-elmar-primary hover:text-elmar-secondary py-1 font-medium"
