@@ -463,6 +463,9 @@ export async function markActivityAsRead(activityId: number) {
 export async function getUserProjects(userId: number) {
   return safeApiCall(() => axios.get(`${API_URL}/user-projects/users/${userId}`));
 }
+
+//test change
+
 export async function getProjectUsers(projectId: number) {
   return safeApiCall(() => axios.get(`${API_URL}/user-projects/projects/${projectId}`));
 }
