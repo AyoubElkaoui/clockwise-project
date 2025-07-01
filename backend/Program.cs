@@ -21,7 +21,10 @@ builder.Services.AddCors(options =>
         policyBuilder
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .WithOrigins("https://jouw-frontend-naam.vercel.app") // Voeg je Vercel URL toe
+            .WithOrigins(
+                "http://localhost:3000", // ✅ lokale frontend
+                "https://jouw-frontend-naam.vercel.app" // ✅ productie
+            )
             .AllowCredentials());
 });
 

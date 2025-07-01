@@ -3,11 +3,10 @@ import axios from "axios";
 import { TimeEntry, User} from "./types";
 
 // API URL - gebruik de ngrok URL direct voor nu
-export const API_URL = "https://3df4-2a01-7c8-bb0b-19b-e916-96b-421e-1ad6.ngrok-free.app/api";
+export const API_URL = "http://localhost:5203/api";
 
 // Configureer axios defaults
 axios.defaults.headers.common['Content-Type'] = 'application/json';
-axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 
 // Add request interceptor voor debugging
 axios.interceptors.request.use(request => {
@@ -451,83 +450,47 @@ export async function getActivities(limit: number = 10, userId?: number) {
 }
 
 export async function markActivityAsRead(activityId: number) {
-    try {
-        console.log('📖 Marking activity as read:', activityId);
-        const response = await axios.put(`${API_URL}/activities/${activityId}/read`);
-        console.log('✅ Activity marked as read');
-        return safeApiResponse(response);
-    } catch (error) {
-        console.error("❌ Error marking activity as read:", error);
-        throw error;
-    }
+  try {
+    const response = await axios.put(`${API_URL}/activities/${activityId}/read`);
+    return safeApiResponse(response);
+  } catch (error) {
+    console.error("❌ Error marking activity as read:", error);
+    return null;
+  }
 }
+
 
 export async function getUserProjects(userId: number) {
-    try {
-        console.log('🔗 Fetching user projects for user:', userId);
-        const res = await axios.get(`${API_URL}/user-projects/users/${userId}`);
-        const data = safeApiResponse(res);
-        console.log('✅ User projects loaded:', Array.isArray(data) ? data.length : 'not array');
-
-        // Handle different possible response structures
-        if (Array.isArray(data)) return data;
-        if (data && Array.isArray(data.userProjects)) return data.userProjects;
-        if (data && Array.isArray(data.data)) return data.data;
-
-        console.warn("⚠️ Unexpected user projects response structure:", data);
-        return [];
-    } catch (error) {
-        console.error("❌ Error fetching user projects:", error);
-        return [];
-    }
+  return safeApiCall(() => axios.get(`${API_URL}/user-projects/users/${userId}`));
 }
-
 export async function getProjectUsers(projectId: number) {
-    try {
-        console.log('👥 Fetching project users for project:', projectId);
-        const res = await axios.get(`${API_URL}/user-projects/projects/${projectId}`);
-        const data = safeApiResponse(res);
-        console.log('✅ Project users loaded:', Array.isArray(data) ? data.length : 'not array');
-
-        // Handle different possible response structures
-        if (Array.isArray(data)) return data;
-        if (data && Array.isArray(data.projectUsers)) return data.projectUsers;
-        if (data && Array.isArray(data.data)) return data.data;
-
-        console.warn("⚠️ Unexpected project users response structure:", data);
-        return [];
-    } catch (error) {
-        console.error("❌ Error fetching project users:", error);
-        return [];
-    }
+  return safeApiCall(() => axios.get(`${API_URL}/user-projects/projects/${projectId}`));
 }
 
 export async function assignUserToProject(userId: number, projectId: number, assignedByUserId: number) {
-    try {
-        console.log('🔗 Assigning user to project:', userId, projectId);
-        const res = await axios.post(`${API_URL}/user-projects`, {
-            userId,
-            projectId,
-            assignedByUserId
-        });
-        console.log('✅ User assigned to project');
-        return safeApiResponse(res);
-    } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            throw new Error(error.response.data || "Error assigning user to project");
-        }
-        throw new Error("Error assigning user to project");
+  try {
+    return safeApiCall(() =>
+        axios.post(`${API_URL}/user-projects`, { userId, projectId, assignedByUserId })
+    );
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data || "Fout bij toewijzen gebruiker aan project");
     }
+    throw new Error("Fout bij toewijzen gebruiker aan project");
+  }
 }
 
 export async function removeUserFromProject(userId: number, projectId: number) {
-    try {
-        console.log('🗑️ Removing user from project:', userId, projectId);
-        const res = await axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`);
-        console.log('✅ User removed from project');
-        return safeApiResponse(res);
-    } catch (error) {
-        console.error("❌ Error removing user from project:", error);
-        throw error;
-    }
+  return safeApiCall(() =>
+      axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`)
+  );
 }
+function safeApiCall<T>(fn: () => Promise<any>): Promise<T | null> {
+  return fn()
+      .then(safeApiResponse)
+      .catch(err => {
+        console.error("❌ safeApiCall error:", err);
+        return null;
+      });
+}
+
