@@ -15,6 +15,11 @@ import {
     EyeIcon
 } from "@heroicons/react/24/outline";
 
+interface UserOption {
+    id: number;
+    name: string;
+}
+
 export default function AdminVacationRequestsPage(): JSX.Element {
     const [requests, setRequests] = useState<VacationRequest[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -25,6 +30,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
 
     // Filters
     const [statusFilter, setStatusFilter] = useState<string>("pending");
+    const [selectedUser, setSelectedUser] = useState<string>("");
 
     useEffect(() => {
         fetchRequests();
@@ -74,10 +80,54 @@ export default function AdminVacationRequestsPage(): JSX.Element {
         setShowDetailsModal(true);
     };
 
-    // Apply status filter
-    const filteredRequests = statusFilter === "all"
-        ? requests
-        : requests.filter((request: VacationRequest) => request.status === statusFilter);
+    // Create unique list of users for filter
+    const users = (() => {
+        if (!Array.isArray(requests)) return [];
+
+        try {
+            const userMap = new Map<number, UserOption>();
+            for (const request of requests) {
+                if (request?.user?.id) {
+                    const fullName = request.user.fullName || `${request.user.firstName || ''} ${request.user.lastName || ''}`.trim();
+                    userMap.set(request.user.id, {
+                        id: request.user.id,
+                        name: fullName || 'Onbekende gebruiker'
+                    });
+                }
+            }
+            return Array.from(userMap.values());
+        } catch (error) {
+            console.error("Error creating user options:", error);
+            return [];
+        }
+    })();
+
+    // Apply filters
+    const filteredRequests = (() => {
+        if (!Array.isArray(requests)) return [];
+
+        try {
+            return requests.filter((request: VacationRequest) => {
+                try {
+                    if (!request) return false;
+
+                    // Status filter
+                    const statusMatch = statusFilter === "all" || request.status === statusFilter;
+
+                    // User filter
+                    const userMatch = selectedUser ? request.user?.id === parseInt(selectedUser) : true;
+
+                    return statusMatch && userMatch;
+                } catch (error) {
+                    console.warn("Error filtering request:", request, error);
+                    return false;
+                }
+            });
+        } catch (error) {
+            console.error("Error filtering requests:", error);
+            return [];
+        }
+    })();
 
     // Calculate stats
     const stats = {
@@ -169,20 +219,52 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                             <h2 className="text-2xl font-bold text-gray-800">Filters</h2>
                         </div>
 
-                        <div className="form-control max-w-xs">
-                            <label className="label">
-                                <span className="label-text font-semibold text-gray-700">Status Filter</span>
-                            </label>
-                            <select
-                                className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="label">
+                                    <span className="label-text font-semibold text-gray-700">👤 Medewerker</span>
+                                </label>
+                                <select
+                                    className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                    value={selectedUser}
+                                    onChange={(e) => setSelectedUser(e.target.value)}
+                                >
+                                    <option value="">Alle medewerkers</option>
+                                    {Array.isArray(users) && users.map((user: UserOption) => (
+                                        <option key={user.id} value={user.id}>
+                                            {user.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="label">
+                                    <span className="label-text font-semibold text-gray-700">📊 Status Filter</span>
+                                </label>
+                                <select
+                                    className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="all">Alle aanvragen </option>
+                                    <option value="pending">Openstaand </option>
+                                    <option value="approved">Goedgekeurd </option>
+                                    <option value="rejected">Afgewezen </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="card-actions justify-end mt-4">
+                            <button
+                                className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                                onClick={() => {
+                                    setSelectedUser("");
+                                    setStatusFilter("all");
+                                }}
                             >
-                                <option value="all">Alle aanvragen ({stats.total})</option>
-                                <option value="pending">Openstaand ({stats.pending})</option>
-                                <option value="approved">Goedgekeurd ({stats.approved})</option>
-                                <option value="rejected">Afgewezen ({stats.rejected})</option>
-                            </select>
+                                Reset Filters
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -221,7 +303,8 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                                     Geen vakantie-aanvragen gevonden
                                                 </div>
                                                 <div className="text-gray-500">
-                                                    {statusFilter === 'all' ? 'Er zijn nog geen aanvragen' : `Geen ${statusFilter} aanvragen`}
+                                                    {selectedUser ? 'Geen aanvragen voor deze medewerker' :
+                                                        statusFilter === 'all' ? 'Er zijn nog geen aanvragen' : `Geen ${statusFilter} aanvragen`}
                                                 </div>
                                             </div>
                                         </td>
@@ -233,7 +316,10 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                                 <div className="flex items-center gap-3">
                                                     <div className="avatar placeholder">
                                                         <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
-                                                            <UserIcon className="w-6 h-6" />
+                                                            <span className="text-xs font-bold">
+                                                                {(request.user?.fullName || `${request.user?.firstName || ''} ${request.user?.lastName || ''}`.trim())
+                                                                    .split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <span className="font-medium">{request.user?.fullName || 'Onbekend'}</span>
@@ -242,9 +328,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                             <td className="font-medium">{dayjs(request.startDate).format('DD-MM-YYYY')}</td>
                                             <td className="font-medium">{dayjs(request.endDate).format('DD-MM-YYYY')}</td>
                                             <td>
-                                                    <span className="badge badge-primary badge-lg">
-                                                        {request.hours.toFixed(1)} uur
-                                                    </span>
+                                                <span className="badge badge-primary badge-lg">
+                                                    {request.hours.toFixed(1)} uur
+                                                </span>
                                             </td>
                                             <td>
                                                 <div className="max-w-xs truncate">
@@ -252,14 +338,14 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                                 </div>
                                             </td>
                                             <td>
-                                                    <span className={`badge ${
-                                                        request.status === 'pending' ? 'badge-warning' :
-                                                            request.status === 'approved' ? 'badge-success' :
-                                                                'badge-error'
-                                                    }`}>
-                                                        {request.status === 'pending' ? '⏳ Openstaand' :
-                                                            request.status === 'approved' ? '✅ Goedgekeurd' : '❌ Afgewezen'}
-                                                    </span>
+                                                <span className={`badge ${
+                                                    request.status === 'pending' ? 'badge-warning' :
+                                                        request.status === 'approved' ? 'badge-success' :
+                                                            'badge-error'
+                                                }`}>
+                                                    {request.status === 'pending' ? '⏳ Openstaand' :
+                                                        request.status === 'approved' ? '✅ Goedgekeurd' : '❌ Afgewezen'}
+                                                </span>
                                             </td>
                                             <td>
                                                 <div className="flex gap-2">

@@ -1,6 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+dayjs.extend(isSameOrBefore);
+
 import {
     CalendarDaysIcon,
     PlusCircleIcon,
@@ -9,6 +12,7 @@ import {
     ClockIcon,
     ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
+import moment, {isMoment} from "moment";
 
 // Types
 export interface VacationRequest {

@@ -85,6 +85,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
         fetchEntries();
     }, []);
 
+
     // Create unique lists of users and projects for filters
     const users = (() => {
         if (!Array.isArray(entries)) return [];

@@ -57,6 +57,7 @@ export default function Navbar(): JSX.Element {
         { href: "/overview", label: "Uren Overzicht" },
         { href: "/vacation", label: "Vakantie" },
         { href: "/profile", label: "Profiel" },
+        { href: "/faq", label: "FAQ" },
     ];
 
     return (
