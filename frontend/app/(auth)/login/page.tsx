@@ -29,25 +29,32 @@ export default function LoginPage(): JSX.Element {
         setError("");
 
         try {
-            const user = await login(userInput, password);
+            // Use the JWT login function - this returns { token, user }
+            const loginResult = await login(userInput, password);
+            console.log("Login response:", loginResult);
 
-            // Wis eerst alle bestaande data
-            localStorage.clear();
+            // The JWT login function already saves everything to localStorage
+            // including the token, so we DON'T need to clear or save anything manually
 
-            // Sla nieuwe gegevens op
-            localStorage.setItem("userId", user.id);
-            localStorage.setItem("firstName", user.firstName);
-            localStorage.setItem("lastName", user.lastName);
-            localStorage.setItem("userRank", user.rank);
+            // Get the user data from the saved localStorage (JWT format)
+            const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+            const userRank = savedUser.rank || "user";
 
-            // Zet cookies
-            document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
-            document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
+            console.log("User rank from JWT data:", userRank);
 
-            // Stuur naar juiste pagina
-            if (user.rank === "admin" || user.rank === "manager") {
+            // Set cookies for backward compatibility (optional)
+            document.cookie = `userId=${savedUser.id}; path=/; max-age=3600;`;
+            document.cookie = `userRank=${userRank}; path=/; max-age=3600;`;
+
+            // Route based on user rank
+            if (userRank === "admin") {
+                console.log("Redirecting to admin dashboard");
                 router.push("/admin");
+            } else if (userRank === "manager") {
+                console.log("Redirecting to manager dashboard");
+                router.push("/manager");
             } else {
+                console.log("Redirecting to user dashboard");
                 router.push("/dashboard");
             }
         } catch (e: unknown) {
@@ -62,7 +69,6 @@ export default function LoginPage(): JSX.Element {
             setIsLoading(false);
         }
     };
-
     const handleKeyPress = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter') {
             handleLogin();
@@ -179,6 +185,19 @@ export default function LoginPage(): JSX.Element {
                                     </div>
                                 )}
                             </button>
+                            <div className="text-center space-y-3">
+                                <a href="#" className="text-sm text-elmar-primary hover:text-elmar-secondary transition-colors duration-200">
+                                    Wachtwoord vergeten?
+                                </a>
+                                <div>
+                                    <button
+                                        onClick={() => router.push('/registreer')}
+                                        className="text-sm text-elmar-primary hover:text-elmar-secondary transition-colors duration-200 underline"
+                                    >
+                                        Geen account? Registreer hier
+                                    </button>
+                                </div>
+                            </div>
 
                             {/* Additional Options */}
                             <div className="text-center space-y-3">

@@ -1,8 +1,19 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Dayjs } from "dayjs";
-import { getCompanies, getProjectGroups, getProjects, registerTimeEntry, updateTimeEntry, getUserProjects, getTimeEntries } from "@/lib/api";
+import {
+    getCompanies,
+    getProjectGroups,
+    getProjects,
+    registerTimeEntry,
+    updateTimeEntry,
+    deleteTimeEntry,
+    getUserProjects,
+    getTimeEntries,
+    convertStatusToFrontend
+} from "@/lib/api";
 import dayjs from "dayjs";
+import axios from "axios";
 import { Company, ProjectGroup, Project, UserProject, TimeEntry } from "@/lib/types";
 import {
     BuildingOfficeIcon,
@@ -30,9 +41,9 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [assignedProjects, setAssignedProjects] = useState<UserProject[]>([]);
-    const [existingDayHours, setExistingDayHours] = useState(0); // NEW: Voor 24-uur validatie
+    const [existingDayHours, setExistingDayHours] = useState(0);
 
-    // FIX: Initialize with existing entry values if editing
+    // Form state
     const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
     const [selectedProjectGroup, setSelectedProjectGroup] = useState<number | null>(null);
     const [selectedProject, setSelectedProject] = useState<number | null>(null);
@@ -54,6 +65,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Generate time options in 15-minute intervals - EXTENDED HOURS
     const generateTimeOptions = () => {
@@ -128,6 +140,44 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         }
     };
 
+    // NEW: Handle Delete Function
+    const handleDelete = async () => {
+        if (!existingEntry?.id) {
+            setError("Geen geldig entry ID gevonden");
+            return;
+        }
+
+        const confirmed = confirm("Weet je zeker dat je deze urenregistratie wilt verwijderen?");
+        if (!confirmed) return;
+
+        setIsDeleting(true);
+        setError("");
+
+        try {
+            console.log("🗑️ Deleting time entry:", existingEntry.id);
+            await deleteTimeEntry(existingEntry.id);
+            console.log("✅ Time entry deleted successfully");
+
+            // Call the onEntrySaved callback to refresh the parent component
+            onEntrySaved();
+
+            // Close the modal
+            onClose();
+        } catch (error) {
+            console.error("❌ Error deleting time entry:", error);
+
+            // Handle specific error messages
+            if (axios.isAxiosError(error)) {
+                const errorMessage = error.response?.data || "Fout bij verwijderen van de uren";
+                setError(typeof errorMessage === 'string' ? errorMessage : "Fout bij verwijderen van de uren");
+            } else {
+                setError("Fout bij verwijderen van de uren");
+            }
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
@@ -146,7 +196,9 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                 // Fetch user's assigned projects
                 const userProjectsData = await getUserProjects(userId);
+                // @ts-ignore
                 console.log("🔗 User projects loaded:", userProjectsData.length);
+                // @ts-ignore
                 setAssignedProjects(userProjectsData);
 
                 // NEW: Fetch existing hours for the day
@@ -155,6 +207,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 const userRank = localStorage.getItem("userRank");
                 const isAdminOrManager = userRank === "admin" || userRank === "manager";
 
+                // @ts-ignore
                 if (!isAdminOrManager && userProjectsData.length === 0) {
                     setError("Je bent niet toegewezen aan projecten. Neem contact op met een beheerder.");
                     return;
@@ -202,7 +255,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         };
 
         fetchInitialData();
-    }, [day]); // Re-fetch when day changes
+    }, [day]);
 
     // Handle company selection change
     useEffect(() => {
@@ -311,6 +364,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const totalDayHours = existingDayHours + calculatedHours;
     const exceeds24Hours = totalDayHours > 24;
 
+    // Get current status of existing entry (convert from backend to frontend)
+    const currentStatus = existingEntry?.status ? convertStatusToFrontend(existingEntry.status) : 'concept';
+    const canEdit = !existingEntry || currentStatus === 'concept' || currentStatus === 'afgekeurd';
+
     // NEW: Save functions for draft and submit
     const handleSave = async (saveType: 'draft' | 'submit') => {
         if (!selectedProject) {
@@ -327,6 +384,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
         }
         if (exceeds24Hours) {
             setError(`Maximaal 24 uur per dag. Al geregistreerd: ${existingDayHours.toFixed(2)}u, nieuw: ${calculatedHours.toFixed(2)}u`);
+            return;
+        }
+
+        // Check if entry can be edited
+        if (existingEntry && !canEdit) {
+            setError("Deze uren kunnen niet meer bewerkt worden");
             return;
         }
 
@@ -364,7 +427,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             travelCosts,
             expenses,
             notes,
-            status: saveType === 'submit' ? 'ingediend' : 'concept' // NEW: Status based on save type
+            status: saveType === 'submit' ? 'ingediend' : 'concept' // Using frontend status values
         };
 
         setIsSubmitting(true);
@@ -454,10 +517,35 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             index === self.findIndex(c => c.id === company.id)
         );
 
-    const isFormValid = selectedProject && startTime && endTime && calculatedHours > 0 && !exceeds24Hours;
+    const isFormValid = selectedProject && startTime && endTime && calculatedHours >= 0.25 && !exceeds24Hours && canEdit;
 
     return (
         <div className="space-y-6">
+            {/* Entry Status Info */}
+            {existingEntry && (
+                <div className={`alert rounded-xl ${
+                    currentStatus === 'goedgekeurd' ? 'alert-success' :
+                        currentStatus === 'ingediend' ? 'alert-warning' :
+                            currentStatus === 'afgekeurd' ? 'alert-error' : 'alert-info'
+                }`}>
+                    <CheckCircleIcon className="w-6 h-6" />
+                    <div>
+                        <div className="font-semibold">
+                            Status: {
+                            currentStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
+                                currentStatus === 'ingediend' ? '⏳ Ingediend' :
+                                    currentStatus === 'afgekeurd' ? '❌ Afgekeurd' : '📝 Concept'
+                        }
+                        </div>
+                        {!canEdit && (
+                            <div className="text-sm">
+                                Deze uren kunnen niet meer bewerkt worden.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* 24-hour warning */}
             {existingDayHours > 0 && (
                 <div className={`alert ${exceeds24Hours ? 'alert-error' : 'alert-warning'} rounded-xl`}>
@@ -490,6 +578,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                             value={selectedCompany ?? ""}
                             onChange={(e) => handleCompanyChange(e.target.value)}
+                            disabled={!canEdit}
                         >
                             <option value="">-- Kies een bedrijf --</option>
                             {localStorage.getItem("userRank") === "admin" || localStorage.getItem("userRank") === "manager"
@@ -521,7 +610,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                                 className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                                 value={selectedProjectGroup ?? ""}
                                 onChange={(e) => handleProjectGroupChange(e.target.value)}
-                                disabled={projectGroups.length === 0}
+                                disabled={projectGroups.length === 0 || !canEdit}
                             >
                                 <option value="">-- Kies een projectgroep --</option>
                                 {projectGroups.map((pg) => (
@@ -552,7 +641,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                                 className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
                                 value={selectedProject ?? ""}
                                 onChange={(e) => handleProjectChange(e.target.value)}
-                                disabled={projects.length === 0}
+                                disabled={projects.length === 0 || !canEdit}
                             >
                                 <option value="">-- Kies een project --</option>
                                 {projects.map((p) => (
@@ -576,189 +665,184 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 </div>
             </div>
 
-            {/* Time Registration */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <ClockIcon className="w-5 h-5 text-green-600" />
-                    Tijd Registratie (kwartierprecisie)
-                </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text font-semibold text-gray-700">⏰ Starttijd</span>
-                        </label>
-                        <select
-                            className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                        >
-                            {timeOptions.map((time) => (
-                                <option key={time} value={time}>
-                                    {formatDisplayTime(time)}
-                                </option>
-                            ))}
-                        </select>
+
+            {/* Time Registration - Only show when project is selected */}
+            {selectedProject && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <ClockIcon className="w-5 h-5 text-green-600" />
+                        Tijd Registratie (kwartierprecisie)
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold text-gray-700">⏰ Starttijd</span>
+                            </label>
+                            <select
+                                className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                value={startTime}
+                                onChange={(e) => setStartTime(e.target.value)}
+                                disabled={!canEdit}
+                            >
+                                {timeOptions.map((time) => (
+                                    <option key={time} value={time}>
+                                        {formatDisplayTime(time)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold text-gray-700">⏰ Eindtijd</span>
+                            </label>
+                            <select
+                                className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                value={endTime}
+                                onChange={(e) => setEndTime(e.target.value)}
+                                disabled={!canEdit}
+                            >
+                                {timeOptions.map((time) => (
+                                    <option key={time} value={time}>
+                                        {formatDisplayTime(time)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold text-gray-700">☕ Pauze</span>
+                            </label>
+                            <select
+                                className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                value={breakMinutes}
+                                onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                                disabled={!canEdit}
+                            >
+                                <option value={0}>Geen pauze</option>
+                                <option value={15}>15 min</option>
+                                <option value={30}>30 min</option>
+                                <option value={45}>45 min</option>
+                                <option value={60}>1 uur</option>
+                                <option value={75}>1u 15min</option>
+                                <option value={90}>1u 30min</option>
+                                <option value={105}>1u 45min</option>
+                                <option value={120}>2 uur</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text font-semibold text-gray-700">⏰ Eindtijd</span>
-                        </label>
-                        <select
-                            className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                        >
-                            {timeOptions.map((time) => (
-                                <option key={time} value={time}>
-                                    {formatDisplayTime(time)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text font-semibold text-gray-700">☕ Pauze</span>
-                        </label>
-                        <select
-                            className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
-                            value={breakMinutes}
-                            onChange={(e) => setBreakMinutes(Number(e.target.value))}
-                        >
-                            <option value={0}>Geen pauze</option>
-                            <option value={15}>15 min</option>
-                            <option value={30}>30 min</option>
-                            <option value={45}>45 min</option>
-                            <option value={60}>1 uur</option>
-                            <option value={75}>1u 15min</option>
-                            <option value={90}>1u 30min</option>
-                            <option value={105}>1u 45min</option>
-                            <option value={120}>2 uur</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Hours Display with Save Button */}
-                <div className="mt-4 p-4 bg-gradient-elmar text-white rounded-xl border border-green-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <span className="font-semibold text-blue-100">Totaal werkuren:</span>
-                            <div className="text-3xl font-bold mt-1">
-                                {formatHours(calculatedHours)}
+                    {/* Hours Display */}
+                    <div className="mt-4 p-4 bg-gradient-elmar text-white rounded-xl border border-green-200">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <span className="font-semibold text-blue-100">Totaal werkuren:</span>
+                                <div className="text-3xl font-bold mt-1">
+                                    {formatHours(calculatedHours)}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Quick Save Button */}
-                        {isFormValid && calculatedHours >= 0.25 && (
-                            <button
-                                className="btn btn-success rounded-xl hover:scale-105 transition-all duration-200"
-                                onClick={() => handleSave('submit')}
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? (
-                                    <span className="loading loading-spinner loading-sm"></span>
-                                ) : (
-                                    <>
-                                        <CheckCircleIcon className="w-5 h-5 mr-1" />
-                                        Opslaan
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="mt-2 space-y-1 text-blue-100 text-sm">
-                        {calculatedHours < 0.25 && startTime && endTime && (
-                            <p>⚠️ Minder dan een kwartier</p>
-                        )}
-                        {calculatedHours > 16 && (
-                            <p>⚠️ Meer dan 16 uur - controleer of dit correct is</p>
-                        )}
-                        {endTime <= startTime && calculatedHours > 0 && (
-                            <p>🌙 Nachtdienst - eindigt volgende dag</p>
-                        )}
-                        {!exceeds24Hours && calculatedHours > 0 && (
-                            <p>Tijd wordt afgerond op kwartiertjes (0.25u)</p>
-                        )}
+                        <div className="mt-2 space-y-1 text-blue-100 text-sm">
+                            {calculatedHours < 0.25 && startTime && endTime && (
+                                <p>⚠️ Minder dan een kwartier</p>
+                            )}
+                            {calculatedHours > 16 && (
+                                <p>⚠️ Meer dan 16 uur - controleer of dit correct is</p>
+                            )}
+                            {endTime <= startTime && calculatedHours > 0 && (
+                                <p>🌙 Nachtdienst - eindigt volgende dag</p>
+                            )}
+                            {!exceeds24Hours && calculatedHours > 0 && (
+                                <p>Tijd wordt afgerond op kwartiertjes (0.25u)</p>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            {/* Additional Info */}
-            <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <CurrencyEuroIcon className="w-5 h-5 text-purple-600" />
-                    Aanvullende Gegevens
-                </h3>
+            {/* Additional Info - Only show when project is selected */}
+            {selectedProject && (
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-200">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <CurrencyEuroIcon className="w-5 h-5 text-purple-600" />
+                        Aanvullende Gegevens
+                    </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text font-semibold text-gray-700">🚗 Afstand (km)</span>
-                        </label>
-                        <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
-                            value={distanceKm}
-                            onChange={(e) => setDistanceKm(Number(e.target.value))}
-                            placeholder="0"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold text-gray-700">🚗 Afstand (km)</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                value={distanceKm}
+                                onChange={(e) => setDistanceKm(Number(e.target.value))}
+                                placeholder="0"
+                                disabled={!canEdit}
+                            />
+                        </div>
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold text-gray-700">💰 Reiskosten (€)</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                value={travelCosts}
+                                onChange={(e) => setTravelCosts(Number(e.target.value))}
+                                placeholder="0.00"
+                                disabled={!canEdit}
+                            />
+                        </div>
+                        <div className="form-control">
+                            <label className="label">
+                                <span className="label-text font-semibold text-gray-700">🧾 Onkosten (€)</span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
+                                value={expenses}
+                                onChange={(e) => setExpenses(Number(e.target.value))}
+                                placeholder="0.00"
+                                disabled={!canEdit}
+                            />
+                        </div>
                     </div>
+
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text font-semibold text-gray-700">💰 Reiskosten (€)</span>
+                            <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
+                                <DocumentTextIcon className="w-4 h-4" />
+                                Opmerkingen
+                            </span>
                         </label>
-                        <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
-                            value={travelCosts}
-                            onChange={(e) => setTravelCosts(Number(e.target.value))}
-                            placeholder="0.00"
+                        <textarea
+                            className="textarea textarea-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl h-20"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Eventuele opmerkingen over je werkdag..."
+                            maxLength={500}
+                            disabled={!canEdit}
                         />
-                    </div>
-                    <div className="form-control">
                         <label className="label">
-                            <span className="label-text font-semibold text-gray-700">🧾 Onkosten (€)</span>
+                            <span className="label-text-alt text-gray-500">{notes.length}/500 karakters</span>
                         </label>
-                        <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
-                            value={expenses}
-                            onChange={(e) => setExpenses(Number(e.target.value))}
-                            placeholder="0.00"
-                        />
                     </div>
                 </div>
+            )}
 
-                <div className="form-control">
-                    <label className="label">
-                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
-                            <DocumentTextIcon className="w-4 h-4" />
-                            Opmerkingen
-                        </span>
-                    </label>
-                    <textarea
-                        className="textarea textarea-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl h-20"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Eventuele opmerkingen over je werkdag..."
-                        maxLength={500}
-                    />
-                    <label className="label">
-                        <span className="label-text-alt text-gray-500">{notes.length}/500 karakters</span>
-                    </label>
-                </div>
-            </div>
-
-            {/* Tips */}
+            {/* Tips - Always show */}
             <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
                 <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                     <LightBulbIcon className="w-5 h-5 text-yellow-600" />
@@ -771,6 +855,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     <p>• Vergeet niet je pauzetijd in te vullen voor nauwkeurige berekening</p>
                     <p>• Bij overwerk (12+ uur): zorg voor voldoende pauzes</p>
                     <p>• <strong>Maximaal 24 uur per dag</strong> over alle projecten heen</p>
+                    <p>• Concept uren kunnen bewerkt worden, ingeleverde uren niet meer</p>
                 </div>
             </div>
 
@@ -782,118 +867,99 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 </div>
             )}
 
-            {/* Validation Messages */}
-            {!selectedProject && (
-                <div className="alert alert-warning rounded-xl">
-                    <ExclamationTriangleIcon className="w-6 h-6" />
-                    <span>Selecteer eerst een project om door te gaan</span>
-                </div>
-            )}
 
-            {calculatedHours > 0 && calculatedHours < 0.25 && (
+
+            {selectedProject && calculatedHours > 0 && calculatedHours < 0.25 && (
                 <div className="alert alert-warning rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
                     <span>Minimum registratie is een kwartier (0.25u)</span>
                 </div>
             )}
 
-            {calculatedHours >= 16 && (
+            {selectedProject && calculatedHours >= 16 && (
                 <div className="alert alert-warning rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
                     <span>Let op: Je registreert meer dan 16 uur. Zorg voor voldoende pauzes en check of dit correct is.</span>
                 </div>
             )}
 
-            {endTime <= startTime && calculatedHours > 0 && (
+            {selectedProject && endTime <= startTime && calculatedHours > 0 && (
                 <div className="alert alert-info rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
                     <span>🌙 Nachtdienst gedetecteerd - werk eindigt {dayjs(`2024-01-01T${endTime}`).format('HH:mm')} de volgende dag</span>
                 </div>
             )}
 
-            {exceeds24Hours && (
+            {selectedProject && exceeds24Hours && (
                 <div className="alert alert-error rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
                     <span>⚠️ Maximaal 24 uur per dag toegestaan!</span>
                 </div>
             )}
 
-            {/* Status explanation */}
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
-                <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                    <CheckCircleIcon className="w-5 h-5 text-blue-600" />
-                    Opslaan vs Indienen
-                </h4>
-                <div className="text-sm text-gray-700 space-y-1">
-                    <p>• <strong>Opslaan als Concept:</strong> Uren worden opgeslagen maar kunnen nog bewerkt worden. Niet zichtbaar voor managers.</p>
-                    <p>• <strong>Uren Indienen:</strong> Uren worden naar de manager gestuurd voor goedkeuring. Kunnen niet meer bewerkt worden.</p>
-                    <p>• <strong>Snelle opslaan:</strong> Gebruik de opslaan knop naast de uren voor directe indiening.</p>
+            {!canEdit && (
+                <div className="alert alert-warning rounded-xl">
+                    <ExclamationTriangleIcon className="w-6 h-6" />
+                    <span>🔒 Deze uren kunnen niet meer bewerkt worden omdat ze al zijn {
+                        currentStatus === 'goedgekeurd' ? 'goedgekeurd' : 'ingediend'
+                    }.</span>
                 </div>
-            </div>
+            )}
+
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                     className="btn btn-outline rounded-xl"
                     onClick={onClose}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isDeleting}
                 >
-                    Annuleren
+                    {canEdit ? 'Annuleren' : 'Sluiten'}
                 </button>
 
-                {existingEntry && (
+                {existingEntry && canEdit && (
                     <button
                         className="btn btn-error rounded-xl"
-                        onClick={() => {
-                            if (confirm("Weet je zeker dat je deze urenregistratie wilt verwijderen?")) {
-                                // Handle delete - you'll need to implement this
-                                onClose();
-                            }
-                        }}
-                        disabled={isSubmitting}
+                        onClick={handleDelete}
+                        disabled={isSubmitting || isDeleting}
                         title="Verwijderen"
                     >
-                        <TrashIcon className="w-5 h-5" />
+                        {isDeleting ? (
+                            <div className="flex items-center gap-2">
+                                <span className="loading loading-spinner loading-sm"></span>
+                                Verwijderen...
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <TrashIcon className="w-5 h-5" />
+                                Verwijderen
+                            </div>
+                        )}
                     </button>
                 )}
 
-                {/* Save as Draft Button */}
-                <button
-                    className="btn btn-outline btn-primary rounded-xl hover:scale-105 transition-all duration-200"
-                    onClick={() => handleSave('draft')}
-                    disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
-                >
-                    {isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                            <span className="loading loading-spinner loading-sm"></span>
-                            Opslaan...
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <BookmarkIcon className="w-5 h-5" />
-                            Opslaan als Concept
-                        </div>
-                    )}
-                </button>
-
-                {/* Submit Button */}
-                <button
-                    className="btn bg-gradient-elmar border-0 text-white rounded-xl hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
-                    onClick={() => handleSave('submit')}
-                    disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
-                >
-                    {isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                            <span className="loading loading-spinner loading-sm"></span>
-                            Indienen...
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <PaperAirplaneIcon className="w-5 h-5" />
-                            Uren Indienen ({formatHours(calculatedHours)})
-                        </div>
-                    )}
-                </button>
+                {canEdit && selectedProject && (
+                    <>
+                        {/* Save as Draft Button */}
+                        <button
+                            className="btn btn-outline btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                            onClick={() => handleSave('draft')}
+                            disabled={!isFormValid || isSubmitting || calculatedHours < 0.25 || isDeleting}
+                        >
+                            {isSubmitting ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="loading loading-spinner loading-sm"></span>
+                                    Opslaan...
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <BookmarkIcon className="w-5 h-5" />
+                                    Opslaan als Concept
+                                </div>
+                            )}
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

@@ -19,10 +19,10 @@ export default function Navbar(): JSX.Element {
     useEffect(() => {
         const firstName = localStorage.getItem("firstName") || "";
         const lastName = localStorage.getItem("lastName") || "";
-        const rank = localStorage.getItem("userRank") || "";
+        const Rank = localStorage.getItem("userRank") || "";
 
         setUserName(`${firstName} ${lastName}`.trim() || "Gebruiker");
-        setUserRank(rank);
+        setUserRank(Rank);
     }, []);
 
     const handleLogout = (): void => {
@@ -63,6 +63,26 @@ export default function Navbar(): JSX.Element {
     return (
         <>
             <nav className="navbar bg-white shadow-lg border-b border-gray-200 px-6 py-3 backdrop-blur-sm bg-white/95 sticky top-0 z-40">
+                <button
+                    className="btn btn-ghost btn-sm p-2 rounded-lg hover:bg-gray-100 transition-colors group lg:hover:scale-105"
+                    onClick={() => {
+                        const controls = (window as any).dashboardSidebarControls;
+                        if (controls) {
+                            // On mobile: open navigation menu
+                            // On desktop: toggle fullscreen layout
+                            if (window.innerWidth < 1024) {
+                                controls.setIsMobileMenuOpen(true);
+                            } else {
+                                controls.toggleFullscreen();
+                            }
+                        }
+                    }}
+                    title={window.innerWidth < 1024 ? "Open navigatie menu" : "Toggle sidebar"}
+                >
+                    <svg className="w-6 h-6 text-gray-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
                 {/* Logo & Brand Section */}
                 <div className="flex-1 flex items-center gap-4">
                     <Link href="/dashboard" className="flex items-center gap-3 hover:scale-105 transition-transform duration-200">
@@ -102,14 +122,23 @@ export default function Navbar(): JSX.Element {
                     {/* Notifications */}
                     <NotificationBell />
 
-                    {/* Admin Panel Link */}
-                    {(userRank === "admin" || userRank === "manager") && (
+                    {/* Admin and Manager Panel Link */}
+                    {(userRank === "admin") && (
                         <Link
                             href="/admin"
                             className="btn btn-outline btn-primary btn-sm rounded-xl hover:scale-105 transition-all duration-200 hidden md:flex gap-2"
                         >
                             <CogIcon className="w-4 h-4" />
                             Admin Panel
+                        </Link>
+                    )}
+                    {(userRank === "manager") && (
+                        <Link
+                            href="/manager"
+                            className="btn btn-outline btn-primary btn-sm rounded-xl hover:scale-105 transition-all duration-200 hidden md:flex gap-2"
+                        >
+                            <CogIcon className="w-4 h-4" />
+                            Manager Panel
                         </Link>
                     )}
 

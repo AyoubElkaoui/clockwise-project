@@ -18,4 +18,5 @@ public class Activity
     public string? Details { get; set; } // Optionele JSON of extra info
     
     public bool Read { get; set; } = false;
+    
 }

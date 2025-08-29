@@ -4,3 +4,61 @@ GET {{backend_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+GET {{backend_HostAddress}}/api/vacation-requests
+Accept: application/json
+
+###
+
+POST {{backend_HostAddress}}/api/vacation-requests
+Content-Type: application/json
+
+
+{
+  "userId": 1,
+  "startDate": "2025-07-15",
+  "endDate": "2025-07-20",
+  "reason": "Summer holiday"
+}
+###
+PUT {{backend_HostAddress}}/api/vacation-requests/4
+Content-Type: application/json
+
+{
+  "id": 4,
+  "userId": 1,
+  "startDate": "2025-07-20",
+  "endDate": "2025-07-25",
+  "reason": "Updated vacation plan",
+  "status": "pending",
+  "hours": 40
+}
+
+###
+GET {{backend_HostAddress}}/api/admin/vacation-requests
+Accept: application/json
+
+####
+GET {{backend_HostAddress}}/api/time-entries
+Accept: application/json
+###
+
+PUT {{backend_HostAddress}}/api/time-entries/3
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "projectId": 5,
+  "startTime": "2025-07-11T08:00:00",
+  "endTime": "2025-07-11T17:00:00",
+  "breakMinutes": 30,
+  "distanceKm": 25.5,
+  "travelCosts": 12.50,
+  "expenses": 15.75,
+  "notes": "Werkzaamheden uitgevoerd op locatie",
+  "status": "opgeslagen"
+}
+
+####
+GET {{backend_HostAddress}}/api/time-entries/4/details
+Accept: application/json
+###

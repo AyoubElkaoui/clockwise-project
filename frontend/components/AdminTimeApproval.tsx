@@ -1,4 +1,4 @@
-// Fix voor AdminTimeApproval.tsx
+// Fixed AdminTimeApproval.tsx
 
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
@@ -80,18 +80,36 @@ export default function AdminTimeApproval() {
 
     const handleReject = async () => {
         if (!entryToReject) return;
+
+        // Validation: require a rejection reason
+        if (!rejectReason.trim()) {
+            showToast("Geef een reden op voor afkeuring", "error");
+            return;
+        }
+
         try {
-            await rejectTimeEntry(entryToReject);
-            // Update lokale data
+            console.log('🔄 Attempting to reject entry:', entryToReject, 'with reason:', rejectReason.trim());
+
+            // FIXED: Pass the rejection reason to the API call
+            const result = await rejectTimeEntry(entryToReject, rejectReason.trim());
+            console.log('✅ Rejection successful:', result);
+
+            // Update lokale data - status should be "opgeslagen" (reverted to draft)
             const updatedEntries = entries.map(entry =>
-                entry.id === entryToReject ? {...entry, status: "afgekeurd"} : entry
+                entry.id === entryToReject ? {...entry, status: "opgeslagen"} : entry
             );
             setEntries(updatedEntries);
-            showToast("Uren afgekeurd", "success");
+            showToast("Uren afgekeurd en teruggezet naar concept", "success");
             setIsRejectModalOpen(false);
+            setRejectReason("");
+            setEntryToReject(null);
         } catch (error) {
-            console.error("Error rejecting entry:", error);
-            showToast("Fout bij afkeuren", "error");
+            console.error("❌ Error rejecting entry:", error);
+            console.error("Error details:", error.response?.data || error.message);
+
+            // Show more specific error message if available
+            const errorMessage = error.response?.data?.message || error.response?.data || "Fout bij afkeuren";
+            showToast(errorMessage, "error");
         }
     };
 
@@ -230,7 +248,6 @@ export default function AdminTimeApproval() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full">
                         <h3 className="text-lg font-bold mb-4">Urenregistratie details</h3>
-
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <p><span className="font-bold">Medewerker:</span> {selectedEntry.user.fullName}</p>
@@ -331,18 +348,24 @@ export default function AdminTimeApproval() {
                             onChange={(e) => setRejectReason(e.target.value)}
                             placeholder="Reden voor afkeuring..."
                             rows={3}
+                            required
                         />
 
                         <div className="flex justify-end gap-2">
                             <button
                                 className="btn btn-ghost"
-                                onClick={() => setIsRejectModalOpen(false)}
+                                onClick={() => {
+                                    setIsRejectModalOpen(false);
+                                    setRejectReason("");
+                                    setEntryToReject(null);
+                                }}
                             >
                                 Annuleren
                             </button>
                             <button
                                 className="btn btn-error"
                                 onClick={handleReject}
+                                disabled={!rejectReason.trim()}
                             >
                                 Afkeuren
                             </button>

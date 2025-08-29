@@ -55,7 +55,6 @@ public class ActivitiesController : ControllerBase
 
         return activity;
     }
-
     // PUT: api/activities/{id}/read
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(int id)
@@ -70,7 +69,6 @@ public class ActivitiesController : ControllerBase
 
         return NoContent();
     }
-
     // PUT: api/activities/read-all
     // PUT: api/activities/read-all
     [HttpPut("read-all")]

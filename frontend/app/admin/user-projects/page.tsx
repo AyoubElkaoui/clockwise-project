@@ -46,7 +46,7 @@ export default function AdminUserProjectsPage() {
                 getUsers(),
                 getCompanies(),
                 getUserProjects(0) // 0 haalt alle koppelingen op
-            ]);
+            ]) as [User[], Company[], UserProject[]]; // Add type assertion here
 
             setUsers(usersData);
             setCompanies(companiesData);
@@ -134,7 +134,7 @@ export default function AdminUserProjectsPage() {
             await assignUserToProject(selectedUser, selectedProject, adminUserId);
 
             // Ververs de lijst met koppelingen
-            const updatedUserProjects = await getUserProjects(0);
+            const updatedUserProjects = await getUserProjects(0) as UserProject[];
             setUserProjects(updatedUserProjects);
 
             setToastMessage("Gebruiker succesvol toegewezen aan project!");
@@ -168,8 +168,8 @@ export default function AdminUserProjectsPage() {
         try {
             await removeUserFromProject(userId, projectId);
 
-            // Ververs de lijst met koppelingen
-            const updatedUserProjects = await getUserProjects(0);
+            // Ververs de lijst met koppelingenconst
+            const updatedUserProjects = await getUserProjects(0) as UserProject[];
             setUserProjects(updatedUserProjects);
 
             setToastMessage("Gebruiker succesvol verwijderd van project!");

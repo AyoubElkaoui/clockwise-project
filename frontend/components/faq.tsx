@@ -1,9 +1,40 @@
 "use client";
-import React from "react";
+import React, {useState} from "react";
 import { PencilIcon } from "@heroicons/react/24/outline";
 
 const Faq = () => {
+    const [formData, setFormData] = useState({
+        fname: '',
+        lname: '',
+        email: '',
+        phone: '',
+        description: '',
+    });
+    const [status, setStatus] = useState('');
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setStatus('Versturen...');
+        const res = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+            setStatus('Verzonden ✅');
+            setFormData({ fname: '', lname: '', email: '', phone: '', description: '' });
+        } else {
+            setStatus('Fout bij versturen ❌');
+        }
+    };
+
     return (
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12 animate-fade-in">
             {/* FAQ Section */}
             <section className="space-y-4">

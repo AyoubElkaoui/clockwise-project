@@ -1,18 +1,17 @@
 "use client";
-import {useState, useEffect, JSX} from "react";
+import { useState, useEffect, JSX } from "react";
 import { getUsers, deleteUser } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
 import { useRouter } from "next/navigation";
 import ToastNotification from "@/components/ToastNotification";
+import AddUserModal from "@/components/AddUserModal";
 import { User } from "@/lib/types";
 import {
     UsersIcon,
     MagnifyingGlassIcon,
     PencilIcon,
     TrashIcon,
-    PlusIcon,
     UserPlusIcon,
-    EyeIcon
 } from "@heroicons/react/24/outline";
 
 export default function AdminUsersPage(): JSX.Element {
@@ -20,12 +19,9 @@ export default function AdminUsersPage(): JSX.Element {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState<string>("");
-
-    // Delete confirmation
+    const [isAddUserModalOpen, setIsAddUserModalOpen] = useState<boolean>(false);
     const [userToDelete, setUserToDelete] = useState<number | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-
-    // Toast notification
     const [toastMessage, setToastMessage] = useState<string>("");
     const [toastType, setToastType] = useState<"success" | "error">("success");
 
@@ -33,9 +29,8 @@ export default function AdminUsersPage(): JSX.Element {
         const fetchUsers = async (): Promise<void> => {
             try {
                 const data = await getUsers();
-
-                // SAFE ARRAY HANDLING
                 let safeData: User[] = [];
+
                 if (Array.isArray(data)) {
                     safeData = data;
                 } else if (data && typeof data === 'object' && Array.isArray(data.users)) {
@@ -44,7 +39,6 @@ export default function AdminUsersPage(): JSX.Element {
                     safeData = data.data;
                 } else {
                     console.warn("Received non-array user data:", data);
-                    safeData = [];
                 }
 
                 setUsers(safeData);
@@ -59,31 +53,12 @@ export default function AdminUsersPage(): JSX.Element {
         fetchUsers();
     }, []);
 
-    const filteredUsers = (() => {
-        if (!Array.isArray(users)) return [];
-
-        if (!searchTerm.trim()) return users;
-
-        try {
-            const searchLower = searchTerm.toLowerCase();
-            return users.filter((user: User) => {
-                if (!user || typeof user !== 'object') return false;
-
-                try {
-                    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
-                    const email = (user.email || '').toLowerCase();
-
-                    return fullName.includes(searchLower) || email.includes(searchLower);
-                } catch (error) {
-                    console.warn("Error filtering user:", user, error);
-                    return false;
-                }
-            });
-        } catch (error) {
-            console.error("Error filtering users:", error);
-            return users;
-        }
-    })();
+    const filteredUsers = users.filter((user) => {
+        const searchLower = searchTerm.toLowerCase();
+        const fullName = `${user.firstName || ""} ${user.lastName || ""}`.toLowerCase();
+        const email = (user.email || "").toLowerCase();
+        return fullName.includes(searchLower) || email.includes(searchLower);
+    });
 
     const handleDeleteClick = (userId: number): void => {
         setUserToDelete(userId);
@@ -95,10 +70,7 @@ export default function AdminUsersPage(): JSX.Element {
 
         try {
             await deleteUser(userToDelete);
-            // Refresh gebruikerslijst
-            const updatedUsers = Array.isArray(users)
-                ? users.filter((user: User) => user.id !== userToDelete)
-                : [];
+            const updatedUsers = users.filter((user) => user.id !== userToDelete);
             setUsers(updatedUsers);
             setToastMessage("Gebruiker succesvol verwijderd");
             setToastType("success");
@@ -128,10 +100,22 @@ export default function AdminUsersPage(): JSX.Element {
         );
     }
 
+    const statCard = (title: string, count: number, gradient: string) => (
+        <div className="bg-white rounded-xl p-6 shadow-elmar-card flex items-center gap-4">
+            <div className={`p-3 rounded-xl ${gradient}`}>
+                <UsersIcon className="w-8 h-8 text-white" />
+            </div>
+            <div>
+                <p className="text-gray-600 text-sm font-medium">{title}</p>
+                <p className="text-2xl font-bold text-gray-800">{count}</p>
+            </div>
+        </div>
+    );
+
     return (
         <AdminRoute>
             <div className="space-y-8 animate-fade-in">
-                {/* Header Section */}
+                {/* Header */}
                 <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
                     <div className="flex items-center justify-between">
                         <div>
@@ -142,7 +126,7 @@ export default function AdminUsersPage(): JSX.Element {
                             <p className="text-blue-100 text-lg">Beheer alle gebruikers en hun rechten</p>
                         </div>
                         <button
-                            onClick={() => router.push("/admin/users/create")}
+                            onClick={() => setIsAddUserModalOpen(true)}
                             className="btn bg-white/20 border-white/30 text-white hover:bg-white/30 rounded-xl"
                         >
                             <UserPlusIcon className="w-5 h-5 mr-2" />
@@ -151,58 +135,14 @@ export default function AdminUsersPage(): JSX.Element {
                     </div>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl">
-                                <UsersIcon className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-gray-600 text-sm font-medium">Totaal</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.length}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl">
-                                <UsersIcon className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-gray-600 text-sm font-medium">Actief</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.rank !== 'inactive').length}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl">
-                                <UsersIcon className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-gray-600 text-sm font-medium">Admins</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.rank === 'admin').length}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 rounded-xl">
-                                <UsersIcon className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-gray-600 text-sm font-medium">Managers</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.rank === 'manager').length}</p>
-                            </div>
-                        </div>
-                    </div>
+                {/* Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                    {statCard("Totaal", users.length, "bg-gradient-to-br from-blue-500 to-blue-600")}
+                    {statCard("Actief", users.filter(u => u.rank !== 'user').length, "bg-gradient-to-br from-green-500 to-green-600")}
+                    {statCard("Admins", users.filter(u => u.rank === 'admin').length, "bg-gradient-to-br from-purple-500 to-purple-600")}
+                    {statCard("Managers", users.filter(u => u.rank === 'manager').length, "bg-gradient-to-br from-orange-500 to-orange-600")}
                 </div>
-
-                {/* Search and Filters */}
+                    {/* User Table */}
                 <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
                     <div className="card-body p-8">
                         <div className="flex items-center justify-between mb-6">
@@ -229,95 +169,69 @@ export default function AdminUsersPage(): JSX.Element {
                             <table className="table w-full">
                                 <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="text-gray-700 font-semibold">👤 Gebruiker</th>
-                                    <th className="text-gray-700 font-semibold">📧 Email</th>
-                                    <th className="text-gray-700 font-semibold">💼 Functie</th>
-                                    <th className="text-gray-700 font-semibold">🔑 Rol</th>
-                                    <th className="text-gray-700 font-semibold">⚙️ Acties</th>
+                                    <th>👤 Gebruiker</th>
+                                    <th>📧 Email</th>
+                                    <th>💼 Functie</th>
+                                    <th>🔑 Rol</th>
+                                    <th>⚙️ Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? (
-                                    filteredUsers.map((user: User, index) => {
-                                        try {
-                                            if (!user || typeof user !== 'object') {
-                                                return (
-                                                    <tr key={index}>
-                                                        <td colSpan={5} className="text-center text-error">Ongeldige gebruiker</td>
-                                                    </tr>
-                                                );
-                                            }
-
-                                            return (
-                                                <tr key={user.id || index} className="hover:bg-gray-50 transition-colors duration-150">
-                                                    <td>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="avatar placeholder">
-                                                                <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
-                                                                        <span className="text-sm font-bold">
-                                                                            {`${user.firstName || ''} ${user.lastName || ''}`.trim().split(' ').map(n => n[0]).join('').substring(0, 2) || 'NN'}
-                                                                        </span>
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-bold">{`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Naamloos'}</div>
-                                                                <div className="text-sm opacity-50">ID: {user.id || 'Onbekend'}</div>
-                                                            </div>
+                                {filteredUsers.length > 0 ? (
+                                    filteredUsers.map((user) => (
+                                        <tr key={user.id}>
+                                            <td>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="avatar placeholder">
+                                                        <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
+                                                                <span className="text-sm font-bold">
+                                                                    {`${user.firstName || ''} ${user.lastName || ''}`.trim().split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                                                </span>
                                                         </div>
-                                                    </td>
-                                                    <td className="font-medium">{user.email || 'Geen email'}</td>
-                                                    <td>{user.function || "-"}</td>
-                                                    <td>
-                                                            <span className={`badge ${
-                                                                user.rank === "admin" ? "badge-error" :
-                                                                    user.rank === "manager" ? "badge-warning" : "badge-primary"
-                                                            }`}>
-                                                                {user.rank || 'onbekend'}
-                                                            </span>
-                                                    </td>
-                                                    <td>
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                className="btn btn-sm btn-outline btn-primary rounded-lg hover:scale-105 transition-all duration-200"
-                                                                onClick={() => handleEditClick(user.id)}
-                                                                disabled={!user.id}
-                                                                title="Bewerken"
-                                                            >
-                                                                <PencilIcon className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                className="btn btn-sm btn-outline btn-error rounded-lg hover:scale-105 transition-all duration-200"
-                                                                onClick={() => handleDeleteClick(user.id)}
-                                                                disabled={!user.id}
-                                                                title="Verwijderen"
-                                                            >
-                                                                <TrashIcon className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        } catch (error) {
-                                            console.warn("Error rendering user:", user, error);
-                                            return (
-                                                <tr key={index}>
-                                                    <td colSpan={5} className="text-center text-error">Fout bij laden gebruiker</td>
-                                                </tr>
-                                            );
-                                        }
-                                    })
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold">{`${user.firstName} ${user.lastName}`}</div>
+                                                        <div className="text-sm opacity-50">ID: {user.id}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{user.email}</td>
+                                            <td>{user.function || "-"}</td>
+                                            <td>
+                                                    <span className={`badge ${
+                                                        user.rank === "admin" ? "badge-error" :
+                                                            user.rank === "manager" ? "badge-warning" : "badge-primary"
+                                                    }`}>
+                                                        {user.rank || "onbekend"}
+                                                    </span>
+                                            </td>
+                                            <td>
+                                                <div className="flex gap-2">
+                                                    {/*edit user*/}
+                                                    <button
+                                                        className="btn btn-sm btn-outline btn-primary"
+                                                        onClick={() => handleEditClick(user.id)}
+                                                        disabled={!user.id}
+                                                        title="Bewerken"
+                                                    >
+                                                        <PencilIcon className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-sm btn-outline btn-error"
+                                                        onClick={() => handleDeleteClick(user.id)}
+                                                        disabled={!user.id}
+                                                        title="Verwijderen"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-12">
-                                            <div className="flex flex-col items-center gap-4">
-                                                <div className="text-6xl">👥</div>
-                                                <div className="text-xl font-semibold text-gray-600">
-                                                    {searchTerm ? 'Geen gebruikers gevonden' : 'Geen gebruikers'}
-                                                </div>
-                                                <div className="text-gray-500">
-                                                    {searchTerm ? 'Probeer een andere zoekopdracht' : 'Er zijn nog geen gebruikers toegevoegd'}
-                                                </div>
-                                            </div>
+                                        <td colSpan={5} className="text-center py-10 text-gray-500">
+                                            Geen gebruikers gevonden
                                         </td>
                                     </tr>
                                 )}
@@ -327,26 +241,17 @@ export default function AdminUsersPage(): JSX.Element {
                     </div>
                 </div>
 
-                {/* Delete confirmation modal */}
+                {/* Delete modal */}
                 {showDeleteModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-8 rounded-2xl shadow-elmar-lg max-w-md w-full mx-4">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
                             <h3 className="text-xl font-bold mb-4 text-gray-800">Gebruiker verwijderen</h3>
                             <p className="text-gray-600 mb-6">
                                 Weet je zeker dat je deze gebruiker wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
                             </p>
-
                             <div className="flex justify-end gap-3">
-                                <button
-                                    className="btn btn-outline rounded-xl"
-                                    onClick={() => setShowDeleteModal(false)}
-                                >
-                                    Annuleren
-                                </button>
-                                <button
-                                    className="btn btn-error rounded-xl hover:scale-105 transition-all duration-200"
-                                    onClick={confirmDelete}
-                                >
+                                <button className="btn btn-outline" onClick={() => setShowDeleteModal(false)}>Annuleren</button>
+                                <button className="btn btn-error" onClick={confirmDelete}>
                                     <TrashIcon className="w-4 h-4 mr-2" />
                                     Verwijderen
                                 </button>
@@ -355,9 +260,22 @@ export default function AdminUsersPage(): JSX.Element {
                     </div>
                 )}
 
+                {/* Toast notification */}
                 {toastMessage && (
                     <ToastNotification message={toastMessage} type={toastType} />
                 )}
+
+                {/* ✅ Add User Modal */}
+                <AddUserModal
+                    isOpen={isAddUserModalOpen}
+                    onClose={() => setIsAddUserModalOpen(false)}
+                    onUserAdded={(newUser) => {
+                        setUsers(prev => [...prev, newUser]);
+                        setToastMessage("Gebruiker succesvol toegevoegd");
+                        setToastType("success");
+                        setTimeout(() => setToastMessage(""), 3000);
+                    }}
+                />
             </div>
         </AdminRoute>
     );

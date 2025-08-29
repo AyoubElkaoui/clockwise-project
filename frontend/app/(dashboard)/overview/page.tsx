@@ -4,6 +4,9 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { getTimeEntries } from "@/lib/api";
 import { TimeEntry } from "@/lib/types";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import {
     ClockIcon,
     CalendarDaysIcon,
@@ -15,6 +18,7 @@ import {
     MagnifyingGlassIcon,
     CheckCircleIcon
 } from "@heroicons/react/24/outline";
+import autoTable from "jspdf-autotable";
 
 dayjs.extend(isBetween);
 
@@ -31,12 +35,337 @@ export default function UrenOverzicht(): JSX.Element {
     const [companyOptions, setCompanyOptions] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchTerm, setSearchTerm] = useState<string>("");
+    const [isExporting, setIsExporting] = useState<boolean>(false);
+    const [isPdfExporting, setIsPdfExporting] = useState(false);
 
     const safeToFixed = (value: any, decimals: number = 2): string => {
         if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
             return value.toFixed(decimals);
         }
         return '0.' + '0'.repeat(decimals);
+    };
+    // Pdf export function
+    const exportToPdf = async () => {
+        setIsPdfExporting(true);
+
+        try {
+            // Add a small delay for UX
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Create new PDF document (landscape for better table fit)
+            const pdf = new jsPDF('l', 'mm', 'a4');
+
+            // Set document properties
+            pdf.setProperties({
+                title: 'Goedgekeurde Urenregistraties Export',
+                subject: 'Approved Time Entries Report',
+                author: 'Elmar Timetracking System',
+                creator: 'Elmar Timetracking System'
+            });
+
+            // Add title
+            pdf.setFontSize(20);
+            pdf.setTextColor(34, 197, 94); // Green color for approved hours
+            pdf.text('Goedgekeurde Urenregistraties', 14, 20);
+
+            // Add export info
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            const pdfDateRange = `${dayjs(startDate).format('DD-MM-YYYY')} tot ${dayjs(endDate).format('DD-MM-YYYY')}`;
+            pdf.text(`Periode: ${pdfDateRange}`, 14, 30);
+            pdf.text(`Geëxporteerd: ${dayjs().format('DD-MM-YYYY HH:mm')}`, 14, 35);
+            pdf.text(`Aantal goedgekeurde registraties: ${filteredEntries.length}`, 14, 40);
+
+            // Calculate totals
+            const totalHours = filteredEntries.reduce((sum, entry) => {
+                const start = dayjs(entry.startTime);
+                const end = dayjs(entry.endTime);
+                const diffMin = end.diff(start, 'minute') - (entry.breakMinutes || 0);
+                const hours = diffMin > 0 ? diffMin / 60 : 0;
+                return sum + hours;
+            }, 0);
+
+            const totalExpenses = filteredEntries.reduce((sum, entry) => {
+                return sum + (entry.expenses || 0);
+            }, 0);
+
+            const totalDistance = filteredEntries.reduce((sum, entry) => {
+                return sum + (entry.distanceKm || 0);
+            }, 0);
+
+            const uniqueDays = new Set(filteredEntries.map(entry =>
+                dayjs(entry.startTime).format('YYYY-MM-DD')
+            )).size;
+
+            // Add summary totals
+            pdf.text(`Totaal uren: ${safeToFixed(totalHours)}`, 14, 45);
+            pdf.text(`Gewerkte dagen: ${uniqueDays}`, 14, 50);
+            pdf.text(`Totaal onkosten: €${safeToFixed(totalExpenses)}`, 100, 45);
+            pdf.text(`Totaal afstand: ${safeToFixed(totalDistance, 0)} km`, 100, 50);
+
+            // Prepare table data (matching your Excel format)
+            const tableData = filteredEntries.map(entry => {
+                const start = dayjs(entry.startTime);
+                const end = dayjs(entry.endTime);
+                const diffMin = end.diff(start, 'minute') - (entry.breakMinutes || 0);
+                const hours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
+
+                const companyName = entry.project?.projectGroup?.company?.name || 'Onbekend bedrijf';
+                const projectName = entry.project?.name || 'Onbekend project';
+
+                return [
+                    start.format('DD-MM-YYYY'),
+                    start.format('HH:mm'),
+                    end.format('HH:mm'),
+                    (entry.breakMinutes || 0).toString(),
+                    hours,
+                    companyName,
+                    projectName,
+                    entry.notes || '',
+                    'Goedgekeurd',
+                    (entry.distanceKm || 0).toString(),
+                    entry.travelCosts ? `€${entry.travelCosts.toFixed(2)}` : '€0.00',
+                    entry.expenses ? `€${entry.expenses.toFixed(2)}` : '€0.00'
+                ];
+            });
+
+            // Table headers
+            const headers = [
+                'Datum',
+                'Start',
+                'Eind',
+                'Pauze (min)',
+                'Uren',
+                'Bedrijf',
+                'Project',
+                'Notities',
+                'Status',
+                'Afstand (km)',
+                'Reiskosten',
+                'Onkosten'
+            ];
+
+            // Add table to PDF using autoTable
+            autoTable(pdf, {
+                head: [headers],
+                body: tableData,
+                startY: 60,
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    overflow: 'linebreak',
+                    valign: 'middle'
+                },
+                headStyles: {
+                    fillColor: [34, 197, 94], // Green header for approved hours
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    fontSize: 9
+                },
+                alternateRowStyles: {
+                    fillColor: [240, 253, 244] // Light green alternate rows
+                },
+                columnStyles: {
+                    0: { cellWidth: 20 }, // Datum
+                    1: { cellWidth: 15 }, // Start
+                    2: { cellWidth: 15 }, // Eind
+                    3: { cellWidth: 18 }, // Pauze
+                    4: { cellWidth: 15 }, // Uren
+                    5: { cellWidth: 35 }, // Bedrijf
+                    6: { cellWidth: 35 }, // Project
+                    7: { cellWidth: 40 }, // Notities
+                    8: { cellWidth: 20 }, // Status
+                    9: { cellWidth: 18 }, // Afstand
+                    10: { cellWidth: 20 }, // Reiskosten
+                    11: { cellWidth: 20 }  // Onkosten
+                },
+                margin: { top: 60, right: 14, bottom: 20, left: 14 },
+                didDrawPage: function(data) {
+                    // Add page numbers
+                    const pageCount = (pdf as any).internal.getNumberOfPages();
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(150);
+                    for (let i = 1; i <= pageCount; i++) {
+                        pdf.setPage(i);
+                        pdf.text(`Pagina ${i} van ${pageCount}`,
+                            (pdf as any).internal.pageSize.width - 30,
+                            (pdf as any).internal.pageSize.height - 10
+                        );
+                    }
+                }
+            });
+
+            // Add summary footer on last page
+            const finalY = (pdf as any).lastAutoTable.finalY + 15;
+
+            // Check if we need a new page for the summary
+            const pageHeight = (pdf as any).internal.pageSize.height;
+            if (finalY + 50 > pageHeight - 20) {
+                pdf.addPage();
+                pdf.setFontSize(14);
+                pdf.setTextColor(34, 197, 94);
+                pdf.text('Samenvatting Goedgekeurde Uren', 14, 30);
+
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(`Periode: ${pdfDateRange}`, 14, 45);
+                pdf.text(`Totaal goedgekeurde registraties: ${filteredEntries.length}`, 14, 55);
+                pdf.text(`Totaal goedgekeurde uren: ${safeToFixed(totalHours)}`, 14, 65);
+                pdf.text(`Aantal gewerkte dagen: ${uniqueDays}`, 14, 75);
+                pdf.text(`Gemiddeld uren per dag: ${uniqueDays > 0 ? safeToFixed(totalHours / uniqueDays) : '0.00'}`, 14, 85);
+
+                if (totalExpenses > 0) {
+                    pdf.text(`Totaal onkosten: €${safeToFixed(totalExpenses)}`, 14, 95);
+                }
+                if (totalDistance > 0) {
+                    pdf.text(`Totaal afstand: ${safeToFixed(totalDistance, 0)} km`, 14, 105);
+                }
+            } else {
+                pdf.setFontSize(14);
+                pdf.setTextColor(34, 197, 94);
+                pdf.text('Samenvatting Goedgekeurde Uren', 14, finalY);
+
+                pdf.setFontSize(11);
+                pdf.setTextColor(0, 0, 0);
+                pdf.text(`Periode: ${pdfDateRange}`, 14, finalY + 15);
+                pdf.text(`Totaal goedgekeurde registraties: ${filteredEntries.length}`, 14, finalY + 25);
+                pdf.text(`Totaal goedgekeurde uren: ${safeToFixed(totalHours)}`, 14, finalY + 35);
+                pdf.text(`Aantal gewerkte dagen: ${uniqueDays}`, 14, finalY + 45);
+                pdf.text(`Gemiddeld uren per dag: ${uniqueDays > 0 ? safeToFixed(totalHours / uniqueDays) : '0.00'}`, 14, finalY + 55);
+
+                if (totalExpenses > 0) {
+                    pdf.text(`Totaal onkosten: €${safeToFixed(totalExpenses)}`, 14, finalY + 65);
+                }
+                if (totalDistance > 0) {
+                    pdf.text(`Totaal afstand: ${safeToFixed(totalDistance, 0)} km`, 14, finalY + 75);
+                }
+            }
+
+            // Generate filename
+            const filenameDateRange = `${dayjs(startDate).format('DD-MM')} tot ${dayjs(endDate).format('DD-MM-YYYY')}`;
+            const filename = `Goedgekeurde_Uren_${filenameDateRange.replace(/\//g, '-')}_${dayjs().format('HH-mm')}.pdf`;
+
+            // Save the PDF
+            pdf.save(filename);
+
+            // Show success message
+            console.log(`PDF bestand "${filename}" gedownload (${filteredEntries.length} goedgekeurde registraties)`);
+
+        } catch (error) {
+            console.error('Error exporting to PDF:', error);
+            // You might want to show an error toast here if you have toast notifications
+        } finally {
+            setIsPdfExporting(false);
+        }
+    };
+
+    // Excel export function
+    const exportToExcel = async () => {
+        setIsExporting(true);
+
+        try {
+            // Add a small delay for UX
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Transform the filtered entries into Excel-friendly format
+            const excelData = filteredEntries.map((entry: TimeEntry) => {
+                const start = dayjs(entry.startTime);
+                const end = dayjs(entry.endTime);
+                const diffMin = end.diff(start, 'minute') - (entry.breakMinutes || 0);
+                const hours = diffMin > 0 ? (diffMin / 60).toFixed(2) : "0.00";
+
+                const companyName = entry.project?.projectGroup?.company?.name || 'Onbekend bedrijf';
+                const projectName = entry.project?.name || 'Onbekend project';
+
+                return {
+                    'Datum': start.format('DD-MM-YYYY'),
+                    'Starttijd': start.format('HH:mm'),
+                    'Eindtijd': end.format('HH:mm'),
+                    'Pauze (min)': entry.breakMinutes || 0,
+                    'Totaal Uren': parseFloat(hours),
+                    'Bedrijf': companyName,
+                    'Project': projectName,
+                    'Notities': entry.notes || '',
+                    'Status': 'Goedgekeurd',
+                    'Afstand (km)': entry.distanceKm || 0,
+                    'Reiskosten (€)': entry.travelCosts || 0,
+                    'Onkosten (€)': entry.expenses || 0
+                };
+            });
+
+            // Create workbook and worksheet
+            const workbook = XLSX.utils.book_new();
+
+            // Calculate totals for summary
+            const totalHours = excelData.reduce((sum, entry) => sum + entry['Totaal Uren'], 0);
+            const totalExpenses = excelData.reduce((sum, entry) => {
+                const expenses = entry['Onkosten (€)'];
+                return sum + (typeof expenses === 'number' ? expenses : 0);
+            }, 0);
+            const totalDistance = excelData.reduce((sum, entry) => {
+                const distance = entry['Afstand (km)'];
+                return sum + (typeof distance === 'number' ? distance : 0);
+            }, 0);
+            const uniqueDays = new Set(excelData.map(entry => entry['Datum'])).size;
+
+            // Add summary row at the top
+            const summaryData = [
+                {
+                    'Datum': 'SAMENVATTING GOEDGEKEURDE UREN',
+                    'Starttijd': `${excelData.length} registraties`,
+                    'Eindtijd': `${uniqueDays} dagen`,
+                    'Pauze (min)': '',
+                    'Totaal Uren': `${totalHours.toFixed(2)} uur`,
+                    'Bedrijf': `€${totalExpenses.toFixed(2)} onkosten`,
+                    'Project': `${totalDistance.toFixed(0)} km`,
+                    'Notities': `Periode: ${dayjs(startDate).format('DD-MM-YYYY')} tot ${dayjs(endDate).format('DD-MM-YYYY')}`,
+                    'Status': `Geëxporteerd: ${dayjs().format('DD-MM-YYYY HH:mm')}`,
+                    'Afstand (km)': '',
+                    'Reiskosten (€)': '',
+                    'Onkosten (€)': ''
+                },
+                {}, // Empty row
+                ...excelData
+            ];
+
+            const worksheet = XLSX.utils.json_to_sheet(summaryData);
+
+            // Set column widths for better readability
+            const columnWidths = [
+                { wch: 12 }, // Datum
+                { wch: 10 }, // Starttijd
+                { wch: 10 }, // Eindtijd
+                { wch: 12 }, // Pauze
+                { wch: 12 }, // Totaal Uren
+                { wch: 25 }, // Bedrijf
+                { wch: 25 }, // Project
+                { wch: 30 }, // Notities
+                { wch: 15 }, // Status
+                { wch: 12 }, // Afstand
+                { wch: 12 }, // Reiskosten
+                { wch: 12 }  // Onkosten
+            ];
+            worksheet['!cols'] = columnWidths;
+
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Goedgekeurde Uren');
+
+            // Generate filename with current date and filter info
+            const dateRange = `${dayjs(startDate).format('DD-MM')} tot ${dayjs(endDate).format('DD-MM-YYYY')}`;
+            const filename = `Goedgekeurde_Uren_${dateRange.replace(/\//g, '-')}_${dayjs().format('HH-mm')}.xlsx`;
+
+            // Write and download the file
+            XLSX.writeFile(workbook, filename);
+
+            // You might want to show a toast notification here if you have one
+            console.log(`Excel bestand "${filename}" gedownload (${excelData.length} goedgekeurde registraties)`);
+
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+            // You might want to show an error toast here
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     const filterData = useCallback(() => {
@@ -363,11 +692,46 @@ export default function UrenOverzicht(): JSX.Element {
                             <div className="flex items-center gap-3">
                                 <EyeIcon className="w-6 h-6 text-elmar-primary" />
                                 <h2 className="text-2xl font-bold text-gray-800">Goedgekeurde Urenregistraties</h2>
+                                <span className="badge badge-success">{filteredEntries.length} items</span>
                             </div>
-                            <button className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200">
-                                <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                                Exporteren
-                            </button>
+                            <div className="flex items-center gap-3 pr-5 ml-auto">
+                                <h2 className="text-2xl font-bold text-gray-800">Exporteren</h2>
+                            </div>
+                            <div className="flex gap-2">
+                                {/* Excel Export Button */}
+                                <button
+                                    className={`btn btn-ghost p-2 rounded-xl hover:scale-105 transition-all duration-200 hover:bg-green-50 ${isExporting ? 'loading' : ''}`}
+                                    onClick={exportToExcel}
+                                    disabled={isExporting || filteredEntries.length === 0}
+                                    title={isExporting ? 'Exporteren naar Excel...' : `Exporteren naar Excel (${filteredEntries.length} items)`}
+                                >
+                                    {!isExporting && (
+                                        <img
+                                            src="/images/excel.webp"
+                                            alt="Excel export"
+                                            className="w-6 h-6 object-contain"
+                                        />
+                                    )}
+                                    {isExporting && <div className="loading loading-spinner loading-sm"></div>}
+                                </button>
+
+                                {/* PDF Export Button */}
+                                <button
+                                    className={`btn btn-ghost p-2 rounded-xl hover:scale-105 transition-all duration-200 hover:bg-red-50 ${isPdfExporting ? 'loading' : ''}`}
+                                    onClick={exportToPdf}
+                                    disabled={isPdfExporting || filteredEntries.length === 0}
+                                    title={isPdfExporting ? 'Exporteren naar PDF...' : `Exporteren naar PDF (${filteredEntries.length} items)`}
+                                >
+                                    {!isPdfExporting && (
+                                        <img
+                                            src="/images/pdf.webp"
+                                            alt="PDF export"
+                                            className="w-6 h-6 object-contain"
+                                        />
+                                    )}
+                                    {isPdfExporting && <div className="loading loading-spinner loading-sm"></div>}
+                                </button>
+                            </div>
                         </div>
                     </div>
 

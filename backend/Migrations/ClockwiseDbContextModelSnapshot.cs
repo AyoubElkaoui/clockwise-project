@@ -17,7 +17,7 @@ namespace backend.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Fb:ValueGenerationStrategy", FbValueGenerationStrategy.IdentityColumn)
-                .HasAnnotation("ProductVersion", "9.0.4")
+                .HasAnnotation("ProductVersion", "8.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 31);
 
             modelBuilder.Entity("Activity", b =>
@@ -133,28 +133,47 @@ namespace backend.Migrations
                         .HasColumnType("TIMESTAMP");
 
                     b.Property<decimal>("Expenses")
+                        .HasPrecision(10, 2)
                         .HasColumnType("DECIMAL(18,2)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("BLOB SUB_TYPE TEXT");
 
+                    b.Property<int?>("ProcessedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ProcessedDate")
+                        .HasColumnType("TIMESTAMP");
+
+                    b.Property<string>("ProcessingNotes")
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("RequestDate")
+                        .HasColumnType("TIMESTAMP")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("TIMESTAMP");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("BLOB SUB_TYPE TEXT");
+                        .HasMaxLength(20)
+                        .HasColumnType("VARCHAR(20)")
+                        .HasDefaultValue("opgeslagen");
 
                     b.Property<decimal>("TravelCosts")
+                        .HasPrecision(10, 2)
                         .HasColumnType("DECIMAL(18,2)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProcessedBy");
 
                     b.HasIndex("ProjectId");
 
@@ -201,6 +220,12 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("BLOB SUB_TYPE TEXT");
 
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ManagerIds")
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("BLOB SUB_TYPE TEXT");
@@ -211,9 +236,12 @@ namespace backend.Migrations
 
                     b.Property<string>("Rank")
                         .IsRequired()
-                        .HasColumnType("BLOB SUB_TYPE TEXT");
+                        .HasMaxLength(20)
+                        .HasColumnType("VARCHAR(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagerId");
 
                     b.ToTable("Users");
                 });
@@ -261,8 +289,32 @@ namespace backend.Migrations
                     b.Property<double>("Hours")
                         .HasColumnType("DOUBLE PRECISION");
 
+                    b.Property<string>("ManagerApprovalNotes")
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<int?>("ManagerApprovedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ManagerApprovedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ManagerApprovedDate")
+                        .HasColumnType("TIMESTAMP");
+
+                    b.Property<int?>("ProcessedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ProcessedDate")
+                        .HasColumnType("TIMESTAMP");
+
+                    b.Property<string>("ProcessingNotes")
+                        .HasColumnType("BLOB SUB_TYPE TEXT");
+
                     b.Property<string>("Reason")
                         .HasColumnType("BLOB SUB_TYPE TEXT");
+
+                    b.Property<DateTime>("RequestDate")
+                        .HasColumnType("TIMESTAMP");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("TIMESTAMP");
@@ -275,6 +327,10 @@ namespace backend.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagerApprovedByUserId");
+
+                    b.HasIndex("ProcessedBy");
 
                     b.HasIndex("UserId");
 
@@ -316,6 +372,11 @@ namespace backend.Migrations
 
             modelBuilder.Entity("TimeEntry", b =>
                 {
+                    b.HasOne("User", "ProcessedByUser")
+                        .WithMany("ProcessedTimeEntries")
+                        .HasForeignKey("ProcessedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -323,14 +384,26 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.HasOne("User", "User")
-                        .WithMany()
+                        .WithMany("TimeEntries")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("ProcessedByUser");
+
                     b.Navigation("Project");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("User", b =>
+                {
+                    b.HasOne("User", "Manager")
+                        .WithMany("ManagedUsers")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Manager");
                 });
 
             modelBuilder.Entity("UserProject", b =>
@@ -360,11 +433,24 @@ namespace backend.Migrations
 
             modelBuilder.Entity("VacationRequest", b =>
                 {
+                    b.HasOne("User", "ManagerApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ManagerApprovedByUserId");
+
+                    b.HasOne("User", "ProcessedByUser")
+                        .WithMany()
+                        .HasForeignKey("ProcessedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ManagerApprovedByUser");
+
+                    b.Navigation("ProcessedByUser");
 
                     b.Navigation("User");
                 });
@@ -377,6 +463,15 @@ namespace backend.Migrations
             modelBuilder.Entity("ProjectGroup", b =>
                 {
                     b.Navigation("Projects");
+                });
+
+            modelBuilder.Entity("User", b =>
+                {
+                    b.Navigation("ManagedUsers");
+
+                    b.Navigation("ProcessedTimeEntries");
+
+                    b.Navigation("TimeEntries");
                 });
 #pragma warning restore 612, 618
         }

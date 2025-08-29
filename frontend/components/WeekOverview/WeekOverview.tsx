@@ -8,6 +8,7 @@ import "dayjs/locale/nl";
 import {
     getTimeEntries,
     updateTimeEntry,
+    convertStatusToFrontend,
 } from "@/lib/api";
 
 import TimeEntryModal from "./TimeEntryModal";
@@ -135,29 +136,33 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
     };
 
     const getStatusIcon = () => {
-        if (totalHours === 0) return <ClockIcon className="w-4 h-4 text-gray-400" />;
-        if (totalHours >= 8) return <CheckCircleIcon className="w-4 h-4 text-green-500" />;
-        if (totalHours >= 4) return <ExclamationTriangleIcon className="w-4 h-4 text-yellow-500" />;
-        return <XCircleIcon className="w-4 h-4 text-orange-500" />;
+        if (totalHours === 0) return <ClockIcon className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />;
+        if (totalHours >= 8) return <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />;
+        if (totalHours >= 4) return <ExclamationTriangleIcon className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />;
+        return <XCircleIcon className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />;
     };
 
-    const conceptEntries = entries.filter(entry => entry.status === "concept" || !entry.status);
+    // Convert backend status to frontend status for each entry
+    const conceptEntries = entries.filter(entry => {
+        const frontendStatus = convertStatusToFrontend(entry.status || 'opgeslagen');
+        return frontendStatus === "concept";
+    });
     const hasSelectableEntries = conceptEntries.length > 0;
 
     return (
         <>
             <div className={`
-                relative overflow-hidden rounded-xl border-2 transition-all duration-200 hover:shadow-md
+                relative overflow-hidden rounded-lg sm:rounded-xl border-2 transition-all duration-200 hover:shadow-md
                 ${isToday ? 'ring-1 ring-elmar-primary ring-opacity-30' : ''}
                 ${getStatusColor()}
             `}>
-                <div className="p-4">
+                <div className="p-2 sm:p-3 lg:p-4">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between mb-2 sm:mb-3">
+                        <div className="flex items-center gap-1 sm:gap-2">
                             {getStatusIcon()}
                             <div>
-                                <h3 className={`font-bold ${isToday ? 'text-elmar-primary' : 'text-gray-800'}`}>
+                                <h3 className={`text-sm sm:text-base font-bold ${isToday ? 'text-elmar-primary' : 'text-gray-800'}`}>
                                     {getDayDisplayName()}
                                 </h3>
                                 <p className="text-xs text-gray-600">
@@ -168,7 +173,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                         </div>
 
                         <div className="text-right">
-                            <div className={`text-lg font-bold ${getHoursColor()}`}>
+                            <div className={`text-sm sm:text-lg font-bold ${getHoursColor()}`}>
                                 {formatHours(totalHours)}
                             </div>
                             {totalExpenses > 0 && (
@@ -180,10 +185,10 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mb-3">
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div className="mb-2 sm:mb-3">
+                        <div className="w-full bg-gray-200 rounded-full h-1 sm:h-1.5">
                             <div
-                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                className={`h-1 sm:h-1.5 rounded-full transition-all duration-500 ${
                                     totalHours >= 8 ? 'bg-green-500' :
                                         totalHours >= 4 ? 'bg-yellow-500' : 'bg-orange-500'
                                 }`}
@@ -197,13 +202,13 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
 
                     {/* Entries List */}
                     {entries.length === 0 ? (
-                        <div className="text-center py-3">
+                        <div className="text-center py-2 sm:py-3">
                             <p className="text-xs text-gray-500">
                                 {isWeekend ? '🌅 Weekend' : '⏰ Geen uren'}
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1 sm:space-y-2">
                             {entries.slice(0, isExpanded ? entries.length : 2).map((entry: TimeEntry, index: number) => {
                                 try {
                                     if (!entry.startTime || !entry.endTime) {
@@ -226,14 +231,15 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                     }
 
                                     const hours = calculateHours(entry);
-                                    const canSelect = (entry.status === "concept" || !entry.status) && canEdit;
+                                    const frontendStatus = convertStatusToFrontend(entry.status || 'opgeslagen');
+                                    const canSelect = frontendStatus === "concept" && canEdit;
                                     const isSelected = entry.id ? selectedEntries.has(entry.id) : false;
 
                                     const getEntryStatusBg = () => {
-                                        switch (entry.status) {
+                                        switch (frontendStatus) {
                                             case 'goedgekeurd': return 'bg-green-100 border-green-200';
                                             case 'afgekeurd': return 'bg-red-100 border-red-200';
-                                            case 'ingeleverd': return 'bg-yellow-100 border-yellow-200';
+                                            case 'ingediend': return 'bg-yellow-100 border-yellow-200';
                                             default: return isSelected ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200';
                                         }
                                     };
@@ -241,32 +247,32 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                     return (
                                         <div
                                             key={entry.id || index}
-                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${getEntryStatusBg()}`}
+                                            className={`p-2 sm:p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${getEntryStatusBg()}`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
                                                     {canSelect && (
                                                         <input
                                                             type="checkbox"
-                                                            className="checkbox checkbox-primary checkbox-sm"
+                                                            className="checkbox checkbox-primary checkbox-sm flex-shrink-0"
                                                             checked={isSelected}
                                                             onChange={() => entry.id && handleSelectEntry(entry.id)}
                                                         />
                                                     )}
-                                                    <span className="text-sm font-medium text-gray-800">
+                                                    <span className="text-xs sm:text-sm font-medium text-gray-800 truncate">
                                                         {start.format("HH:mm")}-{end.format("HH:mm")}
                                                     </span>
-                                                    <span className="text-xs bg-elmar-primary text-white px-2 py-0.5 rounded-full font-medium">
+                                                    <span className="text-xs bg-elmar-primary text-white px-1 sm:px-2 py-0.5 rounded-full font-medium flex-shrink-0">
                                                         {formatHours(hours)}
                                                     </span>
                                                 </div>
 
-                                                <div className="flex items-center gap-1">
-                                                    {entry.status === 'goedgekeurd' && <span className="text-xs">✅</span>}
-                                                    {entry.status === 'afgekeurd' && <span className="text-xs">❌</span>}
-                                                    {entry.status === 'ingeleverd' && <span className="text-xs">⏳</span>}
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                    {frontendStatus === 'goedgekeurd' && <span className="text-xs">✅</span>}
+                                                    {frontendStatus === 'afgekeurd' && <span className="text-xs">❌</span>}
+                                                    {frontendStatus === 'ingediend' && <span className="text-xs">⏳</span>}
 
-                                                    {canEdit && (
+                                                    {(canEdit && frontendStatus === 'concept') && (
                                                         <button
                                                             onClick={() => handleEditEntry(entry)}
                                                             className="p-1 hover:bg-gray-200 rounded"
@@ -279,14 +285,14 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                             </div>
 
                                             <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
-                                                <BuildingOfficeIcon className="w-3 h-3" />
+                                                <BuildingOfficeIcon className="w-3 h-3 flex-shrink-0" />
                                                 <span className="truncate">
                                                     {entry.project?.projectGroup?.company?.name || 'Onbekend'}
                                                 </span>
                                             </div>
 
                                             <div className="flex items-center gap-1 text-xs text-gray-600">
-                                                <span className="w-2 h-2 bg-elmar-primary rounded-full"></span>
+                                                <span className="w-2 h-2 bg-elmar-primary rounded-full flex-shrink-0"></span>
                                                 <span className="truncate">
                                                     {entry.project?.name || 'Onbekend project'}
                                                 </span>
@@ -296,13 +302,13 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                                     {(entry.expenses || entry.travelCosts) && (
                                                         <div className="flex items-center gap-1 text-xs text-green-600">
-                                                            <CurrencyEuroIcon className="w-3 h-3" />
+                                                            <CurrencyEuroIcon className="w-3 h-3 flex-shrink-0" />
                                                             €{((entry.expenses || 0) + (entry.travelCosts || 0)).toFixed(2)}
                                                         </div>
                                                     )}
                                                     {entry.notes && (
                                                         <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                                                            <DocumentTextIcon className="w-3 h-3" />
+                                                            <DocumentTextIcon className="w-3 h-3 flex-shrink-0" />
                                                             <span className="truncate">{entry.notes}</span>
                                                         </div>
                                                     )}
@@ -335,10 +341,11 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     {canEdit && (
                         <button
                             onClick={handleAddEntry}
-                            className="btn btn-sm bg-gradient-elmar border-0 text-white w-full rounded-lg hover:scale-105 transition-all duration-200 mt-3"
+                            className="btn btn-sm bg-gradient-elmar border-0 text-white w-full rounded-lg hover:scale-105 transition-all duration-200 mt-2 sm:mt-3 text-xs sm:text-sm"
                         >
-                            <PlusIcon className="w-4 h-4 mr-1" />
-                            {entries.length === 0 ? 'Uren Toevoegen' : 'Nieuwe Entry'}
+                            <PlusIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                            <span className="hidden sm:inline">{entries.length === 0 ? 'Uren Toevoegen' : 'Nieuwe Entry'}</span>
+                            <span className="sm:hidden">+</span>
                         </button>
                     )}
 
@@ -346,17 +353,17 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                         <div className="text-center mt-2">
                             <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 weekStatus === 'goedgekeurd' ? 'bg-green-100 text-green-800' :
-                                    weekStatus === 'ingeleverd' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                    weekStatus === 'ingediend' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                             }`}>
                                 {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
-                                    weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' : '❌ Afgekeurd'}
+                                    weekStatus === 'ingediend' ? '⏳ Ingediend' : '❌ Afgekeurd'}
                             </span>
                         </div>
                     )}
 
                     {!canEdit && (
                         <div className="absolute top-2 right-2">
-                            <LockClosedIcon className="w-4 h-4 text-gray-400" />
+                            <LockClosedIcon className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                         </div>
                     )}
                 </div>
@@ -372,6 +379,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
         </>
     );
 }
+
 
 // Main WeekOverview Component
 export default function WeekOverview() {
@@ -421,7 +429,7 @@ export default function WeekOverview() {
 
     async function fetchFromDB() {
         try {
-            const data = await getTimeEntries();
+            const data = await getTimeEntries(); // This now uses user-specific endpoint
             let safeData: TimeEntry[] = [];
             if (Array.isArray(data)) {
                 safeData = data;
@@ -445,12 +453,14 @@ export default function WeekOverview() {
             if (weekEntries.length === 0) {
                 setWeekStatus("concept");
             } else {
-                const statuses = weekEntries.map(e => e.status);
-                if (statuses.every(s => s === "goedgekeurd")) {
+                // Convert backend statuses to frontend statuses for comparison
+                const frontendStatuses = weekEntries.map(e => convertStatusToFrontend(e.status || 'opgeslagen'));
+
+                if (frontendStatuses.every(s => s === "goedgekeurd")) {
                     setWeekStatus("goedgekeurd");
-                } else if (statuses.some(s => s === "ingeleverd")) {
-                    setWeekStatus("ingeleverd");
-                } else if (statuses.some(s => s === "afgekeurd")) {
+                } else if (frontendStatuses.some(s => s === "ingediend")) {
+                    setWeekStatus("ingediend");
+                } else if (frontendStatuses.some(s => s === "afgekeurd")) {
                     setWeekStatus("afgekeurd");
                 } else {
                     setWeekStatus("concept");
@@ -480,7 +490,8 @@ export default function WeekOverview() {
         const weekEnd = currentWeek.add(6, "day").endOf("day");
 
         const conceptEntries = localEntries.filter(entry => {
-            if (entry.status !== "concept" && entry.status) return false;
+            const frontendStatus = convertStatusToFrontend(entry.status || 'opgeslagen');
+            if (frontendStatus !== "concept") return false;
             try {
                 const entryDate = dayjs(entry.startTime);
                 return entryDate.isBetween(weekStart, weekEnd, "day", "[]");
@@ -502,7 +513,8 @@ export default function WeekOverview() {
         const weekEnd = currentWeek.add(6, "day").endOf("day");
 
         const conceptEntries = localEntries.filter(entry => {
-            if (entry.status !== "concept" && entry.status) return false;
+            const frontendStatus = convertStatusToFrontend(entry.status || 'opgeslagen');
+            if (frontendStatus !== "concept") return false;
             try {
                 const entryDate = dayjs(entry.startTime);
                 return entryDate.isBetween(weekStart, weekEnd, "day", "[]");
@@ -522,7 +534,7 @@ export default function WeekOverview() {
                 if (entry.id) {
                     await updateTimeEntry(entry.id, {
                         ...entry,
-                        status: "concept"
+                        status: "concept" // Using frontend status value, will be converted in API
                     });
                 }
             }
@@ -543,7 +555,8 @@ export default function WeekOverview() {
         const weekEnd = currentWeek.add(6, "day").endOf("day");
 
         const conceptEntries = localEntries.filter(entry => {
-            if (entry.status !== "concept" && entry.status) return false;
+            const frontendStatus = convertStatusToFrontend(entry.status || 'opgeslagen');
+            if (frontendStatus !== "concept") return false;
             try {
                 const entryDate = dayjs(entry.startTime);
                 return entryDate.isBetween(weekStart, weekEnd, "day", "[]");
@@ -563,7 +576,7 @@ export default function WeekOverview() {
                 if (entry.id) {
                     await updateTimeEntry(entry.id, {
                         ...entry,
-                        status: "ingeleverd"
+                        status: "ingediend" // Using frontend status value, will be converted in API
                     });
                 }
             }
@@ -630,7 +643,8 @@ export default function WeekOverview() {
     const weekStart = currentWeek.startOf("day");
     const weekEnd = currentWeek.add(6, "day").endOf("day");
     const conceptEntries = localEntries.filter(entry => {
-        if (entry.status !== "concept" && entry.status) return false;
+        const frontendStatus = convertStatusToFrontend(entry.status || 'opgeslagen');
+        if (frontendStatus !== "concept") return false;
         try {
             const entryDate = dayjs(entry.startTime);
             return entryDate.isBetween(weekStart, weekEnd, "day", "[]");
@@ -642,63 +656,63 @@ export default function WeekOverview() {
     const canEdit = weekStatus === "concept";
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-4 sm:space-y-6 animate-fade-in px-2 sm:px-4 lg:px-0">
             {/* Week Header */}
-            <div className="bg-gradient-elmar text-white rounded-2xl p-6 shadow-elmar-card">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                            <CalendarDaysIcon className="w-8 h-8" />
+            <div className="bg-gradient-elmar text-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-elmar-card">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+                    <div className="min-w-0">
+                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 flex items-center gap-2 sm:gap-3">
+                            <CalendarDaysIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                             Week {weekNummer} - {maandNaam} {jaar}
                         </h2>
-                        <p className="text-blue-100 text-lg">
+                        <p className="text-blue-100 text-sm sm:text-base lg:text-lg">
                             {startVanWeek.format("D MMM")} - {eindVanWeek.format("D MMM YYYY")}
                         </p>
                         {weekStatus !== "concept" && (
                             <div className="mt-2">
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                                     weekStatus === 'goedgekeurd' ? 'bg-green-500 text-white' :
-                                        weekStatus === 'ingeleverd' ? 'bg-yellow-500 text-white' :
+                                        weekStatus === 'ingediend' ? 'bg-yellow-500 text-white' :
                                             'bg-red-500 text-white'
                                 }`}>
                                     {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
-                                        weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' :
+                                        weekStatus === 'ingediend' ? '⏳ Ingediend' :
                                             '❌ Afgekeurd'}
                                 </span>
                             </div>
                         )}
                     </div>
-                    <div className="text-right">
-                        <div className="text-sm text-blue-200 mb-1">Totaal deze week</div>
-                        <div className="text-3xl font-bold">{formatHours(totalHoursThisWeek)}</div>
-                        <div className="text-sm text-blue-200">
+                    <div className="text-right flex-shrink-0">
+                        <div className="text-xs sm:text-sm text-blue-200 mb-1">Totaal deze week</div>
+                        <div className="text-2xl sm:text-3xl font-bold">{formatHours(totalHoursThisWeek)}</div>
+                        <div className="text-xs sm:text-sm text-blue-200">
                             {totalHoursThisWeek < 40 ? `${formatHours(40 - totalHoursThisWeek)} onder 40u` : 'Volledig'}
                         </div>
                     </div>
                 </div>
 
                 {/* Week Navigation and Actions */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex gap-2">
                         <button
-                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
+                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl text-xs sm:text-sm"
                             onClick={handlePrevWeek}
                         >
-                            <ArrowLeftIcon className="w-5 h-5" />
+                            <ArrowLeftIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span className="hidden sm:inline">Vorige</span>
                         </button>
                         <button
-                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
+                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl text-xs sm:text-sm"
                             onClick={handleToday}
                         >
-                            <HomeIcon className="w-5 h-5" />
+                            <HomeIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span className="hidden sm:inline">Vandaag</span>
                         </button>
                         <button
-                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
+                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl text-xs sm:text-sm"
                             onClick={handleNextWeek}
                         >
-                            <ArrowRightIcon className="w-5 h-5" />
+                            <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span className="hidden sm:inline">Volgende</span>
                         </button>
                     </div>
@@ -708,32 +722,20 @@ export default function WeekOverview() {
                         {canEdit && conceptEntries.length > 0 && (
                             <>
                                 <button
-                                    className="btn bg-white/20 border-white/30 text-white hover:bg-white/30 rounded-xl"
-                                    onClick={handleSaveWeek}
-                                    disabled={isSaving}
-                                >
-                                    {isSaving ? (
-                                        <span className="loading loading-spinner loading-sm"></span>
-                                    ) : (
-                                        <BookmarkIcon className="w-5 h-5" />
-                                    )}
-                                    <span className="hidden sm:inline">
-                                        {isSaving ? "Opslaan..." : `Opslaan (${conceptEntries.length})`}
-                                    </span>
-                                </button>
-
-                                <button
-                                    className="btn bg-green-500 border-green-500 text-white hover:bg-green-600 rounded-xl"
+                                    className="btn bg-green-500 border-green-500 text-white hover:bg-green-600 rounded-xl text-xs sm:text-sm"
                                     onClick={handleSubmitWeek}
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting ? (
                                         <span className="loading loading-spinner loading-sm"></span>
                                     ) : (
-                                        <PaperAirplaneIcon className="w-5 h-5" />
+                                        <PaperAirplaneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                                     )}
                                     <span className="hidden sm:inline">
                                         {isSubmitting ? "Inleveren..." : `Inleveren (${conceptEntries.length})`}
+                                    </span>
+                                    <span className="sm:hidden">
+                                        {isSubmitting ? "..." : `(${conceptEntries.length})`}
                                     </span>
                                 </button>
                             </>
@@ -743,7 +745,7 @@ export default function WeekOverview() {
             </div>
 
             {/* Compact Week Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-4">
                 {days.map((day, index) => {
                     const entries = getDayEntries(day);
 
@@ -765,37 +767,37 @@ export default function WeekOverview() {
             {/* Week Summary */}
             {totalHoursThisWeek > 0 && (
                 <div className="card bg-white shadow-elmar-card">
-                    <div className="card-body p-6">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <ClockIcon className="w-6 h-6 text-elmar-primary" />
+                    <div className="card-body p-4 sm:p-6">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-elmar-primary" />
                             Week Samenvatting
                         </h3>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-blue-600">{formatHours(totalHoursThisWeek)}</div>
-                                <div className="text-sm text-gray-600">Totaal uren</div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">{formatHours(totalHoursThisWeek)}</div>
+                                <div className="text-xs sm:text-sm text-gray-600">Totaal uren</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-green-600">
+                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">
                                     {days.filter(day => getDayHours(day) > 0).length}
                                 </div>
-                                <div className="text-sm text-gray-600">Werkdagen</div>
+                                <div className="text-xs sm:text-sm text-gray-600">Werkdagen</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-purple-600">
+                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">
                                     {totalHoursThisWeek > 0 ? formatHours(totalHoursThisWeek / days.filter(day => getDayHours(day) > 0).length) : '0u'}
                                 </div>
-                                <div className="text-sm text-gray-600">Gemiddeld</div>
+                                <div className="text-xs sm:text-sm text-gray-600">Gemiddeld</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-orange-600">
+                            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center">
+                                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600">
                                     {((totalHoursThisWeek / 40) * 100).toFixed(0)}%
                                 </div>
-                                <div className="text-sm text-gray-600">Van 40u</div>
+                                <div className="text-xs sm:text-sm text-gray-600">Van 40u</div>
                             </div>
                         </div>
 
@@ -805,9 +807,9 @@ export default function WeekOverview() {
                                 <span className="font-medium text-gray-700">Voortgang naar 40 uur</span>
                                 <span className="font-medium text-gray-700">{formatHours(totalHoursThisWeek)} / 40u</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                                 <div
-                                    className={`h-3 rounded-full transition-all duration-500 ${
+                                    className={`h-2 sm:h-3 rounded-full transition-all duration-500 ${
                                         totalHoursThisWeek >= 40 ? 'bg-green-500' :
                                             totalHoursThisWeek >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
                                     }`}
@@ -819,15 +821,15 @@ export default function WeekOverview() {
                         {/* Status Messages */}
                         {totalHoursThisWeek < 32 && (
                             <div className="alert alert-warning rounded-xl">
-                                <ExclamationTriangleIcon className="w-5 h-5" />
-                                <span>Je hebt minder dan 32 uur geregistreerd deze week.</span>
+                                <ExclamationTriangleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="text-sm sm:text-base">Je hebt minder dan 32 uur geregistreerd deze week.</span>
                             </div>
                         )}
 
                         {totalHoursThisWeek >= 40 && (
                             <div className="alert alert-success rounded-xl">
-                                <CheckCircleIcon className="w-5 h-5" />
-                                <span>Gefeliciteerd! Je hebt een volledige werkweek geregistreerd.</span>
+                                <CheckCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="text-sm sm:text-base">Gefeliciteerd! Je hebt een volledige werkweek geregistreerd.</span>
                             </div>
                         )}
                     </div>

@@ -1,4 +1,3 @@
-// Enhanced VacationEntryForm with fixed API calls
 "use client";
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
@@ -16,6 +15,13 @@ import {
     CurrencyEuroIcon
 } from "@heroicons/react/24/outline";
 
+// Import your API functions
+import {
+    createVacationRequest,
+    getVacationBalanceForUser,
+    calculateWorkingDays
+} from "@/lib/api";
+
 // Voeg dayjs plugins toe
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -24,37 +30,14 @@ dayjs.extend(isBetween);
 interface VacationBalance {
     totalHours: number;
     usedHours: number;
+    pendingHours: number;
     remainingHours: number;
     year: number;
+    totalDays: number;
+    usedDays: number;
+    pendingDays: number;
+    remainingDays: number;
 }
-
-// Mock API function for vacation request registration
-const registerVacationRequest = async (vacationData: any) => {
-    try {
-        // Try real API first
-        const response = await fetch('http://localhost:5203/api/vacation-requests', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(vacationData)
-        });
-
-        if (response.ok) {
-            return await response.json();
-        } else {
-            throw new Error('API call failed');
-        }
-    } catch (error) {
-        console.warn('Real API not available, simulating success:', error);
-        // Simulate success for demo purposes
-        return {
-            success: true,
-            id: Date.now(),
-            message: 'Vakantieaanvraag succesvol ingediend (demo mode)'
-        };
-    }
-};
 
 export default function VacationEntryForm() {
     const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
@@ -69,51 +52,33 @@ export default function VacationEntryForm() {
     const dailyHours = 8; // standaard werkuren per dag
 
     useEffect(() => {
-        // Haal vakantie balans op
-        const fetchVacationBalance = async () => {
-            try {
-                const userId = Number(localStorage.getItem("userId")) || 0;
-
-                try {
-                    // Try real API first
-                    const response = await fetch(`http://localhost:5203/api/vacation-requests/balance/${userId}`, {
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        setVacationBalance(data);
-                    } else {
-                        throw new Error('API not available');
-                    }
-                } catch (apiError) {
-                    console.warn('Real API not available, using fallback balance:', apiError);
-                    // Fallback balans
-                    setVacationBalance({
-                        totalHours: 200,
-                        usedHours: 40,
-                        remainingHours: 160,
-                        year: new Date().getFullYear()
-                    });
-                }
-            } catch (error) {
-                console.error('Error fetching vacation balance:', error);
-                // Default fallback balans
-                setVacationBalance({
-                    totalHours: 200,
-                    usedHours: 0,
-                    remainingHours: 200,
-                    year: new Date().getFullYear()
-                });
-            } finally {
-                setLoadingBalance(false);
-            }
-        };
-
         fetchVacationBalance();
     }, []);
+
+    const fetchVacationBalance = async () => {
+        setLoadingBalance(true);
+        try {
+            const userId = Number(localStorage.getItem("userId")) || 1;
+            const data = await getVacationBalanceForUser(userId);
+            setVacationBalance(data);
+        } catch (apiError) {
+            console.warn('API not available, using fallback balance:', apiError);
+            // Fallback balans
+            setVacationBalance({
+                totalHours: 200,
+                usedHours: 40,
+                pendingHours: 0,
+                remainingHours: 160,
+                year: new Date().getFullYear(),
+                totalDays: 25,
+                usedDays: 5,
+                pendingDays: 0,
+                remainingDays: 20
+            });
+        } finally {
+            setLoadingBalance(false);
+        }
+    };
 
     // Valideer datums
     useEffect(() => {
@@ -123,22 +88,7 @@ export default function VacationEntryForm() {
     }, [startDate, endDate]);
 
     const calculateWorkdays = () => {
-        const start = dayjs(startDate);
-        const end = dayjs(endDate);
-
-        let workDays = 0;
-        let currentDay = start;
-
-        while (currentDay.isSameOrBefore(end)) {
-            // Tel alleen werkdagen (ma-vr)
-            const dayOfWeek = currentDay.day();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = zondag, 6 = zaterdag
-                workDays++;
-            }
-            currentDay = currentDay.add(1, 'day');
-        }
-
-        return workDays;
+        return calculateWorkingDays(startDate, endDate);
     };
 
     const calculateTotalDays = () => {
@@ -150,9 +100,14 @@ export default function VacationEntryForm() {
     const workDays = calculateWorkdays();
     const totalDays = calculateTotalDays();
     const requestedHours = workDays * dailyHours;
+
+    // Belangrijk: Check tegen remainingHours (dit houdt al rekening met pending requests)
     const canSubmit = vacationBalance ? requestedHours <= vacationBalance.remainingHours : false;
 
     const handleSubmit = async () => {
+        setError("");
+
+        // Basis validaties
         if (!startDate || !endDate || !reason.trim()) {
             setError("Vul alle velden in.");
             return;
@@ -163,39 +118,51 @@ export default function VacationEntryForm() {
             return;
         }
 
-        if (!canSubmit) {
-            setError(`Je hebt onvoldoende vakantie-uren. Je vraagt ${requestedHours} uur aan, maar hebt nog maar ${vacationBalance?.remainingHours || 0} uur over.`);
-            return;
-        }
-
         if (workDays === 0) {
             setError("De geselecteerde periode bevat geen werkdagen. Selecteer een periode met werkdagen.");
             return;
         }
 
+        // Balance validatie - dit is nu de belangrijkste check
+        if (!vacationBalance) {
+            setError("Vakantie balans kon niet worden geladen. Probeer het opnieuw.");
+            return;
+        }
+
+        if (requestedHours > vacationBalance.remainingHours) {
+            setError(`Je hebt onvoldoende vakantie-uren. Je vraagt ${requestedHours} uur aan, maar hebt nog maar ${vacationBalance.remainingHours} uur beschikbaar (inclusief pending aanvragen).`);
+            return;
+        }
+
         const vacationData = {
-            userId: Number(localStorage.getItem("userId")) || 0,
+            userId: Number(localStorage.getItem("userId")) || 1,
             startDate,
             endDate,
             hours: requestedHours,
-            reason,
+            reason: reason.trim(),
             status: "pending",
         };
 
         setIsSubmitting(true);
-        setError("");
 
         try {
-            const result = await registerVacationRequest(vacationData);
+            const result = await createVacationRequest(vacationData);
             console.log('Vacation request result:', result);
 
+            // Refresh balance na succesvol aanmaken
+            await fetchVacationBalance();
+
             // Show success message and redirect
-            alert(`Vakantieaanvraag succesvol ingediend!\n\nPeriode: ${dayjs(startDate).format('DD-MM-YYYY')} tot ${dayjs(endDate).format('DD-MM-YYYY')}\nWerkdagen: ${workDays}\nUren: ${requestedHours}`);
+            alert(`Vakantieaanvraag succesvol ingediend!\n\nPeriode: ${dayjs(startDate).format('DD-MM-YYYY')} tot ${dayjs(endDate).format('DD-MM-YYYY')}\nWerkdagen: ${workDays}\nUren: ${requestedHours}\n\nStatus: In behandeling\nResterende uren: ${vacationBalance.remainingHours - requestedHours} uur`);
             router.push("/vacation");
         } catch (err: any) {
             console.error('Vacation request error:', err);
+
+            // Handle different error types
             if (err.response?.data) {
                 setError(err.response.data);
+            } else if (err.message) {
+                setError(err.message);
             } else {
                 setError("Fout bij het indienen van de vakantie-aanvraag");
             }
@@ -209,7 +176,7 @@ export default function VacationEntryForm() {
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
                 <div className="text-center">
                     <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
-                    <p className="text-lg font-semibold text-gray-700">Vakantie gegevens laden...</p>
+                    <p className="text-lg font-semibold text-gray-700">Vakantie balans laden...</p>
                 </div>
             </div>
         );
@@ -240,11 +207,6 @@ export default function VacationEntryForm() {
                             </div>
                             <p className="text-blue-100 text-lg">Plan je welverdiende vakantie</p>
                         </div>
-                        <div className="hidden md:block">
-                            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-                                <CalendarDaysIcon className="w-16 h-16 text-white opacity-80" />
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -253,46 +215,76 @@ export default function VacationEntryForm() {
                     <div className="xl:col-span-2">
                         <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl overflow-hidden">
                             <div className="card-body p-8">
-                                {/* Vakantie Balans */}
+                                {/* Vakantie Balans - VERBETERD */}
                                 {vacationBalance && (
                                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-8 border border-green-200">
                                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                             <CurrencyEuroIcon className="w-6 h-6 text-green-600" />
                                             Jouw Vakantie Balans {vacationBalance.year}
                                         </h3>
-                                        <div className="grid grid-cols-3 gap-6 mb-6">
+                                        <div className="grid grid-cols-4 gap-4 mb-6">
                                             <div className="text-center">
-                                                <div className="text-3xl font-bold text-blue-600 mb-2">{vacationBalance.totalHours}</div>
-                                                <div className="text-sm text-gray-600">Totaal uren</div>
-                                                <div className="text-xs text-gray-500">({vacationBalance.totalHours / 8} dagen)</div>
+                                                <div className="text-2xl font-bold text-blue-600 mb-2">{vacationBalance.totalHours}u</div>
+                                                <div className="text-sm text-gray-600">Totaal</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.totalDays} dagen)</div>
                                             </div>
                                             <div className="text-center">
-                                                <div className="text-3xl font-bold text-orange-600 mb-2">{vacationBalance.usedHours}</div>
+                                                <div className="text-2xl font-bold text-green-600 mb-2">{vacationBalance.usedHours}u</div>
                                                 <div className="text-sm text-gray-600">Gebruikt</div>
-                                                <div className="text-xs text-gray-500">({vacationBalance.usedHours / 8} dagen)</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.usedDays} dagen)</div>
                                             </div>
                                             <div className="text-center">
-                                                <div className="text-3xl font-bold text-green-600 mb-2">{vacationBalance.remainingHours}</div>
-                                                <div className="text-sm text-gray-600">Resterend</div>
-                                                <div className="text-xs text-gray-500">({vacationBalance.remainingHours / 8} dagen)</div>
+                                                <div className="text-2xl font-bold text-orange-600 mb-2">{vacationBalance.pendingHours}u</div>
+                                                <div className="text-sm text-gray-600">In behandeling</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.pendingDays} dagen)</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-purple-600 mb-2">{vacationBalance.remainingHours}u</div>
+                                                <div className="text-sm text-gray-600">Beschikbaar</div>
+                                                <div className="text-xs text-gray-500">({vacationBalance.remainingDays} dagen)</div>
                                             </div>
                                         </div>
 
-                                        {/* Progress bar */}
+                                        {/* Progress bar - VERBETERD */}
                                         <div>
                                             <div className="flex justify-between text-sm mb-2">
-                                                <span className="font-semibold text-gray-700">Gebruikt van totaal</span>
+                                                <span className="font-semibold text-gray-700">Vakantie-uren status</span>
                                                 <span className="font-semibold text-gray-700">
-                                                    {((vacationBalance.usedHours / vacationBalance.totalHours) * 100).toFixed(1)}%
+                                                    {(((vacationBalance.usedHours + vacationBalance.pendingHours) / vacationBalance.totalHours) * 100).toFixed(1)}% gebruikt/gereserveerd
                                                 </span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-4">
-                                                <div
-                                                    className="bg-gradient-to-r from-orange-400 to-orange-600 h-4 rounded-full transition-all duration-300"
-                                                    style={{ width: `${(vacationBalance.usedHours / vacationBalance.totalHours) * 100}%` }}
-                                                ></div>
+                                                <div className="flex h-4 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="bg-green-500"
+                                                        style={{ width: `${(vacationBalance.usedHours / vacationBalance.totalHours) * 100}%` }}
+                                                        title={`Gebruikt: ${vacationBalance.usedHours}u`}
+                                                    ></div>
+                                                    <div
+                                                        className="bg-orange-500"
+                                                        style={{ width: `${(vacationBalance.pendingHours / vacationBalance.totalHours) * 100}%` }}
+                                                        title={`In behandeling: ${vacationBalance.pendingHours}u`}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between text-xs mt-1">
+                                                <span className="text-green-600">✅ Gebruikt ({vacationBalance.usedHours}u)</span>
+                                                <span className="text-orange-600">⏳ In behandeling ({vacationBalance.pendingHours}u)</span>
+                                                <span className="text-purple-600">🟢 Beschikbaar ({vacationBalance.remainingHours}u)</span>
                                             </div>
                                         </div>
+
+                                        {/* Waarschuwing als weinig uren over */}
+                                        {vacationBalance.remainingHours < 40 && (
+                                            <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                    <ExclamationTriangleIcon className="w-5 h-5 text-yellow-600" />
+                                                    <span className="text-yellow-800 font-medium">
+                                                        Let op: Je hebt nog maar {vacationBalance.remainingHours} uur ({vacationBalance.remainingDays} dagen) beschikbaar.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -361,7 +353,7 @@ export default function VacationEntryForm() {
                                     </div>
                                 )}
 
-                                {/* Validation Messages */}
+                                {/* Validation Messages - VERBETERD */}
                                 {workDays === 0 && startDate && endDate && (
                                     <div className="alert alert-warning rounded-xl mb-6">
                                         <ExclamationTriangleIcon className="w-6 h-6" />
@@ -372,14 +364,25 @@ export default function VacationEntryForm() {
                                 {!canSubmit && requestedHours > 0 && vacationBalance && workDays > 0 && (
                                     <div className="alert alert-error rounded-xl mb-6">
                                         <ExclamationTriangleIcon className="w-6 h-6" />
-                                        <span>Je hebt niet genoeg vakantie-uren voor deze aanvraag!</span>
+                                        <div>
+                                            <div className="font-bold">Onvoldoende vakantie-uren!</div>
+                                            <div className="text-sm">
+                                                Je vraagt {requestedHours} uur aan, maar hebt nog maar {vacationBalance.remainingHours} uur beschikbaar
+                                                (inclusief {vacationBalance.pendingHours} uur in behandeling).
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
                                 {canSubmit && requestedHours > 0 && workDays > 0 && (
                                     <div className="alert alert-success rounded-xl mb-6">
                                         <CheckCircleIcon className="w-6 h-6" />
-                                        <span>Perfect! Je kunt deze vakantie aanvragen.</span>
+                                        <div>
+                                            <div className="font-bold">Perfect! Je kunt deze vakantie aanvragen.</div>
+                                            <div className="text-sm">
+                                                Na goedkeuring heb je nog {vacationBalance?.remainingHours! - requestedHours} uur ({(vacationBalance?.remainingHours! - requestedHours) / 8} dagen) over.
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
@@ -409,9 +412,8 @@ export default function VacationEntryForm() {
                         </div>
                     </div>
 
-                    {/* Sidebar */}
+                    {/* Sidebar - Calculation Preview */}
                     <div className="xl:col-span-1 space-y-6">
-                        {/* Calculation Preview */}
                         <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl">
                             <div className="card-body p-6">
                                 <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -450,14 +452,21 @@ export default function VacationEntryForm() {
                                     </div>
 
                                     {vacationBalance && (
-                                        <div className={`flex justify-between items-center p-3 rounded-xl ${
-                                            canSubmit ? 'bg-green-50' : 'bg-red-50'
-                                        }`}>
-                                            <span className="text-sm font-medium text-gray-700">Resterend na aanvraag:</span>
-                                            <span className={`font-bold ${canSubmit ? 'text-green-600' : 'text-red-600'}`}>
-                                                {vacationBalance.remainingHours - requestedHours} uur
-                                            </span>
-                                        </div>
+                                        <>
+                                            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
+                                                <span className="text-sm font-medium text-gray-700">Huidige beschikbaar:</span>
+                                                <span className="font-bold text-blue-600">{vacationBalance.remainingHours} uur</span>
+                                            </div>
+
+                                            <div className={`flex justify-between items-center p-3 rounded-xl ${
+                                                canSubmit ? 'bg-green-50' : 'bg-red-50'
+                                            }`}>
+                                                <span className="text-sm font-medium text-gray-700">Na deze aanvraag:</span>
+                                                <span className={`font-bold ${canSubmit ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {vacationBalance.remainingHours - requestedHours} uur
+                                                </span>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -471,27 +480,12 @@ export default function VacationEntryForm() {
                                     Belangrijk om te weten
                                 </h4>
                                 <div className="space-y-2 text-sm text-gray-700">
-                                    <p>• Alleen werkdagen (maandag t/m vrijdag) tellen mee voor vakantie-uren</p>
-                                    <p>• Weekenddagen kosten geen vakantie-uren</p>
+                                    <p>• <strong>Pending requests</strong> zijn al afgetrokken van je beschikbare uren</p>
+                                    <p>• Je kunt niet meer uren aanvragen dan je beschikbaar hebt</p>
+                                    <p>• Bij afwijzing krijg je de uren automatisch terug</p>
+                                    <p>• Alleen werkdagen (ma-vr) tellen mee voor vakantie-uren</p>
                                     <p>• Je aanvraag moet goedgekeurd worden door je manager</p>
                                     <p>• Je krijgt een notificatie zodra je aanvraag is behandeld</p>
-                                    <p>• Je hebt {vacationBalance?.totalHours || 200} vakantie-uren per jaar</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Quick Actions */}
-                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl">
-                            <div className="card-body p-6">
-                                <h4 className="font-bold text-gray-800 mb-3">Snelle Acties</h4>
-                                <div className="space-y-2">
-                                    <button
-                                        onClick={() => router.push("/vacation")}
-                                        className="btn btn-outline btn-primary rounded-xl w-full justify-start hover:scale-105 transition-all duration-200"
-                                    >
-                                        <ArrowLeftIcon className="w-4 h-4 mr-2" />
-                                        Terug naar Overzicht
-                                    </button>
                                 </div>
                             </div>
                         </div>

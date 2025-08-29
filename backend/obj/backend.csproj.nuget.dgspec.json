@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/home/ayoub/clockwise-project/backend/backend.csproj": {}
+    "/Users/zakiazhari/WebstormProjects/clockwise-project/backend/backend.csproj": {}
   },
   "projects": {
-    "/home/ayoub/clockwise-project/backend/backend.csproj": {
+    "/Users/zakiazhari/WebstormProjects/clockwise-project/backend/backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/home/ayoub/clockwise-project/backend/backend.csproj",
+        "projectUniqueName": "/Users/zakiazhari/WebstormProjects/clockwise-project/backend/backend.csproj",
         "projectName": "backend",
-        "projectPath": "/home/ayoub/clockwise-project/backend/backend.csproj",
-        "packagesPath": "/home/ayoub/.nuget/packages/",
-        "outputPath": "/home/ayoub/clockwise-project/backend/obj/",
+        "projectPath": "/Users/zakiazhari/WebstormProjects/clockwise-project/backend/backend.csproj",
+        "packagesPath": "/Users/zakiazhari/.nuget/packages/",
+        "outputPath": "/Users/zakiazhari/WebstormProjects/clockwise-project/backend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/home/ayoub/.nuget/NuGet/NuGet.Config"
+          "/Users/zakiazhari/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -32,20 +32,23 @@
           "warnAsError": [
             "NU1605"
           ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
         }
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "FirebirdSql.EntityFrameworkCore.Firebird": {
               "target": "Package",
-              "version": "[12.0.0, )"
+              "version": "[11.0.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[8.0.0, )"
             },
             "Microsoft.AspNetCore.Cors": {
               "target": "Package",
@@ -65,13 +68,13 @@
             },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
-              "version": "[9.0.4, )"
+              "version": "[8.0.4, )"
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
               "target": "Package",
-              "version": "[9.0.4, )"
+              "version": "[8.0.4, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -97,7 +100,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.408/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet@8/8.0.18/libexec/sdk/8.0.118/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -2,6 +2,7 @@
 import React from "react";
 import AdminRoute from "@/components/AdminRoute";
 import AdminTimeApproval from "@/components/AdminTimeApproval";
+import ManagerTimeApproval from "@/components/ManagerTimeApproval";
 
 export default function ApproveHoursPage() {
     return (
@@ -18,7 +19,7 @@ export default function ApproveHoursPage() {
                             Afgekeurde uren worden rood gemarkeerd en kunnen opnieuw worden bewerkt door de medewerker.
                         </p>
 
-                        <AdminTimeApproval />
+                        <ManagerTimeApproval />
                     </div>
                 </div>
             </div>

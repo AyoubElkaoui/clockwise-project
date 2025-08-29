@@ -101,6 +101,7 @@ public static class SeedData
         };
         
         // Voeg nog 20 projecten toe om tot 50 te komen
+        var random = new Random();
         for (int i = 1; i <= 22; i++)
         {
             int groupIndex = i % projectGroups.Count;
@@ -114,8 +115,8 @@ public static class SeedData
         context.Projects.AddRange(projects);
         context.SaveChanges();
 
-        // Seed Users (20+ gebruikers)
-        var ranks = new[] { "user", "manager", "admin" };
+        // Seed Users (20+ gebruikers) - UPDATED with Rank
+        var Ranks = new[] { "user", "manager", "admin" };
         var firstNames = new[] { "Ayoub", "Jan", "Piet", "Klaas", "Mohammed", "Lisa", "Anna", "Sophie", "Thomas", "Kevin", "Luuk", "Daan", "Emma", "Julia", "Sanne", "Lieke", "Bas", "Thijs", "Lars", "Tim", "Niels", "Ruben" };
         var lastNames = new[] { "El Kaoui", "de Vries", "Jansen", "Visser", "van Dijk", "Bakker", "Janssen", "Meijer", "de Boer", "Mulder", "de Groot", "Bos", "Vos", "Peters", "Hendriks", "van Leeuwen", "Dekker", "Brouwer", "de Wit", "Dijkstra" };
         var functions = new[] { "Developer", "Projectleider", "Manager", "Administratief Medewerker", "Uitvoerder", "Technicus", "Verkoper", "Inkoper", "Accountmanager", "Architect", "Tester", "HR Medewerker", "Financieel Medewerker" };
@@ -133,11 +134,25 @@ public static class SeedData
             City = "Adminstad",
             LoginName = "admin",
             Password = "adminpass",
-            Rank = "admin",
+            Rank = "admin", 
             Function = "Systeembeheerder"
         });
         
-        // Manager gebruiker
+        users.Add(new User {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "user@example.com",
+            Address = "Teststraat",
+            HouseNumber = "1",
+            PostalCode = "1111 AA",
+            City = "Teststad",
+            LoginName = "user",
+            Password = "user",
+            Rank = "user",
+            Function = "Test User"
+        });
+        
+        // Manager gebruikers
         users.Add(new User {
             FirstName = "Manager",
             LastName = "User",
@@ -148,8 +163,22 @@ public static class SeedData
             City = "Managerstad",
             LoginName = "manager",
             Password = "managerpass",
-            Rank = "manager",
+            Rank = "manager", 
             Function = "Project Manager"
+        });
+        
+        users.Add(new User {
+            FirstName = "Sarah",
+            LastName = "Manager",
+            Email = "sarah.manager@example.com",
+            Address = "Leidingweg",
+            HouseNumber = "5",
+            PostalCode = "3456 CD",
+            City = "Managerstad",
+            LoginName = "sarah",
+            Password = "sarahpass",
+            Rank = "manager", 
+            Function = "Team Manager"
         });
         
         // Test gebruiker
@@ -163,18 +192,37 @@ public static class SeedData
             City = "Voorbeeldstad",
             LoginName = "ayoub",
             Password = "password123",
-            Rank = "user",
+            Rank = "user", 
+            Function = "Developer"
+        });
+        
+        users.Add(new User {
+            FirstName = "Zakaria",
+            LastName = "Azhari",
+            Email = "zakaria@example.com",
+            Address = "lotis la colline",
+            HouseNumber = "10",
+            PostalCode = "1234 AB",
+            City = "oujda",
+            LoginName = "zaki",
+            Password = "zakii",
+            Rank = "admin", 
             Function = "Developer"
         });
         
         // Genereer overige gebruikers
-        var random = new Random();
-        for (int i = 0; i < 17; i++) // 17 + 3 bestaande = 20 gebruikers
+        for (int i = 0; i < 15; i++) // 15 + 6 bestaande = 21 gebruikers
         {
             var firstName = firstNames[random.Next(firstNames.Length)];
             var lastName = lastNames[random.Next(lastNames.Length)];
             var function = functions[random.Next(functions.Length)];
-            var rank = ranks[random.Next(ranks.Length) < 6 ? 0 : random.Next(ranks.Length) < 8 ? 1 : 2]; // Meeste gebruikers, dan managers, weinig admins
+            
+            // Most users are 'user', some are 'manager', few are 'admin'
+            string Rank;
+            var typeRand = random.Next(100);
+            if (typeRand < 70) Rank = "user";
+            else if (typeRand < 90) Rank = "manager";
+            else Rank = "admin";
             
             users.Add(new User {
                 FirstName = firstName,
@@ -186,13 +234,32 @@ public static class SeedData
                 City = RandomCity(),
                 LoginName = $"{firstName.ToLower()}{random.Next(100, 999)}",
                 Password = "password123",
-                Rank = rank,
+                Rank = Rank, // Updated to Rank
                 Function = function
             });
         }
         
         context.Users.AddRange(users);
         context.SaveChanges();
+
+        // NEW: Set up manager relationships
+        var managers = users.Where(u => u.Rank == "manager").ToList();
+        var regularUsers = users.Where(u => u.Rank == "user").ToList();
+        
+        // Assign regular users to managers
+        foreach (var user in regularUsers)
+        {
+            if (managers.Any())
+            {
+                var manager = managers[random.Next(managers.Count)];
+                user.ManagerId = manager.Id;
+            }
+        }
+        
+        context.SaveChanges(); // Save manager assignments
+
+        // Get processors for TimeEntry tracking
+        var processors = users.Where(u => u.Rank == "admin" || u.Rank == "manager").ToList();
 
         // Koppel Users aan Projects (UserProjects)
         var userProjects = new List<UserProject>();
@@ -225,9 +292,9 @@ public static class SeedData
         context.UserProjects.AddRange(userProjects);
         context.SaveChanges();
 
-        // TimeEntries genereren
+        // TimeEntries genereren - UPDATED with new tracking fields
         var timeEntries = new List<TimeEntry>();
-        var statuses = new[] { "opgeslagen", "ingeleverd", "goedgekeurd", "afgekeurd" };
+        var statuses = new[] { "opgeslagen", "ingeleverd", "goedgekeurd" };
         
         foreach (var user in users)
         {
@@ -276,7 +343,32 @@ public static class SeedData
                     else if (day < 14) // 1-2 weken terug
                         status = statuses[random.Next(0, 3)]; // Opgeslagen, ingeleverd of goedgekeurd
                     else // 2+ weken terug
-                        status = statuses[random.Next(1, 4)]; // Ingeleverd, goedgekeurd of afgekeurd
+                        status = statuses[random.Next(1, 3)]; // Ingeleverd of goedgekeurd
+                    
+                    // RequestDate - when the entry was originally created
+                    var requestDate = startTime.Date.AddHours(random.Next(18, 23)); // Created same day evening
+                    
+                    // NEW: Processing tracking fields
+                    int? processedBy = null;
+                    DateTime? processedDate = null;
+                    string? processingNotes = null;
+                    
+                    // If approved, add processing information
+                    if (status == "goedgekeurd" && processors.Any())
+                    {
+                        // Find appropriate processor (manager of user or admin)
+                        var userManager = users.FirstOrDefault(u => u.Id == user.ManagerId);
+                        var processor = userManager ?? processors[random.Next(processors.Count)];
+                        
+                        processedBy = processor.Id;
+                        processedDate = requestDate.AddDays(random.Next(1, 3)); // Processed 1-3 days after request
+                        
+                        // 20% chance for processing notes
+                        if (random.Next(5) == 0)
+                        {
+                            processingNotes = RandomApprovalNote();
+                        }
+                    }
                     
                     timeEntries.Add(new TimeEntry
                     {
@@ -289,7 +381,11 @@ public static class SeedData
                         TravelCosts = travelCosts,
                         Expenses = expenses,
                         Notes = notes,
-                        Status = status
+                        Status = status,
+                        RequestDate = requestDate, // NEW
+                        ProcessedBy = processedBy, // NEW
+                        ProcessedDate = processedDate, // NEW
+                        ProcessingNotes = processingNotes // NEW
                     });
                 }
             }
@@ -298,7 +394,7 @@ public static class SeedData
         context.TimeEntries.AddRange(timeEntries);
         context.SaveChanges();
 
-        // Vakantie-aanvragen genereren
+        // Vakantie-aanvragen genereren met processing tracking
         var vacationRequests = new List<VacationRequest>();
         var vacationStatuses = new[] { "pending", "approved", "rejected" };
         
@@ -355,6 +451,41 @@ public static class SeedData
                 }
                 double hours = workDays * 8;
                 
+                // RequestDate (when request was created)
+                DateTime requestDate = isPast ? startDate.AddDays(-random.Next(7, 30)) : DateTime.Now.AddDays(-random.Next(1, 14));
+                
+                // Processing tracking fields
+                int? processedBy = null;
+                DateTime? processedDate = null;
+                string? processingNotes = null;
+                
+                // If status is approved or rejected, add processing information
+                if (status != "pending" && processors.Any())
+                {
+                    var processor = processors[random.Next(processors.Count)];
+                    processedBy = processor.Id;
+                    
+                    // ProcessedDate should be after RequestDate but before/around StartDate
+                    if (isPast)
+                    {
+                        processedDate = requestDate.AddDays(random.Next(1, 7)); // Processed 1-7 days after request
+                    }
+                    else
+                    {
+                        processedDate = requestDate.AddDays(random.Next(1, 5)); // Processed 1-5 days after request
+                    }
+                    
+                    // Add processing notes for rejected requests
+                    if (status == "rejected")
+                    {
+                        processingNotes = RandomRejectionReason();
+                    }
+                    else if (random.Next(0, 4) == 0) // 25% chance for approval notes
+                    {
+                        processingNotes = RandomApprovalNote();
+                    }
+                }
+                
                 vacationRequests.Add(new VacationRequest
                 {
                     UserId = user.Id,
@@ -362,7 +493,11 @@ public static class SeedData
                     EndDate = endDate,
                     Hours = hours,
                     Reason = reason,
-                    Status = status
+                    Status = status,
+                    RequestDate = requestDate,
+                    ProcessedBy = processedBy,
+                    ProcessedDate = processedDate,
+                    ProcessingNotes = processingNotes
                 });
             }
         }
@@ -370,47 +505,53 @@ public static class SeedData
         context.VacationRequests.AddRange(vacationRequests);
         context.SaveChanges();
 
-        // Genereer wat activiteiten (notificaties)
+        // Genereer wat activiteiten (notificaties) - UPDATED with Rank references
         var activities = new List<Activity>();
         
         // Activiteiten voor time entries
-        foreach (var entry in timeEntries.Where(te => te.Status == "goedgekeurd" || te.Status == "afgekeurd").Take(50))
+        foreach (var entry in timeEntries.Where(te => te.Status == "goedgekeurd").Take(50))
         {
-            var message = entry.Status == "goedgekeurd" 
-                ? $"Je uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn goedgekeurd"
-                : $"Je uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn afgekeurd";
+            var processor = processors.FirstOrDefault(p => p.Id == entry.ProcessedBy);
+            var processorName = processor != null ? $"{processor.FirstName} {processor.LastName}" : "Manager";
+            
+            var message = $"Je uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn goedgekeurd door {processorName}";
                 
-            var details = entry.Status == "afgekeurd" && random.Next(0, 2) == 0
-                ? $"Project: {entry.Project?.Name ?? "Onbekend"}, Reden: {RandomRejectionReason()}"
-                : $"Project: {entry.Project?.Name ?? "Onbekend"}";
+            var details = $"Project: {entry.Project?.Name ?? "Onbekend"}";
+            if (!string.IsNullOrEmpty(entry.ProcessingNotes))
+            {
+                details += $", Notitie: {entry.ProcessingNotes}";
+            }
                 
             activities.Add(new Activity
             {
                 UserId = entry.UserId,
-                Timestamp = DateTime.Now.AddDays(-random.Next(0, 10)).AddHours(-random.Next(0, 24)),
+                Timestamp = entry.ProcessedDate ?? DateTime.Now.AddDays(-random.Next(0, 10)).AddHours(-random.Next(0, 24)),
                 Type = "time_entry",
-                Action = entry.Status == "goedgekeurd" ? "approved" : "rejected",
+                Action = "approved",
                 Message = message,
                 Details = details,
                 Read = random.Next(0, 3) > 0 // 66% kans op gelezen
             });
         }
         
-        // Activiteiten voor vakantie-aanvragen
+        // Activiteiten voor vakantie-aanvragen met processing tracking
         foreach (var vacation in vacationRequests.Where(vr => vr.Status != "pending").Take(30))
         {
+            var processor = processors.FirstOrDefault(p => p.Id == vacation.ProcessedBy);
+            var processorName = processor != null ? $"{processor.FirstName} {processor.LastName}" : "Admin";
+            
             var message = vacation.Status == "approved" 
-                ? $"Je vakantie-aanvraag ({vacation.StartDate.ToString("dd-MM")} - {vacation.EndDate.ToString("dd-MM")}) is goedgekeurd"
-                : $"Je vakantie-aanvraag ({vacation.StartDate.ToString("dd-MM")} - {vacation.EndDate.ToString("dd-MM")}) is afgewezen";
+                ? $"Je vakantie-aanvraag ({vacation.StartDate.ToString("dd-MM")} - {vacation.EndDate.ToString("dd-MM")}) is goedgekeurd door {processorName}"
+                : $"Je vakantie-aanvraag ({vacation.StartDate.ToString("dd-MM")} - {vacation.EndDate.ToString("dd-MM")}) is afgewezen door {processorName}";
                 
-            var details = vacation.Status == "rejected" && random.Next(0, 2) == 0
-                ? $"Reden: {RandomRejectionReason()}"
+            var details = vacation.Status == "rejected" && !string.IsNullOrEmpty(vacation.ProcessingNotes)
+                ? $"Reden: {vacation.ProcessingNotes}"
                 : $"Aantal uren: {vacation.Hours}";
                 
             activities.Add(new Activity
             {
                 UserId = vacation.UserId,
-                Timestamp = DateTime.Now.AddDays(-random.Next(0, 15)).AddHours(-random.Next(0, 24)),
+                Timestamp = vacation.ProcessedDate ?? DateTime.Now.AddDays(-random.Next(0, 15)),
                 Type = "vacation",
                 Action = vacation.Status == "approved" ? "approved" : "rejected",
                 Message = message,
@@ -553,18 +694,38 @@ public static class SeedData
         var random = new Random();
         var reasons = new[]
         {
-            "Ontbrekende projectcode",
-            "Onjuiste tijdsregistratie",
-            "Geen toestemming voor overuren",
-            "Project al afgesloten",
-            "Overlap met eerder geregistreerde uren",
-            "Onvoldoende details in toelichting",
-            "Uren overschrijden budget",
-            "Nog niet goedgekeurd door klant",
-            "Incorrect projectnummer",
-            "Ongeautoriseerde activiteit"
+            "Onvoldoende vakantie-uren beschikbaar",
+            "Overlapping met drukke projectperiode",
+            "Te kort van tevoren aangevraagd",
+            "Conflicteert met andere teamleden",
+            "Project deadline nadert",
+            "Onvoldoende bezetting tijdens periode",
+            "Conflicteert met belangrijke vergaderingen",
+            "Vakantieperiode al vol bezet",
+            "Overlap met collega's verlof",
+            "Kritieke fase van project"
         };
         
         return reasons[random.Next(reasons.Length)];
+    }
+    
+    private static string RandomApprovalNote()
+    {
+        var random = new Random();
+        var notes = new[]
+        {
+            "Goedgekeurd, geniet van je vakantie!",
+            "Veel plezier tijdens je verlof",
+            "Goedgekeurd na afstemming met het team",
+            "Geen problemen met planning",
+            "Timing is perfect",
+            "Geniet van je welverdiende rust",
+            "Goedgekeurd, zorg dat je projecten afgerond zijn",
+            "Prima timing voor het verlof",
+            "Alles ziet er goed uit",
+            "Goedgekeurd conform procedure"
+        };
+        
+        return notes[random.Next(notes.Length)];
     }
 }

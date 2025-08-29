@@ -13,7 +13,7 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
 
         if (!userId) {
             router.push("/login");
-        } else if (userRank !== "admin" && userRank !== "manager") {
+        } else if (userRank !== "admin") {
             router.push("/dashboard");
         } else {
             setLoading(false);
