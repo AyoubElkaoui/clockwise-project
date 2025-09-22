@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="ba11f222-fc81-46ed-bc40-cea7a45fe3a2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/backend/obj/Debug/net8.0/backend.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/backend/obj/Debug/net8.0/backend.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/obj/Debug/net8.0/backend.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/backend/obj/Debug/net8.0/backend.AssemblyInfoInputs.cache" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.dockerignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/.dockerignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CLOCKWISE.FDB" beforeDir="false" afterPath="$PROJECT_DIR$/database/CLOCKWISE.FDB" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/appsettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/next.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/next.config.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,6 +31,9 @@
   &quot;associatedIndex&quot;: 8
 }</component>
   <component name="ProjectId" id="2xMf7dMPIJMpuRFcvuJWQpsEH6c" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -24,18 +41,31 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/home/ayoub/clockwise-project/frontend",
+    "last_opened_file_path": "/home/ayoub/clockwise-project",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "ts.external.directory.path": "/home/ayoub/clockwise-project/frontend/node_modules/typescript/lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/database" />
+      <recent name="$PROJECT_DIR$/backend/firebird/data" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-WS-251.26927.40" />
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-WS-252.25557.126" />
       </set>
     </attachedChunks>
   </component>
@@ -49,6 +79,7 @@
       <updated>1747752696465</updated>
       <workItem from="1747752697524" duration="10000" />
       <workItem from="1751365489522" duration="235000" />
+      <workItem from="1758531326556" duration="6732000" />
     </task>
     <servers />
   </component>
