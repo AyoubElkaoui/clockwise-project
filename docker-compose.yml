@@ -1,0 +1,80 @@
+services:
+  # Firebird Database
+  firebird:
+    image: jacobalberty/firebird:v3.0
+    container_name: clockwise-firebird
+    environment:
+      - FIREBIRD_DATABASE=CLOCKWISE.FDB
+      - FIREBIRD_USER=SYSDBA
+      - FIREBIRD_PASSWORD=masterkey
+      - ISC_PASSWORD=masterkey
+    ports:
+      - "3050:3050"
+    volumes:
+      - firebird_data:/firebird/data
+      # Tijdelijk weggehaald om nieuwe database te laten maken:
+      # - ./database:/firebird/data/database
+    networks:
+      - clockwise-network
+
+  seeder:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clockwise-seeder
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - backend
+    networks:
+      - clockwise-network
+    command: [ "dotnet", "backend.dll", "seed" ]
+    restart: "no"
+
+  # Backend API (.NET)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clockwise-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - firebird
+    networks:
+      - clockwise-network
+    volumes:
+      - ./backend:/app/source
+    restart: unless-stopped
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clockwise-frontend
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - WATCHPACK_POLLING=true
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - clockwise-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+
+networks:
+  clockwise-network:
+    driver: bridge
+
+volumes:
+  firebird_data:

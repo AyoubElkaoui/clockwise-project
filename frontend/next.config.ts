@@ -1,30 +1,15 @@
-// next.config.ts - Vervang je huidige bestand
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    // Stop alle TypeScript build errors
-    typescript: {
-        ignoreBuildErrors: true,
-    },
-
-    // Stop alle ESLint build errors
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
-
-    // Experimentele features uitzetten die problemen kunnen geven
-    experimental: {
-        typedRoutes: false,
-    },
-
-    // Minder strikte webpack configuratie
-    webpack: (config, { isServer }) => {
-        // Negeer bepaalde warnings
-        config.ignoreWarnings = [
-            /Critical dependency/,
-            /Module not found/,
+    // Verwijderd: output: 'standalone' (voor development niet nodig)
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/:path*`,
+            },
         ];
-        return config;
     },
 };
 
