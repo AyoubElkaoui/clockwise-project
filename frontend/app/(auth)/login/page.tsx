@@ -31,20 +31,15 @@ export default function LoginPage(): JSX.Element {
         try {
             const user = await login(userInput, password);
 
-            // Wis eerst alle bestaande data
             localStorage.clear();
-
-            // Sla nieuwe gegevens op
             localStorage.setItem("userId", user.id);
             localStorage.setItem("firstName", user.firstName);
             localStorage.setItem("lastName", user.lastName);
             localStorage.setItem("userRank", user.rank);
 
-            // Zet cookies
             document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
             document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
 
-            // Stuur naar juiste pagina
             if (user.rank === "admin" || user.rank === "manager") {
                 router.push("/admin");
             } else {
@@ -52,10 +47,8 @@ export default function LoginPage(): JSX.Element {
             }
         } catch (e: unknown) {
             if (e instanceof Error) {
-                console.error("Login error:", e.message);
                 setError("Ongeldige inloggegevens. Controleer je e-mail en wachtwoord.");
             } else {
-                console.error("Onbekende fout:", e);
                 setError("Er is een onbekende fout opgetreden. Probeer het opnieuw.");
             }
         } finally {
@@ -70,20 +63,14 @@ export default function LoginPage(): JSX.Element {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center p-4">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
-            </div>
-
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black flex items-center justify-center p-4 relative">
             {/* Main Login Card */}
             <div className="relative w-full max-w-md">
-                <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-elmar-card border border-white/50 overflow-hidden">
+                <div className="bg-gray-900/80 backdrop-blur-lg rounded-3xl shadow-xl border border-gray-700 overflow-hidden">
                     {/* Header Section */}
-                    <div className="bg-gradient-elmar p-8 text-white">
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
                         <div className="flex justify-center mb-6">
-                            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
+                            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
                                 <Image
                                     src="/logo.png"
                                     alt="Elmar Services Logo"
@@ -95,7 +82,7 @@ export default function LoginPage(): JSX.Element {
                         </div>
                         <div className="text-center">
                             <h1 className="text-3xl font-bold mb-2">Welkom Terug</h1>
-                            <p className="text-blue-100">Log in om door te gaan naar je dashboard</p>
+                            <p className="text-blue-200">Log in om door te gaan</p>
                         </div>
                     </div>
 
@@ -105,7 +92,7 @@ export default function LoginPage(): JSX.Element {
                             {/* Email Input */}
                             <div className="form-control">
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">📧 E-mail of Gebruikersnaam</span>
+                                    <span className="label-text font-semibold text-gray-200">📧 E-mail of Gebruikersnaam</span>
                                 </label>
                                 <div className="relative">
                                     <EnvelopeIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -115,7 +102,7 @@ export default function LoginPage(): JSX.Element {
                                         onChange={(e) => setUserInput(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder="voornaam@elmarservices.nl"
-                                        className="input input-bordered w-full pl-10 border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl transition-all duration-200"
+                                        className="input w-full pl-10 bg-gray-800 text-gray-100 border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 rounded-xl transition-all duration-200"
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -124,7 +111,7 @@ export default function LoginPage(): JSX.Element {
                             {/* Password Input */}
                             <div className="form-control">
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">🔒 Wachtwoord</span>
+                                    <span className="label-text font-semibold text-gray-200">🔒 Wachtwoord</span>
                                 </label>
                                 <div className="relative">
                                     <LockClosedIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -134,12 +121,12 @@ export default function LoginPage(): JSX.Element {
                                         onChange={(e) => setPassword(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder="••••••••"
-                                        className="input input-bordered w-full pl-10 pr-12 border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl transition-all duration-200"
+                                        className="input w-full pl-10 pr-12 bg-gray-800 text-gray-100 border border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 rounded-xl transition-all duration-200"
                                         disabled={isLoading}
                                     />
                                     <button
                                         type="button"
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-400 transition-colors duration-200"
                                         onClick={() => setShowPassword(!showPassword)}
                                     >
                                         {showPassword ? (
@@ -153,11 +140,8 @@ export default function LoginPage(): JSX.Element {
 
                             {/* Error Message */}
                             {error && (
-                                <div className="alert alert-error rounded-xl animate-slide-up">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span className="text-sm">{error}</span>
+                                <div className="bg-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl border border-red-600 animate-slide-up">
+                                    {error}
                                 </div>
                             )}
 
@@ -165,7 +149,7 @@ export default function LoginPage(): JSX.Element {
                             <button
                                 onClick={handleLogin}
                                 disabled={isLoading || !userInput.trim() || !password.trim()}
-                                className="btn w-full bg-gradient-elmar border-0 text-white rounded-xl py-3 h-auto min-h-0 hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                                className="btn w-full bg-gradient-to-r from-blue-600 to-indigo-700 border-0 text-white rounded-xl py-3 h-auto min-h-0 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-200 disabled:opacity-50 disabled:transform-none"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
@@ -182,7 +166,7 @@ export default function LoginPage(): JSX.Element {
 
                             {/* Additional Options */}
                             <div className="text-center space-y-3">
-                                <a href="#" className="text-sm text-elmar-primary hover:text-elmar-secondary transition-colors duration-200">
+                                <a href="#" className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200">
                                     Wachtwoord vergeten?
                                 </a>
                             </div>
@@ -190,16 +174,12 @@ export default function LoginPage(): JSX.Element {
                     </div>
 
                     {/* Footer */}
-                    <div className="bg-gray-50 px-8 py-4 text-center border-t border-gray-100">
-                        <p className="text-xs text-gray-500">
+                    <div className="bg-gray-800/60 px-8 py-4 text-center border-t border-gray-700">
+                        <p className="text-xs text-gray-400">
                             © 2024 Elmar Services. Alle rechten voorbehouden.
                         </p>
                     </div>
                 </div>
-
-                {/* Floating Elements */}
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse"></div>
-                <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-br from-green-400 to-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse"></div>
             </div>
         </div>
     );
