@@ -1,11 +1,14 @@
-# backend/Dockerfile  (Dockerfile blijft in de map backend/)
+# backend/Dockerfile
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
-# Firebird client libs (voor libfbclient.so)
+# Firebird client libs + symlinks voor embedded mode
 RUN apt-get update && \
-    apt-get install -y firebird3.0-utils libfbclient2 && \
+    apt-get install -y --no-install-recommends libfbclient2 && \
+    ln -sf /usr/lib/x86_64-linux-gnu/libfbclient.so.2 /usr/lib/x86_64-linux-gnu/fbembed.so && \
+    ln -sf /usr/lib/x86_64-linux-gnu/libfbclient.so.2 /usr/lib/libfbembed.so && \
+    echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/fbclient.conf && ldconfig && \
     rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8080
