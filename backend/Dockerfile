@@ -3,7 +3,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
-# 🧩 Voeg Firebird client toe (nodig voor libfbclient.so)
+# 🧩 Firebird client installeren
 RUN apt-get update && \
     apt-get install -y firebird3.0-utils libfbclient2 && \
     rm -rf /var/lib/apt/lists/*
@@ -13,8 +13,11 @@ ENV ASPNETCORE_URLS=http://+:8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["backend.csproj", "./"]
-RUN dotnet restore "./backend.csproj"
+
+# ✅ projectfile staat in dezelfde map
+COPY backend.csproj ./
+RUN dotnet restore "backend.csproj"
+
 COPY . .
 RUN dotnet publish "backend.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
