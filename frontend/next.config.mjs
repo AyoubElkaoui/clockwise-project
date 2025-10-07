@@ -1,21 +1,35 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ✅ Proxy API requests automatisch
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        // 👉 In dev proxy naar localhost:5000, in Vercel naar je Koyeb-URL via env
-        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/:path*`,
-        // LET OP: geen extra "/api" hier, je calls gaan al naar /api/... in de app
+        // 👇 Gebruik Koyeb in productie, localhost in development
+        destination: `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+        }/:path*`,
       },
     ];
   },
 
-  // (optioneel) houd de build soepel
-  typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: true },
-  reactStrictMode: false,
+  // ✅ Build-instellingen (veilig laten staan)
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    typedRoutes: false,
+  },
+  webpack: (config) => {
+    config.ignoreWarnings = [/Critical dependency/, /Module not found/];
+    return config;
+  },
   swcMinify: true,
+  reactStrictMode: false,
+  output: "standalone",
 };
 
 export default nextConfig;
