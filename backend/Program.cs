@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers + JSON
+// ===== Controllers + JSON =====
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
     {
@@ -12,43 +12,75 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
-// CORS – tijdens proxy via Vercel kun je dit desnoods ruim zetten
-builder.Services.AddCors(o =>
-{
-    o.AddPolicy("AllowAll", p =>
-        p.AllowAnyOrigin()
-         .AllowAnyHeader()
-         .AllowAnyMethod());
-    // Als je rechtstreeks naar Koyeb belt i.p.v. via proxy:
-    // o.AddPolicy("FrontendOnly", p =>
-    //     p.WithOrigins("http://localhost:3000", "https://<jouw-vercel>.vercel.app")
-    //      .AllowAnyHeader().AllowAnyMethod());
-});
-
-// DB context
+// ===== DB context =====
 builder.Services.AddDbContext<ClockwiseDbContext>(opts =>
     opts.UseFirebird(
         builder.Configuration.GetConnectionString("DefaultConnection")
         ?? Environment.GetEnvironmentVariable("DefaultConnection"))
 );
 
+// ===== CORS =====
+// In productie willen we Vercel (prod + preview) en evt. extra origins uit env toestaan.
+// In development staat localhost:3000 aan.
+const string CorsPolicyName = "AppCors";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicyName, policy =>
+    {
+        // Basis-origins
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "https://clockwise-project.vercel.app" // <-- jouw prod Vercel domein
+        };
+
+        // Extra origins via env (komma-gescheiden), bijv:
+        // CORS_ORIGINS="https://my-preview.vercel.app,https://andere-site.nl"
+        var extra = Environment.GetEnvironmentVariable("CORS_ORIGINS");
+        if (!string.IsNullOrWhiteSpace(extra))
+        {
+            foreach (var origin in extra.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                allowed.Add(origin);
+        }
+
+        // Toestaan:
+        policy
+            // Sta specifieke origins toe...
+            .WithOrigins(allowed.ToArray())
+            // ...en daarnaast ALLE subdomeinen van vercel.app (previews)
+            .SetIsOriginAllowed(origin =>
+            {
+                try
+                {
+                    var host = new Uri(origin).Host;
+                    return host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
+                           || allowed.Contains(origin);
+                }
+                catch { return false; }
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+            // .AllowCredentials(); // alleen aanzetten als je cookies/credentials gebruikt
+    });
+});
+
 var app = builder.Build();
 
-// ---- Middleware volgorde ----
+// ===== Middleware volgorde =====
 app.UseRouting();
-app.UseCors("AllowAll"); // of "FrontendOnly" als je strenger wilt
+app.UseCors(CorsPolicyName);
 app.UseAuthorization();
 
-// Endpoints
+// ===== Endpoints =====
 app.MapControllers();
 
-// 💚 Health endpoint voor Koyeb
-// 💚 Health + Root checks
+// Health + root
 app.MapGet("/", () => Results.Text("ok"));
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-
-// Optionele seeding (blijft zoals je had)
+// Optionele seeding
 if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
@@ -63,7 +95,7 @@ if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase
     {
         Console.WriteLine($"[SEED ERROR] {ex.Message}");
     }
-    return; // stopt de app na seeding
+    return;
 }
 
 app.Run();

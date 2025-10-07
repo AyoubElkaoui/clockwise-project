@@ -5,11 +5,14 @@ const nextConfig = {
   experimental: { typedRoutes: false },
 
   // ✅ Alleen dit is aangepast
-  env: {
-    NEXT_PUBLIC_API_URL:
-      process.env.NEXT_PUBLIC_API_URL ||
-      "https://peculiar-lauralee-akws-d0439e43.koyeb.app/api",
-  },
+  async rewrites() {
+  return [
+    {
+      source: "/api/:path*",
+      destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/:path*`,
+    },
+  ];
+},
 
   webpack: (config) => {
     config.ignoreWarnings = [/Critical dependency/, /Module not found/];
