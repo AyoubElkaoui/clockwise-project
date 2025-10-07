@@ -4,65 +4,63 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Voeg controllers toe met JSON-opties: 
-// - Negeer referentielussen (cycles)
-// - Gebruik camelCase voor property-namen
+// Controllers + JSON
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+    .AddJsonOptions(o =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
-// Voeg CORS-policy toe
-builder.Services.AddCors(options =>
+// CORS – tijdens proxy via Vercel kun je dit desnoods ruim zetten
+builder.Services.AddCors(o =>
 {
-    options.AddPolicy("AllowAll", policyBuilder =>
-        policyBuilder
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .WithOrigins(
-                "http://localhost:3000", // ✅ lokale frontend
-                "https://jouw-frontend-naam.vercel.app" // ✅ productie
-            )
-            .AllowCredentials());
+    o.AddPolicy("AllowAll", p =>
+        p.AllowAnyOrigin()
+         .AllowAnyHeader()
+         .AllowAnyMethod());
+    // Als je rechtstreeks naar Koyeb belt i.p.v. via proxy:
+    // o.AddPolicy("FrontendOnly", p =>
+    //     p.WithOrigins("http://localhost:3000", "https://<jouw-vercel>.vercel.app")
+    //      .AllowAnyHeader().AllowAnyMethod());
 });
 
-// Voeg de database context toe (zorg dat je de juiste connection string gebruikt in je configuratie)
-builder.Services.AddDbContext<ClockwiseDbContext>(options =>
-    options.UseFirebird(builder.Configuration.GetConnectionString("DefaultConnection"))
+// DB context
+builder.Services.AddDbContext<ClockwiseDbContext>(opts =>
+    opts.UseFirebird(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? Environment.GetEnvironmentVariable("DefaultConnection"))
 );
 
 var app = builder.Build();
 
-app.UseCors("AllowAll");
+// ---- Middleware volgorde ----
 app.UseRouting();
+app.UseCors("AllowAll"); // of "FrontendOnly" als je strenger wilt
 app.UseAuthorization();
+
+// Endpoints
 app.MapControllers();
 
-// Als er een "seed" argument is, voer dan de seed-code uit en stop daarna de applicatie
-if (args.Length > 0 && args[0].ToLower() == "seed")
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        var services = scope.ServiceProvider;
-        var context = services.GetRequiredService<ClockwiseDbContext>();
+// 💚 Health endpoint voor Koyeb
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-        try
-        {
-            // Voer de migraties uit
-            context.Database.Migrate();
-            // Voer de seed-code uit
-            SeedData.Initialize(context);
-            Console.WriteLine("Database succesvol geseed.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[SEED ERROR] {ex.Message}");
-        }
+// Optionele seeding (blijft zoals je had)
+if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase))
+{
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ClockwiseDbContext>();
+    try
+    {
+        context.Database.Migrate();
+        SeedData.Initialize(context);
+        Console.WriteLine("Database succesvol geseed.");
     }
-    // Stop de applicatie na seeding
-    return;
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[SEED ERROR] {ex.Message}");
+    }
+    return; // stopt de app na seeding
 }
 
 app.Run();
