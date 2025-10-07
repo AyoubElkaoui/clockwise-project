@@ -1,23 +1,22 @@
+# ---- runtime base ----
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+RUN apt-get update && apt-get install -y --no-install-recommends libfbclient2 && rm -rf /var/lib/apt/lists/*
 
+# ---- build ----
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["backend.csproj", "./"]
-RUN dotnet restore "backend.csproj"
+COPY backend.csproj .
+RUN dotnet restore backend.csproj
 COPY . .
-WORKDIR "/src"
-RUN dotnet build "backend.csproj" -c Release -o /app/build
+RUN dotnet publish backend.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-FROM build AS publish
-RUN dotnet publish "backend.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
+# ---- final ----
 FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-
-# Install Firebird client libraries
-RUN apt-get update && apt-get install -y firebird3.0-utils && rm -rf /var/lib/apt/lists/*
-
+COPY --from=build /app/publish .
+# ⬇️ neem je DB mee uit repo-root/database
+COPY database/CLOCKWISE.FDB /app/CLOCKWISE.FDB
 ENTRYPOINT ["dotnet", "backend.dll"]
