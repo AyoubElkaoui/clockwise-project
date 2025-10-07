@@ -43,7 +43,10 @@ app.UseAuthorization();
 app.MapControllers();
 
 // 💚 Health endpoint voor Koyeb
+// 💚 Health + Root checks
+app.MapGet("/", () => Results.Text("ok"));
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 
 // Optionele seeding (blijft zoals je had)
 if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase))
