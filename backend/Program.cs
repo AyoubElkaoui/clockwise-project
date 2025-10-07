@@ -1,3 +1,4 @@
+using FirebirdSql.Data.FirebirdClient;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -12,32 +13,19 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
-// ===== DB context =====
-builder.Services.AddDbContext<ClockwiseDbContext>(opts =>
-    opts.UseFirebird(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? Environment.GetEnvironmentVariable("DefaultConnection"))
-);
-
 // ===== CORS =====
-// In productie willen we Vercel (prod + preview) en evt. extra origins uit env toestaan.
-// In development staat localhost:3000 aan.
 const string CorsPolicyName = "AppCors";
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(CorsPolicyName, policy =>
     {
-        // Basis-origins
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "http://localhost:3000",
             "http://127.0.0.1:3000",
-            "https://clockwise-project.vercel.app" // <-- jouw prod Vercel domein
+            "https://clockwise-project.vercel.app" // jouw Vercel prod
         };
 
-        // Extra origins via env (komma-gescheiden), bijv:
-        // CORS_ORIGINS="https://my-preview.vercel.app,https://andere-site.nl"
         var extra = Environment.GetEnvironmentVariable("CORS_ORIGINS");
         if (!string.IsNullOrWhiteSpace(extra))
         {
@@ -45,11 +33,8 @@ builder.Services.AddCors(options =>
                 allowed.Add(origin);
         }
 
-        // Toestaan:
         policy
-            // Sta specifieke origins toe...
             .WithOrigins(allowed.ToArray())
-            // ...en daarnaast ALLE subdomeinen van vercel.app (previews)
             .SetIsOriginAllowed(origin =>
             {
                 try
@@ -62,25 +47,62 @@ builder.Services.AddCors(options =>
             })
             .AllowAnyHeader()
             .AllowAnyMethod();
-            // .AllowCredentials(); // alleen aanzetten als je cookies/credentials gebruikt
+            // .AllowCredentials(); // aanzetten als je cookies/JWT via cookies gebruikt
     });
 });
 
+// ===== Firebird: connection string builder =====
+string? envCs = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+string? cfgCs = builder.Configuration.GetConnectionString("DefaultConnection");
+var baseCs = !string.IsNullOrWhiteSpace(envCs) ? envCs! : (cfgCs ?? "");
+
+// Start vanuit wat je in appsettings/env hebt
+var fb = string.IsNullOrWhiteSpace(baseCs)
+    ? new FbConnectionStringBuilder()
+    : new FbConnectionStringBuilder(baseCs);
+
+// In production dwingen we embedded + lokaal bestand
+if (builder.Environment.IsProduction() || Environment.GetEnvironmentVariable("FIREBIRD_EMBEDDED") == "1")
+{
+    fb.Database = "/app/CLOCKWISE.FDB";
+    if (string.IsNullOrWhiteSpace(fb.UserID)) fb.UserID = "SYSDBA";
+    if (string.IsNullOrWhiteSpace(fb.Password)) fb.Password = "masterkey";
+    if (string.IsNullOrWhiteSpace(fb.Charset)) fb.Charset = "UTF8";
+    if (fb.Dialect == 0) fb.Dialect = 3;
+
+    fb.ServerType = FbServerType.Embedded;
+    fb.DataSource = "";                 // expliciet geen host (dus geen netwerk)
+    fb.Pooling = false;
+
+    // Client lib pad van Debian/Ubuntu (dotnet aspnet:8.0 base)
+    if (string.IsNullOrWhiteSpace(fb.ClientLibrary))
+        fb.ClientLibrary = "/usr/lib/x86_64-linux-gnu/libfbclient.so.2";
+}
+
+// Log welke CS effectief gebruikt wordt (zonder wachtwoord)
+var csToUse = fb.ToString();
+var csLogSafe = csToUse
+    .Replace("Password=masterkey", "Password=***", StringComparison.OrdinalIgnoreCase)
+    .Replace("Password= Masterkey", "Password=***", StringComparison.OrdinalIgnoreCase);
+builder.Logging.AddConsole();
+builder.Services.AddDbContext<ClockwiseDbContext>(opts => opts.UseFirebird(csToUse));
+Console.WriteLine("[DB] Using Firebird CS => " + csLogSafe);
+
+// ===== App pipeline =====
 var app = builder.Build();
 
-// ===== Middleware volgorde =====
 app.UseRouting();
 app.UseCors(CorsPolicyName);
 app.UseAuthorization();
 
-// ===== Endpoints =====
 app.MapControllers();
 
 // Health + root
 app.MapGet("/", () => Results.Text("ok"));
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-// Optionele seeding
+// ===== Optionele seeding =====
+// Run: `dotnet backend.dll seed`
 if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase))
 {
     using var scope = app.Services.CreateScope();
@@ -95,7 +117,7 @@ if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase
     {
         Console.WriteLine($"[SEED ERROR] {ex.Message}");
     }
-    return;
+    return; // stop na seeden
 }
 
 app.Run();
