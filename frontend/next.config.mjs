@@ -1,29 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ Proxy API requests automatisch
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        // 👇 Gebruik Koyeb in productie, localhost in development
-        destination: `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-        }/:path*`,
-      },
-    ];
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
+  experimental: { typedRoutes: false },
+
+  // ⬇️ Alleen dit aangepast: weg met ngrok, jouw Koyeb URL mét /api
+  env: {
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://peculiar-lauralee-akws-d0439e43.koyeb.app/api",
   },
 
-  // ✅ Build-instellingen (veilig laten staan)
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  experimental: {
-    typedRoutes: false,
-  },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.ignoreWarnings = [/Critical dependency/, /Module not found/];
     return config;
   },
@@ -31,5 +19,4 @@ const nextConfig = {
   reactStrictMode: false,
   output: "standalone",
 };
-
 export default nextConfig;
