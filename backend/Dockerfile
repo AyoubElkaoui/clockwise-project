@@ -13,17 +13,18 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY backend/backend.csproj ./backend.csproj
-RUN dotnet restore ./backend.csproj
-COPY backend/. .
+# Kopieer project file (build context = repo root)
+COPY backend/backend.csproj ./
+RUN dotnet restore
+COPY backend/. ./
 RUN dotnet publish backend.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-# 📦 Bewaar de database als template (niet direct gebruiken)
+# 📦 Database template (build context = repo root)
 COPY database/CLOCKWISE.FDB /app/CLOCKWISE.FDB.initial
-# 🚀 Startup script dat DB naar /data kopieert
+# 🚀 Startup script (build context = repo root)
 COPY backend/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
