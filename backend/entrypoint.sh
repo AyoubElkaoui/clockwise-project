@@ -1,21 +1,22 @@
 #!/bin/sh
 set -e
 
-# Als /data bestaat (Render Disk gemount) en de database daar nog niet is, kopieer hem
-if [ -d "/data" ] && [ ! -f "/data/CLOCKWISE.FDB" ]; then
-    echo "🔧 Copying initial database to /data..."
-    cp /app/CLOCKWISE.FDB.initial /data/CLOCKWISE.FDB
-    chmod 666 /data/CLOCKWISE.FDB
-    echo "✅ Database initialized in /data"
-fi
+# Voor free tier zonder persistent storage: gebruik /app (data gaat verloren bij redeploy)
+# Maar voor demo/portfolio is dit prima!
 
-# Als /data NIET bestaat (lokaal of zonder disk), gebruik /app
-if [ ! -d "/data" ]; then
-    echo "⚠️  No /data mount detected - using /app (data will NOT persist!)"
-    cp /app/CLOCKWISE.FDB.initial /app/CLOCKWISE.FDB 2>/dev/null || true
-    chmod 666 /app/CLOCKWISE.FDB 2>/dev/null || true
+echo "🚀 Starting Clockwise Backend..."
+
+# Kopieer database template naar /app als deze nog niet bestaat
+if [ ! -f "/app/CLOCKWISE.FDB" ]; then
+    echo "� Initializing database in /app..."
+    cp /app/CLOCKWISE.FDB.initial /app/CLOCKWISE.FDB
+    chmod 666 /app/CLOCKWISE.FDB
+    echo "✅ Database ready in /app"
+else
+    echo "✅ Database already exists in /app"
 fi
 
 # Start de applicatie
 export ASPNETCORE_URLS="http://+:${PORT:-8080}"
+echo "🌐 Starting on port ${PORT:-8080}"
 exec dotnet backend.dll
