@@ -3,7 +3,9 @@ import axios from "axios";
 import { TimeEntry, User} from "./types";
 
 // API URL - gebruik de ngrok URL direct voor nu
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// Backend gebruikt /api prefix voor alle routes
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+export const API_URL = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
 
 // Configureer axios defaults
 axios.defaults.headers.common['Content-Type'] = 'application/json';
