@@ -25,6 +25,8 @@ Dit is je **backend URL**! 🎉
    - **Environments**: Selecteer `Production`, `Preview`, en `Development`
 5. Klik **Save**
 
+**Let op**: De backend gebruikt `/api` prefix voor alle routes. De frontend voegt dit automatisch toe, dus gebruik GEEN `/api` in de environment variable!
+
 #### Of via Vercel CLI (als je die hebt):
 ```bash
 cd frontend
