@@ -21,8 +21,9 @@ RUN dotnet publish backend.csproj -c Release -o /app/publish /p:UseAppHost=false
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-# 📦 Neem je .FDB mee in de image
-COPY database/CLOCKWISE.FDB /app/CLOCKWISE.FDB
-# (optioneel) geef ruime rechten als je ook wilt schrijven
-RUN chmod 666 /app/CLOCKWISE.FDB || true
-ENTRYPOINT ["dotnet", "backend.dll"]
+# 📦 Bewaar de database als template (niet direct gebruiken)
+COPY database/CLOCKWISE.FDB /app/CLOCKWISE.FDB.initial
+# 🚀 Startup script dat DB naar /data kopieert
+COPY backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]
