@@ -4,6 +4,7 @@ import dayjs, { Dayjs } from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
+import MotivationCard from "../MotivationCard";
 
 import {
     getTimeEntries,
@@ -146,11 +147,12 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
 
     return (
         <>
-            <div className={`
-                relative overflow-hidden rounded-xl border-2 transition-all duration-200 hover:shadow-md
-                ${isToday ? 'ring-1 ring-elmar-primary ring-opacity-30' : ''}
-                ${getStatusColor()}
-            `}>
+           <div className={`
+    relative overflow-hidden rounded-2xl bg-neutral-900 
+    text-white shadow-lg transition-all duration-300 hover:shadow-blue-900/30 hover:scale-[1.01]
+    ${isToday ? 'ring-1 ring-blue-500/40' : ''}
+`}>
+
                 <div className="p-4">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-3">
@@ -183,10 +185,9 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     <div className="mb-3">
                         <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
-                                className={`h-1.5 rounded-full transition-all duration-500 ${
-                                    totalHours >= 8 ? 'bg-green-500' :
+                                className={`h-1.5 rounded-full transition-all duration-500 ${totalHours >= 8 ? 'bg-green-500' :
                                         totalHours >= 4 ? 'bg-yellow-500' : 'bg-orange-500'
-                                }`}
+                                    }`}
                                 style={{ width: `${Math.min((totalHours / 8) * 100, 100)}%` }}
                             ></div>
                         </div>
@@ -344,10 +345,9 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
 
                     {!canEdit && weekStatus !== "concept" && (
                         <div className="text-center mt-2">
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                weekStatus === 'goedgekeurd' ? 'bg-green-100 text-green-800' :
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${weekStatus === 'goedgekeurd' ? 'bg-green-100 text-green-800' :
                                     weekStatus === 'ingeleverd' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                            }`}>
+                                }`}>
                                 {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
                                     weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' : '❌ Afgekeurd'}
                             </span>
@@ -656,11 +656,10 @@ export default function WeekOverview() {
                         </p>
                         {weekStatus !== "concept" && (
                             <div className="mt-2">
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                    weekStatus === 'goedgekeurd' ? 'bg-green-500 text-white' :
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${weekStatus === 'goedgekeurd' ? 'bg-green-500 text-white' :
                                         weekStatus === 'ingeleverd' ? 'bg-yellow-500 text-white' :
                                             'bg-red-500 text-white'
-                                }`}>
+                                    }`}>
                                     {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
                                         weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' :
                                             '❌ Afgekeurd'}
@@ -762,77 +761,94 @@ export default function WeekOverview() {
                 })}
             </div>
 
-            {/* Week Summary */}
+            {/* Motivatie Blok */}
+            <MotivationCard
+                name="Ayoub"
+                workedHours={totalHoursThisWeek}
+                targetHours={40}
+                improvement={8} // eventueel dynamisch berekenen
+            />
+
+
+
             {totalHoursThisWeek > 0 && (
-                <div className="card bg-white shadow-elmar-card">
+                <div className="card bg-neutral-900  shadow-lg rounded-2xl">
                     <div className="card-body p-6">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <ClockIcon className="w-6 h-6 text-elmar-primary" />
+                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <ClockIcon className="w-6 h-6 text-blue-500" />
                             Week Samenvatting
                         </h3>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-blue-600">{formatHours(totalHoursThisWeek)}</div>
-                                <div className="text-sm text-gray-600">Totaal uren</div>
+                        {/* overzicht blokken */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <div className="bg-black rounded-xl p-4 text-center border border-blue-800/50 ">
+                                <div className="text-2xl font-bold text-blue-400">{formatHours(totalHoursThisWeek)}</div>
+                                <div className="text-sm text-gray-400">Totaal uren</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-green-600">
+                            <div className="bg-black rounded-xl p-4 text-center border border-blue-800/50">
+                                <div className="text-2xl font-bold text-blue-400">
                                     {days.filter(day => getDayHours(day) > 0).length}
                                 </div>
-                                <div className="text-sm text-gray-600">Werkdagen</div>
+                                <div className="text-sm text-gray-400">Werkdagen</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-purple-600">
-                                    {totalHoursThisWeek > 0 ? formatHours(totalHoursThisWeek / days.filter(day => getDayHours(day) > 0).length) : '0u'}
+                            <div className="bg-black rounded-xl p-4 text-center border border-blue-800/50">
+                                <div className="text-2xl font-bold text-blue-400">
+                                    {totalHoursThisWeek > 0
+                                        ? formatHours(totalHoursThisWeek / days.filter(day => getDayHours(day) > 0).length)
+                                        : '0u'}
                                 </div>
-                                <div className="text-sm text-gray-600">Gemiddeld</div>
+                                <div className="text-sm text-gray-400">Gemiddeld</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 text-center">
-                                <div className="text-2xl font-bold text-orange-600">
+                            <div className="bg-black rounded-xl p-4 text-center border border-blue-800/50">
+                                <div className="text-2xl font-bold text-blue-400">
                                     {((totalHoursThisWeek / 40) * 100).toFixed(0)}%
                                 </div>
-                                <div className="text-sm text-gray-600">Van 40u</div>
+                                <div className="text-sm text-gray-400">Van 40u</div>
                             </div>
                         </div>
 
-                        {/* Progress Bar */}
-                        <div className="mb-4">
+                        {/* voortgangsbalk */}
+                        <div className="mb-6">
                             <div className="flex justify-between text-sm mb-2">
-                                <span className="font-medium text-gray-700">Voortgang naar 40 uur</span>
-                                <span className="font-medium text-gray-700">{formatHours(totalHoursThisWeek)} / 40u</span>
+                                <span className="font-medium text-gray-300">Voortgang naar 40 uur</span>
+                                <span className="font-medium text-gray-300">{formatHours(totalHoursThisWeek)} / 40u</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div className="w-full bg-neutral-900 rounded-full h-3">
                                 <div
-                                    className={`h-3 rounded-full transition-all duration-500 ${
-                                        totalHoursThisWeek >= 40 ? 'bg-green-500' :
-                                            totalHoursThisWeek >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
-                                    }`}
+                                    className={`h-3 rounded-full transition-all duration-500 ${totalHoursThisWeek >= 40
+                                            ? 'bg-blue-500'
+                                            : totalHoursThisWeek >= 32
+                                                ? 'bg-blue-600'
+                                                : 'bg-blue-800'
+                                        }`}
                                     style={{ width: `${Math.min((totalHoursThisWeek / 40) * 100, 100)}%` }}
                                 ></div>
                             </div>
                         </div>
 
-                        {/* Status Messages */}
+                        {/* alerts */}
                         {totalHoursThisWeek < 32 && (
-                            <div className="alert alert-warning rounded-xl">
-                                <ExclamationTriangleIcon className="w-5 h-5" />
+                            <div className="flex items-center gap-2 bg-blue-950 border border-blue-800 rounded-xl p-3 text-blue-300">
+                                <ExclamationTriangleIcon className="w-5 h-5 text-blue-400" />
                                 <span>Je hebt minder dan 32 uur geregistreerd deze week.</span>
                             </div>
                         )}
 
                         {totalHoursThisWeek >= 40 && (
-                            <div className="alert alert-success rounded-xl">
-                                <CheckCircleIcon className="w-5 h-5" />
+                            <div className="flex items-center gap-2 bg-blue-900 border border-blue-700 rounded-xl p-3 text-blue-200">
+                                <CheckCircleIcon className="w-5 h-5 text-blue-400" />
                                 <span>Gefeliciteerd! Je hebt een volledige werkweek geregistreerd.</span>
                             </div>
                         )}
                     </div>
                 </div>
             )}
+
+
+
 
             <TimeEntryModal
                 isOpen={isModalOpen}

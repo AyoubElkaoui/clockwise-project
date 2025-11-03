@@ -36,6 +36,10 @@ export default function LoginPage(): JSX.Element {
             localStorage.setItem("firstName", user.firstName);
             localStorage.setItem("lastName", user.lastName);
             localStorage.setItem("userRank", user.rank);
+            // Store full user data without password for immediate profile filling
+            const userData = { ...user };
+            delete userData.password;
+            localStorage.setItem("user", JSON.stringify(userData));
 
             document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
             document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;

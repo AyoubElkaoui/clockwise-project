@@ -51,17 +51,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }): 
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* Enhanced Sidebar */}
-                    <div className="hidden lg:block">
+                    <div className="hidden lg:block bg-black">
                         <Sidebar
                             timeEntries={timeEntries}
                             currentMonth={currentMonth}
-                            className="w-80 flex-shrink-0 h-[calc(100vh-64px)] overflow-y-auto bg-white shadow-elmar-card border-r border-gray-200"
+                            className="w-80 flex-shrink-0 h-[calc(100vh-64px)] overflow-y-auto bg-black shadow-elmar-card border-r border-gray-200"
                         />
                     </div>
 
                     {/* Enhanced Main Content */}
-                    <main className="flex-1 overflow-y-auto">
-                        <div className="p-6 lg:p-8 animate-fade-in">
+                    <main className="flex-1 overflow-y-auto bg-black">
+                        <div className="p-6 lg:p-8 animate-fade-in bg-black">
                             {children}
                         </div>
                     </main>
