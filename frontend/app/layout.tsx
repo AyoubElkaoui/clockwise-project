@@ -1,7 +1,9 @@
 // app/layout.tsx
+"use client";
 import { ReactNode } from "react";
 import "./globals.css";
 import { Poppins } from "next/font/google";
+import { ThemeProvider } from "@/lib/theme-context";
 
 const poppins = Poppins({
     weight: ["400", "600", "700"],
@@ -10,9 +12,13 @@ const poppins = Poppins({
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="nl" data-theme="elmar" className={poppins.className}>
-        <body className="bg-base-200">
-        {children}
+        <html lang="nl" suppressHydrationWarning>
+        <body className={poppins.className}>
+        <ThemeProvider>
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+                {children}
+            </div>
+        </ThemeProvider>
         </body>
         </html>
     );

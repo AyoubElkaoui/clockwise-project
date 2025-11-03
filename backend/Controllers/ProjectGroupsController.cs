@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-[Route("api/projectgroups")]
+[Route("api/project-groups")]
 [ApiController]
 public class ProjectGroupsController : ControllerBase
 {
@@ -15,7 +15,7 @@ public class ProjectGroupsController : ControllerBase
         _context = context;
     }
 
-    [HttpGet("{companyId}")]
+    [HttpGet("company/{companyId}")]
     public async Task<ActionResult<IEnumerable<ProjectGroup>>> GetProjectGroups(int companyId)
     {
         return await _context.ProjectGroups

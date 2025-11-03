@@ -1,12 +1,15 @@
 "use client";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardContent from "@/components/DashboardContent";
+import ModernLayout from "@/components/ModernLayout";
+import ModernDashboard from "@/components/ModernDashboard";
 import {JSX} from "react";
 
 export default function DashboardPage(): JSX.Element {
     return (
         <ProtectedRoute>
-            <DashboardContent />
+            <ModernLayout>
+                <ModernDashboard />
+            </ModernLayout>
         </ProtectedRoute>
     );
 }

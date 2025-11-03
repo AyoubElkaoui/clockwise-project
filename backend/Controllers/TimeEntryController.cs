@@ -29,6 +29,81 @@ public class TimeEntryController : ControllerBase
         return entries;
     }
 
+    // GET: api/time-entries/user/{userId}/week?startDate=2025-10-27
+    [HttpGet("user/{userId}/week")]
+    public async Task<ActionResult<IEnumerable<object>>> GetUserWeekEntries(int userId, [FromQuery] string startDate)
+    {
+        DateTime weekStart;
+        if (!DateTime.TryParse(startDate, out weekStart))
+        {
+            return BadRequest("Invalid date format");
+        }
+
+        var weekEnd = weekStart.AddDays(7);
+
+        var entries = await _context.TimeEntries
+            .Include(te => te.Project)
+                .ThenInclude(p => p.ProjectGroup)
+                    .ThenInclude(pg => pg.Company)
+            .Where(te => te.UserId == userId && te.StartTime >= weekStart && te.StartTime < weekEnd)
+            .ToListAsync();
+
+        var result = entries.Select(te => new
+        {
+            te.Id,
+            Date = te.StartTime.ToString("yyyy-MM-dd"),
+            CompanyId = te.Project?.ProjectGroup?.Company?.Id ?? 0,
+            CompanyName = te.Project?.ProjectGroup?.Company?.Name ?? "",
+            ProjectGroupId = te.Project?.ProjectGroup?.Id ?? 0,
+            ProjectGroupName = te.Project?.ProjectGroup?.Name ?? "",
+            ProjectId = te.Project?.Id ?? 0,
+            ProjectName = te.Project?.Name ?? "",
+            Hours = (te.EndTime - te.StartTime).TotalHours - (te.BreakMinutes / 60.0),
+            Km = te.DistanceKm,
+            Expenses = te.Expenses,
+            BreakMinutes = te.BreakMinutes,
+            Notes = te.Notes,
+            te.Status
+        });
+
+        return Ok(result);
+    }
+
+    // POST: api/time-entries/bulk - Sla meerdere entries tegelijk op
+    [HttpPost("bulk")]
+    public async Task<IActionResult> CreateBulkTimeEntries([FromBody] List<TimeEntryDto> entries)
+    {
+        if (entries == null || !entries.Any())
+        {
+            return BadRequest("Geen entries ontvangen");
+        }
+
+        var timeEntries = new List<TimeEntry>();
+
+        foreach (var dto in entries)
+        {
+            var entry = new TimeEntry
+            {
+                UserId = dto.UserId,
+                ProjectId = dto.ProjectId,
+                StartTime = DateTime.Parse(dto.Date),
+                EndTime = DateTime.Parse(dto.Date).AddHours(dto.Hours),
+                BreakMinutes = dto.BreakMinutes,
+                DistanceKm = dto.Km,
+                Expenses = dto.Expenses,
+                Notes = dto.Notes,
+                Status = dto.Status ?? "opgeslagen"
+            };
+
+            timeEntries.Add(entry);
+        }
+
+        _context.TimeEntries.AddRange(timeEntries);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Uren succesvol opgeslagen", count = timeEntries.Count });
+    }
+
     // POST: api/time-entries
     // Aanpassing in TimeEntryController.cs - CreateTimeEntry methode
     [HttpPost]
