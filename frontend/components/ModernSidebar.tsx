@@ -11,7 +11,6 @@ import {
   Bell,
   User,
   Settings,
-  Calendar,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +18,7 @@ import {
 import { ThemeToggle } from "./ui/theme-toggle";
 import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
+import { MiniCalendar } from "./MiniCalendar";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 
@@ -32,7 +32,6 @@ const baseMenuItems = [
   { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications" },
   { icon: User, label: "Mijn Account", href: "/account", badgeKey: null },
   { icon: Settings, label: "Instellingen", href: "/instellingen", badgeKey: null },
-  { icon: Calendar, label: "Kalender", href: "/kalender", badgeKey: null },
 ];
 
 export function ModernSidebar() {
@@ -58,12 +57,17 @@ export function ModernSidebar() {
     try {
       // Load unread notifications
       const activities = await getActivities(50, userId);
-      const unreadCount = activities.filter((a: any) => !a.isRead).length;
+      // API uses 'read' field, not 'isRead'
+      const unreadCount = activities.filter((a: any) => !a.read && a.read !== undefined).length;
+      console.log('📊 [BADGES] Total activities:', activities.length);
+      console.log('📊 [BADGES] Unread count:', unreadCount);
 
       // Load pending time entries (ingeleverd status)
       const entries = await getTimeEntries();
       const userEntries = entries.filter((e: any) => e.userId === userId);
       const pendingCount = userEntries.filter((e: any) => e.status === "ingeleverd").length;
+      console.log('📊 [BADGES] User entries:', userEntries.length);
+      console.log('📊 [BADGES] Pending count:', pendingCount);
 
       setBadges({
         unreadNotifications: unreadCount,
@@ -154,6 +158,13 @@ export function ModernSidebar() {
               </Link>
             );
           })}
+
+          {/* Mini Calendar */}
+          {!collapsed && (
+            <div className="pt-4">
+              <MiniCalendar />
+            </div>
+          )}
         </nav>
 
         {/* User Profile & Settings */}

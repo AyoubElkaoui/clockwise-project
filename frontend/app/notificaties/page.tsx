@@ -20,9 +20,11 @@ interface Activity {
   id: number;
   userId: number;
   type: string;
+  action: string;
   message: string;
-  isRead: boolean;
-  createdAt: string;
+  details: string;
+  read: boolean; // API uses 'read' not 'isRead'
+  timestamp: string; // API uses 'timestamp' not 'createdAt'
 }
 
 export default function NotificatiesPage() {
@@ -64,8 +66,8 @@ export default function NotificatiesPage() {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const readCount = notifications.filter(n => n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.read).length;
+  const readCount = notifications.filter(n => n.read).length;
 
   return (
     <ProtectedRoute>
@@ -147,34 +149,34 @@ export default function NotificatiesPage() {
                     <div
                       key={notification.id}
                       className={`p-4 rounded-lg border transition-all ${
-                        !notification.isRead
+                        !notification.read
                           ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                       }`}
                     >
                       <div className="flex items-start gap-4">
                         <div className={`w-2 h-2 rounded-full mt-2 ${
-                          !notification.isRead ? "bg-blue-500" : "bg-gray-400"
+                          !notification.read ? "bg-blue-500" : "bg-gray-400"
                         }`} />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-semibold text-slate-900 dark:text-slate-100">
-                              {notification.type}
+                              {notification.message}
                             </p>
-                            {!notification.isRead && (
+                            {!notification.read && (
                               <Badge variant="info" size="sm">
                                 Nieuw
                               </Badge>
                             )}
                           </div>
                           <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                            {notification.message}
+                            {notification.details}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-500">
-                            {dayjs(notification.createdAt).fromNow()}
+                            {dayjs(notification.timestamp).fromNow()}
                           </p>
                         </div>
-                        {!notification.isRead && (
+                        {!notification.read && (
                           <Button 
                             variant="ghost" 
                             size="icon"

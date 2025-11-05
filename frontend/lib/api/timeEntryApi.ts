@@ -75,10 +75,13 @@ export async function rejectTimeEntry(id: number): Promise<void> {
 
 // Haal alle time entries op (inclusief relaties)
 export async function getAllTimeEntries(): Promise<any[]> {
+  console.log('🔧 [API] Fetching time entries from:', `${API_URL}/time-entries`);
   const response = await axios.get(`${API_URL}/time-entries`);
+  console.log('🔧 [API] Raw response:', response.data.length, 'entries');
+  console.log('🔧 [API] First raw entry:', response.data[0]);
   
   // Transform API data to frontend format
-  return response.data.map((entry: any) => {
+  const transformed = response.data.map((entry: any) => {
     // Calculate hours from startTime and endTime
     let hours = 0;
     if (entry.startTime && entry.endTime) {
@@ -93,10 +96,7 @@ export async function getAllTimeEntries(): Promise<any[]> {
     // Extract date from startTime
     const date = entry.startTime ? entry.startTime.split('T')[0] : '';
 
-    // Ensure hours is always a valid number
-    const validHours = isNaN(hours) ? 0 : parseFloat(hours.toFixed(2));
-
-    return {
+    const result = {
       id: entry.id,
       userId: entry.userId,
       date: date,
@@ -106,7 +106,7 @@ export async function getAllTimeEntries(): Promise<any[]> {
       projectGroupName: entry.project?.projectGroup?.name || '',
       companyId: entry.project?.projectGroup?.companyId || 0,
       companyName: entry.project?.projectGroup?.company?.name || '',
-      hours: validHours,
+      hours: parseFloat(hours.toFixed(2)),
       km: entry.distanceKm || 0,
       expenses: entry.expenses || 0,
       breakMinutes: entry.breakMinutes || 0,
@@ -115,7 +115,18 @@ export async function getAllTimeEntries(): Promise<any[]> {
       startTime: entry.startTime,
       endTime: entry.endTime,
     };
+    
+    if (response.data.indexOf(entry) === 0) {
+      console.log('🔧 [API] First transformed entry:', result);
+      console.log('🔧 [API] Has hours?', result.hours);
+      console.log('🔧 [API] Has date?', result.date);
+    }
+    
+    return result;
   });
+  
+  console.log('🔧 [API] Returning', transformed.length, 'transformed entries');
+  return transformed;
 }
 
 // Create/Register a new time entry

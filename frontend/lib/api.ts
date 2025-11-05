@@ -76,12 +76,54 @@ export async function getTimeEntries() {
         console.log('✅ Time entries loaded:', Array.isArray(data) ? data.length : 'not array');
 
         // Handle different possible response structures
-        if (Array.isArray(data)) return data;
-        if (data && Array.isArray(data.timeEntries)) return data.timeEntries;
-        if (data && Array.isArray(data.data)) return data.data;
+        let rawEntries = [];
+        if (Array.isArray(data)) rawEntries = data;
+        else if (data && Array.isArray(data.timeEntries)) rawEntries = data.timeEntries;
+        else if (data && Array.isArray(data.data)) rawEntries = data.data;
+        else {
+            console.warn("⚠️ Unexpected time entries response structure:", data);
+            return [];
+        }
 
-        console.warn("⚠️ Unexpected time entries response structure:", data);
-        return [];
+        // Transform API data to frontend format
+        console.log('🔄 Transforming', rawEntries.length, 'entries...');
+        const transformed = rawEntries.map((entry: any) => {
+            // Calculate hours from startTime and endTime
+            let hours = 0;
+            if (entry.startTime && entry.endTime) {
+                const start = new Date(entry.startTime);
+                const end = new Date(entry.endTime);
+                const diffMs = end.getTime() - start.getTime();
+                const diffMinutes = diffMs / (1000 * 60);
+                const workMinutes = diffMinutes - (entry.breakMinutes || 0);
+                hours = workMinutes > 0 ? workMinutes / 60 : 0;
+            }
+
+            // Extract date from startTime
+            const date = entry.startTime ? entry.startTime.split('T')[0] : '';
+
+            return {
+                ...entry, // Keep all original fields
+                date: date,
+                hours: parseFloat(hours.toFixed(2)),
+                projectName: entry.project?.name || '',
+                projectGroupId: entry.project?.projectGroupId || 0,
+                projectGroupName: entry.project?.projectGroup?.name || '',
+                companyId: entry.project?.projectGroup?.companyId || 0,
+                companyName: entry.project?.projectGroup?.company?.name || '',
+                km: entry.distanceKm || 0,
+                expenses: entry.expenses || 0,
+                breakMinutes: entry.breakMinutes || 0,
+                notes: entry.notes || '',
+                status: entry.status || 'opgeslagen',
+            };
+        });
+
+        console.log('✅ Transformed first entry:', transformed[0]);
+        console.log('✅ First entry has hours?', transformed[0]?.hours);
+        console.log('✅ First entry has date?', transformed[0]?.date);
+        
+        return transformed;
     } catch (error) {
         console.error("❌ Error fetching time entries:", error);
         return [];
@@ -91,7 +133,7 @@ export async function getTimeEntries() {
 export async function getProjectGroups(companyId: number) {
     try {
         console.log('🏢 Fetching project groups for company:', companyId);
-        const res = await axios.get(`${API_URL}/projectgroups/${companyId}`);
+        const res = await axios.get(`${API_URL}/project-groups/company/${companyId}`);
         const data = safeApiResponse(res);
         console.log('✅ Project groups loaded:', Array.isArray(data) ? data.length : 'not array');
         return Array.isArray(data) ? data : [];
@@ -104,7 +146,7 @@ export async function getProjectGroups(companyId: number) {
 export async function getProjects(projectGroupId: number) {
     try {
         console.log('📋 Fetching projects for group:', projectGroupId);
-        const res = await axios.get(`${API_URL}/projects?groupId=${projectGroupId}`);
+        const res = await axios.get(`${API_URL}/projects/group/${projectGroupId}`);
         const data = safeApiResponse(res);
         console.log('✅ Projects loaded:', Array.isArray(data) ? data.length : 'not array');
         return Array.isArray(data) ? data : [];

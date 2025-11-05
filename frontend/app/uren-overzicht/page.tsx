@@ -58,19 +58,42 @@ export default function UrenOverzichtPage() {
     setLoading(true);
     try {
       const data = await getTimeEntries();
-      
-      // DEBUG: Check data structure
-      console.log('=== UREN OVERZICHT DEBUG ===');
-      console.log('Total entries loaded:', data.length);
-      if (data.length > 0) {
-        console.log('First entry:', data[0]);
-        console.log('First entry hours:', data[0]?.hours, 'Type:', typeof data[0]?.hours);
-      }
+      console.log('🔍 [DEBUG] Raw API data:', data.length, 'entries');
+      console.log('🔍 [DEBUG] First entry:', data[0]);
+      console.log('🔍 [DEBUG] First entry has hours?', data[0]?.hours);
+      console.log('🔍 [DEBUG] First entry has date?', data[0]?.date);
       
       // Filter by current user
       const userEntries = data.filter((entry: any) => entry.userId === userId);
-      console.log('User entries filtered:', userEntries.length);
+      console.log('🔍 [DEBUG] User entries:', userEntries.length);
       
+      // Auto-select week with data if current week has no entries
+      if (userEntries.length > 0) {
+        // Find the most recent entry date
+        const latestEntry = userEntries.reduce((latest, entry) => {
+          return dayjs(entry.date).isAfter(dayjs(latest.date)) ? entry : latest;
+        }, userEntries[0]);
+        
+        // Check if current week has any data
+        const weekStart = currentWeek.startOf('isoWeek');
+        const weekEnd = currentWeek.endOf('isoWeek');
+        const hasDataInCurrentWeek = userEntries.some(entry => {
+          const entryDate = dayjs(entry.date);
+          return entryDate.isBetween(weekStart, weekEnd, null, '[]');
+        });
+        
+        console.log('📅 [DEBUG] Current week has data?', hasDataInCurrentWeek);
+        console.log('📅 [DEBUG] Latest entry date:', latestEntry.date);
+        
+        // If no data in current week, jump to latest entry's week BEFORE setting entries
+        if (!hasDataInCurrentWeek && latestEntry) {
+          const newWeek = dayjs(latestEntry.date);
+          console.log('🔄 [DEBUG] Jumping to week of:', newWeek.format('YYYY-MM-DD'));
+          setCurrentWeek(newWeek);
+        }
+      }
+      
+      // Set entries AFTER potentially updating the week
       setEntries(userEntries);
     } catch (error) {
       console.error("Failed to load entries:", error);
@@ -81,14 +104,27 @@ export default function UrenOverzichtPage() {
 
   const filterEntries = () => {
     let filtered = [...entries];
+    console.log('🔧 [DEBUG] Filtering', filtered.length, 'entries');
 
     // Filter by week
     const weekStart = currentWeek.startOf('isoWeek');
     const weekEnd = currentWeek.endOf('isoWeek');
+    console.log('📅 [DEBUG] Week range:', weekStart.format('YYYY-MM-DD'), 'to', weekEnd.format('YYYY-MM-DD'));
+    
     filtered = filtered.filter(entry => {
       const entryDate = dayjs(entry.date);
-      return entryDate.isBetween(weekStart, weekEnd, null, '[]');
+      const inRange = entryDate.isBetween(weekStart, weekEnd, null, '[]');
+      if (!inRange && filtered.indexOf(entry) < 3) {
+        console.log('❌ [DEBUG] Entry excluded:', entry.date, 'not in range');
+      }
+      return inRange;
     });
+    
+    console.log('📊 [DEBUG] After week filter:', filtered.length, 'entries');
+    if (filtered.length > 0) {
+      console.log('📋 [DEBUG] First filtered entry:', filtered[0]);
+      console.log('💰 [DEBUG] First entry hours:', filtered[0].hours, 'type:', typeof filtered[0].hours);
+    }
 
     // Filter by status
     if (statusFilter !== "all") {
@@ -108,7 +144,12 @@ export default function UrenOverzichtPage() {
   };
 
   const calculateTotalHours = () => {
-    return filteredEntries.reduce((sum, entry) => sum + (entry.hours || 0), 0);
+    const total = filteredEntries.reduce((sum, entry) => {
+      console.log('➕ [DEBUG] Adding hours:', entry.hours, 'current sum:', sum);
+      return sum + (entry.hours || 0);
+    }, 0);
+    console.log('💰 [DEBUG] Total hours:', total);
+    return total;
   };
 
   const calculateApprovedHours = () => {
