@@ -34,9 +34,9 @@ dayjs.extend(isoWeek);
 const werknemerMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/", badgeKey: null, rank: "all" },
   { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", badgeKey: null, rank: "all" },
-  { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", badgeKey: "pendingEntries", rank: "all" },
+  { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", badgeKey: null, rank: "all" }, // Badge removed
   { icon: Plane, label: "Vakantie", href: "/vakantie", badgeKey: null, rank: "all" },
-  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications", rank: "all" },
+  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications", rank: "all" }, // Only unread
   { icon: User, label: "Mijn Account", href: "/account", badgeKey: null, rank: "all" },
   { icon: Settings, label: "Instellingen", href: "/instellingen", badgeKey: null, rank: "all" },
 ];
@@ -73,28 +73,35 @@ export function ModernSidebar() {
     setFirstName(localStorage.getItem("firstName") || "");
     setLastName(localStorage.getItem("lastName") || "");
     setUserRank(localStorage.getItem("userRank") || "");
+    
+    // Initial load
     loadBadges();
+    
+    // Live update every 15 seconds for real-time notifications
+    const interval = setInterval(() => {
+      loadBadges();
+    }, 15000); // 15 seconds - live updates!
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadBadges = async () => {
     try {
-      // Load unread notifications
+      // Load ONLY unread notifications
       const activities = await getActivities(50, userId);
-      // API uses 'read' field, not 'isRead'
-      const unreadCount = activities.filter((a: any) => !a.read && a.read !== undefined).length;
-      console.log('📊 [BADGES] Total activities:', activities.length);
-      console.log('📊 [BADGES] Unread count:', unreadCount);
+      // Filter only unread (read === false or read === undefined)
+      const unreadCount = activities.filter((a: any) => !a.read).length;
+      
+      console.log('� [LIVE BADGES] Total activities:', activities.length);
+      console.log('� [LIVE BADGES] Unread notifications:', unreadCount);
 
-      // Load pending time entries (ingeleverd status)
+      // For admin/manager: pending approvals count
       const entries = await getTimeEntries();
       const pendingCount = entries.filter((e: any) => e.status === "ingeleverd").length;
-      console.log('📊 [BADGES] All entries:', entries.length);
-      console.log('📊 [BADGES] Pending count:', pendingCount);
 
       setBadges({
-        unreadNotifications: unreadCount,
-        pendingEntries: pendingCount,
-        pendingApprovals: pendingCount, // For admin/manager
+        unreadNotifications: unreadCount > 0 ? unreadCount : null, // Only show if > 0
+        pendingApprovals: pendingCount > 0 ? pendingCount : null, // For admin/manager, only if > 0
       });
     } catch (error) {
       console.error("Failed to load badges:", error);
