@@ -22,9 +22,19 @@ RUN dotnet publish backend.csproj -c Release -o /app/publish /p:UseAppHost=false
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
 # 📦 Database template (build context = repo root)
 COPY database/CLOCKWISE.FDB /app/CLOCKWISE.FDB.initial
+
 # 🚀 Startup script (build context = repo root)
 COPY backend/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+
+# Zorg dat entrypoint.sh executable is en LF line endings heeft
+RUN chmod +x /app/entrypoint.sh && \
+    # Verwijder eventuele carriage returns (Windows line endings fix)
+    sed -i 's/\r$//' /app/entrypoint.sh
+
+# Debug: toon of file bestaat
+RUN ls -la /app/entrypoint.sh && head -n 5 /app/entrypoint.sh
+
 ENTRYPOINT ["/app/entrypoint.sh"]

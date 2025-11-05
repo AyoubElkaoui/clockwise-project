@@ -44,11 +44,13 @@ export default function LoginPage(): JSX.Element {
             document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
             document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
 
-            // Stuur naar juiste pagina
-            if (user.rank === "admin" || user.rank === "manager") {
-                router.push("/admin");
+            // Stuur naar juiste dashboard
+            if (user.rank === "admin") {
+                router.push("/admin-dashboard");
+            } else if (user.rank === "manager") {
+                router.push("/manager-dashboard");
             } else {
-                router.push("/dashboard");
+                router.push("/");
             }
         } catch (e: unknown) {
             if (e instanceof Error) {

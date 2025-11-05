@@ -14,6 +14,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Shield,
+  UserCog,
+  Users,
+  Building2,
+  FolderKanban,
+  CheckCircle2,
 } from "lucide-react";
 import { ThemeToggle } from "./ui/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -24,14 +30,31 @@ import isoWeek from "dayjs/plugin/isoWeek";
 
 dayjs.extend(isoWeek);
 
-const baseMenuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/", badgeKey: null },
-    { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", badgeKey: null },
-    { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", badgeKey: "pendingEntries" },
-  { icon: Plane, label: "Vakantie", href: "/vakantie", badgeKey: null },
-  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications" },
-  { icon: User, label: "Mijn Account", href: "/account", badgeKey: null },
-  { icon: Settings, label: "Instellingen", href: "/instellingen", badgeKey: null },
+// Base menu items for regular users
+const werknemerMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/", badgeKey: null, rank: "all" },
+  { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", badgeKey: null, rank: "all" },
+  { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", badgeKey: "pendingEntries", rank: "all" },
+  { icon: Plane, label: "Vakantie", href: "/vakantie", badgeKey: null, rank: "all" },
+  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications", rank: "all" },
+  { icon: User, label: "Mijn Account", href: "/account", badgeKey: null, rank: "all" },
+  { icon: Settings, label: "Instellingen", href: "/instellingen", badgeKey: null, rank: "all" },
+];
+
+// Manager specific items
+const managerMenuItems = [
+  { icon: Shield, label: "Manager Dashboard", href: "/manager-dashboard", badgeKey: null, rank: "manager" },
+  { icon: Users, label: "Team Beheren", href: "/admin/users", badgeKey: null, rank: "manager" },
+  { icon: CheckCircle2, label: "Goedkeuringen", href: "/uren-overzicht", badgeKey: "pendingApprovals", rank: "manager" },
+];
+
+// Admin specific items
+const adminMenuItems = [
+  { icon: Shield, label: "Admin Dashboard", href: "/admin-dashboard", badgeKey: null, rank: "admin" },
+  { icon: Users, label: "Gebruikers", href: "/admin/users", badgeKey: null, rank: "admin" },
+  { icon: Building2, label: "Bedrijven", href: "/admin/companies", badgeKey: null, rank: "admin" },
+  { icon: FolderKanban, label: "Projecten", href: "/admin/projects", badgeKey: null, rank: "admin" },
+  { icon: CheckCircle2, label: "Goedkeuringen", href: "/uren-overzicht", badgeKey: "pendingApprovals", rank: "admin" },
 ];
 
 export function ModernSidebar() {
@@ -64,24 +87,39 @@ export function ModernSidebar() {
 
       // Load pending time entries (ingeleverd status)
       const entries = await getTimeEntries();
-      const userEntries = entries.filter((e: any) => e.userId === userId);
-      const pendingCount = userEntries.filter((e: any) => e.status === "ingeleverd").length;
-      console.log('📊 [BADGES] User entries:', userEntries.length);
+      const pendingCount = entries.filter((e: any) => e.status === "ingeleverd").length;
+      console.log('📊 [BADGES] All entries:', entries.length);
       console.log('📊 [BADGES] Pending count:', pendingCount);
 
       setBadges({
         unreadNotifications: unreadCount,
         pendingEntries: pendingCount,
+        pendingApprovals: pendingCount, // For admin/manager
       });
     } catch (error) {
       console.error("Failed to load badges:", error);
     }
   };
 
-  const menuItems = baseMenuItems.map(item => ({
-    ...item,
-    badge: item.badgeKey ? badges[item.badgeKey] || null : null
-  }));
+  // Build menu based on user rank
+  const getMenuItems = () => {
+    let items = [...werknemerMenuItems];
+    
+    if (userRank === "admin") {
+      // Admin gets admin dashboard + admin items + regular items
+      items = [...adminMenuItems, ...werknemerMenuItems];
+    } else if (userRank === "manager") {
+      // Manager gets manager dashboard + manager items + regular items
+      items = [...managerMenuItems, ...werknemerMenuItems];
+    }
+    
+    return items.map(item => ({
+      ...item,
+      badge: item.badgeKey ? badges[item.badgeKey] || null : null
+    }));
+  };
+
+  const menuItems = getMenuItems();
 
   const handleLogout = () => {
     localStorage.clear();
