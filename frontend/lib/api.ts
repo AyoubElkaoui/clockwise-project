@@ -156,6 +156,19 @@ export async function getProjects(projectGroupId: number) {
     }
 }
 
+export async function getAllProjects() {
+    try {
+        console.log('📋 Fetching all projects...');
+        const res = await axios.get(`${API_URL}/projects`);
+        const data = safeApiResponse(res);
+        console.log('✅ All projects loaded:', Array.isArray(data) ? data.length : 'not array');
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error("❌ Error fetching all projects:", error);
+        return [];
+    }
+}
+
 export async function registerTimeEntry(data: Omit<TimeEntry, 'id' | 'localStatus'>) {
     try {
         console.log('💾 Registering time entry...');

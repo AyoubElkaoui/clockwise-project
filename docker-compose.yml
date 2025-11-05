@@ -25,10 +25,13 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
-      - backend
+      backend:
+        condition: service_started
+      firebird:
+        condition: service_started
     networks:
       - clockwise-network
-    command: [ "dotnet", "backend.dll", "seed" ]
+    command: [ "sh", "-c", "sleep 5 && dotnet backend.dll seed" ]
     restart: "no"
 
   # Backend API (.NET)

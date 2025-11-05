@@ -13,7 +13,7 @@ import {
   Calendar,
   Briefcase,
 } from "lucide-react";
-import { getUsers, getTimeEntries, getCompanies, getProjects, getVacationRequests } from "@/lib/api";
+import { getUsers, getTimeEntries, getCompanies, getAllProjects, getVacationRequests } from "@/lib/api";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
         getUsers(),
         getTimeEntries(),
         getCompanies(),
-        getProjects(),
+        getAllProjects(),
         getVacationRequests(),
       ]);
 
