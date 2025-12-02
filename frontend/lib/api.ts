@@ -300,3 +300,64 @@ export async function removeUserFromProject(userId: number, projectId: number) {
         axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`)
     );
 }
+
+// Team-related functions for managers
+export async function getMyTeam(managerId: number) {
+    try {
+        const res = await axios.get(`${API_URL}/users`);
+        const users = safeApiResponse(res);
+        // Filter users who have this manager as their manager
+        return Array.isArray(users) ? users.filter((u: any) => u.managerId === managerId) : [];
+    } catch (error) {
+        console.error("Error fetching team:", error);
+        return [];
+    }
+}
+
+export async function getTeamTimeEntries(managerId: number) {
+    try {
+        const team = await getMyTeam(managerId);
+        const teamUserIds = team.map((u: any) => u.id);
+        const allEntries = await getTimeEntries();
+        return allEntries.filter((e: any) => teamUserIds.includes(e.userId));
+    } catch (error) {
+        console.error("Error fetching team time entries:", error);
+        return [];
+    }
+}
+
+export async function getTeamPendingHours(managerId: number) {
+    try {
+        const teamEntries = await getTeamTimeEntries(managerId);
+        return teamEntries.filter((e: any) => e.status === "ingeleverd");
+    } catch (error) {
+        console.error("Error fetching team pending hours:", error);
+        return [];
+    }
+}
+
+export async function getTeamPendingVacations(managerId: number) {
+    try {
+        const team = await getMyTeam(managerId);
+        const teamUserIds = team.map((u: any) => u.id);
+        const allVacations = await getVacationRequests();
+        return allVacations.filter((v: any) => 
+            teamUserIds.includes(v.userId) && v.status === "Pending"
+        );
+    } catch (error) {
+        console.error("Error fetching team pending vacations:", error);
+        return [];
+    }
+}
+
+export async function getTeamVacations(managerId: number) {
+    try {
+        const team = await getMyTeam(managerId);
+        const teamUserIds = team.map((u: any) => u.id);
+        const allVacations = await getVacationRequests();
+        return allVacations.filter((v: any) => teamUserIds.includes(v.userId));
+    } catch (error) {
+        console.error("Error fetching team vacations:", error);
+        return [];
+    }
+}
