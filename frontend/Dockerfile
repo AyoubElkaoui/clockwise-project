@@ -2,17 +2,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Installeer dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Source code wordt via volume gemount voor hot reload
+# Alleen node_modules blijven in de container
 
-# Expose port
 EXPOSE 3000
 
-# Start development server
+# Start Next.js in development mode met hot reload
 CMD ["npm", "run", "dev"]

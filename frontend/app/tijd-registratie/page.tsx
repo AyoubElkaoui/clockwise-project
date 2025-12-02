@@ -52,10 +52,10 @@ function getMonthWeeks(date: Date): Date[] {
   const month = date.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  
+
   const weeks: Date[] = [];
   let current = new Date(firstDay);
-  
+
   while (current <= lastDay) {
     const weekDays = getWeekDays(current);
     if (!weeks.some(w => formatDate(w) === formatDate(weekDays[0]))) {
@@ -63,7 +63,7 @@ function getMonthWeeks(date: Date): Date[] {
     }
     current.setDate(current.getDate() + 7);
   }
-  
+
   return weeks;
 }
 
@@ -173,7 +173,7 @@ export default function TimeRegistrationPage() {
   const copyCell = (projectId: number, date: string) => {
     const key = `${date}-${projectId}`;
     const entry = entries[key];
-    
+
     if (!entry || (entry.hours === 0 && entry.km === 0 && entry.expenses === 0 && !entry.notes)) {
       showToast("Geen data om te kopiëren", "error");
       return;
@@ -191,7 +191,7 @@ export default function TimeRegistrationPage() {
 
     const key = `${date}-${projectId}`;
     const existingEntry = entries[key];
-    
+
     // Check of cel niet ingeleverd is
     if (existingEntry && existingEntry.status === "ingeleverd") {
       showToast("Kan niet plakken in ingeleverde cel", "error");
@@ -237,7 +237,7 @@ export default function TimeRegistrationPage() {
     }));
   };
 
-  const getTotalDay = (date: string) => 
+  const getTotalDay = (date: string) =>
     Object.values(entries).filter(e => e.date === date).reduce((sum, e) => sum + (e.hours || 0), 0);
 
   const getTotalProject = (projectId: number) =>
@@ -249,7 +249,7 @@ export default function TimeRegistrationPage() {
   const getTotalWeek = () => projectRows.reduce((sum, r) => sum + getTotalProject(r.projectId), 0);
 
   // KM totals
-  const getTotalKmDay = (date: string) => 
+  const getTotalKmDay = (date: string) =>
     Object.values(entries).filter(e => e.date === date).reduce((sum, e) => sum + (e.km || 0), 0);
 
   const getTotalKmProject = (projectId: number) =>
@@ -261,7 +261,7 @@ export default function TimeRegistrationPage() {
   const getTotalKmWeek = () => projectRows.reduce((sum, r) => sum + getTotalKmProject(r.projectId), 0);
 
   // Expenses totals
-  const getTotalExpensesDay = (date: string) => 
+  const getTotalExpensesDay = (date: string) =>
     Object.values(entries).filter(e => e.date === date).reduce((sum, e) => sum + (e.expenses || 0), 0);
 
   const getTotalExpensesProject = (projectId: number) =>
@@ -335,13 +335,12 @@ export default function TimeRegistrationPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
           {toast && (
-            <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
-              toast.type === "success" 
-                ? "bg-gradient-to-r from-emerald-500 to-green-600" 
+            <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${toast.type === "success"
+                ? "bg-gradient-to-r from-emerald-500 to-green-600"
                 : "bg-gradient-to-r from-red-500 to-rose-600"
-            }`}>
+              }`}>
               <div className="flex items-center gap-2">
                 <span className="text-lg">{toast.type === "success" ? "✓" : "✕"}</span>
                 <span className="font-medium">{toast.message}</span>
@@ -353,59 +352,57 @@ export default function TimeRegistrationPage() {
             <div className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <h1 className="text-2xl font-bold text-slate-900">Uren Registreren</h1>
-                
+
                 <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
-                  <button 
+                  <button
                     onClick={() => setViewMode("week")}
-                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                      viewMode === "week" 
-                        ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md" 
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${viewMode === "week"
+                        ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md"
                         : "text-slate-600 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Week
                   </button>
-                  <button 
+                  <button
                     onClick={() => setViewMode("month")}
-                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${
-                      viewMode === "month" 
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md" 
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${viewMode === "month"
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
                         : "text-slate-600 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Maand
                   </button>
                 </div>
 
                 <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
-                  <button 
-                    onClick={() => { 
-                      const d = new Date(currentWeek); 
+                  <button
+                    onClick={() => {
+                      const d = new Date(currentWeek);
                       if (viewMode === "week") {
                         d.setDate(d.getDate() - 7);
                       } else {
                         d.setMonth(d.getMonth() - 1);
                       }
-                      setCurrentWeek(d); 
-                    }} 
+                      setCurrentWeek(d);
+                    }}
                     className="p-2 hover:bg-white rounded-lg">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <div className="px-4 py-2 font-semibold">
-                    {viewMode === "week" 
+                    {viewMode === "week"
                       ? `Week ${weekNumber}`
                       : monthNames[currentWeek.getMonth()]
                     }
                   </div>
-                  <button 
-                    onClick={() => { 
-                      const d = new Date(currentWeek); 
+                  <button
+                    onClick={() => {
+                      const d = new Date(currentWeek);
                       if (viewMode === "week") {
                         d.setDate(d.getDate() + 7);
                       } else {
                         d.setMonth(d.getMonth() + 1);
                       }
-                      setCurrentWeek(d); 
+                      setCurrentWeek(d);
                     }}
                     className="p-2 hover:bg-white rounded-lg">
                     <ChevronRight className="w-5 h-5" />
@@ -414,11 +411,11 @@ export default function TimeRegistrationPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={saveAll} disabled={saving}
-                        className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50">
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50">
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
                 <button onClick={submitAll} disabled={saving}
-                        className="px-5 py-2.5 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50">
+                  className="px-5 py-2.5 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50">
                   <Send className="w-4 h-4" /> Inleveren
                 </button>
               </div>
@@ -426,12 +423,17 @@ export default function TimeRegistrationPage() {
           </div>
 
           <div className="flex h-[calc(100vh-5rem)]">
-            <div className="w-80 bg-white border-r overflow-y-auto shadow-lg">
+            <div className="  w-80 
+    bg-white dark:bg-slate-800 
+    border-r 
+    border-slate-200 dark:border-slate-700 
+    overflow-y-auto 
+    shadow-lg">
               <div className="p-4 space-y-1">
                 {companies.map(company => (
                   <div key={company.id}>
                     <div onClick={() => toggleCompany(company.id)}
-                         className="flex items-center gap-2 px-3 py-2.5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg cursor-pointer transition-all group">
+                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg cursor-pointer transition-all group">
                       <ChevronDown className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`} />
                       <span className="font-medium group-hover:text-blue-600">{company.name}</span>
                     </div>
@@ -440,7 +442,7 @@ export default function TimeRegistrationPage() {
                         {projectGroups[company.id]?.map(group => (
                           <div key={group.id}>
                             <div onClick={() => toggleGroup(group.id)}
-                                 className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer transition-all group">
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer transition-all group">
                               <ChevronDown className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-purple-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`} />
                               <span className="text-sm group-hover:text-purple-600">{group.name}</span>
                             </div>
@@ -448,7 +450,7 @@ export default function TimeRegistrationPage() {
                               <div className="ml-5 space-y-1">
                                 {projects[group.id]?.map(project => (
                                   <div key={project.id} onClick={() => addProject(company, group, project)}
-                                       className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-lg cursor-pointer transition-all group">
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-lg cursor-pointer transition-all group">
                                     <Plus className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <span className="text-sm text-slate-600 group-hover:text-emerald-600">{project.name}</span>
                                   </div>
@@ -488,7 +490,7 @@ export default function TimeRegistrationPage() {
                             {formatDate(weekDaysForWeek[0])} - {formatDate(weekDaysForWeek[6])}
                           </div>
                         </div>
-                        
+
                         <div className="bg-slate-50 border-b border-slate-200">
                           <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                             <div />
@@ -520,7 +522,7 @@ export default function TimeRegistrationPage() {
                               const key = `${formatDate(day)}-${row.projectId}`;
                               return sum + (entries[key]?.expenses || 0);
                             }, 0);
-                            
+
                             return (
                               <div key={row.projectId} className="hover:bg-slate-50 transition-colors">
                                 <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
@@ -529,8 +531,8 @@ export default function TimeRegistrationPage() {
                                     <div className="text-xs text-slate-500">{row.companyName} › {row.projectGroupName}</div>
                                     <div className="font-medium mb-2">{row.projectName}</div>
                                     <div className="flex gap-2">
-                                      <button 
-                                        onClick={() => removeProject(row.projectId)} 
+                                      <button
+                                        onClick={() => removeProject(row.projectId)}
                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded border border-red-200"
                                         title="Verwijder project"
                                       >
@@ -565,43 +567,43 @@ export default function TimeRegistrationPage() {
                                             </button>
                                           </div>
                                         )}
-                                        <input 
-                                          type="number" 
-                                          step="0.5" 
-                                          min="0" 
-                                          max="24" 
-                                          value={entry.hours || ""} 
+                                        <input
+                                          type="number"
+                                          step="0.5"
+                                          min="0"
+                                          max="24"
+                                          value={entry.hours || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'hours', parseFloat(e.target.value) || 0)}
                                           disabled={isDisabled}
                                           className={`w-full px-2 py-1.5 border border-slate-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="Uren" 
+                                          placeholder="Uren"
                                         />
-                                        <input 
-                                          type="number" 
-                                          min="0" 
-                                          value={entry.km || ""} 
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={entry.km || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'km', parseInt(e.target.value) || 0)}
                                           disabled={isDisabled}
                                           className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="KM" 
+                                          placeholder="KM"
                                         />
-                                        <input 
-                                          type="number" 
-                                          step="0.01" 
-                                          min="0" 
-                                          value={entry.expenses || ""} 
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={entry.expenses || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'expenses', parseFloat(e.target.value) || 0)}
                                           disabled={isDisabled}
                                           className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="€ Onkosten" 
+                                          placeholder="€ Onkosten"
                                         />
-                                        <input 
-                                          type="text" 
-                                          value={entry.notes || ""} 
+                                        <input
+                                          type="text"
+                                          value={entry.notes || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'notes', e.target.value)}
                                           disabled={isDisabled}
                                           className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="Opmerking" 
+                                          placeholder="Opmerking"
                                         />
                                       </div>
                                     );
@@ -700,8 +702,8 @@ export default function TimeRegistrationPage() {
                               <div className="text-xs text-slate-500">{row.companyName} › {row.projectGroupName}</div>
                               <div className="font-medium mb-2">{row.projectName}</div>
                               <div className="flex gap-2">
-                                <button 
-                                  onClick={() => removeProject(row.projectId)} 
+                                <button
+                                  onClick={() => removeProject(row.projectId)}
                                   className="p-1.5 text-red-600 hover:bg-red-50 rounded border border-red-200"
                                   title="Verwijder"
                                 >
@@ -734,43 +736,43 @@ export default function TimeRegistrationPage() {
                                       </button>
                                     </div>
                                   )}
-                                  <input 
-                                    type="number" 
-                                    step="0.5" 
-                                    min="0" 
-                                    max="24" 
-                                    value={entry.hours || ""} 
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="24"
+                                    value={entry.hours || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'hours', parseFloat(e.target.value) || 0)}
                                     disabled={isSubmitted}
                                     className={`w-full px-2 py-1.5 border border-slate-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                    placeholder="Uren" 
+                                    placeholder="Uren"
                                   />
-                                  <input 
-                                    type="number" 
-                                    min="0" 
-                                    value={entry.km || ""} 
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={entry.km || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'km', parseInt(e.target.value) || 0)}
                                     disabled={isSubmitted}
                                     className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                    placeholder="KM" 
+                                    placeholder="KM"
                                   />
-                                  <input 
-                                    type="number" 
-                                    step="0.01" 
-                                    min="0" 
-                                    value={entry.expenses || ""} 
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={entry.expenses || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'expenses', parseFloat(e.target.value) || 0)}
                                     disabled={isSubmitted}
                                     className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                    placeholder="€ Onkosten" 
+                                    placeholder="€ Onkosten"
                                   />
-                                  <input 
-                                    type="text" 
-                                    value={entry.notes || ""} 
+                                  <input
+                                    type="text"
+                                    value={entry.notes || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'notes', e.target.value)}
                                     disabled={isSubmitted}
                                     className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                    placeholder="Opmerking" 
+                                    placeholder="Opmerking"
                                   />
                                 </div>
                               );

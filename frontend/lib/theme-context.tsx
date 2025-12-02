@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = 'light' | 'dark';
+type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
@@ -13,36 +13,42 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
+  const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
+  // Load theme
   useEffect(() => {
     setMounted(true);
-    // Load theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      setThemeState(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initialTheme = prefersDark ? 'dark' : 'light';
-      setThemeState(initialTheme);
-      document.documentElement.classList.toggle('dark', prefersDark);
-    }
+
+    const savedTheme = localStorage.getItem("theme") as Theme | null;
+
+    const initialTheme =
+      savedTheme ??
+      (window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light");
+
+    applyTheme(initialTheme);
   }, []);
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  const applyTheme = (t: Theme) => {
+    setThemeState(t);
+    localStorage.setItem("theme", t);
+
+    // ⛔ VERKEERD: toggle  
+    // document.documentElement.classList.toggle('dark', t === 'dark');
+
+    // ✅ GOED: Classes eerst verwijderen, dan juiste class toevoegen
+    document.documentElement.classList.remove("dark", "light");
+    document.documentElement.classList.add(t);
   };
+
+  const setTheme = (t: Theme) => applyTheme(t);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
+    applyTheme(theme === "light" ? "dark" : "light");
   };
 
-  // Prevent flash of wrong theme
   if (!mounted) {
     return <div className="opacity-0">{children}</div>;
   }
@@ -56,8 +62,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+  if (!context) {
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
 }

@@ -95,7 +95,7 @@ export default function VakantiePage() {
       case "approved":
         return "success";
       case "rejected":
-        return "error";
+        return "danger";
       case "pending":
         return "warning";
       default:
@@ -242,7 +242,7 @@ export default function VakantiePage() {
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Startdatum</label>
+                      <label className="block text-sm font-medium mb-1 text-white">Startdatum</label>
                       <input
                         type="date"
                         required
@@ -252,7 +252,7 @@ export default function VakantiePage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Einddatum</label>
+                      <label className="block text-sm font-medium mb-1 ">Einddatum</label>
                       <input
                         type="date"
                         required
@@ -262,7 +262,7 @@ export default function VakantiePage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Uren per dag</label>
+                      <label className="block text-sm font-medium mb-1 ">Uren per dag</label>
                       <input
                         type="number"
                         required

@@ -16,10 +16,12 @@ export function ThemeToggle() {
       className="rounded-full"
       aria-label="Toggle theme"
     >
-      {theme === 'light' ? (
-        <Moon className="h-5 w-5" />
+      {theme === "light" ? (
+        // 🌙 Maan met zwarte lijn
+        <Moon className="h-5 w-5 text-black" strokeWidth={2} />
       ) : (
-        <Sun className="h-5 w-5" />
+        // ☀️ Zon met witte lijn
+        <Sun className="h-5 w-5 text-white" strokeWidth={2} />
       )}
     </Button>
   );

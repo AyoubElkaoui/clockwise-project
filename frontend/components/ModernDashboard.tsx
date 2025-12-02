@@ -24,7 +24,7 @@ interface TimeEntry {
   description: string;
 }
 
-function ModernDashboard() {
+export default function ModernDashboard() {
   const [firstName, setFirstName] = useState<string>("");
   const [stats, setStats] = useState({
     weekHours: 15.5,
@@ -38,7 +38,7 @@ function ModernDashboard() {
     const fName = localStorage.getItem("firstName") || "";
     setFirstName(fName);
 
-    // TODO: Fetch real data from API
+    // Simuleer API-data
     setTimeout(() => {
       setRecentEntries([
         {
@@ -101,7 +101,12 @@ function ModernDashboard() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
+    
+ 
+    {/* === Dashboard Content === */}
+    <main className="p-6 md:p-10 space-y-8 animate-fade-in">
+
       {/* Welcome Header */}
       <div>
         <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
@@ -138,20 +143,23 @@ function ModernDashboard() {
         />
       </div>
 
-      {/* Main Content Grid */}
+      {/* Hoofdsecties */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
         {/* Uren Invoeren */}
-        <Card variant="elevated" padding="lg" className="lg:col-span-2">
+        <Card variant="elevated" padding="lg" className="lg:col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
           <CardHeader>
-            <CardTitle>Uren Invoeren</CardTitle>
+            <CardTitle className="text-slate-900 dark:text-slate-100">Uren Invoeren</CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-4">
+
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
                   Project
                 </label>
-                <select className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500">
                   <option>Selecteer project...</option>
                   <option>Website Herontwerp</option>
                   <option>Mobiele App</option>
@@ -159,13 +167,12 @@ function ModernDashboard() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
                 <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Voortgang deze week
-                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Voortgang deze week</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {stats.weekHours}u <span className="text-sm text-slate-600 dark:text-slate-400">/ 40u</span>
+                    {stats.weekHours}u{" "}
+                    <span className="text-sm text-slate-500 dark:text-slate-400">/ 40u</span>
                   </p>
                 </div>
                 <div className="flex items-center text-green-600 dark:text-green-400">
@@ -174,7 +181,7 @@ function ModernDashboard() {
                 </div>
               </div>
 
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div className="w-full bg-slate-300 dark:bg-slate-700 rounded-full h-2">
                 <div
                   className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${(stats.weekHours / 40) * 100}%` }}
@@ -186,7 +193,7 @@ function ModernDashboard() {
                   Beschrijving
                 </label>
                 <textarea
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 resize-none"
                   rows={3}
                   placeholder="Waar heb je vandaag aan gewerkt?"
                 />
@@ -201,43 +208,50 @@ function ModernDashboard() {
         </Card>
 
         {/* Week Overzicht */}
-        <Card variant="elevated" padding="lg">
+        <Card variant="elevated" padding="lg" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between text-slate-900 dark:text-slate-100">
               <span>Week Overzicht</span>
-              <span className="text-sm font-normal text-slate-600 dark:text-slate-400">
+              <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
                 Huidige Week
               </span>
             </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-3">
               {weekDays.map((day, index) => {
-                const isToday = day.toDateString() === new Date().toDateString();
+                const isToday =
+                  day.toDateString() === new Date().toDateString();
                 const dayHours = index < 3 ? Math.random() * 8 + 4 : 0;
 
                 return (
                   <div
                     key={day.toISOString()}
-                    className={`p-3 rounded-lg border transition-all ${
+                    className={`p-3 rounded-lg border transition-colors ${
                       isToday
-                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                        ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-800"
+                        : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className={`text-sm font-medium ${
-                          isToday
-                            ? "text-blue-900 dark:text-blue-100"
-                            : "text-slate-900 dark:text-slate-100"
-                        }`}>
-                          {day.toLocaleDateString("nl-NL", { weekday: "short" })}
+                        <p
+                          className={`text-sm font-medium ${
+                            isToday
+                              ? "text-blue-800 dark:text-blue-300"
+                              : "text-slate-900 dark:text-slate-100"
+                          }`}
+                        >
+                          {day.toLocaleDateString("nl-NL", {
+                            weekday: "short",
+                          })}
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
                           {formatDateShort(day)}
                         </p>
                       </div>
+
                       {dayHours > 0 ? (
                         <div className="text-right">
                           <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -248,7 +262,7 @@ function ModernDashboard() {
                           </Badge>
                         </div>
                       ) : (
-                        <span className="text-sm text-slate-400 dark:text-slate-500">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
                           Geen uren
                         </span>
                       )}
@@ -259,42 +273,35 @@ function ModernDashboard() {
             </div>
           </CardContent>
         </Card>
+
       </div>
 
       {/* Tijd Registraties */}
-      <Card variant="elevated" padding="lg">
+      <Card variant="elevated" padding="lg" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Tijd Registraties</CardTitle>
+            <CardTitle className="text-slate-900 dark:text-slate-100">Tijd Registraties</CardTitle>
             <Button variant="ghost" size="sm">
               Bekijk alles
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </CardHeader>
+
         <CardContent>
           {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                  <div className="h-12 w-12 bg-slate-200 dark:bg-slate-700 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4" />
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-slate-600 dark:text-slate-400">Laden...</p>
           ) : (
             <div className="space-y-4">
               {recentEntries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:shadow-md transition-all cursor-pointer group"
+                  className="flex items-center gap-4 p-4 bg-slate-100 dark:bg-slate-900 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer group"
                 >
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
                     {entry.hours}u
                   </div>
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -304,22 +311,23 @@ function ModernDashboard() {
                         {entry.status}
                       </Badge>
                     </div>
+
                     <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
                       {entry.description}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       {formatDateShort(entry.date)}
                     </p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+
+                  <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-blue-400 transition-colors" />
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-export default ModernDashboard;
+    </main>
+  </div>
+);

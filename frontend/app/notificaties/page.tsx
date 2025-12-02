@@ -82,10 +82,15 @@ export default function NotificatiesPage() {
                 Je hebt {unreadCount} ongelezen notificatie{unreadCount !== 1 ? "s" : ""}
               </p>
             </div>
-            <Button variant="outline" onClick={handleMarkAllRead} disabled={unreadCount === 0}>
+            <Button
+              variant="secondary"
+              onClick={handleMarkAllRead}
+              disabled={unreadCount === 0}
+            >
               <Check className="w-4 h-4 mr-2" />
               Alles Markeren als Gelezen
             </Button>
+
           </div>
 
           {/* Stats */}
@@ -148,16 +153,14 @@ export default function NotificatiesPage() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 rounded-lg border transition-all ${
-                        !notification.read
+                      className={`p-4 rounded-lg border transition-all ${!notification.read
                           ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-4">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${
-                          !notification.read ? "bg-blue-500" : "bg-gray-400"
-                        }`} />
+                        <div className={`w-2 h-2 rounded-full mt-2 ${!notification.read ? "bg-blue-500" : "bg-gray-400"
+                          }`} />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -177,8 +180,8 @@ export default function NotificatiesPage() {
                           </p>
                         </div>
                         {!notification.read && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => handleMarkRead(notification.id)}
                             title="Markeer als gelezen"

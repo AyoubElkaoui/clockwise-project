@@ -1,132 +1,160 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  LayoutDashboard,
-  Clock,
-  List,
-  Plane,
   Bell,
-  User,
-  Settings,
-  LogOut,
+  Building2,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Shield,
-  UserCog,
-  Users,
-  Building2,
+  Clock,
   FolderKanban,
-  CheckCircle2,
+  LayoutDashboard,
+  List,
+  LogOut,
+  Plane,
+  Settings,
+  Shield,
+  User,
+  Users,
 } from "lucide-react";
+
 import { ThemeToggle } from "./ui/theme-toggle";
+import { MiniCalendar } from "./MiniCalendar";
 import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
-import { MiniCalendar } from "./MiniCalendar";
-import dayjs from "dayjs";
-import isoWeek from "dayjs/plugin/isoWeek";
+import { HelpCircle } from "lucide-react";
 
-dayjs.extend(isoWeek);
 
-// Base menu items for regular users
-const werknemerMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/", badgeKey: null, rank: "all" },
-  { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", badgeKey: null, rank: "all" },
-  { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", badgeKey: null, rank: "all" }, // Badge removed
-  { icon: Plane, label: "Vakantie", href: "/vakantie", badgeKey: null, rank: "all" },
-  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications", rank: "all" }, // Only unread
-  { icon: User, label: "Mijn Account", href: "/account", badgeKey: null, rank: "all" },
-  { icon: Settings, label: "Instellingen", href: "/instellingen", badgeKey: null, rank: "all" },
+/* ======================
+   Types
+====================== */
+type BadgeKey = "unreadNotifications" | "pendingApprovals";
+
+type MenuItem = {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  badgeKey?: BadgeKey | null;
+  rank: "all" | "manager" | "admin";
+};
+
+type BadgesState = Record<BadgeKey, number | null>;
+
+/* ======================
+   Menu items
+====================== */
+const werknemerMenuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/", rank: "all" },
+  { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", rank: "all" },
+  { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", rank: "all" },
+  { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
+  {
+    icon: Bell,
+    label: "Notificaties",
+    href: "/notificaties",
+    badgeKey: "unreadNotifications",
+    rank: "all",
+  },
+  { icon: User, label: "Mijn Account", href: "/account", rank: "all" },
+  { icon: Settings, label: "Instellingen", href: "/instellingen", rank: "all" },
+  { icon: HelpCircle, label: "FAQ", href: "/faq", rank: "all" },
 ];
 
-// Manager specific items
-const managerMenuItems = [
-  { icon: Shield, label: "Manager Dashboard", href: "/manager-dashboard", badgeKey: null, rank: "manager" },
-  { icon: Users, label: "Team Beheren", href: "/admin/users", badgeKey: null, rank: "manager" },
-  { icon: CheckCircle2, label: "Goedkeuringen", href: "/uren-overzicht", badgeKey: "pendingApprovals", rank: "manager" },
+const managerMenuItems: MenuItem[] = [
+  { icon: Shield, label: "Manager Dashboard", href: "/manager-dashboard", rank: "manager" },
+  { icon: Users, label: "Team Beheren", href: "/admin/users", rank: "manager" },
+  {
+    icon: CheckCircle2,
+    label: "Goedkeuringen",
+    href: "/uren-overzicht",
+    badgeKey: "pendingApprovals",
+    rank: "manager",
+  },
 ];
 
-// Admin specific items
-const adminMenuItems = [
-  { icon: Shield, label: "Admin Dashboard", href: "/admin-dashboard", badgeKey: null, rank: "admin" },
-  { icon: Users, label: "Gebruikers", href: "/admin/users", badgeKey: null, rank: "admin" },
-  { icon: Building2, label: "Bedrijven", href: "/admin/companies", badgeKey: null, rank: "admin" },
-  { icon: FolderKanban, label: "Projecten", href: "/admin/projects", badgeKey: null, rank: "admin" },
-  { icon: CheckCircle2, label: "Goedkeuringen", href: "/uren-overzicht", badgeKey: "pendingApprovals", rank: "admin" },
+const adminMenuItems: MenuItem[] = [
+  { icon: Shield, label: "Admin Dashboard", href: "/admin-dashboard", rank: "admin" },
+  { icon: Users, label: "Gebruikers", href: "/admin/users", rank: "admin" },
+  { icon: Building2, label: "Bedrijven", href: "/admin/companies", rank: "admin" },
+  { icon: FolderKanban, label: "Projecten", href: "/admin/projects", rank: "admin" },
+  {
+    icon: CheckCircle2,
+    label: "Goedkeuringen",
+    href: "/uren-overzicht",
+    badgeKey: "pendingApprovals",
+    rank: "admin",
+  },
 ];
 
+/* ======================
+   Component
+====================== */
 export function ModernSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [userRank, setUserRank] = useState("");
-  const [badges, setBadges] = useState<Record<string, number>>({});
-  const [userId] = useState(1); // TODO: Get from auth context
+  const [userRank, setUserRank] = useState<"" | "manager" | "admin">("");
 
-  useEffect(() => {
-    setMounted(true);
-    setFirstName(localStorage.getItem("firstName") || "");
-    setLastName(localStorage.getItem("lastName") || "");
-    setUserRank(localStorage.getItem("userRank") || "");
-    
-    // Initial load
-    loadBadges();
-    
-    // Live update every 15 seconds for real-time notifications
-    const interval = setInterval(() => {
-      loadBadges();
-    }, 15000); // 15 seconds - live updates!
-    
-    return () => clearInterval(interval);
-  }, []);
+  const [badges, setBadges] = useState<BadgesState>({
+    unreadNotifications: null,
+    pendingApprovals: null,
+  });
 
-  const loadBadges = async () => {
+  const userId = 1; // TODO: via auth context
+
+  const loadBadges = useCallback(async () => {
     try {
-      // Load ONLY unread notifications
       const activities = await getActivities(50, userId);
-      // Filter only unread (read === false or read === undefined)
       const unreadCount = activities.filter((a: any) => !a.read).length;
-      
-      console.log('� [LIVE BADGES] Total activities:', activities.length);
-      console.log('� [LIVE BADGES] Unread notifications:', unreadCount);
 
-      // For admin/manager: pending approvals count
       const entries = await getTimeEntries();
       const pendingCount = entries.filter((e: any) => e.status === "ingeleverd").length;
 
       setBadges({
-        unreadNotifications: unreadCount > 0 ? unreadCount : null, // Only show if > 0
-        pendingApprovals: pendingCount > 0 ? pendingCount : null, // For admin/manager, only if > 0
+        unreadNotifications: unreadCount > 0 ? unreadCount : null,
+        pendingApprovals: pendingCount > 0 ? pendingCount : null,
       });
     } catch (error) {
       console.error("Failed to load badges:", error);
     }
-  };
+  }, [userId]);
 
-  // Build menu based on user rank
-  const getMenuItems = () => {
-    let items = [...werknemerMenuItems];
-    
+  useEffect(() => {
+    setMounted(true);
+
+    setFirstName(localStorage.getItem("firstName") || "");
+    setLastName(localStorage.getItem("lastName") || "");
+    setUserRank((localStorage.getItem("userRank") as any) || "");
+
+    loadBadges();
+
+    const interval = setInterval(loadBadges, 15000);
+    return () => clearInterval(interval);
+  }, [loadBadges]);
+
+  const menuItems = useMemo(() => {
+    let items: MenuItem[] = [...werknemerMenuItems];
+
     if (userRank === "admin") {
-      // Admin gets admin dashboard + admin items + regular items
       items = [...adminMenuItems, ...werknemerMenuItems];
     } else if (userRank === "manager") {
-      // Manager gets manager dashboard + manager items + regular items
       items = [...managerMenuItems, ...werknemerMenuItems];
     }
-    
-    return items.map(item => ({
-      ...item,
-      badge: item.badgeKey ? badges[item.badgeKey] || null : null
-    }));
-  };
 
-  const menuItems = getMenuItems();
+    return items.map((item) => ({
+      ...item,
+      badge: item.badgeKey ? badges[item.badgeKey] : null,
+    }));
+  }, [userRank, badges]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -146,19 +174,37 @@ export function ModernSidebar() {
         {/* Logo & Company */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between">
-            {!collapsed && (
-              <div>
-                <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  Clockwise
-                </h1>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Elmar Services
-                </p>
-              </div>
-            )}
+            {/* LOGO -> klikbaar naar dashboard */}
+            <Link
+              href="/"
+              className="flex items-center gap-3 focus:outline-none"
+              aria-label="Ga naar dashboard"
+            >
+              {!collapsed ? (
+                <Image
+                  src="/logo.png"
+                  alt="Clockwise logo"
+                  width={140}
+                  height={40}
+                  priority
+                  className="h-10 w-auto object-contain transition dark:grayscale dark:invert dark:contrast-150"
+                />
+              ) : (
+                <Image
+                  src="/logo.png"
+                  alt="Clockwise logo small"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain dark:invert"
+                />
+              )}
+            </Link>
+
+            {/* Collapse button */}
             <button
-              onClick={() => setCollapsed(!collapsed)}
+              onClick={() => setCollapsed((v) => !v)}
               className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Toggle sidebar"
             >
               {collapsed ? (
                 <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -171,7 +217,7 @@ export function ModernSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {menuItems.map((item) => {
+          {menuItems.map((item: any) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
 
@@ -186,7 +232,8 @@ export function ModernSidebar() {
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 )}
               >
-                <Icon className={cn("w-5 h-5", collapsed ? "mx-auto" : "")} />
+                <Icon className={cn("w-5 h-5", collapsed && "mx-auto")} />
+
                 {!collapsed && (
                   <>
                     <span className="flex-1 font-medium">{item.label}</span>
@@ -197,6 +244,7 @@ export function ModernSidebar() {
                     )}
                   </>
                 )}
+
                 {collapsed && item.badge && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
                 )}
@@ -204,7 +252,6 @@ export function ModernSidebar() {
             );
           })}
 
-          {/* Mini Calendar */}
           {!collapsed && (
             <div className="pt-4">
               <MiniCalendar />
@@ -212,20 +259,20 @@ export function ModernSidebar() {
           )}
         </nav>
 
-        {/* User Profile & Settings */}
+        {/* Footer */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-          {/* Theme Toggle */}
           <div className="flex items-center justify-center">
             <ThemeToggle />
           </div>
 
-          {/* User Info */}
           {!collapsed && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {firstName.charAt(0)}{lastName.charAt(0)}
+                  {firstName.charAt(0)}
+                  {lastName.charAt(0)}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                     {firstName} {lastName}
@@ -238,7 +285,6 @@ export function ModernSidebar() {
             </div>
           )}
 
-          {/* Logout Button */}
           <button
             onClick={handleLogout}
             className={cn(

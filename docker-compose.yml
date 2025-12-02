@@ -1,5 +1,9 @@
+version: "3.9"
+
 services:
+  # ------------------------------
   # Firebird Database
+  # ------------------------------
   firebird:
     image: jacobalberty/firebird:v3.0
     container_name: clockwise-firebird
@@ -12,49 +16,49 @@ services:
       - "3050:3050"
     volumes:
       - firebird_data:/firebird/data
-      # Tijdelijk weggehaald om nieuwe database te laten maken:
-      # - ./database:/firebird/data/database
     networks:
       - clockwise-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3050"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  seeder:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    container_name: clockwise-seeder
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    depends_on:
-      backend:
-        condition: service_started
-      firebird:
-        condition: service_started
-    networks:
-      - clockwise-network
-    command: [ "sh", "-c", "sleep 5 && dotnet backend.dll seed" ]
-    restart: "no"
-
-  # Backend API (.NET)
+  # ------------------------------
+  # Backend API (.NET 8) met Hot Reload
+  # ------------------------------
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: clockwise-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5000
-      - PORT=5000
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
     ports:
       - "5000:5000"
     depends_on:
-      - firebird
+      firebird:
+        condition: service_healthy
     networks:
       - clockwise-network
     volumes:
-      - ./backend:/app/source
+      # Mount source code voor hot reload
+      - ./backend:/app:cached
+      # Exclude bin en obj folders (blijven in container)
+      - /app/bin
+      - /app/obj
+      # Cache NuGet packages
+      - nuget_cache:/root/.nuget/packages
     restart: unless-stopped
+    stdin_open: true
+    tty: true
 
-  # Frontend (Next.js)
+  # ------------------------------
+  # Frontend (Next.js) met Hot Reload
+  # ------------------------------
   frontend:
     build:
       context: ./frontend
@@ -62,8 +66,9 @@ services:
     container_name: clockwise-frontend
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
       - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     ports:
       - "3000:3000"
     depends_on:
@@ -71,10 +76,14 @@ services:
     networks:
       - clockwise-network
     volumes:
-      - ./frontend:/app
+      # Mount source code voor hot reload
+      - ./frontend:/app:cached
+      # Exclude node_modules en .next (blijven in container)
       - /app/node_modules
       - /app/.next
     restart: unless-stopped
+    stdin_open: true
+    tty: true
 
 networks:
   clockwise-network:
@@ -82,3 +91,4 @@ networks:
 
 volumes:
   firebird_data:
+  nuget_cache:
