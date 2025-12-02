@@ -258,7 +258,7 @@ export default function AdminProjectsPage() {
                                         <span>Gebruik duidelijke en herkenbare projectnamen</span>
                                     </div>
                                     <div className="flex items-start gap-2">
-                                        <span className="text-yellow-600 mt-1">📋</span>
+                                        <span className="text-yellow-600 mt-1">Kopieer</span>
                                         <span>Projecten worden automatisch gekoppeld aan de geselecteerde projectgroep</span>
                                     </div>
                                     <div className="flex items-start gap-2">

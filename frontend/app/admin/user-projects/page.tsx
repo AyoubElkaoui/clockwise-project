@@ -425,7 +425,7 @@ export default function AdminUserProjectsPage() {
                                     <th className="text-gray-700 font-semibold">👤 Gebruiker</th>
                                     <th className="text-gray-700 font-semibold">📁 Project</th>
                                     <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
-                                    <th className="text-gray-700 font-semibold">📅 Toegewezen op</th>
+                                    <th className="text-gray-700 font-semibold">Datum Toegewezen op</th>
                                     <th className="text-gray-700 font-semibold">Acties</th>
                                 </tr>
                                 </thead>

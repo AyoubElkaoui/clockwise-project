@@ -163,7 +163,7 @@ const NotificationBell = () => {
         </svg>
       );
     } catch {
-      return <span>📋</span>;
+      return <span>Kopieer</span>;
     }
     const pathname = usePathname();
 

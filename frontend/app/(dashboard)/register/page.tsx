@@ -215,7 +215,7 @@ export default function RegisterTime(): JSX.Element {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="form-control">
                                         <label className="label">
-                                            <span className="label-text font-semibold text-gray-700">⏰ Starttijd</span>
+                                            <span className="label-text font-semibold text-gray-700">Tijd Starttijd</span>
                                         </label>
                                         <input
                                             type="time"
@@ -226,7 +226,7 @@ export default function RegisterTime(): JSX.Element {
                                     </div>
                                     <div className="form-control">
                                         <label className="label">
-                                            <span className="label-text font-semibold text-gray-700">⏰ Eindtijd</span>
+                                            <span className="label-text font-semibold text-gray-700">Tijd Eindtijd</span>
                                         </label>
                                         <input
                                             type="time"

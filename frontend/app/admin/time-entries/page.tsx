@@ -338,7 +338,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                    <span className="label-text font-semibold text-gray-700">Datum Startdatum</span>
                                 </label>
                                 <input
                                     type="date"
@@ -350,7 +350,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
                             <div>
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                    <span className="label-text font-semibold text-gray-700">Datum Einddatum</span>
                                 </label>
                                 <input
                                     type="date"
@@ -447,12 +447,12 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                             <table className="table w-full">
                                 <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="text-gray-700 font-semibold">📅 Datum</th>
+                                    <th className="text-gray-700 font-semibold">Datum Datum</th>
                                     <th className="text-gray-700 font-semibold">👤 Medewerker</th>
                                     <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
                                     <th className="text-gray-700 font-semibold">📁 Project</th>
-                                    <th className="text-gray-700 font-semibold">⏰ Start</th>
-                                    <th className="text-gray-700 font-semibold">⏰ Eind</th>
+                                    <th className="text-gray-700 font-semibold">Tijd Start</th>
+                                    <th className="text-gray-700 font-semibold">Tijd Eind</th>
                                     <th className="text-gray-700 font-semibold">Uren Uren</th>
                                     <th className="text-gray-700 font-semibold">Status</th>
                                     <th className="text-gray-700 font-semibold">Acties</th>
@@ -566,7 +566,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                                     <tr>
                                         <td colSpan={9} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-4">
-                                                <div className="text-6xl">⏰</div>
+                                                <div className="text-6xl">Tijd:</div>
                                                 <div className="text-xl font-semibold text-gray-600">Geen entries gevonden</div>
                                                 <div className="text-gray-500">Probeer je filters aan te passen</div>
                                             </div>

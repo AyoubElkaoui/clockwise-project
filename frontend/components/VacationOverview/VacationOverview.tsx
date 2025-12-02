@@ -401,7 +401,7 @@ export default function VacationOverview(): React.JSX.Element {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="form-control">
                                     <label className="label">
-                                        <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                        <span className="label-text font-semibold text-gray-700">Datum Startdatum</span>
                                     </label>
                                     <input
                                         type="date"
@@ -415,7 +415,7 @@ export default function VacationOverview(): React.JSX.Element {
 
                                 <div className="form-control">
                                     <label className="label">
-                                        <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                        <span className="label-text font-semibold text-gray-700">Datum Einddatum</span>
                                     </label>
                                     <input
                                         type="date"
@@ -503,10 +503,10 @@ export default function VacationOverview(): React.JSX.Element {
                         <table className="table w-full">
                             <thead className="bg-gray-50">
                             <tr>
-                                <th className="text-gray-700 font-semibold">📅 Periode</th>
-                                <th className="text-gray-700 font-semibold">⏰ Uren</th>
+                                <th className="text-gray-700 font-semibold">Datum Periode</th>
+                                <th className="text-gray-700 font-semibold">Tijd Uren</th>
                                 <th className="text-gray-700 font-semibold">Reden</th>
-                                <th className="text-gray-700 font-semibold">📅 Aangevraagd</th>
+                                <th className="text-gray-700 font-semibold">Datum Aangevraagd</th>
                                 <th className="text-gray-700 font-semibold">Status</th>
                             </tr>
                             </thead>
@@ -686,8 +686,8 @@ export default function VacationOverview(): React.JSX.Element {
 
             {/* Quick Actions */}
             {balance.remainingHours > 0 && (
-                <div className="bg-blue-100 text-white rounded-2xl p-6 text-center">
-                    <h3 className="text-2xl font-bold mb-2">🌴 Plan je vakantie!</h3>
+                <div className="bg-blue-600 text-white rounded-2xl p-6 text-center">
+                    <h3 className="text-2xl font-bold mb-2">Plan je vakantie!</h3>
                     <p className="mb-4">Je hebt nog <strong>{balance.remainingHours} uur</strong> ({balance.remainingHours / 8} dagen) vakantie over dit jaar.</p>
                     <button
                         className="btn btn-outline btn-lg text-white border-white hover:bg-white hover:text-blue-600 rounded-xl"
@@ -700,7 +700,7 @@ export default function VacationOverview(): React.JSX.Element {
             )}
 
             {balance.remainingHours <= 0 && (
-                <div className="bg-blue-100 text-white rounded-2xl p-6 text-center">
+                <div className="bg-slate-600 text-white rounded-2xl p-6 text-center">
                     <h3 className="text-2xl font-bold mb-2">Geen vakantie meer beschikbaar</h3>
                     <p>Je hebt al je vakantie-uren voor dit jaar gebruikt of aangevraagd.</p>
                 </div>

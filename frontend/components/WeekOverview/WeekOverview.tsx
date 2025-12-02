@@ -199,7 +199,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     {entries.length === 0 ? (
                         <div className="text-center py-3">
                             <p className="text-xs text-gray-500">
-                                {isWeekend ? '🌅 Weekend' : '⏰ Geen uren'}
+                                {isWeekend ? 'Weekend Weekend' : 'Tijd Geen uren'}
                             </p>
                         </div>
                     ) : (

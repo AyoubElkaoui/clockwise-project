@@ -242,7 +242,7 @@ export default function UrenOverzicht(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-blue-100 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                <div className="bg-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-indigo-100 text-sm font-medium">Afstand (km)</p>
@@ -265,7 +265,7 @@ export default function UrenOverzicht(): JSX.Element {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="form-control">
                             <label className="label">
-                                <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                <span className="label-text font-semibold text-gray-700">Datum Startdatum</span>
                             </label>
                             <input
                                 type="date"
@@ -277,7 +277,7 @@ export default function UrenOverzicht(): JSX.Element {
 
                         <div className="form-control">
                             <label className="label">
-                                <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                <span className="label-text font-semibold text-gray-700">Datum Einddatum</span>
                             </label>
                             <input
                                 type="date"
@@ -375,9 +375,9 @@ export default function UrenOverzicht(): JSX.Element {
                         <table className="table w-full">
                             <thead className="bg-gray-50">
                             <tr>
-                                <th className="text-gray-700 font-semibold">📅 Datum</th>
-                                <th className="text-gray-700 font-semibold">⏰ Start</th>
-                                <th className="text-gray-700 font-semibold">⏰ Eind</th>
+                                <th className="text-gray-700 font-semibold">Datum Datum</th>
+                                <th className="text-gray-700 font-semibold">Tijd Start</th>
+                                <th className="text-gray-700 font-semibold">Tijd Eind</th>
                                 <th className="text-gray-700 font-semibold">Uren Uren</th>
                                 <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
                                 <th className="text-gray-700 font-semibold">📁 Project</th>

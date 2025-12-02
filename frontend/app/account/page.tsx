@@ -79,7 +79,7 @@ export default function AccountPage() {
     }
   };
 
-  // 💾 Save user updates
+  // Opslaan Save user updates
   const handleSave = async () => {
     if (!userData) return;
     setSaving(true);

@@ -297,7 +297,7 @@ export default function AdminDashboard() {
           <FolderKanban className="w-6 h-6 mb-2" />
           <p className="font-medium">Projecten</p>
         </button>
-        <button className="p-4 bg-blue-100 text-white rounded-xl hover:shadow-lg">
+        <button className="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl hover:shadow-lg transition">
           <Briefcase className="w-6 h-6 mb-2" />
           <p className="font-medium">Rapporten</p>
         </button>

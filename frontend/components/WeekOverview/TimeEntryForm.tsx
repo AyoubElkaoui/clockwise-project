@@ -137,7 +137,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     return;
                 }
 
-                console.log("🔄 Fetching initial data...");
+                console.log("Vernieuwen Fetching initial data...");
 
                 // Fetch companies
                 const companiesData = await getCompanies();
@@ -183,7 +183,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                             // Load projects for this project group
                             const projectsData = await getProjects(projectGroupId);
-                            console.log("📋 Projects loaded for group:", projectsData.length);
+                            console.log("Kopieer Projects loaded for group:", projectsData.length);
                             setProjects(projectsData);
 
                             if (projectId) {
@@ -375,7 +375,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 console.log(" Updating existing entry:", existingEntry.id);
                 await updateTimeEntry(existingEntry.id, data);
             } else {
-                console.log("💾 Creating new entry");
+                console.log("Opslaan Creating new entry");
                 await registerTimeEntry(data);
             }
             onEntrySaved();
@@ -411,7 +411,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
     // Handle project change
     const handleProjectChange = (projectId: string) => {
-        console.log("📋 Project changed to:", projectId);
+        console.log("Kopieer Project changed to:", projectId);
         const id = projectId ? Number(projectId) : null;
         setSelectedProject(id);
     };
@@ -586,7 +586,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text font-semibold text-gray-700">⏰ Starttijd</span>
+                            <span className="label-text font-semibold text-gray-700">Tijd Starttijd</span>
                         </label>
                         <select
                             className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"
@@ -603,7 +603,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text font-semibold text-gray-700">⏰ Eindtijd</span>
+                            <span className="label-text font-semibold text-gray-700">Tijd Eindtijd</span>
                         </label>
                         <select
                             className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary rounded-xl"

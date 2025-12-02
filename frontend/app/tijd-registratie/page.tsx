@@ -411,11 +411,11 @@ export default function TimeRegistrationPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={saveAll} disabled={saving}
-                  className="px-5 py-2.5 bg-blue-100 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50">
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition">
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
                 <button onClick={submitAll} disabled={saving}
-                  className="px-5 py-2.5 bg-blue-100 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50">
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition">
                   <Send className="w-4 h-4" /> Inleveren
                 </button>
               </div>
@@ -553,17 +553,17 @@ export default function TimeRegistrationPage() {
                                           <div className="flex gap-1 mb-1">
                                             <button
                                               onClick={() => copyCell(row.projectId, date)}
-                                              className="flex-1 p-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded border border-blue-200"
+                                              className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                               title="Kopieer cel"
                                             >
-                                              📋
+                                              Kopiëren
                                             </button>
                                             <button
                                               onClick={() => pasteCell(row.projectId, date)}
-                                              className="flex-1 p-0.5 text-xs text-green-600 hover:bg-green-50 rounded border border-green-200"
+                                              className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                               title="Plak cel"
                                             >
-                                              📄
+                                              Plakken
                                             </button>
                                           </div>
                                         )}
@@ -722,17 +722,17 @@ export default function TimeRegistrationPage() {
                                     <div className="flex gap-1 mb-1">
                                       <button
                                         onClick={() => copyCell(row.projectId, date)}
-                                        className="flex-1 p-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded border border-blue-200"
+                                        className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                         title="Kopieer cel"
                                       >
-                                        📋
+                                        Kopiëren
                                       </button>
                                       <button
                                         onClick={() => pasteCell(row.projectId, date)}
-                                        className="flex-1 p-0.5 text-xs text-green-600 hover:bg-green-50 rounded border border-green-200"
+                                        className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                         title="Plak cel"
                                       >
-                                        📄
+                                        Plakken
                                       </button>
                                     </div>
                                   )}

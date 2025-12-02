@@ -53,7 +53,7 @@ public class VacationRequestsController : ControllerBase
 
         var pending = await _context.VacationRequests
             .Include(v => v.User)
-            .Where(v => teamMemberIds.Contains(v.UserId) && v.Status == "Pending")
+            .Where(v => teamMemberIds.Contains(v.UserId) && v.Status == "pending")
             .OrderByDescending(v => v.StartDate)
             .ToListAsync();
 

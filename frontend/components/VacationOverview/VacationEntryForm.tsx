@@ -306,7 +306,7 @@ export default function VacationEntryForm() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="form-control">
                                             <label className="label">
-                                                <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                                <span className="label-text font-semibold text-gray-700">Datum Startdatum</span>
                                             </label>
                                             <input
                                                 type="date"
@@ -319,7 +319,7 @@ export default function VacationEntryForm() {
 
                                         <div className="form-control">
                                             <label className="label">
-                                                <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                                <span className="label-text font-semibold text-gray-700">Datum Einddatum</span>
                                             </label>
                                             <input
                                                 type="date"

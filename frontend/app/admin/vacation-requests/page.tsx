@@ -203,9 +203,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                 <thead className="bg-gray-50">
                                 <tr>
                                     <th className="text-gray-700 font-semibold">👤 Medewerker</th>
-                                    <th className="text-gray-700 font-semibold">📅 Startdatum</th>
-                                    <th className="text-gray-700 font-semibold">📅 Einddatum</th>
-                                    <th className="text-gray-700 font-semibold">⏰ Uren</th>
+                                    <th className="text-gray-700 font-semibold">Datum Startdatum</th>
+                                    <th className="text-gray-700 font-semibold">Datum Einddatum</th>
+                                    <th className="text-gray-700 font-semibold">Tijd Uren</th>
                                     <th className="text-gray-700 font-semibold">Reden</th>
                                     <th className="text-gray-700 font-semibold">Status</th>
                                     <th className="text-gray-700 font-semibold">Acties</th>

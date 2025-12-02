@@ -104,7 +104,7 @@ export default function AdminProjectGroupsPage() {
                 </div>
 
                 {/* Create New Project Group Card */}
-                <div className="bg-blue-100 rounded-2xl shadow-xl p-8 text-white">
+                <div className="bg-blue-600 rounded-2xl shadow-xl p-8 text-white">
                     <div className="flex items-center mb-6">
                         <PlusIcon className="w-8 h-8 mr-3" />
                         <h2 className="text-2xl font-bold">Nieuwe Projectgroep Aanmaken</h2>

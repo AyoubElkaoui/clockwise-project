@@ -214,7 +214,7 @@ export default function Sidebar({ currentMonth, timeEntries, className = "" }: S
                 {/* Logout */}
                 <div className="p-4 bg-black">
                     <button
-                        className="w-full bg-blue-100 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition"
                         onClick={handleLogout}
                     >
                         <ArrowRightOnRectangleIcon className="w-4 h-4" />
