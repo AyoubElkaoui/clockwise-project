@@ -52,7 +52,7 @@ export default function ManagerTeamPage() {
           {teamMembers.map((member) => (
             <div
               key={member.id}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl border border-gray-200 dark:border-slate-700"
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
@@ -90,7 +90,7 @@ export default function ManagerTeamPage() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
-                <button className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all font-medium">
+                <button className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
                   Bekijk Details
                 </button>
               </div>

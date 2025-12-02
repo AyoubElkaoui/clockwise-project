@@ -121,7 +121,7 @@ export default function ManagerHoursPage() {
               {timeEntries.slice(0, 10).map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:shadow-md transition-all"
+                  className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:shadow-md"
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">

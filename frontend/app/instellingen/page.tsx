@@ -167,7 +167,7 @@ export default function InstellingenPage() {
                      border border-slate-300 dark:border-slate-700 
                      bg-white dark:bg-slate-800 
                      hover:bg-slate-100 dark:hover:bg-slate-700 
-                     transition-all duration-200 shadow-sm"
+                     shadow-sm"
         >
           <Download className="w-6 h-6 mb-2 text-blue-500" />
           <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -184,7 +184,7 @@ export default function InstellingenPage() {
                      border border-slate-300 dark:border-slate-700 
                      bg-white dark:bg-slate-800 
                      hover:bg-slate-100 dark:hover:bg-slate-700 
-                     transition-all duration-200 shadow-sm"
+                     shadow-sm"
         >
           <Upload className="w-6 h-6 mb-2 text-green-500" />
           <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -199,7 +199,7 @@ export default function InstellingenPage() {
         <button
           className="flex flex-col justify-center items-center h-28 w-full rounded-lg 
                      bg-red-600 text-white hover:bg-red-700 
-                     transition-all duration-200 shadow-sm"
+                     shadow-sm"
         >
           <RefreshCw className="w-6 h-6 mb-2" />
           <p className="font-semibold">Resetten</p>

@@ -200,9 +200,9 @@ export default function UrenOverzicht(): JSX.Element {
     };
 
     return (
-        <div className="container mx-auto p-6 space-y-6 animate-fade-in">
+        <div className="container mx-auto p-6 space-y-6">
             {/* Header Section */}
-            <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+            <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
                     <CheckCircleIcon className="w-8 h-8" />
                     <h1 className="text-4xl font-bold">Goedgekeurde Uren</h1>
@@ -212,17 +212,17 @@ export default function UrenOverzicht(): JSX.Element {
 
             {/* Statistics Cards - ONLY APPROVED HOURS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-gradient-success text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-gradient-success text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm font-medium">✅ Goedgekeurde Uren</p>
+                            <p className="text-green-100 text-sm font-medium">Goedgekeurde Uren</p>
                             <p className="text-3xl font-bold">{safeToFixed(totalHours)}</p>
                         </div>
                         <ClockIcon className="w-12 h-12 text-green-200" />
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-purple-100 text-sm font-medium">Gewerkte Dagen</p>
@@ -232,7 +232,7 @@ export default function UrenOverzicht(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">Onkosten</p>
@@ -242,7 +242,7 @@ export default function UrenOverzicht(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-blue-100 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-indigo-100 text-sm font-medium">Afstand (km)</p>
@@ -254,7 +254,7 @@ export default function UrenOverzicht(): JSX.Element {
             </div>
 
             {/* Filters Section */}
-            <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+            <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                 <div className="card-body p-8">
                     <div className="flex items-center gap-3 mb-6">
                         <FunnelIcon className="w-6 h-6 text-elmar-primary" />
@@ -327,7 +327,7 @@ export default function UrenOverzicht(): JSX.Element {
                     {/* Search Bar */}
                     <div className="form-control mt-6">
                         <label className="label">
-                            <span className="label-text font-semibold text-gray-700">🔍 Zoeken</span>
+                            <span className="label-text font-semibold text-gray-700">Zoeken</span>
                         </label>
                         <div className="relative">
                             <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -346,7 +346,7 @@ export default function UrenOverzicht(): JSX.Element {
                             <span className="font-semibold">{filteredEntries.length}</span> goedgekeurde entries van <span className="font-semibold">{entries.filter(e => e.status === "goedgekeurd").length}</span> totaal
                         </div>
                         <button
-                            className="btn btn-outline btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                            className="btn btn-outline btn-primary rounded-xl"
                             onClick={resetFilters}
                         >
                             Reset Filters
@@ -356,7 +356,7 @@ export default function UrenOverzicht(): JSX.Element {
             </div>
 
             {/* Enhanced Table */}
-            <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+            <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                 <div className="card-body p-0">
                     <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
                         <div className="flex items-center justify-between">
@@ -364,7 +364,7 @@ export default function UrenOverzicht(): JSX.Element {
                                 <EyeIcon className="w-6 h-6 text-elmar-primary" />
                                 <h2 className="text-2xl font-bold text-gray-800">Goedgekeurde Urenregistraties</h2>
                             </div>
-                            <button className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200">
+                            <button className="btn btn-primary rounded-xl">
                                 <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
                                 Exporteren
                             </button>
@@ -378,11 +378,11 @@ export default function UrenOverzicht(): JSX.Element {
                                 <th className="text-gray-700 font-semibold">📅 Datum</th>
                                 <th className="text-gray-700 font-semibold">⏰ Start</th>
                                 <th className="text-gray-700 font-semibold">⏰ Eind</th>
-                                <th className="text-gray-700 font-semibold">⏱️ Uren</th>
+                                <th className="text-gray-700 font-semibold">Uren Uren</th>
                                 <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
                                 <th className="text-gray-700 font-semibold">📁 Project</th>
-                                <th className="text-gray-700 font-semibold">📝 Notities</th>
-                                <th className="text-gray-700 font-semibold">✅ Status</th>
+                                <th className="text-gray-700 font-semibold">Notities</th>
+                                <th className="text-gray-700 font-semibold">Status</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -414,7 +414,7 @@ export default function UrenOverzicht(): JSX.Element {
                                             </td>
                                             <td>
                                                 <span className="badge badge-success">
-                                                    ✅ Goedgekeurd
+                                                    Goedgekeurd
                                                 </span>
                                             </td>
                                         </tr>

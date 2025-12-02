@@ -111,7 +111,7 @@ export default function Sidebar({ currentMonth, timeEntries, className = "" }: S
             <aside className={`
                 bg-black border-r border-gray-800 flex flex-col h-screen text-gray-200
                 ${showMobileMenu ? "fixed top-0 left-0 w-64 z-50 shadow-lg" : "hidden sm:flex sm:w-64"}
-                transition-all duration-300
+               
             `}>
                 {/* User Header */}
                 <div className="p-6 border-b border-gray-800 bg-black">
@@ -143,8 +143,8 @@ export default function Sidebar({ currentMonth, timeEntries, className = "" }: S
                                 <Link
                                     key={item.href}
                                     href={item.href}
-                                    className={`group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
-                                        ${isActive ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                                    className={`group flex items-center gap-3 px-4 py-3 rounded-xl
+                                        ${isActive ? "bg-blue-100 text-white shadow-md"
                                             : "text-gray-400 hover:bg-gray-800 hover:text-blue-400"}`}
                                 >
                                     <Icon className="w-5 h-5 text-blue-400" />
@@ -194,7 +194,7 @@ export default function Sidebar({ currentMonth, timeEntries, className = "" }: S
                                     if (!day) return <div key={index} className="h-8"></div>;
                                     const hours = getHoursForDay(day);
                                     const isToday = usedMonth.date(day).isSame(dayjs(), "day");
-                                    let cellClass = "h-8 w-8 flex items-center justify-center text-xs font-medium rounded-lg cursor-pointer transition-all ";
+                                    let cellClass = "h-8 w-8 flex items-center justify-center text-xs font-medium rounded-lg cursor-pointer ";
                                     if (isToday) cellClass += "bg-blue-600 text-white font-bold shadow-lg scale-110";
                                     else if (hours >= 8) cellClass += "bg-green-600 text-white";
                                     else if (hours >= 4) cellClass += "bg-yellow-500 text-black";
@@ -214,7 +214,7 @@ export default function Sidebar({ currentMonth, timeEntries, className = "" }: S
                 {/* Logout */}
                 <div className="p-4 bg-black">
                     <button
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-blue-100 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                         onClick={handleLogout}
                     >
                         <ArrowRightOnRectangleIcon className="w-4 h-4" />

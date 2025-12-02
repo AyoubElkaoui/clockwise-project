@@ -17,7 +17,7 @@ export async function getUserProjects(userId: number): Promise<UserProject[]> {
     const res = await axios.get(`${API_URL}/user-projects/users/${userId}`);
     return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.error("❌ Error fetching user projects:", error);
+    console.error("Error fetching user projects:", error);
     return [];
   }
 }
@@ -27,7 +27,7 @@ export async function getProjectUsers(projectId: number): Promise<UserProject[]>
     const res = await axios.get(`${API_URL}/user-projects/projects/${projectId}`);
     return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.error("❌ Error fetching project users:", error);
+    console.error("Error fetching project users:", error);
     return [];
   }
 }

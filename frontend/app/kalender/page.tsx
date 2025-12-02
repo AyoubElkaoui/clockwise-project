@@ -71,7 +71,7 @@ export default function KalenderPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="flex gap-6 animate-fade-in">
+        <div className="flex gap-6">
           {/* Sidebar met Mini Kalender */}
           <div className="w-80 flex-shrink-0">
             <Card variant="elevated" padding="lg" className="sticky top-6">
@@ -125,7 +125,7 @@ export default function KalenderPage() {
                     return (
                       <div
                         key={day}
-                        className={`aspect-square p-1 rounded-lg transition-all cursor-pointer hover:ring-2 hover:ring-blue-300 relative ${
+                        className={`aspect-square p-1 rounded-lg cursor-pointer hover:ring-2 hover:ring-blue-300 relative ${
                           isToday
                             ? "ring-2 ring-blue-500"
                             : ""
@@ -189,7 +189,7 @@ export default function KalenderPage() {
               <Card variant="elevated" padding="md">
                 <div className="text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Totaal Deze Maand</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
+                  <p className="text-3xl font-bold bg-blue-100 bg-clip-text text-transparent">
                     69.5u
                   </p>
                   <Badge variant="success" size="sm" className="mt-2">10 werkdagen</Badge>
@@ -198,7 +198,7 @@ export default function KalenderPage() {
               <Card variant="elevated" padding="md">
                 <div className="text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Goedgekeurd</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
+                  <p className="text-3xl font-bold bg-blue-100 bg-clip-text text-transparent">
                     54u
                   </p>
                   <Badge variant="success" size="sm" className="mt-2">7 dagen</Badge>
@@ -207,7 +207,7 @@ export default function KalenderPage() {
               <Card variant="elevated" padding="md">
                 <div className="text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">In Behandeling</p>
-                  <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">
+                  <p className="text-3xl font-bold bg-blue-100 bg-clip-text text-transparent">
                     15.5u
                   </p>
                   <Badge className="mt-2 bg-orange-500 text-white" size="sm">2 dagen</Badge>

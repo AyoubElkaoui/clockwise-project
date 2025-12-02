@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }): 
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="flex justify-center items-center min-h-screen bg-blue-100">
                 <div className="text-center">
                     <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
                     <p className="text-lg font-semibold text-gray-700">Laden...</p>
@@ -51,12 +51,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }): 
           <Sidebar
             timeEntries={timeEntries}
             currentMonth={currentMonth}
-            className="w-80 flex-shrink-0 h-[calc(100vh-64px)] overflow-y-auto bg-white dark:bg-slate-900 shadow-elmar-card border-r border-slate-200 dark:border-slate-800"
+            className="w-80 flex-shrink-0 h-[calc(100vh-64px)] overflow-y-auto bg-white dark:bg-slate-900 shadow-lg border-r border-slate-200 dark:border-slate-800"
           />
         </div>
 
         <main className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
-          <div className="p-6 lg:p-8 animate-fade-in">
+          <div className="p-6 lg:p-8">
             {children}
           </div>
         </main>

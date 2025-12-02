@@ -34,7 +34,7 @@ export async function getUsers(): Promise<User[]> {
     const res = await axios.get(`${API_URL}/users`);
     return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
-    console.error("❌ Error fetching users:", error);
+    console.error("Error fetching users:", error);
     return [];
   }
 }
@@ -44,7 +44,7 @@ export async function getUser(id: number): Promise<User | null> {
     const res = await axios.get(`${API_URL}/users/${id}`);
     return res.data;
   } catch (error) {
-    console.error("❌ Error fetching user:", error);
+    console.error("Error fetching user:", error);
     return null;
   }
 }

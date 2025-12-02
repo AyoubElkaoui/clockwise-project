@@ -223,9 +223,9 @@ export default function AdminUsersPage(): JSX.Element {
                                 <tr>
                                     <th className="text-gray-700 dark:text-slate-300 font-semibold">👤 Gebruiker</th>
                                     <th className="text-gray-700 dark:text-slate-300 font-semibold">📧 Email</th>
-                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">💼 Functie</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">Functie</th>
                                     <th className="text-gray-700 dark:text-slate-300 font-semibold">🔑 Rol</th>
-                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">⚙️ Acties</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -270,7 +270,7 @@ export default function AdminUsersPage(): JSX.Element {
                                                     <td>
                                                         <div className="flex gap-2">
                                                             <button
-                                                                className="btn btn-sm btn-outline btn-primary rounded-lg hover:scale-105 transition-all duration-200"
+                                                                className="btn btn-sm btn-outline btn-primary rounded-lg"
                                                                 onClick={() => handleEditClick(user.id)}
                                                                 disabled={!user.id}
                                                                 title="Bewerken"
@@ -278,7 +278,7 @@ export default function AdminUsersPage(): JSX.Element {
                                                                 <PencilIcon className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                className="btn btn-sm btn-outline btn-error rounded-lg hover:scale-105 transition-all duration-200"
+                                                                className="btn btn-sm btn-outline btn-error rounded-lg"
                                                                 onClick={() => handleDeleteClick(user.id)}
                                                                 disabled={!user.id}
                                                                 title="Verwijderen"

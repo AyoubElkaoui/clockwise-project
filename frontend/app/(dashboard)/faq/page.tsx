@@ -1,6 +1,6 @@
 import FaqAccordion from "./FaqAccordion";
 
-// ✅ MODERN shell gebruiken (niet de oude)
+// MODERN shell gebruiken (niet de oude)
 import ModernLayout from "@/components/ModernLayout";
 
 export const metadata = {

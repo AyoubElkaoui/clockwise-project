@@ -22,13 +22,13 @@ export function StatCard({
   subtitle,
   icon,
   trend,
-  iconBgColor = "bg-gradient-to-br from-blue-500 to-blue-600",
+  iconBgColor = "bg-blue-600",
   onClick,
 }: StatCardProps) {
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 dark:border-slate-700",
+        "bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm hover:shadow-lg border border-slate-200 dark:border-slate-700",
         onClick && "cursor-pointer hover:-translate-y-1"
       )}
       onClick={onClick}

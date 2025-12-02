@@ -161,7 +161,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-blue-100 bg-clip-text text-transparent mb-2">
           Admin Dashboard
         </h1>
         <p className="text-gray-600">Volledig overzicht van het systeem</p>
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-100"
+            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl border border-gray-100"
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}>
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
               recentActivity.map((entry: any, index: number) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl hover:shadow-md transition-all"
+                  className="flex items-center justify-between p-4 bg-blue-100 rounded-xl hover:shadow-md"
                 >
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-blue-600" />
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
               pendingApprovals.map((item: any, index: number) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl hover:shadow-md transition-all border border-orange-100"
+                  className="flex items-center justify-between p-4 bg-blue-100 rounded-xl hover:shadow-md border border-orange-100"
                 >
                   <div className="flex items-center gap-3">
                     {item.type === "timeEntry" ? (
@@ -285,19 +285,19 @@ export default function AdminDashboard() {
 
       {/* Quick Actions */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <button className="p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-blue-600 text-white rounded-xl hover:shadow-lg">
           <Users className="w-6 h-6 mb-2" />
           <p className="font-medium">Gebruikers Beheren</p>
         </button>
-        <button className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-purple-600 text-white rounded-xl hover:shadow-lg">
           <Building2 className="w-6 h-6 mb-2" />
           <p className="font-medium">Bedrijven</p>
         </button>
-        <button className="p-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-orange-600 text-white rounded-xl hover:shadow-lg">
           <FolderKanban className="w-6 h-6 mb-2" />
           <p className="font-medium">Projecten</p>
         </button>
-        <button className="p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-blue-100 text-white rounded-xl hover:shadow-lg">
           <Briefcase className="w-6 h-6 mb-2" />
           <p className="font-medium">Rapporten</p>
         </button>

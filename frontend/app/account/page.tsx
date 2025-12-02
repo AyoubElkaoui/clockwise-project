@@ -51,7 +51,7 @@ export default function AccountPage() {
   const [userId] = useState(1); // TODO: Get from auth context
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // 🔔 Toast helpers
+  // Toast helpers
   const addToast = (message: string, type: ToastType) => {
     const id = Date.now().toString() + Math.random();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -115,7 +115,7 @@ export default function AccountPage() {
     );
   }
 
-  // ⚠️ No user data
+  // No user data
   if (!userData) {
     return (
       <ProtectedRoute>
@@ -130,7 +130,7 @@ export default function AccountPage() {
     );
   }
 
-  // ✅ Main UI
+  // Main UI
   return (
     <ProtectedRoute>
       <ModernLayout>
@@ -163,7 +163,7 @@ export default function AccountPage() {
               <CardContent>
                 {/* Avatar + Naam */}
                 <div className="flex items-center gap-6 mb-6">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                  <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
                     {userData.firstName.charAt(0)}
                     {userData.lastName.charAt(0)}
                   </div>

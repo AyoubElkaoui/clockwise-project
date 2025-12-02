@@ -7,7 +7,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
     <ManagerRoute>
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
         <ManagerSidebar />
-        <main className="flex-1 ml-72 transition-all duration-300">
+        <main className="flex-1 ml-72">
           <div className="p-8">{children}</div>
         </main>
       </div>

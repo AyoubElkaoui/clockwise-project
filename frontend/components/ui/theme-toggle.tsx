@@ -20,7 +20,7 @@ export function ThemeToggle() {
         // 🌙 Maan met zwarte lijn
         <Moon className="h-5 w-5 text-black" strokeWidth={2} />
       ) : (
-        // ☀️ Zon met witte lijn
+        // Zon Zon met witte lijn
         <Sun className="h-5 w-5 text-white" strokeWidth={2} />
       )}
     </Button>

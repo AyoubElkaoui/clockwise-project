@@ -338,8 +338,8 @@ export default function TimeRegistrationPage() {
         <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
           {toast && (
             <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${toast.type === "success"
-                ? "bg-gradient-to-r from-emerald-500 to-green-600"
-                : "bg-gradient-to-r from-red-500 to-rose-600"
+                ? "bg-blue-100"
+                : "bg-blue-100"
               }`}>
               <div className="flex items-center gap-2">
                 <span className="text-lg">{toast.type === "success" ? "✓" : "✕"}</span>
@@ -356,8 +356,8 @@ export default function TimeRegistrationPage() {
                 <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode("week")}
-                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${viewMode === "week"
-                        ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md"
+                    className={`px-3 py-1.5 rounded text-sm font-medium ${viewMode === "week"
+                        ? "bg-blue-100 text-white shadow-md"
                         : "text-slate-600 hover:text-slate-900"
                       }`}
                   >
@@ -365,8 +365,8 @@ export default function TimeRegistrationPage() {
                   </button>
                   <button
                     onClick={() => setViewMode("month")}
-                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${viewMode === "month"
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md"
+                    className={`px-3 py-1.5 rounded text-sm font-medium ${viewMode === "month"
+                        ? "bg-blue-100 text-white shadow-md"
                         : "text-slate-600 hover:text-slate-900"
                       }`}
                   >
@@ -411,11 +411,11 @@ export default function TimeRegistrationPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={saveAll} disabled={saving}
-                  className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50">
+                  className="px-5 py-2.5 bg-blue-100 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50">
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
                 <button onClick={submitAll} disabled={saving}
-                  className="px-5 py-2.5 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50">
+                  className="px-5 py-2.5 bg-blue-100 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50">
                   <Send className="w-4 h-4" /> Inleveren
                 </button>
               </div>
@@ -433,7 +433,7 @@ export default function TimeRegistrationPage() {
                 {companies.map(company => (
                   <div key={company.id}>
                     <div onClick={() => toggleCompany(company.id)}
-                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg cursor-pointer transition-all group">
+                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg cursor-pointer group">
                       <ChevronDown className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`} />
                       <span className="font-medium group-hover:text-blue-600">{company.name}</span>
                     </div>
@@ -442,7 +442,7 @@ export default function TimeRegistrationPage() {
                         {projectGroups[company.id]?.map(group => (
                           <div key={group.id}>
                             <div onClick={() => toggleGroup(group.id)}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer transition-all group">
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer group">
                               <ChevronDown className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-purple-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`} />
                               <span className="text-sm group-hover:text-purple-600">{group.name}</span>
                             </div>
@@ -450,7 +450,7 @@ export default function TimeRegistrationPage() {
                               <div className="ml-5 space-y-1">
                                 {projects[group.id]?.map(project => (
                                   <div key={project.id} onClick={() => addProject(company, group, project)}
-                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-lg cursor-pointer transition-all group">
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-lg cursor-pointer group">
                                     <Plus className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <span className="text-sm text-slate-600 group-hover:text-emerald-600">{project.name}</span>
                                   </div>

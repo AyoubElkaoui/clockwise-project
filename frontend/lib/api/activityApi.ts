@@ -23,7 +23,7 @@ export async function getActivities(limit: number = 10, userId?: number): Promis
     const response = await axios.get(url);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error("❌ Error fetching activities:", error);
+    console.error("Error fetching activities:", error);
     return [];
   }
 }
@@ -32,7 +32,7 @@ export async function markActivityAsRead(activityId: number): Promise<void> {
   try {
     await axios.put(`${API_URL}/activities/${activityId}/read`);
   } catch (error) {
-    console.error("❌ Error marking activity as read:", error);
+    console.error("Error marking activity as read:", error);
   }
 }
 
@@ -43,7 +43,7 @@ export async function markAllActivitiesAsRead(): Promise<void> {
 
     await axios.put(`${API_URL}/activities/read-all?userId=${userId}`);
   } catch (error) {
-    console.error("❌ Error marking all activities as read:", error);
+    console.error("Error marking all activities as read:", error);
     throw error;
   }
 }

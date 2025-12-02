@@ -9,13 +9,13 @@ export default function VacationPage() {
     const router = useRouter();
 
     return (
-        <div className="container mx-auto p-6 space-y-6 animate-fade-in">
+        <div className="container mx-auto p-6 space-y-6">
             {/* Header Section */}
-            <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+            <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-                            <span className="text-2xl">🏖️</span>
+                            <span className="text-2xl">Vakantie</span>
                         </div>
                         <div>
                             <h1 className="text-4xl font-bold">Vakantie Overzicht</h1>
@@ -23,7 +23,7 @@ export default function VacationPage() {
                         </div>
                     </div>
                     <button
-                        className="btn btn-success btn-lg rounded-xl hover:scale-105 transition-all duration-200 text-white border-0"
+                        className="btn btn-success btn-lg rounded-xl text-white border-0"
                         onClick={() => router.push("/vacation-form")}
                     >
                         <PlusCircleIcon className="w-6 h-6 mr-2" />

@@ -93,7 +93,7 @@ export default function AdminProjectsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="flex justify-center items-center min-h-screen bg-blue-100">
                 <div className="text-center">
                     <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
                     <p className="text-lg font-semibold text-gray-700">Projectbeheer laden...</p>
@@ -104,9 +104,9 @@ export default function AdminProjectsPage() {
 
     return (
         <AdminRoute>
-            <div className="container mx-auto p-6 space-y-8 animate-fade-in">
+            <div className="container mx-auto p-6 space-y-8">
                 {/* Header Section */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                     <div className="flex items-center gap-3 mb-4">
                         <FolderIcon className="w-8 h-8" />
                         <h1 className="text-4xl font-bold">Projectbeheer</h1>
@@ -117,7 +117,7 @@ export default function AdminProjectsPage() {
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     {/* Formulier voor nieuw project */}
                     <div className="xl:col-span-2">
-                        <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                        <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                             <div className="card-body p-8">
                                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                                     <PlusIcon className="w-6 h-6 text-elmar-primary" />
@@ -197,7 +197,7 @@ export default function AdminProjectsPage() {
 
                                     {/* Preview */}
                                     {selectedCompany && selectedProjectGroup && projectName.trim() && (
-                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                                        <div className="bg-blue-100 rounded-xl p-4 border border-green-200">
                                             <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
                                                 <CheckCircleIcon className="w-5 h-5" />
                                                 Preview
@@ -211,7 +211,7 @@ export default function AdminProjectsPage() {
                                     )}
 
                                     <button
-                                        className="btn bg-gradient-elmar border-0 text-white rounded-xl w-full hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                                        className="btn bg-blue-600 border-0 text-white rounded-xl w-full hover:shadow-xl disabled:opacity-50 disabled:transform-none"
                                         onClick={handleCreateProject}
                                         disabled={!selectedProjectGroup || !projectName.trim()}
                                     >
@@ -226,7 +226,7 @@ export default function AdminProjectsPage() {
                     {/* Sidebar met info en tips */}
                     <div className="xl:col-span-1 space-y-6">
                         {/* Project Statistics */}
-                        <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                        <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                             <div className="card-body p-6">
                                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                                     <FolderIcon className="w-5 h-5 text-elmar-primary" />
@@ -246,7 +246,7 @@ export default function AdminProjectsPage() {
                         </div>
 
                         {/* Tips & Info */}
-                        <div className="card bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-2xl overflow-hidden">
+                        <div className="card bg-blue-100 border-2 border-yellow-200 rounded-2xl overflow-hidden">
                             <div className="card-body p-6">
                                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                                     <LightBulbIcon className="w-5 h-5 text-yellow-600" />
@@ -274,20 +274,20 @@ export default function AdminProjectsPage() {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                        <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                             <div className="card-body p-6">
                                 <h3 className="font-bold text-gray-800 mb-4">Snelle Acties</h3>
                                 <div className="space-y-2">
                                     <button
                                         onClick={() => window.location.href = "/admin/user-projects"}
-                                        className="btn btn-outline btn-primary rounded-xl w-full justify-start hover:scale-105 transition-all duration-200"
+                                        className="btn btn-outline btn-primary rounded-xl w-full justify-start"
                                     >
                                         <FolderIcon className="w-4 h-4 mr-2" />
                                         Project Toewijzingen
                                     </button>
                                     <button
                                         onClick={() => window.location.href = "/admin/users"}
-                                        className="btn btn-outline btn-secondary rounded-xl w-full justify-start hover:scale-105 transition-all duration-200"
+                                        className="btn btn-outline btn-secondary rounded-xl w-full justify-start"
                                     >
                                         <BuildingOfficeIcon className="w-4 h-4 mr-2" />
                                         Gebruikers Beheren

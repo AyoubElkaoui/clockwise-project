@@ -12,7 +12,7 @@ export default function ModernLayout({ children }: { children: ReactNode }) {
       <ModernSidebar />
 
       {/* Content */}
-      <main className="flex-1 ml-64 transition-all duration-300">
+      <main className="flex-1 ml-64">
         
         {/* Navbar bovenaan */}
         <Navbar /> 

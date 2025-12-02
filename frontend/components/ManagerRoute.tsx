@@ -34,7 +34,7 @@ export default function ManagerRoute({ children }: { children: React.ReactNode }
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+            <div className="flex justify-center items-center min-h-screen bg-blue-100">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Manager toegang controleren...</p>

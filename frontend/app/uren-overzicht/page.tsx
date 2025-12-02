@@ -149,7 +149,7 @@ export default function UrenOverzichtPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
@@ -277,7 +277,7 @@ export default function UrenOverzichtPage() {
               ) : (
                 <div className="space-y-4">
                   {filteredEntries.map((entry) => (
-                    <div key={entry.id} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:shadow-md transition-all">
+                    <div key={entry.id} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:shadow-md">
                       <div className="w-20 text-center">
                         <p className="text-xs text-slate-600 dark:text-slate-400">{dayjs(entry.date).format('ddd')}</p>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{dayjs(entry.date).format('D MMM')}</p>

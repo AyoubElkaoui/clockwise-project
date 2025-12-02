@@ -141,7 +141,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                 // Fetch companies
                 const companiesData = await getCompanies();
-                console.log("📊 Companies loaded:", companiesData.length);
+                console.log("Companies loaded:", companiesData.length);
                 setCompanies(companiesData);
 
                 // Fetch user's assigned projects
@@ -168,7 +168,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     const projectGroupId = existingEntry.project.projectGroup?.id;
                     const projectId = existingEntry.projectId;
 
-                    console.log("🎯 Setting IDs:", { companyId, projectGroupId, projectId });
+                    console.log("Setting IDs:", { companyId, projectGroupId, projectId });
 
                     if (companyId) {
                         setSelectedCompany(companyId);
@@ -187,14 +187,14 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             setProjects(projectsData);
 
                             if (projectId) {
-                                console.log("✅ Setting selected project:", projectId);
+                                console.log("Setting selected project:", projectId);
                                 setSelectedProject(projectId);
                             }
                         }
                     }
                 }
             } catch (error) {
-                console.error("❌ Error fetching initial data:", error);
+                console.error("Error fetching initial data:", error);
                 setError("Fout bij het ophalen van gegevens");
             } finally {
                 setLoading(false);
@@ -236,7 +236,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     setSelectedProject(null);
                     setProjects([]);
                 } catch (error) {
-                    console.error("❌ Error fetching project groups:", error);
+                    console.error("Error fetching project groups:", error);
                 }
             };
             fetchProjectGroups();
@@ -276,7 +276,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                     // Reset project selection when project group changes
                     setSelectedProject(null);
                 } catch (error) {
-                    console.error("❌ Error fetching projects:", error);
+                    console.error("Error fetching projects:", error);
                 }
             };
             fetchProjects();
@@ -380,7 +380,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             }
             onEntrySaved();
         } catch (err) {
-            console.error("❌ Save error:", err);
+            console.error("Save error:", err);
             setError("Fout bij opslaan van de uren");
         } finally {
             setIsSubmitting(false);
@@ -472,7 +472,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             )}
 
             {/* Project Selection */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+            <div className="bg-blue-100 rounded-xl p-6 border border-blue-200">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <FolderIcon className="w-5 h-5 text-blue-600" />
                     Project Selectie
@@ -507,7 +507,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                         </select>
                         {selectedCompany && (
                             <div className="text-sm text-success mt-1">
-                                ✅ Bedrijf geselecteerd
+                                Bedrijf geselecteerd
                             </div>
                         )}
                     </div>
@@ -532,12 +532,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             </select>
                             {projectGroups.length === 0 && selectedCompany && (
                                 <div className="text-sm text-warning mt-1">
-                                    ⚠️ Geen projectgroepen gevonden
+                                    Geen projectgroepen gevonden
                                 </div>
                             )}
                             {selectedProjectGroup && (
                                 <div className="text-sm text-success mt-1">
-                                    ✅ Projectgroep geselecteerd
+                                    Projectgroep geselecteerd
                                 </div>
                             )}
                         </div>
@@ -563,12 +563,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                             </select>
                             {projects.length === 0 && selectedProjectGroup && (
                                 <div className="text-sm text-warning mt-1">
-                                    ⚠️ Geen projecten gevonden voor deze groep
+                                    Geen projecten gevonden voor deze groep
                                 </div>
                             )}
                             {selectedProject && (
                                 <div className="text-sm text-success mt-1">
-                                    ✅ Project geselecteerd
+                                    Project geselecteerd
                                 </div>
                             )}
                         </div>
@@ -577,7 +577,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             </div>
 
             {/* Time Registration */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+            <div className="bg-blue-100 rounded-xl p-6 border border-green-200">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <ClockIcon className="w-5 h-5 text-green-600" />
                     Tijd Registratie (kwartierprecisie)
@@ -641,7 +641,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                 </div>
 
                 {/* Hours Display with Save Button */}
-                <div className="mt-4 p-4 bg-gradient-elmar text-white rounded-xl border border-green-200">
+                <div className="mt-4 p-4 bg-blue-600 text-white rounded-xl border border-green-200">
                     <div className="flex items-center justify-between">
                         <div>
                             <span className="font-semibold text-blue-100">Totaal werkuren:</span>
@@ -653,7 +653,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
                         {/* Quick Save Button */}
                         {isFormValid && calculatedHours >= 0.25 && (
                             <button
-                                className="btn btn-success rounded-xl hover:scale-105 transition-all duration-200"
+                                className="btn btn-success rounded-xl"
                                 onClick={() => handleSave('submit')}
                                 disabled={isSubmitting}
                             >
@@ -671,10 +671,10 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                     <div className="mt-2 space-y-1 text-blue-100 text-sm">
                         {calculatedHours < 0.25 && startTime && endTime && (
-                            <p>⚠️ Minder dan een kwartier</p>
+                            <p>Minder dan een kwartier</p>
                         )}
                         {calculatedHours > 16 && (
-                            <p>⚠️ Meer dan 16 uur - controleer of dit correct is</p>
+                            <p>Meer dan 16 uur - controleer of dit correct is</p>
                         )}
                         {endTime <= startTime && calculatedHours > 0 && (
                             <p>🌙 Nachtdienst - eindigt volgende dag</p>
@@ -687,7 +687,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             </div>
 
             {/* Additional Info */}
-            <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-6 border border-purple-200">
+            <div className="bg-blue-100 rounded-xl p-6 border border-purple-200">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <CurrencyEuroIcon className="w-5 h-5 text-purple-600" />
                     Aanvullende Gegevens
@@ -759,7 +759,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             </div>
 
             {/* Tips */}
-            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 border border-yellow-200">
+            <div className="bg-blue-100 rounded-xl p-4 border border-yellow-200">
                 <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                     <LightBulbIcon className="w-5 h-5 text-yellow-600" />
                     Uren Registratie Tips
@@ -814,12 +814,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             {exceeds24Hours && (
                 <div className="alert alert-error rounded-xl">
                     <ExclamationTriangleIcon className="w-6 h-6" />
-                    <span>⚠️ Maximaal 24 uur per dag toegestaan!</span>
+                    <span>Maximaal 24 uur per dag toegestaan!</span>
                 </div>
             )}
 
             {/* Status explanation */}
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
+            <div className="bg-blue-100 rounded-xl p-4 border border-blue-200">
                 <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                     <CheckCircleIcon className="w-5 h-5 text-blue-600" />
                     Opslaan vs Indienen
@@ -859,7 +859,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                 {/* Save as Draft Button */}
                 <button
-                    className="btn btn-outline btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                    className="btn btn-outline btn-primary rounded-xl"
                     onClick={() => handleSave('draft')}
                     disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
                 >
@@ -878,7 +878,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                 {/* Submit Button */}
                 <button
-                    className="btn bg-gradient-elmar border-0 text-white rounded-xl hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                    className="btn bg-blue-600 border-0 text-white rounded-xl hover:shadow-xl disabled:opacity-50 disabled:transform-none"
                     onClick={() => handleSave('submit')}
                     disabled={!isFormValid || isSubmitting || calculatedHours < 0.25}
                 >

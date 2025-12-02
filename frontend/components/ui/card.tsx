@@ -3,13 +3,13 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "rounded-xl transition-all duration-300",
+  "rounded-xl",
   {
     variants: {
       variant: {
         default: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
         elevated: "bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl",
-        gradient: "bg-gradient-to-br from-blue-500 to-blue-600 text-white",
+        gradient: "bg-blue-600 text-white",
         ghost: "bg-transparent",
       },
       padding: {

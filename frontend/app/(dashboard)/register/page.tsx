@@ -119,9 +119,9 @@ export default function RegisterTime(): JSX.Element {
     const totalHours = calculateHours();
 
     return (
-        <div className="container mx-auto p-6 space-y-8 animate-fade-in">
+        <div className="container mx-auto p-6 space-y-8">
             {/* Header Section */}
-            <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+            <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
                     <ClockIcon className="w-8 h-8" />
                     <h1 className="text-4xl font-bold">Uren Registreren</h1>
@@ -132,7 +132,7 @@ export default function RegisterTime(): JSX.Element {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 {/* Main Form */}
                 <div className="xl:col-span-2">
-                    <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                    <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                         <div className="card-body p-8">
                             {/* Project Selection */}
                             <div className="mb-8">
@@ -321,7 +321,7 @@ export default function RegisterTime(): JSX.Element {
                             <button
                                 onClick={handleSubmit}
                                 disabled={!selectedProject || isLoading}
-                                className="btn bg-gradient-elmar border-0 text-white rounded-xl w-full py-4 h-auto min-h-0 hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                                className="btn bg-blue-600 border-0 text-white rounded-xl w-full py-4 h-auto min-h-0 hover:shadow-xl disabled:opacity-50 disabled:transform-none"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
@@ -341,12 +341,12 @@ export default function RegisterTime(): JSX.Element {
 
                 {/* Summary Sidebar */}
                 <div className="xl:col-span-1">
-                    <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden sticky top-6">
+                    <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden sticky top-6">
                         <div className="card-body p-6">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4">📊 Overzicht</h3>
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">Overzicht</h3>
 
                             <div className="space-y-4">
-                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4">
+                                <div className="bg-blue-100 rounded-xl p-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-600">Totaal Uren:</span>
                                         <span className="text-2xl font-bold text-elmar-primary">
@@ -355,7 +355,7 @@ export default function RegisterTime(): JSX.Element {
                                     </div>
                                 </div>
 
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4">
+                                <div className="bg-blue-100 rounded-xl p-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-600">Totaal Kosten:</span>
                                         <span className="text-xl font-bold text-green-600">
@@ -364,7 +364,7 @@ export default function RegisterTime(): JSX.Element {
                                     </div>
                                 </div>
 
-                                <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4">
+                                <div className="bg-blue-100 rounded-xl p-4">
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-600">Afstand:</span>
                                         <span className="text-xl font-bold text-purple-600">
@@ -375,7 +375,7 @@ export default function RegisterTime(): JSX.Element {
                             </div>
 
                             <div className="mt-6 pt-6 border-t border-gray-200">
-                                <h4 className="font-semibold text-gray-700 mb-3">💡 Tips</h4>
+                                <h4 className="font-semibold text-gray-700 mb-3">Tips</h4>
                                 <div className="space-y-2 text-sm text-gray-600">
                                     <p>• Vergeet niet je pauzetijd in te vullen</p>
                                     <p>• Reiskosten kunnen je netto loon verhogen</p>

@@ -158,7 +158,7 @@ export function MiniCalendar() {
             return (
               <div
                 key={day}
-                className={`aspect-square p-0.5 rounded transition-all cursor-pointer hover:ring-1 hover:ring-blue-300 relative ${
+                className={`aspect-square p-0.5 rounded cursor-pointer hover:ring-1 hover:ring-blue-300 relative ${
                   isToday ? "ring-1 ring-blue-500" : ""
                 } ${data ? getStatusColor(data.status) : "bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600"}`}
                 title={data ? `${data.hours}u - ${data.status}` : "Geen registratie"}

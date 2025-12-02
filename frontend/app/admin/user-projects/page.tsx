@@ -206,7 +206,7 @@ export default function AdminUserProjectsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="flex justify-center items-center min-h-screen bg-blue-100">
                 <div className="text-center">
                     <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
                     <p className="text-lg font-semibold text-gray-700">Project toewijzingen laden...</p>
@@ -217,9 +217,9 @@ export default function AdminUserProjectsPage() {
 
     return (
         <AdminRoute>
-            <div className="container mx-auto p-6 space-y-8 animate-fade-in">
+            <div className="container mx-auto p-6 space-y-8">
                 {/* Header Section */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                     <div className="flex items-center gap-3 mb-4">
                         <UserPlusIcon className="w-8 h-8" />
                         <h1 className="text-4xl font-bold">Project Toewijzingen</h1>
@@ -229,7 +229,7 @@ export default function AdminUserProjectsPage() {
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {/* Formulier voor toewijzen van gebruiker aan project */}
-                    <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                    <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                         <div className="card-body p-8">
                             <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                                 <UserPlusIcon className="w-6 h-6 text-elmar-primary" />
@@ -321,7 +321,7 @@ export default function AdminUserProjectsPage() {
                                 </div>
 
                                 <button
-                                    className="btn bg-gradient-elmar border-0 text-white rounded-xl w-full hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                                    className="btn bg-blue-600 border-0 text-white rounded-xl w-full hover:shadow-xl disabled:opacity-50 disabled:transform-none"
                                     onClick={handleAssignUserToProject}
                                     disabled={!selectedUser || !selectedProject}
                                 >
@@ -333,7 +333,7 @@ export default function AdminUserProjectsPage() {
                     </div>
 
                     {/* Filters voor bestaande koppelingen */}
-                    <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                    <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                         <div className="card-body p-8">
                             <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                                 <FunnelIcon className="w-6 h-6 text-elmar-primary" />
@@ -383,7 +383,7 @@ export default function AdminUserProjectsPage() {
                                     </select>
                                 </div>
 
-                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                                <div className="bg-blue-100 rounded-xl p-4 border border-blue-200">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="font-semibold text-gray-800">Totaal Toewijzingen</p>
@@ -394,7 +394,7 @@ export default function AdminUserProjectsPage() {
                                 </div>
 
                                 <button
-                                    className="btn btn-outline btn-primary rounded-xl w-full hover:scale-105 transition-all duration-200"
+                                    className="btn btn-outline btn-primary rounded-xl w-full"
                                     onClick={() => {
                                         setFilterUser(null);
                                         setFilterProject(null);
@@ -408,7 +408,7 @@ export default function AdminUserProjectsPage() {
                 </div>
 
                 {/* Tabel met alle user-project koppelingen */}
-                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+                <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                     <div className="card-body p-0">
                         <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
                             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -426,7 +426,7 @@ export default function AdminUserProjectsPage() {
                                     <th className="text-gray-700 font-semibold">📁 Project</th>
                                     <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
                                     <th className="text-gray-700 font-semibold">📅 Toegewezen op</th>
-                                    <th className="text-gray-700 font-semibold">⚙️ Acties</th>
+                                    <th className="text-gray-700 font-semibold">Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -448,7 +448,7 @@ export default function AdminUserProjectsPage() {
                                             <td>
                                                 <div className="flex items-center gap-3">
                                                     <div className="avatar placeholder">
-                                                        <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
+                                                        <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
                                                             <span className="text-sm font-bold">
                                                                 {getUserName(up.userId).split(' ').map(n => n[0]).join('').substring(0, 2)}
                                                             </span>
@@ -462,7 +462,7 @@ export default function AdminUserProjectsPage() {
                                             </td>
                                             <td>
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-gradient-elmar rounded-full"></div>
+                                                    <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
                                                     <span className="font-medium text-gray-800">
                                                         {up.project ? getProjectName(up.project) : `Project ${up.projectId}`}
                                                     </span>
@@ -489,7 +489,7 @@ export default function AdminUserProjectsPage() {
                                             </td>
                                             <td>
                                                 <button
-                                                    className="btn btn-sm btn-error rounded-xl hover:scale-105 transition-all duration-200"
+                                                    className="btn btn-sm btn-error rounded-xl"
                                                     onClick={() => handleRemoveUserFromProject(up.userId, up.projectId)}
                                                 >
                                                     <TrashIcon className="w-4 h-4 mr-1" />

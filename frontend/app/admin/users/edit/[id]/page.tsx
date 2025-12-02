@@ -148,9 +148,9 @@ export default function EditUserPage(): JSX.Element {
 
     return (
         <AdminRoute>
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-8">
                 {/* Header Section */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                     <div className="flex items-center justify-between">
                         <div>
                             <div className="flex items-center gap-3 mb-4">
@@ -180,7 +180,7 @@ export default function EditUserPage(): JSX.Element {
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                         {/* User Info Card */}
                         <div className="xl:col-span-1">
-                            <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
+                            <div className="card bg-white shadow-lg border-0 rounded-2xl">
                                 <div className="card-body p-8">
                                     <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                                         <UserCircleIcon className="w-6 h-6" />
@@ -189,7 +189,7 @@ export default function EditUserPage(): JSX.Element {
 
                                     <div className="text-center mb-6">
                                         <div className="avatar placeholder mx-auto mb-4">
-                                            <div className="bg-gradient-elmar text-white rounded-full w-20 h-20 flex items-center justify-center">
+                                            <div className="bg-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center">
                                                 <span className="text-xl font-bold">
                                                     {firstName.charAt(0)}{lastName.charAt(0)}
                                                 </span>
@@ -207,7 +207,7 @@ export default function EditUserPage(): JSX.Element {
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
+                                    <div className="bg-blue-100 rounded-xl p-6">
                                         <h4 className="font-bold text-gray-800 mb-3">Account Details</h4>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
@@ -230,7 +230,7 @@ export default function EditUserPage(): JSX.Element {
 
                         {/* Edit Form */}
                         <div className="xl:col-span-2">
-                            <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
+                            <div className="card bg-white shadow-lg border-0 rounded-2xl">
                                 <div className="card-body p-8">
                                     <h2 className="text-2xl font-bold text-gray-800 mb-8">Gegevens Bewerken</h2>
 
@@ -411,7 +411,7 @@ export default function EditUserPage(): JSX.Element {
                                         </button>
                                         <button
                                             type="submit"
-                                            className="btn bg-gradient-elmar border-0 text-white rounded-xl hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                                            className="btn bg-blue-600 border-0 text-white rounded-xl hover:shadow-xl disabled:opacity-50 disabled:transform-none"
                                             disabled={isSubmitting}
                                         >
                                             {isSubmitting ? (

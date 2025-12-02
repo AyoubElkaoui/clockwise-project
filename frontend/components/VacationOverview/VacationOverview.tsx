@@ -318,7 +318,7 @@ export default function VacationOverview(): React.JSX.Element {
     const currentHours = calculateWorkingHours(startDate, endDate);
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6">
             {/* Error Alert */}
             {error && (
                 <div className="alert alert-error rounded-xl">
@@ -335,7 +335,7 @@ export default function VacationOverview(): React.JSX.Element {
 
             {/* Vacation Balance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">Totaal Vakantie-uren</p>
@@ -346,7 +346,7 @@ export default function VacationOverview(): React.JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-success text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-gradient-success text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">Opgenomen Uren</p>
@@ -357,7 +357,7 @@ export default function VacationOverview(): React.JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">In Behandeling</p>
@@ -368,7 +368,7 @@ export default function VacationOverview(): React.JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-purple-100 text-sm font-medium">Beschikbaar</p>
@@ -381,7 +381,7 @@ export default function VacationOverview(): React.JSX.Element {
             </div>
 
             {/* New Request Section */}
-            <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+            <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                 <div className="card-body p-8">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
@@ -389,7 +389,7 @@ export default function VacationOverview(): React.JSX.Element {
                             <h2 className="text-2xl font-bold text-gray-800">Nieuwe Vakantieaanvraag</h2>
                         </div>
                         <button
-                            className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                            className="btn btn-primary rounded-xl"
                             onClick={() => setShowForm(!showForm)}
                         >
                             {showForm ? 'Annuleren' : 'Nieuwe Aanvraag'}
@@ -435,7 +435,7 @@ export default function VacationOverview(): React.JSX.Element {
                                         <strong>{currentHours} uren</strong> ({currentHours / 8} werkdagen) geselecteerd
                                         {currentHours > balance.remainingHours && (
                                             <span className="text-error ml-2">
-                                                (⚠️ Onvoldoende uren beschikbaar: {balance.remainingHours}u)
+                                                (Onvoldoende uren beschikbaar: {balance.remainingHours}u)
                                             </span>
                                         )}
                                     </span>
@@ -444,7 +444,7 @@ export default function VacationOverview(): React.JSX.Element {
 
                             <div className="form-control">
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">📝 Reden</span>
+                                    <span className="label-text font-semibold text-gray-700">Reden</span>
                                 </label>
                                 <textarea
                                     className="textarea textarea-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl h-24"
@@ -471,7 +471,7 @@ export default function VacationOverview(): React.JSX.Element {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                                    className="btn btn-primary rounded-xl"
                                     disabled={submitting || currentHours > balance.remainingHours}
                                 >
                                     {submitting ? (
@@ -490,7 +490,7 @@ export default function VacationOverview(): React.JSX.Element {
             </div>
 
             {/* Requests Table */}
-            <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+            <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                 <div className="card-body p-0">
                     <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
                         <div className="flex items-center gap-3">
@@ -505,9 +505,9 @@ export default function VacationOverview(): React.JSX.Element {
                             <tr>
                                 <th className="text-gray-700 font-semibold">📅 Periode</th>
                                 <th className="text-gray-700 font-semibold">⏰ Uren</th>
-                                <th className="text-gray-700 font-semibold">📝 Reden</th>
+                                <th className="text-gray-700 font-semibold">Reden</th>
                                 <th className="text-gray-700 font-semibold">📅 Aangevraagd</th>
-                                <th className="text-gray-700 font-semibold">✅ Status</th>
+                                <th className="text-gray-700 font-semibold">Status</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -545,7 +545,7 @@ export default function VacationOverview(): React.JSX.Element {
                                 <tr>
                                     <td colSpan={5} className="text-center py-12">
                                         <div className="flex flex-col items-center gap-4">
-                                            <div className="text-6xl">🏖️</div>
+                                            <div className="text-6xl">Vakantie</div>
                                             <div className="text-xl font-semibold text-gray-600">Geen vakantieaanvragen gevonden</div>
                                             <div className="text-gray-500">Maak je eerste vakantieaanvraag om hier iets te zien</div>
                                         </div>
@@ -561,7 +561,7 @@ export default function VacationOverview(): React.JSX.Element {
             {/* Info Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Balance Info */}
-                <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl">
+                <div className="card bg-blue-100 border-2 border-blue-200 rounded-2xl">
                     <div className="card-body p-6">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
@@ -622,7 +622,7 @@ export default function VacationOverview(): React.JSX.Element {
                 </div>
 
                 {/* Tips & Info */}
-                <div className="card bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl">
+                <div className="card bg-blue-100 border-2 border-green-200 rounded-2xl">
                     <div className="card-body p-6">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <ExclamationTriangleIcon className="w-6 h-6 text-green-600" />
@@ -686,7 +686,7 @@ export default function VacationOverview(): React.JSX.Element {
 
             {/* Quick Actions */}
             {balance.remainingHours > 0 && (
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl p-6 text-center">
+                <div className="bg-blue-100 text-white rounded-2xl p-6 text-center">
                     <h3 className="text-2xl font-bold mb-2">🌴 Plan je vakantie!</h3>
                     <p className="mb-4">Je hebt nog <strong>{balance.remainingHours} uur</strong> ({balance.remainingHours / 8} dagen) vakantie over dit jaar.</p>
                     <button
@@ -700,8 +700,8 @@ export default function VacationOverview(): React.JSX.Element {
             )}
 
             {balance.remainingHours <= 0 && (
-                <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-2xl p-6 text-center">
-                    <h3 className="text-2xl font-bold mb-2">⚠️ Geen vakantie meer beschikbaar</h3>
+                <div className="bg-blue-100 text-white rounded-2xl p-6 text-center">
+                    <h3 className="text-2xl font-bold mb-2">Geen vakantie meer beschikbaar</h3>
                     <p>Je hebt al je vakantie-uren voor dit jaar gebruikt of aangevraagd.</p>
                 </div>
             )}

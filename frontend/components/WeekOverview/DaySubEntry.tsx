@@ -153,9 +153,9 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
 
     const getStatusColor = (): string => {
         if (totalHours === 0) return "border-gray-200 bg-gradient-to-r from-gray-50 to-white";
-        if (totalHours >= 8) return "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50";
-        if (totalHours >= 4) return "border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50";
-        return "border-orange-200 bg-gradient-to-r from-orange-50 to-red-50";
+        if (totalHours >= 8) return "border-green-200 bg-blue-100";
+        if (totalHours >= 4) return "border-yellow-200 bg-blue-100";
+        return "border-orange-200 bg-blue-100";
     };
 
     const getHoursColor = (): string => {
@@ -178,7 +178,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
     return (
         <>
             <div className={`
-                relative overflow-hidden rounded-xl border-2 transition-all duration-200 hover:shadow-md
+                relative overflow-hidden rounded-xl border-2 hover:shadow-md
                 ${isToday ? 'ring-1 ring-elmar-primary ring-opacity-30' : ''}
                 ${getStatusColor()}
             `}>
@@ -214,7 +214,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                     <div className="mb-3">
                         <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
-                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                className={`h-1.5 rounded-full ${
                                     totalHours >= 8 ? 'bg-green-500' :
                                         totalHours >= 4 ? 'bg-yellow-500' : 'bg-orange-500'
                                 }`}
@@ -271,7 +271,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                                     if (!entry.startTime || !entry.endTime) {
                                         return (
                                             <div key={index} className="text-xs text-error bg-red-50 p-2 rounded">
-                                                ⚠️ Ongeldige entry
+                                                Ongeldige entry
                                             </div>
                                         );
                                     }
@@ -282,7 +282,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                                     if (!start.isValid() || !end.isValid()) {
                                         return (
                                             <div key={index} className="text-xs text-error bg-red-50 p-2 rounded">
-                                                ⚠️ Ongeldige tijd
+                                                Ongeldige tijd
                                             </div>
                                         );
                                     }
@@ -303,7 +303,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                                     return (
                                         <div
                                             key={entry.id || index}
-                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${getEntryStatusBg()}`}
+                                            className={`p-3 rounded-lg border hover:shadow-sm ${getEntryStatusBg()}`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
@@ -376,7 +376,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                                     console.warn("Error rendering entry:", entry, error);
                                     return (
                                         <div key={index} className="text-xs text-error bg-red-50 p-2 rounded">
-                                            ⚠️ Fout bij laden
+                                            Fout bij laden
                                         </div>
                                     );
                                 }
@@ -397,7 +397,7 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                     {canEdit && (
                         <button
                             onClick={handleAddEntry}
-                            className="btn btn-sm bg-gradient-elmar border-0 text-white w-full rounded-lg hover:scale-105 transition-all duration-200 mt-3"
+                            className="btn btn-sm bg-blue-600 border-0 text-white w-full rounded-lg mt-3"
                         >
                             <PlusIcon className="w-4 h-4 mr-1" />
                             {entries.length === 0 ? 'Uren Toevoegen' : 'Nieuwe Entry'}
@@ -410,8 +410,8 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                                 weekStatus === 'goedgekeurd' ? 'bg-green-100 text-green-800' :
                                     weekStatus === 'ingeleverd' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                             }`}>
-                                {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
-                                    weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' : '❌ Afgekeurd'}
+                                {weekStatus === 'goedgekeurd' ? 'Goedgekeurd' :
+                                    weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' : 'Afgekeurd'}
                             </span>
                         </div>
                     )}

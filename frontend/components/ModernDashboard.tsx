@@ -105,7 +105,7 @@ export default function ModernDashboard() {
     
  
     {/* === Dashboard Content === */}
-    <main className="p-6 md:p-10 space-y-8 animate-fade-in">
+    <main className="p-6 md:p-10 space-y-8">
 
       {/* Welcome Header */}
       <div>
@@ -124,7 +124,7 @@ export default function ModernDashboard() {
           value={`${stats.weekHours}u`}
           subtitle="van 40u deze week"
           icon={<Clock className="w-6 h-6" />}
-          iconBgColor="bg-gradient-to-br from-blue-500 to-blue-600"
+          iconBgColor="bg-blue-600"
           trend={{ value: "+2.5u", isPositive: true }}
         />
         <StatCard
@@ -132,14 +132,14 @@ export default function ModernDashboard() {
           value={`${stats.monthHours}u`}
           subtitle="18 werkdagen"
           icon={<Calendar className="w-6 h-6" />}
-          iconBgColor="bg-gradient-to-br from-green-500 to-green-600"
+          iconBgColor="bg-green-600"
         />
         <StatCard
           title="Vakantiedagen Resterend"
           value={`${stats.vacationDays} dagen`}
           subtitle="Over van 25 dagen"
           icon={<Plane className="w-6 h-6" />}
-          iconBgColor="bg-gradient-to-br from-purple-500 to-purple-600"
+          iconBgColor="bg-purple-600"
         />
       </div>
 
@@ -183,7 +183,7 @@ export default function ModernDashboard() {
 
               <div className="w-full bg-slate-300 dark:bg-slate-700 rounded-full h-2">
                 <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                  className="bg-blue-100 h-2 rounded-full"
                   style={{ width: `${(stats.weekHours / 40) * 100}%` }}
                 />
               </div>
@@ -298,7 +298,7 @@ export default function ModernDashboard() {
                   key={entry.id}
                   className="flex items-center gap-4 p-4 bg-slate-100 dark:bg-slate-900 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer group"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
                     {entry.hours}u
                   </div>
 

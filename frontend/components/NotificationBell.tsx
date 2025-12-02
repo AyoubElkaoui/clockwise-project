@@ -14,7 +14,7 @@ const NotificationBell = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
-  // ✅ NEW: ref voor click-outside
+  // NEW: ref voor click-outside
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchActivities = async () => {
@@ -54,7 +54,7 @@ const NotificationBell = () => {
     }
   }, []);
 
-  // ✅ NEW: click-outside sluit dropdown
+  // NEW: click-outside sluit dropdown
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -173,7 +173,7 @@ const NotificationBell = () => {
   };
 
   return (
-    // ✅ NEW: wrapper met ref rond button + dropdown
+    // NEW: wrapper met ref rond button + dropdown
     <div ref={dropdownRef} className="relative">
       <button onClick={toggleDropdown} className="btn btn-ghost btn-circle">
         <div className="indicator">

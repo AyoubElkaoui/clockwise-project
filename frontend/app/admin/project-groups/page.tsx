@@ -104,7 +104,7 @@ export default function AdminProjectGroupsPage() {
                 </div>
 
                 {/* Create New Project Group Card */}
-                <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-2xl shadow-xl p-8 text-white">
+                <div className="bg-blue-100 rounded-2xl shadow-xl p-8 text-white">
                     <div className="flex items-center mb-6">
                         <PlusIcon className="w-8 h-8 mr-3" />
                         <h2 className="text-2xl font-bold">Nieuwe Projectgroep Aanmaken</h2>
@@ -147,7 +147,7 @@ export default function AdminProjectGroupsPage() {
 
                     <button
                         onClick={handleCreateProjectGroup}
-                        className="w-full md:w-auto px-8 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 transition-all flex items-center justify-center gap-2 shadow-lg"
+                        className="w-full md:w-auto px-8 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 flex items-center justify-center gap-2 shadow-lg"
                     >
                         <CheckCircleIcon className="w-5 h-5" />
                         Projectgroep Aanmaken
@@ -176,7 +176,7 @@ export default function AdminProjectGroupsPage() {
                                 {projectGroups.map((group) => (
                                     <div
                                         key={group.id}
-                                        className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 border border-purple-200 dark:border-slate-500"
+                                        className="bg-blue-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 border border-purple-200 dark:border-slate-500"
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-purple-600 rounded-lg">

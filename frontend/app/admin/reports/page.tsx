@@ -12,7 +12,7 @@ export default function AdminReportsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <Users className="w-6 h-6 text-blue-600" />
@@ -27,7 +27,7 @@ export default function AdminReportsPage() {
           </button>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Clock className="w-6 h-6 text-purple-600" />
@@ -42,7 +42,7 @@ export default function AdminReportsPage() {
           </button>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <Building2 className="w-6 h-6 text-green-600" />

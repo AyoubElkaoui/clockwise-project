@@ -15,7 +15,7 @@ import { usePathname } from "next/navigation";
 export default function Navbar(): JSX.Element {
   const pathname = usePathname();
 
-// ✅ super-robust: case-insensitive + werkt ook voor /FAQ, /faq/iets, /dashboard/faq, etc.
+// super-robust: case-insensitive + werkt ook voor /FAQ, /faq/iets, /dashboard/faq, etc.
 const cleanPath = (pathname || "").toLowerCase();
 const hideNotifications =
   cleanPath === "/faq" ||
@@ -134,7 +134,7 @@ const hideNotifications =
                 border border-slate-300 dark:border-slate-700
                 placeholder-slate-500 dark:placeholder-slate-400
                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50
-                transition-all
+               
               "
             />
           </div>
@@ -193,7 +193,7 @@ const hideNotifications =
           >
             <div
               className="
-                bg-gradient-to-r from-blue-600 to-indigo-600 text-white
+                bg-blue-100 text-white
                 rounded-full w-10 h-10 flex items-center justify-center shadow-md
               "
             >

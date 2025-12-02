@@ -37,9 +37,9 @@ export default function DashboardContent(): JSX.Element {
     };
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-8">
             {/* Enhanced Welcome Header */}
-            <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+            <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                 <div className="flex items-center justify-between">
                     <div>
                         <div className="flex items-center gap-3 mb-4">
@@ -64,9 +64,9 @@ export default function DashboardContent(): JSX.Element {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center gap-4">
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl">
+                        <div className="bg-blue-600 p-3 rounded-xl">
                             <ClockIcon className="w-8 h-8 text-white" />
                         </div>
                         <div>
@@ -77,9 +77,9 @@ export default function DashboardContent(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center gap-4">
-                        <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl">
+                        <div className="bg-green-600 p-3 rounded-xl">
                             <CalendarDaysIcon className="w-8 h-8 text-white" />
                         </div>
                         <div>
@@ -90,9 +90,9 @@ export default function DashboardContent(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center gap-4">
-                        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl">
+                        <div className="bg-purple-600 p-3 rounded-xl">
                             <HomeIcon className="w-8 h-8 text-white" />
                         </div>
                         <div>

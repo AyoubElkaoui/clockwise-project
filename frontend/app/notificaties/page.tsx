@@ -72,7 +72,7 @@ export default function NotificatiesPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
@@ -153,7 +153,7 @@ export default function NotificatiesPage() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 rounded-lg border transition-all ${!notification.read
+                      className={`p-4 rounded-lg border ${!notification.read
                           ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                           : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                         }`}

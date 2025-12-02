@@ -156,10 +156,10 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-purple-600 bg-clip-text text-transparent mb-2">
           Manager Dashboard
         </h1>
         <p className="text-gray-600">Team overzicht en goedkeuringen</p>
@@ -170,7 +170,7 @@ export default function ManagerDashboard() {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-100"
+            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl border border-gray-100"
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}>
@@ -205,7 +205,7 @@ export default function ManagerDashboard() {
               pendingApprovals.map((item: any, index: number) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl hover:shadow-md transition-all border border-orange-100"
+                  className="flex items-center justify-between p-4 bg-blue-100 rounded-xl hover:shadow-md border border-orange-100"
                 >
                   <div className="flex items-center gap-4 flex-1">
                     {item.type === "timeEntry" ? (
@@ -264,9 +264,9 @@ export default function ManagerDashboard() {
               teamMembers.map((member: any, index: number) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl hover:shadow-md transition-all"
+                  className="flex items-center gap-3 p-3 bg-blue-100 rounded-xl hover:shadow-md"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-white font-bold">
                     {member.firstName[0]}{member.lastName[0]}
                   </div>
                   <div className="flex-1">
@@ -296,7 +296,7 @@ export default function ManagerDashboard() {
             recentSubmissions.map((entry: any, index: number) => (
               <div
                 key={index}
-                className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl hover:shadow-md transition-all border border-purple-100"
+                className="p-4 bg-blue-100 rounded-xl hover:shadow-md border border-purple-100"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-4 h-4 text-purple-600" />
@@ -318,15 +318,15 @@ export default function ManagerDashboard() {
 
       {/* Quick Actions */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button className="p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-blue-600 text-white rounded-xl hover:shadow-lg">
           <Users className="w-6 h-6 mb-2" />
           <p className="font-medium">Team Beheren</p>
         </button>
-        <button className="p-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-orange-600 text-white rounded-xl hover:shadow-lg">
           <CheckCircle2 className="w-6 h-6 mb-2" />
           <p className="font-medium">Uren Goedkeuren</p>
         </button>
-        <button className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all">
+        <button className="p-4 bg-purple-600 text-white rounded-xl hover:shadow-lg">
           <Calendar className="w-6 h-6 mb-2" />
           <p className="font-medium">Vakantie Goedkeuren</p>
         </button>

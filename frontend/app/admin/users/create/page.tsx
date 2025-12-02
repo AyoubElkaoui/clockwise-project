@@ -36,11 +36,11 @@ export default function CreateUserPage() {
         throw new Error(error);
       }
 
-      alert("✅ Gebruiker succesvol aangemaakt!");
+      alert("Gebruiker succesvol aangemaakt!");
       router.push("/admin/users");
     } catch (error: any) {
       console.error("Failed to create user:", error);
-      alert("❌ Fout bij aanmaken: " + error.message);
+      alert("Fout bij aanmaken: " + error.message);
     } finally {
       setLoading(false);
     }

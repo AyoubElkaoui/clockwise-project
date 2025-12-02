@@ -82,7 +82,7 @@ export default function AdminDashboard(): JSX.Element {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="flex justify-center items-center min-h-screen bg-blue-100">
                 <div className="text-center">
                     <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
                     <p className="text-lg font-semibold text-gray-700">Dashboard laden...</p>
@@ -162,9 +162,9 @@ export default function AdminDashboard(): JSX.Element {
 
     return (
         <AdminRoute>
-            <div className="p-6 space-y-8 animate-fade-in max-w-7xl mx-auto">
+            <div className="p-6 space-y-8 max-w-7xl mx-auto">
                 {/* Header Section */}
-                <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 text-white rounded-3xl p-8 shadow-elmar-lg relative overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 text-white rounded-3xl p-8 shadow-md-lg relative overflow-hidden">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
@@ -191,7 +191,7 @@ export default function AdminDashboard(): JSX.Element {
                         return (
                             <div
                                 key={card.title}
-                                className="bg-white rounded-2xl shadow-elmar hover:shadow-elmar-lg transition-all duration-300 hover:scale-105 overflow-hidden animate-fade-in"
+                                className="bg-white rounded-2xl shadow-md hover:shadow-md-lg overflow-hidden"
                                 style={{ animationDelay: `${index * 100}ms` }}
                             >
                                 <div className={`bg-gradient-to-br ${card.gradient} p-6 text-white relative overflow-hidden`}>
@@ -224,9 +224,9 @@ export default function AdminDashboard(): JSX.Element {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="bg-white rounded-2xl shadow-elmar-card p-8 border border-gray-100">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="bg-gradient-elmar p-3 rounded-xl shadow-lg">
+                        <div className="bg-blue-600 p-3 rounded-xl shadow-lg">
                             <CheckCircleIcon className="w-6 h-6 text-white" />
                         </div>
                         <div>
@@ -242,7 +242,7 @@ export default function AdminDashboard(): JSX.Element {
                                 <button
                                     key={action.title}
                                     onClick={() => window.location.href = action.href}
-                                    className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-300 transition-all duration-200 hover:scale-105 text-left bg-gradient-to-br from-white to-gray-50 hover:shadow-elmar"
+                                    className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-300 text-left bg-gradient-to-br from-white to-gray-50 hover:shadow-md"
                                 >
                                     <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200 shadow-lg`}>
                                         <Icon className="w-6 h-6 text-white" />
@@ -260,27 +260,27 @@ export default function AdminDashboard(): JSX.Element {
                 {/* Status Overview */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* System Status */}
-                    <div className="bg-white rounded-2xl shadow-elmar-card p-6 border border-gray-100">
+                    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <CheckCircleIcon className="w-6 h-6 text-green-500" />
                             Systeem Status
                         </h3>
                         <div className="space-y-3">
-                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                            <div className="flex items-center justify-between p-4 bg-blue-100 rounded-xl border border-green-200">
                                 <div className="flex items-center gap-3">
                                     <ServerIcon className="w-5 h-5 text-green-600" />
                                     <span className="text-sm font-medium text-gray-700">Database</span>
                                 </div>
                                 <span className="badge badge-success">Operationeel</span>
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                            <div className="flex items-center justify-between p-4 bg-blue-100 rounded-xl border border-green-200">
                                 <div className="flex items-center gap-3">
                                     <ComputerDesktopIcon className="w-5 h-5 text-green-600" />
                                     <span className="text-sm font-medium text-gray-700">API Services</span>
                                 </div>
                                 <span className="badge badge-success">Operationeel</span>
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
+                            <div className="flex items-center justify-between p-4 bg-blue-100 rounded-xl border border-yellow-200">
                                 <div className="flex items-center gap-3">
                                     <AtSymbolIcon className="w-5 h-5 text-yellow-600" />
                                     <span className="text-sm font-medium text-gray-700">Email Service</span>
@@ -291,27 +291,27 @@ export default function AdminDashboard(): JSX.Element {
                     </div>
 
                     {/* Recent Activity */}
-                    <div className="bg-white rounded-2xl shadow-elmar-card p-6 border border-gray-100">
+                    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <BellIcon className="w-6 h-6 text-blue-500" />
                             Recente Activiteit
                         </h3>
                         <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-xl border border-blue-200">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-700">5 nieuwe urenregistraties</p>
                                     <p className="text-xs text-gray-500">2 minuten geleden</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-xl border border-green-200">
                                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-700">Vakantie aanvraag goedgekeurd</p>
                                     <p className="text-xs text-gray-500">15 minuten geleden</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl border border-purple-200">
+                            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-xl border border-purple-200">
                                 <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-gray-700">Nieuwe gebruiker toegevoegd</p>
@@ -324,20 +324,20 @@ export default function AdminDashboard(): JSX.Element {
 
                 {/* Alerts Section */}
                 {stats?.pendingVacations && stats.pendingVacations > 0 && (
-                    <div className="bg-gradient-to-r from-orange-100 via-yellow-100 to-red-100 border-2 border-orange-200 rounded-2xl p-6 shadow-elmar">
+                    <div className="bg-gradient-to-r from-orange-100 via-yellow-100 to-red-100 border-2 border-orange-200 rounded-2xl p-6 shadow-md">
                         <div className="flex items-center gap-4">
                             <div className="bg-orange-500 p-3 rounded-xl shadow-lg">
                                 <ExclamationTriangleIcon className="w-8 h-8 text-white" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-bold text-orange-800">⚠️ Actie Vereist</h3>
+                                <h3 className="text-lg font-bold text-orange-800">Actie Vereist</h3>
                                 <p className="text-orange-700">
                                     Je hebt {stats.pendingVacations} vakantie-aanvra{stats.pendingVacations === 1 ? 'ag' : 'gen'} die wacht{stats.pendingVacations === 1 ? '' : 'en'} op goedkeuring.
                                 </p>
                             </div>
                             <button
                                 onClick={() => window.location.href = "/admin/vacation-requests"}
-                                className="btn bg-gradient-warning border-0 text-white rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-200"
+                                className="btn bg-gradient-warning border-0 text-white rounded-xl hover:shadow-lg"
                             >
                                 Bekijken
                             </button>
@@ -346,9 +346,9 @@ export default function AdminDashboard(): JSX.Element {
                 )}
 
                 {/* Footer Info */}
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-200">
+                <div className="bg-blue-100 rounded-2xl p-6 border border-gray-200">
                     <div className="text-center">
-                        <h4 className="font-semibold text-gray-800 mb-2">💡 Tip van de dag</h4>
+                        <h4 className="font-semibold text-gray-800 mb-2">Tip van de dag</h4>
                         <p className="text-gray-600 text-sm">
                             Controleer regelmatig de pending vakantie-aanvragen en urenregistraties om de workflow soepel te houden.
                         </p>

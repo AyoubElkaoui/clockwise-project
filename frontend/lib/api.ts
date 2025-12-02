@@ -22,18 +22,18 @@ axios.defaults.headers.common["Content-Type"] = "application/json";
 
 // Request logging
 axios.interceptors.request.use(request => {
-    console.log("🚀 API Request:", request.method?.toUpperCase(), request.url);
+    console.log("API Request:", request.method?.toUpperCase(), request.url);
     return request;
 });
 
 // Response logging
 axios.interceptors.response.use(
     response => {
-        console.log("✅ API Response:", response.status, response.config.url);
+        console.log("API Response:", response.status, response.config.url);
         return response;
     },
     error => {
-        console.error("❌ API Error:", error.response?.status, error.config?.url, error.message);
+        console.error("API Error:", error.response?.status, error.config?.url, error.message);
         return Promise.reject(error);
     }
 );
@@ -54,7 +54,7 @@ export async function getCompanies() {
         const res = await axios.get(`${API_URL}/companies`);
         return safeApiResponse(res) ?? [];
     } catch (error) {
-        console.error("❌ Error fetching companies:", error);
+        console.error(" Error fetching companies:", error);
         return [];
     }
 }
@@ -68,7 +68,7 @@ export async function getUsers() {
         if (Array.isArray(data?.data)) return data.data;
         return [];
     } catch (error) {
-        console.error("❌ Error fetching users:", error);
+        console.error(" Error fetching users:", error);
         return [];
     }
 }
@@ -110,7 +110,7 @@ export async function getTimeEntries() {
             };
         });
     } catch (error) {
-        console.error("❌ Error fetching time entries:", error);
+        console.error(" Error fetching time entries:", error);
         return [];
     }
 }
@@ -120,7 +120,7 @@ export async function getProjectGroups(companyId: number) {
         const res = await axios.get(`${API_URL}/project-groups/company/${companyId}`);
         return safeApiResponse(res) ?? [];
     } catch (error) {
-        console.error("❌ Error fetching groups:", error);
+        console.error(" Error fetching groups:", error);
         return [];
     }
 }
@@ -130,7 +130,7 @@ export async function getProjects(projectGroupId: number) {
         const res = await axios.get(`${API_URL}/projects/group/${projectGroupId}`);
         return safeApiResponse(res) ?? [];
     } catch (error) {
-        console.error("❌ Error:", error);
+        console.error(" Error:", error);
         return [];
     }
 }
@@ -140,7 +140,7 @@ export async function getAllProjects() {
         const res = await axios.get(`${API_URL}/projects`);
         return safeApiResponse(res) ?? [];
     } catch (error) {
-        console.error("❌ Error:", error);
+        console.error(" Error:", error);
         return [];
     }
 }
@@ -276,7 +276,7 @@ function safeApiCall<T>(fn: () => Promise<any>): Promise<T | null> {
     return fn()
         .then(safeApiResponse)
         .catch(err => {
-            console.error("❌ safeApiCall error:", err);
+            console.error(" safeApiCall error:", err);
             return null;
         });
 }
