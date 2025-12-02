@@ -14,13 +14,50 @@ public class VacationRequestsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/vacation-requests
+    // GET: api/vacation-requests (ADMIN - alle vakantie aanvragen)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<VacationRequest>>> GetVacationRequests()
     {
         return await _context.VacationRequests
             .Include(v => v.User)
+            .OrderByDescending(v => v.StartDate)
             .ToListAsync();
+    }
+
+    // GET: api/vacation-requests/team?managerId=5 (MANAGER - team vakantie)
+    [HttpGet("team")]
+    public async Task<ActionResult<IEnumerable<VacationRequest>>> GetTeamVacationRequests([FromQuery] int managerId)
+    {
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        var vacations = await _context.VacationRequests
+            .Include(v => v.User)
+            .Where(v => teamMemberIds.Contains(v.UserId))
+            .OrderByDescending(v => v.StartDate)
+            .ToListAsync();
+
+        return Ok(vacations);
+    }
+
+    // GET: api/vacation-requests/team/pending?managerId=5 (MANAGER - pending)
+    [HttpGet("team/pending")]
+    public async Task<ActionResult<IEnumerable<VacationRequest>>> GetTeamPendingVacations([FromQuery] int managerId)
+    {
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        var pending = await _context.VacationRequests
+            .Include(v => v.User)
+            .Where(v => teamMemberIds.Contains(v.UserId) && v.Status == "Pending")
+            .OrderByDescending(v => v.StartDate)
+            .ToListAsync();
+
+        return Ok(pending);
     }
 
     // POST: api/vacation-requests

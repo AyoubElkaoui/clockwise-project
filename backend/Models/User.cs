@@ -12,4 +12,9 @@ public class User
     public required string Password { get; set; }
     public required string Rank { get; set; }
     public string? Function { get; set; }  // Nieuw veld voor functietitel
+    
+    // Manager Relations
+    public int? ManagerId { get; set; }  // Foreign key naar manager
+    public User? Manager { get; set; }  // Navigation property naar manager
+    public ICollection<User> ManagedEmployees { get; set; } = new List<User>();  // Employees onder deze manager
 }

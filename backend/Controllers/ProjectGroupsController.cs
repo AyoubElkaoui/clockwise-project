@@ -23,4 +23,16 @@ public class ProjectGroupsController : ControllerBase
             .Include(pg => pg.Projects)
             .ToListAsync();
     }
+
+    [HttpPost]
+    public async Task<ActionResult<ProjectGroup>> CreateProjectGroup([FromBody] ProjectGroup projectGroup)
+    {
+        if (projectGroup == null || string.IsNullOrWhiteSpace(projectGroup.Name))
+            return BadRequest("Ongeldige invoer");
+
+        _context.ProjectGroups.Add(projectGroup);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetProjectGroups), new { companyId = projectGroup.CompanyId }, projectGroup);
+    }
 }

@@ -73,6 +73,13 @@ public class ClockwiseDbContext : DbContext
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict); // belangrijk: geen cascade-loop via User
 
+        // Manager-Employee relationship (self-referencing)
+        modelBuilder.Entity<User>()
+            .HasOne(u => u.Manager)
+            .WithMany(u => u.ManagedEmployees)
+            .HasForeignKey(u => u.ManagerId)
+            .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete of employees when manager is deleted
+
         // --------- Unieke indexen (idempotent seeden / datakwaliteit) ---------
         modelBuilder.Entity<Company>()
             .HasIndex(c => c.Name)

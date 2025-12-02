@@ -16,13 +16,31 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Haal alle users op (manager/admin-doeleinden)
+    /// Haal alle users op (ADMIN ONLY - zie alles)
     /// GET: /api/users
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
-        return await _context.Users.ToListAsync();
+        return await _context.Users
+            .Include(u => u.Manager)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Haal alleen de team members van de ingelogde manager op
+    /// GET: /api/users/my-team
+    /// </summary>
+    [HttpGet("my-team")]
+    public async Task<ActionResult<IEnumerable<User>>> GetMyTeam([FromQuery] int managerId)
+    {
+        var team = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Include(u => u.Manager)
+            .OrderBy(u => u.FirstName)
+            .ToListAsync();
+        
+        return Ok(team);
     }
 
     /// <summary>

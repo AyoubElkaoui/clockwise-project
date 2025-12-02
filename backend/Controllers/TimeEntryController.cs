@@ -15,7 +15,7 @@ public class TimeEntryController : ControllerBase
         _context = context;
     }
 
-    // GET: api/time-entries
+    // GET: api/time-entries (ADMIN - alle entries)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TimeEntry>>> GetTimeEntries()
     {
@@ -27,6 +27,50 @@ public class TimeEntryController : ControllerBase
             .ToListAsync();
 
         return entries;
+    }
+
+    // GET: api/time-entries/team?managerId=5 (MANAGER - alleen team entries)
+    [HttpGet("team")]
+    public async Task<ActionResult<IEnumerable<TimeEntry>>> GetTeamTimeEntries([FromQuery] int managerId)
+    {
+        // Haal eerst alle team member IDs op
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        // Haal entries van alle team members
+        var entries = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+                .ThenInclude(p => p.ProjectGroup)
+                    .ThenInclude(pg => pg.Company)
+            .Where(te => teamMemberIds.Contains(te.UserId))
+            .OrderByDescending(te => te.StartTime)
+            .ToListAsync();
+
+        return Ok(entries);
+    }
+
+    // GET: api/time-entries/team/pending?managerId=5 (MANAGER - pending approvals)
+    [HttpGet("team/pending")]
+    public async Task<ActionResult<IEnumerable<TimeEntry>>> GetTeamPendingEntries([FromQuery] int managerId)
+    {
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        var pendingEntries = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+                .ThenInclude(p => p.ProjectGroup)
+                    .ThenInclude(pg => pg.Company)
+            .Where(te => teamMemberIds.Contains(te.UserId) && te.Status == "ingeleverd")
+            .OrderByDescending(te => te.StartTime)
+            .ToListAsync();
+
+        return Ok(pendingEntries);
     }
 
     // GET: api/time-entries/user/{userId}/week?startDate=2025-10-27

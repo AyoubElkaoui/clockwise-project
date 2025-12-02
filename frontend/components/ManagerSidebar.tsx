@@ -89,23 +89,23 @@ export function ManagerSidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-gradient-to-b from-white to-purple-50 dark:from-slate-900 dark:to-slate-800 border-r border-purple-200 dark:border-slate-700 transition-all duration-300 z-50 shadow-xl",
+        "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 transition-all duration-300 z-50",
         collapsed ? "w-20" : "w-72"
       )}
     >
       <div className="flex flex-col h-full">
         {/* Logo & Manager Badge */}
-        <div className="p-6 border-b border-purple-200 dark:border-slate-700 bg-gradient-to-r from-purple-600 to-pink-600">
+        <div className="p-6 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
           <div className="flex items-center justify-between">
             {!collapsed && (
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <UserCheck className="w-6 h-6 text-white" />
-                  <h1 className="text-xl font-bold text-white">
+                  <UserCheck className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                     Manager Panel
                   </h1>
                 </div>
-                <p className="text-xs text-purple-100">
+                <p className="text-xs text-gray-500 dark:text-slate-400">
                   Elmar Services - Team Beheer
                 </p>
               </div>
@@ -134,10 +134,10 @@ export function ManagerSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative",
                   isActive
-                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-105"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-purple-100 dark:hover:bg-slate-700 hover:scale-105"
+                    ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 )}
               >
                 <Icon className={cn("w-5 h-5", collapsed ? "mx-auto" : "")} />
@@ -160,7 +160,7 @@ export function ManagerSidebar() {
         </nav>
 
         {/* User Profile & Settings */}
-        <div className="p-4 border-t border-purple-200 dark:border-slate-700 space-y-3 bg-white/50 dark:bg-slate-800/50">
+        <div className="p-4 border-t border-gray-200 dark:border-slate-700 space-y-3">
           {/* Theme Toggle */}
           <div className="flex items-center justify-center">
             <ThemeToggle />
@@ -168,21 +168,18 @@ export function ManagerSidebar() {
 
           {/* User Info */}
           {!collapsed && (
-            <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-slate-700 dark:to-slate-600 rounded-xl border border-purple-200 dark:border-slate-600">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
                   {firstName.charAt(0)}{lastName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                     {firstName} {lastName}
                   </p>
-                  <div className="flex items-center gap-1">
-                    <UserCheck className="w-3 h-3 text-purple-600" />
-                    <p className="text-xs font-semibold text-purple-600">
-                      Manager
-                    </p>
-                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    Manager
+                  </p>
                 </div>
               </div>
             </div>

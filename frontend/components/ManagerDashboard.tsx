@@ -41,25 +41,34 @@ export default function ManagerDashboard() {
     try {
       setLoading(true);
 
-      // Load all data
-      const [users, timeEntries, vacations] = await Promise.all([
-        getUsers(),
-        getTimeEntries(),
-        getVacationRequests(),
+      // Get managerId from localStorage
+      const managerId = Number(localStorage.getItem("userId"));
+      if (!managerId) {
+        console.error("No manager ID found");
+        setLoading(false);
+        return;
+      }
+
+      // Import team-specific API functions
+      const { getMyTeam, getTeamTimeEntries, getTeamPendingHours, getTeamPendingVacations } = await import("@/lib/api");
+
+      // Load team-specific data using secure endpoints
+      const [team, timeEntries, pendingHours, pendingVacations] = await Promise.all([
+        getMyTeam(managerId),
+        getTeamTimeEntries(managerId),
+        getTeamPendingHours(managerId),
+        getTeamPendingVacations(managerId),
       ]);
 
-      // Filter team members (alleen werknemers, geen admins/managers)
-      const team = users.filter((u: any) => u.rank === "werknemer");
       setTeamMembers(team);
 
       // Calculate statistics
-      const pendingTimeEntries = timeEntries.filter((e: any) => e.status === "ingeleverd");
-      const pendingVacations = vacations.filter((v: any) => v.status === "Pending");
       const approvedThisWeek = timeEntries.filter((e: any) => {
         const entryWeek = dayjs(e.date).isoWeek();
         const currentWeek = dayjs().isoWeek();
         return entryWeek === currentWeek && e.status === "goedgekeurd";
       }).length;
+      
       const totalHoursThisWeek = timeEntries
         .filter((e: any) => {
           const entryWeek = dayjs(e.date).isoWeek();
@@ -73,14 +82,14 @@ export default function ManagerDashboard() {
           value: team.length,
           icon: Users,
           gradient: "from-blue-500 to-cyan-500",
-          change: `${users.length} totaal`,
+          change: `Mijn team`,
         },
         {
           title: "Te Goedkeuren",
-          value: pendingTimeEntries.length + pendingVacations.length,
+          value: pendingHours.length + pendingVacations.length,
           icon: AlertCircle,
           gradient: "from-orange-500 to-red-500",
-          change: `${pendingTimeEntries.length} uren, ${pendingVacations.length} vakantie`,
+          change: `${pendingHours.length} uren, ${pendingVacations.length} vakantie`,
         },
         {
           title: "Goedgekeurd (week)",
@@ -100,16 +109,15 @@ export default function ManagerDashboard() {
 
       setStats(newStats);
 
-      // Recent submissions (laatste ingeleverde entries)
-      const recent = [...timeEntries]
-        .filter((e: any) => e.status === "ingeleverd")
+      // Recent submissions (laatste ingeleverde entries van team)
+      const recent = [...pendingHours]
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 8);
       setRecentSubmissions(recent);
 
-      // Pending approvals
+      // Pending approvals (combined)
       const pending = [
-        ...pendingTimeEntries.map((e: any) => ({ ...e, type: "timeEntry" })),
+        ...pendingHours.map((e: any) => ({ ...e, type: "timeEntry" })),
         ...pendingVacations.map((v: any) => ({ ...v, type: "vacation" })),
       ].slice(0, 10);
       setPendingApprovals(pending);
