@@ -103,13 +103,13 @@ export default function ManagerApprovePage() {
 
       {view === "uren" ? (
         pendingHours.length === 0 ? (
-          <div className="bg-white rounded-lg p-12 text-center">
-            <p>Geen uren om goed te keuren</p>
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-12 text-center">
+            <p className="text-slate-600 dark:text-slate-400">Geen uren om goed te keuren</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-slate-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Medewerker</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Project</th>
@@ -157,13 +157,13 @@ export default function ManagerApprovePage() {
         )
       ) : (
         pendingVacations.length === 0 ? (
-          <div className="bg-white rounded-lg p-12 text-center">
-            <p>Geen vakantie om goed te keuren</p>
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-12 text-center">
+            <p className="text-slate-600 dark:text-slate-400">Geen vakantie om goed te keuren</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-slate-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Medewerker</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Van</th>

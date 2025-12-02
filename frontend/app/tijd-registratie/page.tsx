@@ -348,10 +348,10 @@ export default function TimeRegistrationPage() {
             </div>
           )}
 
-          <div className="bg-white shadow-md sticky top-0 z-40">
+          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
             <div className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-slate-900">Uren Registreren</h1>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Uren Registreren</h1>
 
                 <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
                   <button
@@ -385,7 +385,7 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-white rounded-lg">
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <div className="px-4 py-2 font-semibold">
@@ -404,7 +404,7 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-white rounded-lg">
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
@@ -483,15 +483,15 @@ export default function TimeRegistrationPage() {
                     const currentYear = currentWeek.getFullYear();
                     const weekNum = getWeekNumber(weekStart);
                     return (
-                      <div key={idx} className="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
-                        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2">
+                      <div key={idx} className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
                           <div className="font-semibold text-slate-900">Week {weekNum}</div>
                           <div className="text-xs text-slate-600">
                             {formatDate(weekDaysForWeek[0])} - {formatDate(weekDaysForWeek[6])}
                           </div>
                         </div>
 
-                        <div className="bg-slate-50 border-b border-slate-200">
+                        <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
                           <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                             <div />
                             <div className="font-semibold text-slate-700">Project</div>
@@ -524,7 +524,7 @@ export default function TimeRegistrationPage() {
                             }, 0);
 
                             return (
-                              <div key={row.projectId} className="hover:bg-slate-50 transition-colors">
+                              <div key={row.projectId} className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                                   <div />
                                   <div>
@@ -584,7 +584,7 @@ export default function TimeRegistrationPage() {
                                           value={entry.km || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'km', parseInt(e.target.value) || 0)}
                                           disabled={isDisabled}
-                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                           placeholder="KM"
                                         />
                                         <input
@@ -594,7 +594,7 @@ export default function TimeRegistrationPage() {
                                           value={entry.expenses || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'expenses', parseFloat(e.target.value) || 0)}
                                           disabled={isDisabled}
-                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:focus:ring-purple-400 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                           placeholder="€ Onkosten"
                                         />
                                         <input
@@ -602,7 +602,7 @@ export default function TimeRegistrationPage() {
                                           value={entry.notes || ""}
                                           onChange={e => updateEntry(row.projectId, date, 'notes', e.target.value)}
                                           disabled={isDisabled}
-                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                           placeholder="Opmerking"
                                         />
                                       </div>
@@ -678,8 +678,8 @@ export default function TimeRegistrationPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
-                    <div className="bg-slate-50 border-b border-slate-200">
+                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
                       <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                         <div />
                         <div className="font-semibold text-slate-700">Project</div>
@@ -753,7 +753,7 @@ export default function TimeRegistrationPage() {
                                     value={entry.km || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'km', parseInt(e.target.value) || 0)}
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                     placeholder="KM"
                                   />
                                   <input
@@ -763,7 +763,7 @@ export default function TimeRegistrationPage() {
                                     value={entry.expenses || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'expenses', parseFloat(e.target.value) || 0)}
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-500 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:focus:ring-purple-400 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                     placeholder="€ Onkosten"
                                   />
                                   <input
@@ -771,7 +771,7 @@ export default function TimeRegistrationPage() {
                                     value={entry.notes || ""}
                                     onChange={e => updateEntry(row.projectId, date, 'notes', e.target.value)}
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                                     placeholder="Opmerking"
                                   />
                                 </div>

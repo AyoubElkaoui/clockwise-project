@@ -147,7 +147,7 @@ export default function AdminProjectGroupsPage() {
 
                     <button
                         onClick={handleCreateProjectGroup}
-                        className="w-full md:w-auto px-8 py-3 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 flex items-center justify-center gap-2 shadow-lg"
+                        className="w-full md:w-auto px-8 py-3 bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-300 rounded-lg font-bold hover:bg-purple-50 dark:hover:bg-slate-600 flex items-center justify-center gap-2 shadow-lg"
                     >
                         <CheckCircleIcon className="w-5 h-5" />
                         Projectgroep Aanmaken

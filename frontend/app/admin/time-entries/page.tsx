@@ -266,7 +266,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
                             <div className="bg-blue-600 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
@@ -278,7 +278,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
                             <div className="bg-blue-100 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
@@ -290,7 +290,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
                             <div className="bg-green-600 p-3 rounded-xl">
                                 <CheckCircleIcon className="w-8 h-8 text-white" />
@@ -302,7 +302,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
                             <div className="bg-blue-100 p-3 rounded-xl">
                                 <XCircleIcon className="w-8 h-8 text-white" />
@@ -314,7 +314,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
                             <div className="bg-blue-100 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
