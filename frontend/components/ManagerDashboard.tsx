@@ -22,7 +22,7 @@ interface StatCard {
   title: string;
   value: string | number;
   icon: any;
-  gradient: string;
+  bgColor: string;
   change?: string;
 }
 
@@ -81,28 +81,28 @@ export default function ManagerDashboard() {
           title: "Team Leden",
           value: team.length,
           icon: Users,
-          gradient: "from-blue-500 to-cyan-500",
+          bgColor: "bg-blue-600",
           change: `Mijn team`,
         },
         {
           title: "Te Goedkeuren",
           value: pendingHours.length + pendingVacations.length,
           icon: AlertCircle,
-          gradient: "from-orange-500 to-red-500",
+          bgColor: "bg-orange-600",
           change: `${pendingHours.length} uren, ${pendingVacations.length} vakantie`,
         },
         {
           title: "Goedgekeurd (week)",
           value: approvedThisWeek,
           icon: CheckCircle2,
-          gradient: "from-green-500 to-emerald-500",
+          bgColor: "bg-green-600",
           change: "Deze week",
         },
         {
           title: "Totaal Uren (week)",
           value: `${totalHoursThisWeek.toFixed(1)}u`,
           icon: Clock,
-          gradient: "from-purple-500 to-pink-500",
+          bgColor: "bg-purple-600",
           change: "Deze week",
         },
       ];
@@ -159,7 +159,7 @@ export default function ManagerDashboard() {
     <div className="min-h-screen bg-slate-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-purple-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-purple-600 mb-2">
           Manager Dashboard
         </h1>
         <p className="text-gray-600">Team overzicht en goedkeuringen</p>
@@ -173,7 +173,7 @@ export default function ManagerDashboard() {
             className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl border border-gray-100"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}>
+              <div className={`p-3 rounded-xl ${stat.bgColor}`}>
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
               {stat.change && (

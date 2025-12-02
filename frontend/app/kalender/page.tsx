@@ -189,7 +189,7 @@ export default function KalenderPage() {
               <Card variant="elevated" padding="md">
                 <div className="text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Totaal Deze Maand</p>
-                  <p className="text-3xl font-bold bg-blue-100 bg-clip-text text-transparent">
+                  <p className="text-3xl font-bold bg-blue-100">
                     69.5u
                   </p>
                   <Badge variant="success" size="sm" className="mt-2">10 werkdagen</Badge>
@@ -198,7 +198,7 @@ export default function KalenderPage() {
               <Card variant="elevated" padding="md">
                 <div className="text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Goedgekeurd</p>
-                  <p className="text-3xl font-bold bg-blue-100 bg-clip-text text-transparent">
+                  <p className="text-3xl font-bold bg-blue-100">
                     54u
                   </p>
                   <Badge variant="success" size="sm" className="mt-2">7 dagen</Badge>
@@ -207,7 +207,7 @@ export default function KalenderPage() {
               <Card variant="elevated" padding="md">
                 <div className="text-center">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">In Behandeling</p>
-                  <p className="text-3xl font-bold bg-blue-100 bg-clip-text text-transparent">
+                  <p className="text-3xl font-bold bg-blue-100">
                     15.5u
                   </p>
                   <Badge className="mt-2 bg-orange-500 text-white" size="sm">2 dagen</Badge>

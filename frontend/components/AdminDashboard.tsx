@@ -23,7 +23,7 @@ interface StatCard {
   title: string;
   value: string | number;
   icon: any;
-  gradient: string;
+  bgColor: string;
   change?: string;
 }
 
@@ -71,42 +71,42 @@ export default function AdminDashboard() {
           title: "Totaal Gebruikers",
           value: users.length,
           icon: Users,
-          gradient: "from-blue-500 to-cyan-500",
+          bgColor: "bg-blue-600",
           change: `${users.filter((u: any) => u.rank === "admin").length} admins`,
         },
         {
           title: "Totaal Uren",
           value: `${totalHours.toFixed(1)}u`,
           icon: Clock,
-          gradient: "from-purple-500 to-pink-500",
+          bgColor: "bg-purple-600",
           change: `${thisWeekHours.toFixed(1)}u deze week`,
         },
         {
           title: "Bedrijven",
           value: companies.length,
           icon: Building2,
-          gradient: "from-orange-500 to-red-500",
+          bgColor: "bg-orange-600",
           change: `${projects.length} projecten`,
         },
         {
           title: "Te Goedkeuren",
           value: pendingTimeEntries.length + pendingVacations.length,
           icon: AlertCircle,
-          gradient: "from-yellow-500 to-orange-500",
+          bgColor: "bg-yellow-600",
           change: `${pendingTimeEntries.length} uren, ${pendingVacations.length} vakantie`,
         },
         {
           title: "Goedgekeurd (maand)",
           value: approvedThisMonth,
           icon: CheckCircle2,
-          gradient: "from-green-500 to-emerald-500",
+          bgColor: "bg-green-600",
           change: "Deze maand",
         },
         {
           title: "Projecten Actief",
           value: projects.length,
           icon: FolderKanban,
-          gradient: "from-indigo-500 to-purple-500",
+          bgColor: "bg-indigo-600",
           change: `${companies.length} bedrijven`,
         },
       ];
@@ -158,10 +158,10 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-blue-100 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold text-blue-600 mb-2">
           Admin Dashboard
         </h1>
         <p className="text-gray-600">Volledig overzicht van het systeem</p>
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
             className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl border border-gray-100"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}>
+              <div className={`p-3 rounded-xl ${stat.bgColor}`}>
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
               {stat.change && (
