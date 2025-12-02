@@ -239,7 +239,7 @@ export default function AdminDashboard() {
             {pendingApprovals.length === 0 ? (
               <div className="text-center py-8">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                <p className="text-gray-500">Alles goedgekeurd! 🎉</p>
+                <p className="text-gray-500">Alles goedgekeurd! !</p>
               </div>
             ) : (
               pendingApprovals.map((item: any, index: number) => (

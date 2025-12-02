@@ -96,7 +96,7 @@ export default function AccountPage() {
     }
   };
 
-  // ✏️ Handle input updates
+  //  Handle input updates
   const handleInputChange = (field: keyof UserData, value: string | number) => {
     if (!userData) return;
     setUserData({ ...userData, [field]: value });

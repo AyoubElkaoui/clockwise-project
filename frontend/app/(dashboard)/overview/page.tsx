@@ -433,7 +433,7 @@ export default function UrenOverzicht(): JSX.Element {
                                 <tr>
                                     <td colSpan={8} className="text-center py-12">
                                         <div className="flex flex-col items-center gap-4">
-                                            <div className="text-6xl">✅</div>
+                                            <div className="text-6xl">[OK]</div>
                                             <div className="text-xl font-semibold text-gray-600">Geen goedgekeurde uren gevonden</div>
                                             <div className="text-gray-500">Probeer je filters aan te passen of wacht tot uren zijn goedgekeurd</div>
                                         </div>

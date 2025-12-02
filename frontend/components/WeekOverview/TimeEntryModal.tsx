@@ -35,7 +35,7 @@ export default function TimeEntryModal({ isOpen, day, entry, onClose, onEntrySav
                         <div className="relative flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-bold mb-1">
-                                    {entry ? "✏️ Uren Bewerken" : "🕐 Uren Registreren"}
+                                    {entry ? " Uren Bewerken" : " Uren Registreren"}
                                 </h2>
                                 <p className="text-blue-100">
                                     {day.format("dddd, DD MMMM YYYY")}

@@ -198,7 +198,7 @@ export default function ManagerDashboard() {
             {pendingApprovals.length === 0 ? (
               <div className="text-center py-12">
                 <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <p className="text-xl font-medium text-gray-700 mb-2">Alles goedgekeurd! 🎉</p>
+                <p className="text-xl font-medium text-gray-700 mb-2">Alles goedgekeurd! !</p>
                 <p className="text-gray-500">Je hebt geen openstaande goedkeuringen</p>
               </div>
             ) : (

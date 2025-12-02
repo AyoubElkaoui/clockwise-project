@@ -162,7 +162,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
                 // FIX: If editing existing entry, set the correct selections
                 if (existingEntry && existingEntry.project) {
-                    console.log("✏️ Setting values for existing entry:", existingEntry);
+                    console.log(" Setting values for existing entry:", existingEntry);
 
                     const companyId = existingEntry.project.projectGroup?.company?.id;
                     const projectGroupId = existingEntry.project.projectGroup?.id;
@@ -372,7 +372,7 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
         try {
             if (existingEntry && existingEntry.id) {
-                console.log("✏️ Updating existing entry:", existingEntry.id);
+                console.log(" Updating existing entry:", existingEntry.id);
                 await updateTimeEntry(existingEntry.id, data);
             } else {
                 console.log("💾 Creating new entry");

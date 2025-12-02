@@ -324,8 +324,8 @@ export default function DayEntry({ date, entries, onUpdate, weekStatus, onShowTo
                                                 </div>
 
                                                 <div className="flex items-center gap-1">
-                                                    {entry.status === 'goedgekeurd' && <span className="text-xs">✅</span>}
-                                                    {entry.status === 'afgekeurd' && <span className="text-xs">❌</span>}
+                                                    {entry.status === 'goedgekeurd' && <span className="text-xs">[OK]</span>}
+                                                    {entry.status === 'afgekeurd' && <span className="text-xs">[X]</span>}
                                                     {entry.status === 'ingeleverd' && <span className="text-xs">⏳</span>}
 
                                                     {canEdit && (

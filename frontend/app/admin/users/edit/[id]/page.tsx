@@ -132,7 +132,7 @@ export default function EditUserPage(): JSX.Element {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
-                    <div className="text-6xl mb-4">❌</div>
+                    <div className="text-6xl mb-4">[X]</div>
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Gebruiker niet gevonden</h2>
                     <p className="text-gray-600 mb-6">De gebruiker die je zoekt bestaat niet of is verwijderd.</p>
                     <button
