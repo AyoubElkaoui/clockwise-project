@@ -7,7 +7,7 @@ import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/lib/theme-context";
 
 export default function InstellingenPage() {
   const { theme, setTheme } = useTheme();
@@ -69,12 +69,6 @@ export default function InstellingenPage() {
                   >
                     <Moon className="h-4 w-4" />
                     Donker
-                  </Button>
-                  <Button
-                    variant={theme === "system" ? "default" : "outline"}
-                    onClick={() => setTheme("system")}
-                  >
-                    Systeem
                   </Button>
                 </div>
               </CardContent>
