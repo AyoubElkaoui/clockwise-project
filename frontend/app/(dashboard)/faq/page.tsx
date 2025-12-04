@@ -1,7 +1,7 @@
+import { HelpCircle } from "lucide-react";
 import FaqAccordion from "./FaqAccordion";
-
-// MODERN shell gebruiken (niet de oude)
 import ModernLayout from "@/components/ModernLayout";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = {
   title: "FAQ | Clockwise",
@@ -97,16 +97,42 @@ const faqs = [
 
 export default function FAQPage() {
   return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-        Veelgestelde vragen
-      </h1>
-      <p className="mt-2 text-slate-600 dark:text-slate-400">
-        Antwoorden op de meest gestelde vragen over Clockwise.
-      </p>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center gap-3 mb-8">
+        <HelpCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Veelgestelde vragen
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Antwoorden op de meest gestelde vragen over Clockwise
+          </p>
+        </div>
+      </div>
 
-      <div className="mt-8">
-        <FaqAccordion sections={faqs} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {faqs.map((section, idx) => (
+          <Card key={idx} className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                {section.category}
+              </h2>
+              <div className="space-y-4">
+                {section.items.map((item, itemIdx) => (
+                  <div key={itemIdx}>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-2 flex items-start gap-2">
+                      <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                      {item.q}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 ml-4">
+                      {item.a}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

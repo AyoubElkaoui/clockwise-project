@@ -293,25 +293,6 @@ export default function AccountPage() {
                     disabled={!editMode}
                     placeholder="Bijv: +31 6 12345678"
                   />
-                  <InputField
-                    label="Functie/Rank"
-                    icon={<Briefcase className="w-4 h-4" />}
-                    value={userData.rank || ""}
-                    onChange={(v) => handleInputChange("rank", v)}
-                    disabled={!editMode}
-                    placeholder="Bijv: Senior Developer"
-                  />
-                  <InputField
-                    label="Uurloon"
-                    icon={<Calendar className="w-4 h-4" />}
-                    type="number"
-                    value={userData.hourlyRate || ""}
-                    onChange={(v) =>
-                      handleInputChange("hourlyRate", parseFloat(v))
-                    }
-                    disabled={!editMode}
-                    placeholder="Bijv: 50"
-                  />
 
                   {/* Adres */}
                   <div className="md:col-span-2">
