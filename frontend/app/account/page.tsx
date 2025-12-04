@@ -76,18 +76,27 @@ export default function AccountPage() {
     setLoading(true);
     try {
       const userId = getUserId();
+      console.log("Account page - Loading user:", userId);
+      
       if (!userId) {
-        addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
+        addToast("Niet ingelogd. Ga naar login pagina.", "error");
+        setTimeout(() => window.location.href = "/login", 2000);
         return;
       }
+      
+      console.log("Fetching user data for ID:", userId);
       const data = await getUser(userId);
+      console.log("User data received:", data);
+      
       if (!data) {
-        addToast("Gebruikersgegevens niet gevonden", "error");
+        addToast("Gebruikersgegevens niet gevonden voor ID " + userId, "error");
         return;
       }
       setUserData(data);
+      addToast("Gegevens geladen", "success");
     } catch (error) {
-      addToast("Kon gebruikersgegevens niet laden", "error");
+      console.error("Error loading user data:", error);
+      addToast("Kon gebruikersgegevens niet laden: " + error, "error");
     } finally {
       setLoading(false);
     }
