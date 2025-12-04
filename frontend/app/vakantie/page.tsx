@@ -213,13 +213,13 @@ export default function VakantiePage() {
                   {requests.map((request) => {
                     const days = request.hours / 8;
                     const period = request.startDate === request.endDate
-                      ? dayjs(request.startDate).format("D MMM")
-                      : `${dayjs(request.startDate).format("D MMM")} - ${dayjs(request.endDate).format("D MMM")}`;
+                      ? dayjs(request.startDate).format("DD/MM/YYYY")
+                      : `${dayjs(request.startDate).format("DD/MM/YYYY")} - ${dayjs(request.endDate).format("DD/MM/YYYY")}`;
                     
                     return (
                       <div
                         key={request.id}
-                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
                       >
                         <div className="flex-1">
                           <p className="font-semibold text-slate-900 dark:text-slate-100">
@@ -245,35 +245,43 @@ export default function VakantiePage() {
 
           {/* Modal voor nieuwe aanvraag */}
           {showModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <Card variant="elevated" padding="lg" className="w-full max-w-md m-4">
-                <CardHeader>
-                  <CardTitle>Nieuwe Vakantie Aanvraag</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                    Nieuwe Vakantie Aanvraag
+                  </h2>
+                </div>
+                <div className="p-6">
+                  <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-white">Startdatum</label>
+                      <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Startdatum
+                      </label>
                       <input
                         type="date"
                         required
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                        className="input input-bordered w-full"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 ">Einddatum</label>
+                      <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Einddatum
+                      </label>
                       <input
                         type="date"
                         required
                         value={formData.endDate}
                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                        className="input input-bordered w-full"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1 ">Uren per dag</label>
+                      <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Uren per dag
+                      </label>
                       <input
                         type="number"
                         required
@@ -281,20 +289,23 @@ export default function VakantiePage() {
                         max="8"
                         value={formData.hours}
                         onChange={(e) => setFormData({ ...formData, hours: Number(e.target.value) })}
-                        className="input input-bordered w-full"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Reden</label>
+                      <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                        Reden
+                      </label>
                       <textarea
                         required
                         value={formData.reason}
                         onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                        className="textarea textarea-bordered w-full"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                         rows={3}
+                        placeholder="Bijv. Zomervakantie, verlof, etc."
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 pt-2">
                       <Button type="submit" className="flex-1">
                         Aanvragen
                       </Button>
@@ -302,13 +313,14 @@ export default function VakantiePage() {
                         type="button"
                         variant="outline"
                         onClick={() => setShowModal(false)}
+                        className="flex-1"
                       >
                         Annuleren
                       </Button>
                     </div>
                   </form>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           )}
         </div>
