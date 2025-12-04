@@ -55,7 +55,7 @@ export default function AdminSettingsPage() {
   };
 
   const handleBackup = () => {
-    alert("Database backup functionaliteit wordt binnenkort toegevoegd!");
+    showToast("Database backup functionaliteit wordt binnenkort toegevoegd!", "info");
   };
 
   return (
