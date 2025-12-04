@@ -180,7 +180,7 @@ export default function UrenOverzichtPage() {
   };
 
   const periodLabel = viewMode === "week"
-    ? `Week ${currentPeriod.isoWeek()} • ${currentPeriod.format("D MMM")} - ${currentPeriod.add(6, "day").format("D MMM YYYY")}`
+    ? `Week ${currentPeriod.isoWeek()} • ${currentPeriod.format("DD/MM")} - ${currentPeriod.add(6, "day").format("DD/MM/YYYY")}`
     : currentPeriod.format("MMMM YYYY");
 
   return (
@@ -315,7 +315,7 @@ export default function UrenOverzichtPage() {
                           {dayjs(entry.date || entry.startTime).format("ddd")}
                         </p>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {dayjs(entry.date || entry.startTime).format("D MMM")}
+                          {dayjs(entry.date || entry.startTime).format("DD/MM/YY")}
                         </p>
                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                           {entry.hours}u
