@@ -63,7 +63,6 @@ export default function InstellingenPage() {
       
       addToast("Instellingen opgeslagen!", "success");
     } catch (error) {
-      console.error("Failed to save settings:", error);
       addToast("Opslaan mislukt", "error");
     } finally {
       setLoading(false);

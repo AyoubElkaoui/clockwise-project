@@ -75,7 +75,7 @@ export default function AccountPage() {
   const loadUserData = async () => {
     setLoading(true);
     try {
-      const userId = Number(localStorage.getItem("userId"));
+      const userId = getUserId();
       if (!userId) {
         addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
         return;
@@ -83,7 +83,6 @@ export default function AccountPage() {
       const data = await getUser(userId);
       setUserData(data);
     } catch (error) {
-      console.error("Failed to load user data:", error);
       addToast("Kon gebruikersgegevens niet laden", "error");
     } finally {
       setLoading(false);
@@ -94,7 +93,7 @@ export default function AccountPage() {
   const handleSave = async () => {
     if (!userData) return;
     
-    const userId = Number(localStorage.getItem("userId"));
+    const userId = getUserId();
     if (!userId) {
       addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
       return;
@@ -107,7 +106,6 @@ export default function AccountPage() {
       addToast("Profiel succesvol bijgewerkt!", "success");
       setEditMode(false);
     } catch (error) {
-      console.error("Failed to update user:", error);
       addToast("Opslaan mislukt. Probeer opnieuw.", "error");
     } finally {
       setSaving(false);
@@ -135,7 +133,7 @@ export default function AccountPage() {
       return;
     }
 
-    const userId = Number(localStorage.getItem("userId"));
+    const userId = getUserId();
     if (!userId) {
       addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
       return;
@@ -160,7 +158,6 @@ export default function AccountPage() {
       addToast("Wachtwoord succesvol gewijzigd!", "success");
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error) {
-      console.error("Failed to change password:", error);
       addToast(error instanceof Error ? error.message : "Wachtwoord wijzigen mislukt", "error");
     } finally {
       setChangingPassword(false);

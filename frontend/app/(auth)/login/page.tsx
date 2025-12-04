@@ -54,10 +54,8 @@ export default function LoginPage(): JSX.Element {
             }
         } catch (e: unknown) {
             if (e instanceof Error) {
-                console.error("Login error:", e.message);
                 setError("Ongeldige inloggegevens. Controleer je e-mail en wachtwoord.");
             } else {
-                console.error("Onbekende fout:", e);
                 setError("Er is een onbekende fout opgetreden. Probeer het opnieuw.");
             }
         } finally {

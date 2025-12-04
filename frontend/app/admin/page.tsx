@@ -4,6 +4,8 @@ import { API_URL } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { Users, Building2, Briefcase, Clock, TrendingUp, CheckCircle, XCircle, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
@@ -85,11 +87,15 @@ export default function AdminDashboardPage() {
         .slice(0, 5);
       setRecentVacations(sortedVacs);
     } catch (error) {
-      console.error("Failed to load dashboard data:", error);
+      showToast("Fout bij laden dashboard", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {

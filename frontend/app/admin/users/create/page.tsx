@@ -3,6 +3,7 @@ import { useState } from "react";
 import { API_URL } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, User, Mail, Lock, MapPin, Home } from "lucide-react";
+import { showToast } from "@/components/ui/toast";
 
 export default function CreateUserPage() {
   const router = useRouter();
@@ -37,11 +38,10 @@ export default function CreateUserPage() {
         throw new Error(error);
       }
 
-      alert("Gebruiker succesvol aangemaakt!");
+      showToast("Gebruiker succesvol aangemaakt!", "success");
       router.push("/admin/users");
     } catch (error: any) {
-      console.error("Failed to create user:", error);
-      alert("Fout bij aanmaken: " + error.message);
+      showToast(`Fout bij aanmaken: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }

@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Plus, Loader2 } from "lucide-react";
 import { getVacationRequests, registerVacationRequest } from "@/lib/api";
 import dayjs from "dayjs";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 
 interface VacationRequest {
   id: number;
@@ -41,12 +44,16 @@ export default function VakantiePage() {
       const data = await getVacationRequests();
       
       // Filter voor huidige gebruiker
-      const userId = Number(localStorage.getItem("userId"));
+      const userId = getUserId();
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       const userRequests = data.filter((req: VacationRequest) => req.userId === userId);
       
       setRequests(userRequests);
     } catch (error) {
-      console.error("Error loading vacation requests:", error);
+      showToast("Fout bij laden vakantie aanvragen", "error");
     } finally {
       setLoading(false);
     }
@@ -56,7 +63,11 @@ export default function VakantiePage() {
     e.preventDefault();
     
     try {
-      const userId = Number(localStorage.getItem("userId"));
+      const userId = getUserId();
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       
       await registerVacationRequest({
         userId,
@@ -67,12 +78,12 @@ export default function VakantiePage() {
         status: "pending",
       });
 
+      showToast("Vakantie aanvraag ingediend!", "success");
       setShowModal(false);
       setFormData({ startDate: "", endDate: "", hours: 8, reason: "" });
       loadVacationRequests();
     } catch (error) {
-      console.error("Error creating vacation request:", error);
-      alert("Fout bij aanmaken vakantie aanvraag");
+      showToast("Fout bij aanmaken vakantie aanvraag", "error");
     }
   };
 

@@ -15,6 +15,9 @@ import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
@@ -47,7 +50,6 @@ export default function UrenOverzichtPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPeriod, setCurrentPeriod] = useState(dayjs().startOf("isoWeek"));
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
-  const userId = Number(localStorage.getItem("userId") || "1");
 
   useEffect(() => {
     loadEntries();
@@ -55,11 +57,16 @@ export default function UrenOverzichtPage() {
 
   const loadEntries = async () => {
     try {
+      const userId = getUserId();
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       const data = await getTimeEntries();
       const userEntries = data.filter((entry: any) => entry.userId === userId);
       setEntries(userEntries);
     } catch (error) {
-      console.error("Failed to load entries:", error);
+      showToast("Fout bij laden uren", "error");
     } finally {
       setLoading(false);
     }

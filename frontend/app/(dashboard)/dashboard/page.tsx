@@ -11,6 +11,9 @@ import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import { useRouter } from "next/navigation";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId, getUserName } from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
@@ -35,9 +38,13 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const userId = Number(localStorage.getItem("userId") || "1");
-      const name = localStorage.getItem("firstName") || "Gebruiker";
-      setFirstName(name);
+      const userId = getUserId();
+      if (!userId) {
+        router.push("/login");
+        return;
+      }
+      const userName = getUserName();
+      setFirstName(userName?.firstName || "Gebruiker");
 
       // Load time entries
       const entries = await getTimeEntries();
@@ -125,7 +132,7 @@ export default function Dashboard() {
         });
       }
     } catch (error) {
-      console.error("Failed to load dashboard:", error);
+      showToast("Fout bij laden dashboard", "error");
     } finally {
       setLoading(false);
     }

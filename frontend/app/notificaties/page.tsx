@@ -12,6 +12,9 @@ import { getActivities, markActivityAsRead, markAllActivitiesAsRead } from "@/li
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/nl";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
@@ -38,11 +41,15 @@ export default function NotificatiesPage() {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const userId = Number(localStorage.getItem("userId"));
+      const userId = getUserId();
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       const data = await getActivities(50, userId);
       setNotifications(data);
     } catch (error) {
-      console.error("Error loading notifications:", error);
+      showToast("Fout bij laden notificaties", "error");
     } finally {
       setLoading(false);
     }
@@ -51,9 +58,10 @@ export default function NotificatiesPage() {
   const handleMarkAllRead = async () => {
     try {
       await markAllActivitiesAsRead();
+      showToast("Alle notificaties gemarkeerd als gelezen", "success");
       loadNotifications();
     } catch (error) {
-      console.error("Error marking all as read:", error);
+      showToast("Fout bij markeren als gelezen", "error");
     }
   };
 
@@ -62,7 +70,7 @@ export default function NotificatiesPage() {
       await markActivityAsRead(id);
       loadNotifications();
     } catch (error) {
-      console.error("Error marking as read:", error);
+      showToast("Fout bij markeren als gelezen", "error");
     }
   };
 

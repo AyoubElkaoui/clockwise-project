@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { Calendar, Search, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -25,14 +27,19 @@ export default function AdminVacationPage() {
   const loadRequests = async () => {
     try {
       const res = await fetch("${API_URL}/vacation-requests");
+      if (!res.ok) throw new Error("Laden mislukt");
       const data = await res.json();
       setRequests(data);
     } catch (error) {
-      console.error("Failed to load vacation requests:", error);
+      showToast("Fout bij laden vakantieaanvragen", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const filteredRequests = useMemo(() => {
     let filtered = requests;
@@ -56,7 +63,7 @@ export default function AdminVacationPage() {
 
   const handleApprove = async (id: number, managerComment: string) => {
     try {
-      await fetch(`${API_URL}/vacation-requests/${id}`, {
+      const res = await fetch(`${API_URL}/vacation-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -64,19 +71,19 @@ export default function AdminVacationPage() {
           managerComment: managerComment || undefined,
         }),
       });
-      setSuccessMessage("Vakantie aanvraag goedgekeurd!");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      if (!res.ok) throw new Error("Goedkeuren mislukt");
+      showToast("Vakantie aanvraag goedgekeurd!", "success");
       setSelectedRequest(null);
       setComment("");
       loadRequests();
     } catch (error) {
-      console.error("Failed to approve:", error);
+      showToast("Fout bij goedkeuren", "error");
     }
   };
 
   const handleReject = async (id: number, managerComment: string) => {
     try {
-      await fetch(`${API_URL}/vacation-requests/${id}`, {
+      const res = await fetch(`${API_URL}/vacation-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

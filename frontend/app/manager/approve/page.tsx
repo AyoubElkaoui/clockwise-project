@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CheckCircle, XCircle, Search, AlertCircle, Building } from "lucide-react";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 import dayjs from "dayjs";
 
 export default function ManagerApprovePage() {
@@ -26,12 +29,17 @@ export default function ManagerApprovePage() {
 
   const loadEntries = async () => {
     try {
-      const managerId = Number(localStorage.getItem("userId"));
+      const managerId = getUserId();
+      if (!managerId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       const res = await fetch(`${API_URL}/time-entries/team?managerId=${managerId}`);
+      if (!res.ok) throw new Error("Laden mislukt");
       const data = await res.json();
       setEntries(data);
     } catch (error) {
-      console.error("Failed to load entries:", error);
+      showToast("Fout bij laden van uren", "error");
     } finally {
       setLoading(false);
     }
@@ -56,33 +64,37 @@ export default function ManagerApprovePage() {
 
   const handleApprove = async (id: number) => {
     try {
-      await fetch(`${API_URL}/time-entries/${id}/approve`, {
+      const res = await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: true }),
       });
-      setSuccessMessage("Uren goedgekeurd!");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      if (!res.ok) throw new Error("Goedkeuren mislukt");
+      showToast("Uren goedgekeurd!", "success");
       loadEntries();
     } catch (error) {
-      console.error("Failed to approve:", error);
+      showToast("Fout bij goedkeuren", "error");
     }
   };
 
   const handleReject = async (id: number) => {
     try {
-      await fetch(`${API_URL}/time-entries/${id}/approve`, {
+      const res = await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: false }),
       });
-      setSuccessMessage("Uren afgekeurd!");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      if (!res.ok) throw new Error("Afkeuren mislukt");
+      showToast("Uren afgekeurd!", "success");
       loadEntries();
     } catch (error) {
-      console.error("Failed to reject:", error);
+      showToast("Fout bij afkeuren", "error");
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const handleBulkApprove = async () => {
     const pending = entries.filter(e => e.status === "ingeleverd");

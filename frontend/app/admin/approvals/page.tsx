@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 import { Clock, Search, CheckCircle, XCircle, AlertCircle, User, Building } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -22,14 +24,19 @@ export default function AdminApprovalsPage() {
   const loadEntries = async () => {
     try {
       const res = await fetch("${API_URL}/time-entries");
+      if (!res.ok) throw new Error("Laden mislukt");
       const data = await res.json();
       setEntries(data);
     } catch (error) {
-      console.error("Failed to load entries:", error);
+      showToast("Fout bij laden uren", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const filteredEntries = useMemo(() => {
     let filtered = entries;
@@ -54,28 +61,28 @@ export default function AdminApprovalsPage() {
 
   const handleApprove = async (id: number) => {
     try {
-      await fetch(`${API_URL}/time-entries/${id}/approve`, {
+      const res = await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: true }),
       });
-      setSuccessMessage("Uren goedgekeurd!");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      if (!res.ok) throw new Error("Goedkeuren mislukt");
+      showToast("Uren goedgekeurd!", "success");
       loadEntries();
     } catch (error) {
-      console.error("Failed to approve:", error);
+      showToast("Fout bij goedkeuren", "error");
     }
   };
 
   const handleReject = async (id: number) => {
     try {
-      await fetch(`${API_URL}/time-entries/${id}/approve`, {
+      const res = await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: false }),
       });
-      setSuccessMessage("Uren afgekeurd!");
-      setTimeout(() => setSuccessMessage(""), 3000);
+      if (!res.ok) throw new Error("Afkeuren mislukt");
+      showToast("Uren afgekeurd!", "success");
       loadEntries();
     } catch (error) {
       console.error("Failed to reject:", error);

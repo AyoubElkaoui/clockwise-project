@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { showToast } from "@/components/ui/toast";
 import { Settings, Bell, Shield, Database, Save, CheckCircle } from "lucide-react";
 
 export default function AdminSettingsPage() {

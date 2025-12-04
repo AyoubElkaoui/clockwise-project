@@ -70,7 +70,6 @@ export default function VacationOverviewPage() {
       const result = await response.json();
       setData(result);
     } catch (error) {
-      console.error("Failed to load overview:", error);
       addToast("Kon jaaroverzicht niet laden", "error");
     } finally {
       setLoading(false);

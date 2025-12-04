@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 import { 
   Users, Clock, CheckCircle, XCircle, AlertCircle, 
   TrendingUp, Calendar, ChevronRight 
@@ -30,7 +33,12 @@ export default function ManagerDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const managerId = Number(localStorage.getItem("userId"));
+      const managerId = getUserId();
+      if (!managerId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        router.push("/login");
+        return;
+      }
       
       // Load team time entries
       const entriesRes = await fetch(`${API_URL}/time-entries/team?managerId=${managerId}`);
@@ -91,11 +99,15 @@ export default function ManagerDashboard() {
       setTeamActivity(recent);
       
     } catch (error) {
-      console.error("Failed to load dashboard:", error);
+      showToast("Fout bij laden dashboard", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const handleApprove = async (id: number) => {
     try {

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { API_URL } from "@/lib/api";
+import { showToast } from "@/components/ui/toast";
 
 export default function RegisterTime() {
     const [hours, setHours] = useState("");
@@ -12,7 +13,7 @@ export default function RegisterTime() {
             body: JSON.stringify({ hours: Number(hours) }),
         });
 
-        alert("Uren opgeslagen!");
+        showToast("Uren succesvol opgeslagen!", "success");
     };
 
     return (

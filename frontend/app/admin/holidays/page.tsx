@@ -73,7 +73,6 @@ export default function HolidaysPage() {
       setHolidays(holidaysData);
       setCompanies(companiesData);
     } catch (error) {
-      console.error("Failed to load data:", error);
       addToast("Kon gegevens niet laden", "error");
     } finally {
       setLoading(false);

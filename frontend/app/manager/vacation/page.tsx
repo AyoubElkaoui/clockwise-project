@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 import { CheckCircle, XCircle, Search, AlertCircle, Calendar, User } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -29,7 +32,11 @@ export default function ManagerVacationPage() {
 
   const loadRequests = async () => {
     try {
-      const managerId = Number(localStorage.getItem("userId"));
+      const managerId = getUserId();
+      if (!managerId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       const usersRes = await fetch("${API_URL}/users");
       const users = await usersRes.json();
       const teamIds = users.filter((u: any) => u.managerId === managerId).map((u: any) => u.id);
@@ -41,11 +48,15 @@ export default function ManagerVacationPage() {
       const teamRequests = data.filter((r: any) => teamIds.includes(r.userId));
       setRequests(teamRequests);
     } catch (error) {
-      console.error("Failed to load requests:", error);
+      showToast("Fout bij laden vakantieaanvragen", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const filterRequests = () => {
     let filtered = requests;

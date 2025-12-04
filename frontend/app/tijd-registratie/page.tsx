@@ -121,7 +121,7 @@ export default function TimeRegistrationPage() {
         setEntries(map);
       }
     } catch (error) {
-      console.error(error);
+      showToast("Kon uren niet laden", "error");
     }
   };
 

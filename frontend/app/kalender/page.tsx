@@ -10,6 +10,9 @@ import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import "dayjs/locale/nl";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
 dayjs.locale("nl");
@@ -34,8 +37,11 @@ export default function KalenderPage() {
   const loadEntries = async () => {
     setLoading(true);
     try {
-      const userId = Number(localStorage.getItem("userId"));
-      if (!userId) return;
+      const userId = getUserId();
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
 
       const res = await fetch(`${API_URL}/time-entries/user/${userId}`);
       const data = await res.json();
@@ -50,7 +56,7 @@ export default function KalenderPage() {
       
       setEntries(filtered);
     } catch (error) {
-      console.error("Failed to load entries:", error);
+      showToast("Fout bij laden kalender", "error");
     } finally {
       setLoading(false);
     }

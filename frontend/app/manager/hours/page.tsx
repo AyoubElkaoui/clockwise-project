@@ -5,6 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getUserId } from "@/lib/auth-utils";
 import { Clock, Search, Download, Calendar, ChevronLeft, ChevronRight, User, Building } from "lucide-react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -30,7 +33,11 @@ export default function ManagerTeamHoursPage() {
 
   const loadData = async () => {
     try {
-      const managerId = Number(localStorage.getItem("userId"));
+      const managerId = getUserId();
+      if (!managerId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
       
       const usersRes = await fetch("${API_URL}/users");
       const users = await usersRes.json();
@@ -41,11 +48,15 @@ export default function ManagerTeamHoursPage() {
       const data = await res.json();
       setEntries(data);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      showToast("Fout bij laden uren", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   const filteredEntries = useMemo(() => {
     let filtered = entries;
