@@ -9,11 +9,13 @@ import {
   CogIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, Globe } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/lib/language-context";
 
 export default function Navbar(): JSX.Element {
   const pathname = usePathname();
+  const { language, setLanguage, t } = useLanguage();
 
 // super-robust: case-insensitive + werkt ook voor /FAQ, /faq/iets, /dashboard/faq, etc.
 const cleanPath = (pathname || "").toLowerCase();
@@ -64,17 +66,19 @@ const hideNotifications =
     switch (userRank) {
       case "admin":
         return (
-          <span className="badge bg-red-600 text-white border-0">Admin</span>
+          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
+            Admin
+          </span>
         );
       case "manager":
         return (
-          <span className="badge bg-yellow-400 text-black border-0">
+          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
             Manager
           </span>
         );
       default:
         return (
-          <span className="badge bg-blue-600 text-white border-0">
+          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
             Medewerker
           </span>
         );
@@ -124,7 +128,7 @@ const hideNotifications =
             />
             <input
               type="text"
-              placeholder="Zoeken..."
+              placeholder={t("common.search") + "..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -165,6 +169,23 @@ const hideNotifications =
 
         {/* === RIGHT SIDE === */}
         <div className="flex items-center gap-3 flex-1 justify-end">
+          {/* Language Switcher */}
+          <button
+            onClick={() => setLanguage(language === "nl" ? "en" : "nl")}
+            className="
+              flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+              bg-slate-100 dark:bg-slate-800
+              text-slate-700 dark:text-slate-300
+              hover:bg-slate-200 dark:hover:bg-slate-700
+              border border-slate-300 dark:border-slate-600
+              transition-all duration-200
+            "
+            title={language === "nl" ? "Switch to English" : "Schakel naar Nederlands"}
+          >
+            <Globe className="w-4 h-4" />
+            <span className="hidden sm:inline">{language === "nl" ? "🇳🇱 NL" : "🇬🇧 EN"}</span>
+          </button>
+
           {/* Notifications - verbergen op FAQ */}
           {!hideNotifications && (
   <div className="text-blue-500 dark:text-blue-400">
@@ -198,14 +219,15 @@ const hideNotifications =
           >
             <div
               className="
-                bg-blue-100 text-white
+                bg-gradient-to-br from-blue-500 to-blue-600
+                text-white
                 rounded-full w-10 h-10 flex items-center justify-center shadow-md
               "
             >
               <span className="text-sm font-bold">{getUserInitials()}</span>
             </div>
             <div className="text-right">
-              <p className="font-semibold text-slate-700 dark:text-slate-200 text-sm leading-tight">
+              <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm leading-tight">
                 {userName}
               </p>
               <div className="flex items-center justify-end gap-1 mt-0.5">
@@ -218,14 +240,16 @@ const hideNotifications =
           <button
             onClick={handleLogout}
             className="
-              hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm
-              border border-red-500/40 text-red-600 dark:text-red-400
-              hover:bg-red-600/10 dark:hover:bg-red-600/20
-              transition
+              hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
+              bg-red-50 dark:bg-red-950/30
+              border border-red-200 dark:border-red-800 
+              text-red-600 dark:text-red-400
+              hover:bg-red-100 dark:hover:bg-red-900/50
+              transition-all duration-200
             "
           >
             <ArrowRightOnRectangleIcon className="w-4 h-4" />
-            Uitloggen
+            {t("nav.logout")}
           </button>
 
           {/* Mobile toggle */}
