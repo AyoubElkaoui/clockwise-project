@@ -14,12 +14,14 @@ import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { getUserId, getUserName } from "@/lib/auth-utils";
+import { useLanguage } from "@/lib/language-context";
 
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
 
 export default function Dashboard() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [stats, setStats] = useState({
@@ -140,21 +142,21 @@ export default function Dashboard() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Goedemorgen";
-    if (hour < 18) return "Goedemiddag";
-    return "Goedenavond";
+    if (hour < 12) return t("dashboard.greeting.morning");
+    if (hour < 18) return t("dashboard.greeting.afternoon");
+    return t("dashboard.greeting.evening");
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "goedgekeurd":
-        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Goedgekeurd</span>;
+        return <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium border border-green-200 dark:border-green-800">{t("status.approved")}</span>;
       case "ingeleverd":
-        return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">In Behandeling</span>;
+        return <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs font-medium border border-yellow-200 dark:border-yellow-800">{t("status.pending")}</span>;
       case "afgekeurd":
-        return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Afgekeurd</span>;
+        return <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-medium border border-red-200 dark:border-red-800">{t("status.rejected")}</span>;
       default:
-        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">Concept</span>;
+        return <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-700">{t("status.draft")}</span>;
     }
   };
 
@@ -177,7 +179,7 @@ export default function Dashboard() {
           {getGreeting()}, {firstName}! 👋
         </h1>
         <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Hier is je overzicht voor vandaag, {dayjs().format("dddd D MMMM YYYY")}
+          {t("dashboard.subtitle")}, {dayjs().format("dddd D MMMM YYYY")}
         </p>
       </div>
 
@@ -190,7 +192,7 @@ export default function Dashboard() {
                 <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">Deze Week</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t("dashboard.thisWeek")}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {stats.weekHours}u
                 </p>
@@ -215,7 +217,7 @@ export default function Dashboard() {
                 <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">Deze Maand</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t("dashboard.thisMonth")}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {stats.monthHours}u
                 </p>
@@ -234,12 +236,12 @@ export default function Dashboard() {
                 <Plane className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">Vakantiedagen</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t("dashboard.vacationDays")}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {stats.vacationDays}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Nog beschikbaar
+                  {t("dashboard.available")}
                 </p>
               </div>
             </div>
@@ -253,12 +255,12 @@ export default function Dashboard() {
                 <AlertCircle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">In Behandeling</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t("dashboard.pending")}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {stats.pendingApprovals}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Wacht op goedkeuring
+                  {t("dashboard.waitingApproval")}
                 </p>
               </div>
             </div>
@@ -273,9 +275,9 @@ export default function Dashboard() {
         <Card variant="elevated" padding="lg" className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Recente Registraties</CardTitle>
+              <CardTitle>{t("dashboard.recentEntries")}</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => router.push("/uren-overzicht")}>
-                Bekijk alles
+                {t("dashboard.viewAll")}
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
@@ -284,9 +286,9 @@ export default function Dashboard() {
             {recentEntries.length === 0 ? (
               <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                 <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Nog geen uren geregistreerd</p>
+                <p>{t("dashboard.noEntries")}</p>
                 <Button className="mt-4" onClick={() => router.push("/uren-registreren")}>
-                  Start met registreren
+                  {t("dashboard.startRegistering")}
                 </Button>
               </div>
             ) : (
