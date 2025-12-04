@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Moon, Sun, Bell } from "lucide-react";
+import { Settings, Moon, Sun, Bell, Globe } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
 import { useTheme } from "@/lib/theme-context";
+import { useLanguage } from "@/lib/language-context";
 
 export default function InstellingenPage() {
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   const handleClearNotifications = async () => {
@@ -35,11 +37,39 @@ export default function InstellingenPage() {
           <div className="flex items-center gap-3 mb-8">
             <Settings className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Instellingen
+              {t("settings.title")}
             </h1>
           </div>
 
           <div className="space-y-6">
+            {/* Language Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Language / Taal
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-3">
+                  <Button
+                    variant={language === "nl" ? "default" : "outline"}
+                    onClick={() => setLanguage("nl")}
+                    className="flex items-center gap-2"
+                  >
+                    🇳🇱 Nederlands
+                  </Button>
+                  <Button
+                    variant={language === "en" ? "default" : "outline"}
+                    onClick={() => setLanguage("en")}
+                    className="flex items-center gap-2"
+                  >
+                    🇬🇧 English
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Theme Settings */}
             <Card>
               <CardHeader>
@@ -49,7 +79,7 @@ export default function InstellingenPage() {
                   ) : (
                     <Sun className="h-5 w-5" />
                   )}
-                  Thema
+                  {t("settings.theme")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -60,7 +90,7 @@ export default function InstellingenPage() {
                     className="flex items-center gap-2"
                   >
                     <Sun className="h-4 w-4" />
-                    Licht
+                    {t("settings.light")}
                   </Button>
                   <Button
                     variant={theme === "dark" ? "default" : "outline"}
@@ -68,7 +98,7 @@ export default function InstellingenPage() {
                     className="flex items-center gap-2"
                   >
                     <Moon className="h-4 w-4" />
-                    Donker
+                    {t("settings.dark")}
                   </Button>
                 </div>
               </CardContent>
@@ -79,19 +109,19 @@ export default function InstellingenPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="h-5 w-5" />
-                  Notificaties Beheer
+                  {t("settings.notifications")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Wis de notificatie badge in de navigatiebar
+                  {t("settings.clearBadge")}
                 </p>
                 <Button
                   onClick={handleClearNotifications}
                   disabled={loading}
                   variant="outline"
                 >
-                  {loading ? "Wissen..." : "Wis Notificatie Badge"}
+                  {loading ? t("settings.clearing") : t("settings.clearButton")}
                 </Button>
               </CardContent>
             </Card>
