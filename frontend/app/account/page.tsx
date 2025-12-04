@@ -81,6 +81,10 @@ export default function AccountPage() {
         return;
       }
       const data = await getUser(userId);
+      if (!data) {
+        addToast("Gebruikersgegevens niet gevonden", "error");
+        return;
+      }
       setUserData(data);
     } catch (error) {
       addToast("Kon gebruikersgegevens niet laden", "error");

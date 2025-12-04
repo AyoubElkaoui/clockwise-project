@@ -113,7 +113,7 @@ public class TimeEntryController : ControllerBase
         return Ok(result);
     }
 
-    // POST: api/time-entries/bulk - Sla meerdere entries tegelijk op
+    // POST: api/time-entries/bulk - Sla meerdere entries tegelijk op (UPSERT)
     [HttpPost("bulk")]
     public async Task<IActionResult> CreateBulkTimeEntries([FromBody] List<TimeEntryDto> entries)
     {
@@ -122,30 +122,58 @@ public class TimeEntryController : ControllerBase
             return BadRequest("Geen entries ontvangen");
         }
 
-        var timeEntries = new List<TimeEntry>();
+        int updated = 0;
+        int created = 0;
 
         foreach (var dto in entries)
         {
-            var entry = new TimeEntry
-            {
-                UserId = dto.UserId,
-                ProjectId = dto.ProjectId,
-                StartTime = DateTime.Parse(dto.Date),
-                EndTime = DateTime.Parse(dto.Date).AddHours(dto.Hours),
-                BreakMinutes = dto.BreakMinutes,
-                DistanceKm = dto.Km,
-                Expenses = dto.Expenses,
-                Notes = dto.Notes,
-                Status = dto.Status ?? "opgeslagen"
-            };
+            var entryDate = DateTime.Parse(dto.Date).Date;
+            
+            // Check if entry already exists for this user/project/date
+            var existingEntry = await _context.TimeEntries
+                .FirstOrDefaultAsync(te => 
+                    te.UserId == dto.UserId && 
+                    te.ProjectId == dto.ProjectId && 
+                    te.StartTime.Date == entryDate);
 
-            timeEntries.Add(entry);
+            if (existingEntry != null)
+            {
+                // UPDATE existing entry
+                existingEntry.EndTime = entryDate.AddHours(dto.Hours);
+                existingEntry.BreakMinutes = dto.BreakMinutes;
+                existingEntry.DistanceKm = dto.Km;
+                existingEntry.Expenses = dto.Expenses;
+                existingEntry.Notes = dto.Notes;
+                existingEntry.Status = dto.Status ?? "opgeslagen";
+                updated++;
+            }
+            else
+            {
+                // INSERT new entry
+                var newEntry = new TimeEntry
+                {
+                    UserId = dto.UserId,
+                    ProjectId = dto.ProjectId,
+                    StartTime = entryDate,
+                    EndTime = entryDate.AddHours(dto.Hours),
+                    BreakMinutes = dto.BreakMinutes,
+                    DistanceKm = dto.Km,
+                    Expenses = dto.Expenses,
+                    Notes = dto.Notes,
+                    Status = dto.Status ?? "opgeslagen"
+                };
+                _context.TimeEntries.Add(newEntry);
+                created++;
+            }
         }
 
-        _context.TimeEntries.AddRange(timeEntries);
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Uren succesvol opgeslagen", count = timeEntries.Count });
+        return Ok(new { 
+            message = $"Uren opgeslagen: {created} nieuw, {updated} gewijzigd", 
+            created, 
+            updated 
+        });
     }
 
     // POST: api/time-entries
