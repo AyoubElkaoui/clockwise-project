@@ -49,10 +49,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(theme === "light" ? "dark" : "light");
   };
 
-  if (!mounted) {
-    return <div className="opacity-0">{children}</div>;
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
