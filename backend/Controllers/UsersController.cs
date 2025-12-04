@@ -182,6 +182,29 @@ public class UsersController : ControllerBase
         return Ok("User verwijderd");
     }
 
+    /// <summary>
+    /// Wachtwoord wijzigen
+    /// POST: /api/users/{id}/change-password
+    /// </summary>
+    [HttpPost("{id}/change-password")]
+    public async Task<ActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto dto)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null) return NotFound("Gebruiker niet gevonden");
+
+        // Verify current password
+        if (user.Password != dto.CurrentPassword)
+        {
+            return BadRequest("Huidig wachtwoord is incorrect");
+        }
+
+        // Update to new password
+        user.Password = dto.NewPassword;
+        await _context.SaveChangesAsync();
+
+        return Ok("Wachtwoord succesvol gewijzigd");
+    }
+
     private bool UserExists(int id)
     {
         return _context.Users.Any(e => e.Id == id);
@@ -221,4 +244,10 @@ public class UserUpdateDto
     public string City { get; set; }
     public string LoginName { get; set; }
     public string Password { get; set; }
+}
+
+public class ChangePasswordDto
+{
+    public string CurrentPassword { get; set; }
+    public string NewPassword { get; set; }
 }

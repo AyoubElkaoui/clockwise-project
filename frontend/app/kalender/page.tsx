@@ -1,24 +1,67 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import "dayjs/locale/nl";
+
+dayjs.extend(isoWeek);
+dayjs.locale("nl");
+
+interface TimeEntry {
+  id: number;
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
+  status: string;
+}
 
 export default function KalenderPage() {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(dayjs());
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const monthName = currentMonth.toLocaleDateString("nl-NL", { month: "long", year: "numeric" });
+  useEffect(() => {
+    loadEntries();
+  }, [currentMonth]);
+
+  const loadEntries = async () => {
+    setLoading(true);
+    try {
+      const userId = Number(localStorage.getItem("userId"));
+      if (!userId) return;
+
+      const res = await fetch(`http://localhost:5000/api/time-entries/user/${userId}`);
+      const data = await res.json();
+      
+      // Filter entries for current month
+      const monthStart = currentMonth.startOf("month");
+      const monthEnd = currentMonth.endOf("month");
+      const filtered = data.filter((e: TimeEntry) => {
+        const entryDate = dayjs(e.startTime);
+        return entryDate.isAfter(monthStart) && entryDate.isBefore(monthEnd);
+      });
+      
+      setEntries(filtered);
+    } catch (error) {
+      console.error("Failed to load entries:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const monthName = currentMonth.format("MMMM YYYY");
 
   const getDaysInMonth = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startDay = (firstDay.getDay() + 6) % 7; // Maandag = 0
+    const firstDay = currentMonth.startOf("month");
+    const lastDay = currentMonth.endOf("month");
+    const daysInMonth = lastDay.date();
+    const startDay = (firstDay.day() + 6) % 7; // Maandag = 0
 
     const days = [];
     for (let i = 0; i < startDay; i++) {
@@ -31,28 +74,36 @@ export default function KalenderPage() {
   };
 
   const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+    setCurrentMonth(currentMonth.subtract(1, "month"));
   };
 
   const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+    setCurrentMonth(currentMonth.add(1, "month"));
+  };
+
+  const getDayData = (day: number) => {
+    const dayDate = currentMonth.date(day).format("YYYY-MM-DD");
+    const dayEntries = entries.filter(e => dayjs(e.startTime).format("YYYY-MM-DD") === dayDate);
+    
+    if (dayEntries.length === 0) return null;
+    
+    const totalHours = dayEntries.reduce((sum, e) => {
+      const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
+      return sum + (diff - (e.breakMinutes || 0)) / 60;
+    }, 0);
+    
+    // Use first entry status (or most restrictive)
+    const statuses = dayEntries.map(e => e.status);
+    let status = "goedgekeurd";
+    if (statuses.includes("afgekeurd")) status = "afgekeurd";
+    else if (statuses.includes("ingeleverd")) status = "ingeleverd";
+    else if (statuses.includes("opgeslagen")) status = "opgeslagen";
+    
+    return { hours: totalHours, status };
   };
 
   const days = getDaysInMonth();
-  const today = new Date();
-
-  // Mock data voor demonstratie - statuses: opgeslagen, ingeleverd, goedgekeurd, afgekeurd
-  const dayData: Record<number, { hours: number; status: string }> = {
-    1: { hours: 8, status: "goedgekeurd" },
-    2: { hours: 7.5, status: "goedgekeurd" },
-    3: { hours: 8, status: "goedgekeurd" },
-    4: { hours: 6, status: "opgeslagen" },
-    5: { hours: 8, status: "ingeleverd" },
-    7: { hours: 8, status: "goedgekeurd" },
-    8: { hours: 8, status: "goedgekeurd" },
-    9: { hours: 7, status: "ingeleverd" },
-    10: { hours: 8, status: "afgekeurd" },
-  };
+  const today = dayjs();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,29 +119,55 @@ export default function KalenderPage() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "goedgekeurd":
+        return "Goedgekeurd";
+      case "ingeleverd":
+        return "In behandeling";
+      case "opgeslagen":
+        return "Opgeslagen";
+      case "afgekeurd":
+        return "Afgekeurd";
+      default:
+        return "Onbekend";
+    }
+  };
+
+  // Calculate stats
+  const stats = {
+    total: entries.reduce((sum, e) => {
+      const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
+      return sum + (diff - (e.breakMinutes || 0)) / 60;
+    }, 0),
+    goedgekeurd: entries.filter(e => e.status === "goedgekeurd").length,
+    ingeleverd: entries.filter(e => e.status === "ingeleverd").length,
+    afgekeurd: entries.filter(e => e.status === "afgekeurd").length,
+  };
+
   return (
     <ProtectedRoute>
       <ModernLayout>
         <div className="flex gap-6">
           {/* Sidebar met Mini Kalender */}
           <div className="w-80 flex-shrink-0">
-            <Card variant="elevated" padding="lg" className="sticky top-6">
+            <Card className="sticky top-6">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-4">
                   <button
                     onClick={prevMonth}
-                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                    <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </button>
-                  <h3 className="text-lg font-semibold text-slate-900 capitalize">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 capitalize">
                     {monthName}
                   </h3>
                   <button
                     onClick={nextMonth}
-                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                    <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </button>
                 </div>
               </CardHeader>
@@ -101,152 +178,223 @@ export default function KalenderPage() {
                   {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map((day) => (
                     <div
                       key={day}
-                      className="text-center text-xs font-medium text-slate-500 py-1"
+                      className="text-center text-xs font-medium text-slate-500 dark:text-slate-400 py-1"
                     >
                       {day}
                     </div>
                   ))}
                 </div>
 
-                {/* Kalender dagen */}
+                {/* Dagen grid */}
                 <div className="grid grid-cols-7 gap-1">
-                  {days.map((day, index) => {
-                    if (!day) {
-                      return <div key={`empty-${index}`} className="aspect-square" />;
+                  {days.map((day, idx) => {
+                    if (day === null) {
+                      return <div key={`empty-${idx}`} className="aspect-square" />;
                     }
 
                     const isToday =
-                      day === today.getDate() &&
-                      currentMonth.getMonth() === today.getMonth() &&
-                      currentMonth.getFullYear() === today.getFullYear();
+                      today.year() === currentMonth.year() &&
+                      today.month() === currentMonth.month() &&
+                      today.date() === day;
 
-                    const data = dayData[day];
+                    const dayData = getDayData(day);
 
                     return (
                       <div
                         key={day}
-                        className={`aspect-square p-1 rounded-lg cursor-pointer hover:ring-2 hover:ring-blue-300 relative ${
-                          isToday
-                            ? "ring-2 ring-blue-500"
-                            : ""
-                        } ${
-                          data
-                            ? getStatusColor(data.status)
-                            : "bg-slate-50 hover:bg-slate-100"
-                        }`}
+                        className={`
+                          aspect-square rounded-lg flex items-center justify-center text-sm
+                          relative cursor-pointer transition-all hover:scale-105
+                          ${
+                            isToday
+                              ? "bg-blue-500 text-white font-semibold shadow-md"
+                              : dayData
+                              ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          }
+                        `}
                       >
-                        <div className="flex flex-col items-center justify-center h-full">
-                          <span
-                            className={`text-xs font-semibold ${
-                              data ? "text-white" : "text-slate-700"
-                            }`}
-                          >
-                            {day}
-                          </span>
-                          {data && (
-                            <span className="text-[10px] font-medium text-white opacity-90 mt-0.5">
-                              {data.hours}u
-                            </span>
-                          )}
-                        </div>
+                        {day}
+                        {dayData && (
+                          <div
+                            className={`absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${getStatusColor(
+                              dayData.status
+                            )}`}
+                          />
+                        )}
                       </div>
                     );
                   })}
                 </div>
 
                 {/* Legenda */}
-                <div className="mt-6 pt-6 border-t border-slate-200 space-y-2">
+                <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                  <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase mb-3">
+                    Legenda
+                  </h4>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-emerald-500" />
-                    <span className="text-xs text-slate-600">Goedgekeurd</span>
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">Goedgekeurd</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-orange-500" />
-                    <span className="text-xs text-slate-600">Opgeslagen/Ingeleverd</span>
+                    <div className="w-3 h-3 rounded-full bg-orange-500" />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">In behandeling</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-red-500" />
-                    <span className="text-xs text-slate-600">Afgekeurd</span>
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">Afgekeurd</span>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase mb-3">
+                    Maandstatistieken
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Totaal uren</span>
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {stats.total.toFixed(1)}u
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Goedgekeurd</span>
+                      <Badge className="bg-emerald-500">{stats.goedgekeurd}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">In behandeling</span>
+                      <Badge className="bg-orange-500">{stats.ingeleverd}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-600 dark:text-slate-400">Afgekeurd</span>
+                      <Badge className="bg-red-500">{stats.afgekeurd}</Badge>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main content */}
-          <div className="flex-1 space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Kalender Overzicht
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Bekijk je tijdregistraties per maand
-              </p>
-            </div>
-
-            {/* Month Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card variant="elevated" padding="md">
-                <div className="text-center">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Totaal Deze Maand</p>
-                  <p className="text-3xl font-bold bg-blue-100">
-                    69.5u
-                  </p>
-                  <Badge variant="success" size="sm" className="mt-2">10 werkdagen</Badge>
-                </div>
-              </Card>
-              <Card variant="elevated" padding="md">
-                <div className="text-center">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Goedgekeurd</p>
-                  <p className="text-3xl font-bold bg-blue-100">
-                    54u
-                  </p>
-                  <Badge variant="success" size="sm" className="mt-2">7 dagen</Badge>
-                </div>
-              </Card>
-              <Card variant="elevated" padding="md">
-                <div className="text-center">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">In Behandeling</p>
-                  <p className="text-3xl font-bold bg-blue-100">
-                    15.5u
-                  </p>
-                  <Badge className="mt-2 bg-orange-500 text-white" size="sm">2 dagen</Badge>
-                </div>
-              </Card>
-            </div>
-
-            {/* Recent Entries */}
-            <Card variant="elevated" padding="lg">
+          {/* Main Kalender Area */}
+          <div className="flex-1">
+            <Card>
               <CardHeader>
-                <CardTitle>Recente Registraties</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { date: "10 Nov 2025", hours: 8, status: "afgekeurd", project: "Project Alpha" },
-                    { date: "9 Nov 2025", hours: 7, status: "ingeleverd", project: "Project Beta" },
-                    { date: "8 Nov 2025", hours: 8, status: "goedgekeurd", project: "Project Gamma" },
-                    { date: "7 Nov 2025", hours: 8, status: "goedgekeurd", project: "Project Delta" },
-                    { date: "5 Nov 2025", hours: 8, status: "ingeleverd", project: "Project Epsilon" },
-                  ].map((entry, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 capitalize">
+                      {monthName}
+                    </h1>
+                    <p className="text-slate-600 dark:text-slate-400 mt-1">
+                      {stats.total.toFixed(1)} uur geregistreerd
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={prevMonth}
+                      className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${getStatusColor(entry.status)}`} />
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">{entry.date}</p>
-                          <p className="text-xs text-slate-500">{entry.project}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-900">{entry.hours}u</p>
-                        <p className="text-xs text-slate-500 capitalize">{entry.status}</p>
-                      </div>
-                    </div>
-                  ))}
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={nextMonth}
+                      className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
+              </CardHeader>
+
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Weekdag headers */}
+                    <div className="grid grid-cols-7 gap-4 mb-4">
+                      {["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"].map(
+                        (day) => (
+                          <div
+                            key={day}
+                            className="text-center text-sm font-semibold text-slate-700 dark:text-slate-300 py-2"
+                          >
+                            {day}
+                          </div>
+                        )
+                      )}
+                    </div>
+
+                    {/* Dagen grid */}
+                    <div className="grid grid-cols-7 gap-4">
+                      {days.map((day, idx) => {
+                        if (day === null) {
+                          return <div key={`empty-${idx}`} className="aspect-square" />;
+                        }
+
+                        const isToday =
+                          today.year() === currentMonth.year() &&
+                          today.month() === currentMonth.month() &&
+                          today.date() === day;
+
+                        const dayData = getDayData(day);
+
+                        return (
+                          <div
+                            key={day}
+                            className={`
+                              aspect-square rounded-xl p-3 border transition-all cursor-pointer
+                              ${
+                                isToday
+                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                  : dayData
+                                  ? "border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-md"
+                                  : "border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                              }
+                            `}
+                          >
+                            <div className="flex flex-col h-full">
+                              <div className="flex items-center justify-between mb-2">
+                                <span
+                                  className={`text-sm font-semibold ${
+                                    isToday
+                                      ? "text-blue-600 dark:text-blue-400"
+                                      : dayData
+                                      ? "text-slate-900 dark:text-slate-100"
+                                      : "text-slate-400 dark:text-slate-600"
+                                  }`}
+                                >
+                                  {day}
+                                </span>
+                                {dayData && (
+                                  <div
+                                    className={`w-2 h-2 rounded-full ${getStatusColor(dayData.status)}`}
+                                  />
+                                )}
+                              </div>
+
+                              {dayData && (
+                                <div className="mt-auto">
+                                  <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    <span className="text-sm font-medium">
+                                      {dayData.hours.toFixed(1)}u
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    {getStatusLabel(dayData.status)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

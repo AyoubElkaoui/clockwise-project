@@ -26,6 +26,7 @@ export interface ProjectGroup {
     name: string;
     company?: Company;
     companyId?: number;
+    projects?: Project[];
 }
 
 export interface Project {

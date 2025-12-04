@@ -48,7 +48,7 @@ type BadgesState = Record<BadgeKey, number | null>;
    Menu items
 ====================== */
 const werknemerMenuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/", rank: "all" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", rank: "all" },
   { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", rank: "all" },
   { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", rank: "all" },
   { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
@@ -65,29 +65,32 @@ const werknemerMenuItems: MenuItem[] = [
 ];
 
 const managerMenuItems: MenuItem[] = [
-  { icon: Shield, label: "Manager Dashboard", href: "/manager-dashboard", rank: "manager" },
+  { icon: Shield, label: "Manager Dashboard", href: "/manager/dashboard", rank: "manager" },
   { icon: Users, label: "Team Beheren", href: "/admin/users", rank: "manager" },
   {
     icon: CheckCircle2,
-    label: "Goedkeuringen",
-    href: "/uren-overzicht",
+    label: "Team Goedkeuringen",
+    href: "/manager/approve",
     badgeKey: "pendingApprovals",
     rank: "manager",
   },
+  { icon: Plane, label: "Vakantie Aanvragen", href: "/manager/vacation", rank: "manager" },
+  { icon: Clock, label: "Team Uren", href: "/manager/hours", rank: "manager" },
 ];
 
 const adminMenuItems: MenuItem[] = [
-  { icon: Shield, label: "Admin Dashboard", href: "/admin-dashboard", rank: "admin" },
+  { icon: Shield, label: "Admin Dashboard", href: "/admin", rank: "admin" },
   { icon: Users, label: "Gebruikers", href: "/admin/users", rank: "admin" },
   { icon: Building2, label: "Bedrijven", href: "/admin/companies", rank: "admin" },
   { icon: FolderKanban, label: "Projecten", href: "/admin/projects", rank: "admin" },
   {
     icon: CheckCircle2,
-    label: "Goedkeuringen",
-    href: "/uren-overzicht",
+    label: "Alle Goedkeuringen",
+    href: "/admin/approvals",
     badgeKey: "pendingApprovals",
     rank: "admin",
   },
+  { icon: Plane, label: "Vakantie Aanvragen", href: "/admin/vacation", rank: "admin" },
 ];
 
 /* ======================
@@ -109,10 +112,9 @@ export function ModernSidebar() {
     pendingApprovals: null,
   });
 
-  const userId = 1; // TODO: via auth context
-
   const loadBadges = useCallback(async () => {
     try {
+      const userId = Number(localStorage.getItem("userId") || "1");
       const activities = await getActivities(50, userId);
       const unreadCount = activities.filter((a: any) => !a.read).length;
 
@@ -126,7 +128,7 @@ export function ModernSidebar() {
     } catch (error) {
       console.error("Failed to load badges:", error);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -150,7 +152,12 @@ export function ModernSidebar() {
       items = [...managerMenuItems, ...werknemerMenuItems];
     }
 
-    return items.map((item) => ({
+    // Remove duplicates by href
+    const uniqueItems = items.filter((item, index, self) => 
+      index === self.findIndex((t) => t.href === item.href)
+    );
+
+    return uniqueItems.map((item) => ({
       ...item,
       badge: item.badgeKey ? badges[item.badgeKey] : null,
     }));

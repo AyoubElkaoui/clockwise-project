@@ -97,19 +97,17 @@ const faqs = [
 
 export default function FAQPage() {
   return (
-    <ModernLayout>
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-          Veelgestelde vragen
-        </h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-400">
-          Antwoorden op de meest gestelde vragen over Clockwise.
-        </p>
+    <div className="max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+        Veelgestelde vragen
+      </h1>
+      <p className="mt-2 text-slate-600 dark:text-slate-400">
+        Antwoorden op de meest gestelde vragen over Clockwise.
+      </p>
 
-        <div className="mt-8">
-          <FaqAccordion sections={faqs} />
-        </div>
+      <div className="mt-8">
+        <FaqAccordion sections={faqs} />
       </div>
-    </ModernLayout>
+    </div>
   );
 }

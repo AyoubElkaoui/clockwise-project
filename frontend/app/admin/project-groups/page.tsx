@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getCompanies, getProjectGroups, createProjectGroup } from "@/lib/api";
+import { getCompanies, getProjectGroups, createProjectGroup } from "@/lib/api/companyApi";
 import AdminRoute from "@/components/AdminRoute";
 import ToastNotification from "@/components/ToastNotification";
 import { Company, ProjectGroup } from "@/lib/types";

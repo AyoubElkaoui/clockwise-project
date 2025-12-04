@@ -386,6 +386,8 @@ export default function WeekOverview() {
     const [toastType, setToastType] = useState<"success" | "error">("success");
     const [isSaving, setIsSaving] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [viewMode, setViewMode] = useState<"week" | "month">("week");
+    const [isNavigating, setIsNavigating] = useState(false);
 
     useEffect(() => {
         fetchFromDB();
@@ -420,6 +422,9 @@ export default function WeekOverview() {
     };
 
     async function fetchFromDB() {
+        if (isNavigating) return; // Prevent multiple simultaneous fetches
+        
+        setIsNavigating(true);
         try {
             const data = await getTimeEntries();
             let safeData: TimeEntry[] = [];
@@ -460,6 +465,8 @@ export default function WeekOverview() {
             console.error("Error fetching time entries:", err);
             setLocalEntries([]);
             setWeekStatus("concept");
+        } finally {
+            setIsNavigating(false); // Always reset navigation state
         }
     }
 
@@ -587,6 +594,10 @@ export default function WeekOverview() {
     const handlePrevWeek = () => setCurrentWeek((w) => w.subtract(1, "week"));
     const handleNextWeek = () => setCurrentWeek((w) => w.add(1, "week"));
     const handleToday = () => setCurrentWeek(dayjs().startOf("isoWeek"));
+    
+    const handlePrevMonth = () => setCurrentWeek((w) => w.subtract(1, "month").startOf("month").startOf("isoWeek"));
+    const handleNextMonth = () => setCurrentWeek((w) => w.add(1, "month").startOf("month").startOf("isoWeek"));
+    const handleToggleView = () => setViewMode(viewMode === "week" ? "month" : "week");
 
     function closeModal() {
         setSelectedDay(null);
@@ -625,6 +636,20 @@ export default function WeekOverview() {
     const eindVanWeek = currentWeek.add(6, "day");
 
     const days = Array.from({ length: 7 }, (_, i) => currentWeek.add(i, "day"));
+    
+    // Get all days in current month for month view
+    const monthStart = currentWeek.startOf("month");
+    const monthEnd = currentWeek.endOf("month");
+    const monthDays: Dayjs[] = [];
+    
+    // Start from first day of week containing first day of month
+    let currentDay = monthStart.startOf("isoWeek");
+    const lastDay = monthEnd.endOf("isoWeek");
+    
+    while (currentDay.isBefore(lastDay) || currentDay.isSame(lastDay, "day")) {
+        monthDays.push(currentDay);
+        currentDay = currentDay.add(1, "day");
+    }
 
     // Get concept entries for this week
     const weekStart = currentWeek.startOf("day");
@@ -649,10 +674,18 @@ export default function WeekOverview() {
                     <div>
                         <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
                             <CalendarDaysIcon className="w-8 h-8" />
-                            Week {weekNummer} - {maandNaam} {jaar}
+                            {viewMode === "week" ? (
+                                <>Week {weekNummer} - {maandNaam} {jaar}</>
+                            ) : (
+                                <>{maandNaam} {jaar}</>
+                            )}
                         </h2>
                         <p className="text-blue-100 text-lg">
-                            {startVanWeek.format("D MMM")} - {eindVanWeek.format("D MMM YYYY")}
+                            {viewMode === "week" ? (
+                                <>{startVanWeek.format("D MMM")} - {eindVanWeek.format("D MMM YYYY")}</>
+                            ) : (
+                                <>{monthDays[0]?.format("D MMM")} - {monthDays[monthDays.length - 1]?.format("D MMM YYYY")}</>
+                            )}
                         </p>
                         {weekStatus !== "concept" && (
                             <div className="mt-2">
@@ -682,7 +715,8 @@ export default function WeekOverview() {
                     <div className="flex gap-2">
                         <button
                             className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
-                            onClick={handlePrevWeek}
+                            onClick={viewMode === "week" ? handlePrevWeek : handlePrevMonth}
+                            disabled={isNavigating}
                         >
                             <ArrowLeftIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Vorige</span>
@@ -690,16 +724,26 @@ export default function WeekOverview() {
                         <button
                             className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
                             onClick={handleToday}
+                            disabled={isNavigating}
                         >
                             <HomeIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Vandaag</span>
                         </button>
                         <button
                             className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
-                            onClick={handleNextWeek}
+                            onClick={viewMode === "week" ? handleNextWeek : handleNextMonth}
+                            disabled={isNavigating}
                         >
                             <ArrowRightIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Volgende</span>
+                        </button>
+                        <button
+                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
+                            onClick={handleToggleView}
+                            disabled={isNavigating}
+                        >
+                            <CalendarDaysIcon className="w-5 h-5" />
+                            <span className="hidden sm:inline">{viewMode === "week" ? "Maand" : "Week"}</span>
                         </button>
                     </div>
 
@@ -742,22 +786,24 @@ export default function WeekOverview() {
                 </div>
             </div>
 
-            {/* Compact Week Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-                {days.map((day, index) => {
+            {/* Compact Week/Month Overview */}
+            <div className={`grid gap-4 ${viewMode === "week" ? "grid-cols-1 lg:grid-cols-7" : "grid-cols-7"}`}>
+                {(viewMode === "week" ? days : monthDays).map((day, index) => {
                     const entries = getDayEntries(day);
+                    const isCurrentMonth = viewMode === "month" && day.month() === currentWeek.month();
 
                     return (
-                        <DayEntry
-                            key={day.format("YYYY-MM-DD")}
-                            date={day}
-                            entries={entries}
-                            onUpdate={fetchFromDB}
-                            weekStatus={weekStatus}
-                            onShowToast={showToast}
-                            onSelectEntry={handleSelectEntry}
-                            selectedEntries={selectedEntries}
-                        />
+                        <div key={day.format("YYYY-MM-DD")} className={viewMode === "month" && !isCurrentMonth ? "opacity-40" : ""}>
+                            <DayEntry
+                                date={day}
+                                entries={entries}
+                                onUpdate={fetchFromDB}
+                                weekStatus={weekStatus}
+                                onShowToast={showToast}
+                                onSelectEntry={handleSelectEntry}
+                                selectedEntries={selectedEntries}
+                            />
+                        </div>
                     );
                 })}
             </div>

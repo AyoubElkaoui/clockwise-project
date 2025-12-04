@@ -48,8 +48,13 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [userId] = useState(1); // TODO: Get from auth context
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Toast helpers
   const addToast = (message: string, type: ToastType) => {
@@ -69,6 +74,11 @@ export default function AccountPage() {
   const loadUserData = async () => {
     setLoading(true);
     try {
+      const userId = Number(localStorage.getItem("userId"));
+      if (!userId) {
+        addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
+        return;
+      }
       const data = await getUser(userId);
       setUserData(data);
     } catch (error) {
@@ -82,6 +92,13 @@ export default function AccountPage() {
   // Opslaan Save user updates
   const handleSave = async () => {
     if (!userData) return;
+    
+    const userId = Number(localStorage.getItem("userId"));
+    if (!userId) {
+      addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
+      return;
+    }
+    
     setSaving(true);
 
     try {
@@ -100,6 +117,53 @@ export default function AccountPage() {
   const handleInputChange = (field: keyof UserData, value: string | number) => {
     if (!userData) return;
     setUserData({ ...userData, [field]: value });
+  };
+
+  // Password change handler
+  const handleChangePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      addToast("Vul alle wachtwoordvelden in", "error");
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      addToast("Nieuwe wachtwoorden komen niet overeen", "error");
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      addToast("Nieuw wachtwoord moet minimaal 6 tekens bevatten", "error");
+      return;
+    }
+
+    const userId = Number(localStorage.getItem("userId"));
+    if (!userId) {
+      addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${userId}/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || "Wachtwoord wijzigen mislukt");
+      }
+
+      addToast("Wachtwoord succesvol gewijzigd!", "success");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      console.error("Failed to change password:", error);
+      addToast(error instanceof Error ? error.message : "Wachtwoord wijzigen mislukt", "error");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   // 🌀 Loading state
@@ -312,46 +376,31 @@ export default function AccountPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <PasswordField label="Huidig Wachtwoord" />
-                  <PasswordField label="Nieuw Wachtwoord" />
-                  <PasswordField label="Bevestig Nieuw Wachtwoord" />
-                  <Button>Wachtwoord Wijzigen</Button>
+                  <PasswordField 
+                    label="Huidig Wachtwoord" 
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  />
+                  <PasswordField 
+                    label="Nieuw Wachtwoord" 
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  />
+                  <PasswordField 
+                    label="Bevestig Nieuw Wachtwoord" 
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  />
+                  <Button onClick={handleChangePassword} disabled={changingPassword}>
+                    {changingPassword ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Wachtwoord Wijzigen
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Onderste sectie: Voorkeuren */}
-          <Card variant="elevated" padding="xl" className="w-full">
-            <CardHeader>
-              <CardTitle>Voorkeuren</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  "E-mail Notificaties",
-                  "Browser Notificaties",
-                  "Dagelijkse Herinneringen",
-                  "Wekelijkse Rapporten",
-                  "Vakantie Herinneringen",
-                ].map((pref) => (
-                  <label
-                    key={pref}
-                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg cursor-pointer"
-                  >
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {pref}
-                    </span>
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-primary"
-                      defaultChecked
-                    />
-                  </label>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <ToastContainer toasts={toasts} onRemove={removeToast} />
@@ -395,13 +444,21 @@ function InputField({
   );
 }
 
-function PasswordField({ label }: { label: string }) {
+function PasswordField({ 
+  label, 
+  value, 
+  onChange 
+}: { 
+  label: string; 
+  value: string; 
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
   return (
     <div>
       <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
         {label}
       </label>
-      <Input type="password" placeholder={label} />
+      <Input type="password" value={value} onChange={onChange} />
     </div>
   );
 }

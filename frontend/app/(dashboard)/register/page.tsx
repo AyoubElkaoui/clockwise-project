@@ -78,8 +78,15 @@ export default function RegisterTime(): JSX.Element {
         setIsLoading(true);
         setMessage("");
 
+        const userId = Number(localStorage.getItem("userId"));
+        if (!userId) {
+            setMessage("Gebruiker niet gevonden. Log opnieuw in.");
+            setIsLoading(false);
+            return;
+        }
+
         const data = {
-            userId: 1, // Voorlopig test user
+            userId,
             projectId: selectedProject,
             startTime: `2000-01-01T${startTime}:00`,
             endTime: `2000-01-01T${endTime}:00`,

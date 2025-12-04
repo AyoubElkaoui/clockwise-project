@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "dayjs";
 import { Dayjs } from "dayjs";
 import { getCompanies, getProjectGroups, getProjects, registerTimeEntry, updateTimeEntry, getUserProjects, getTimeEntries } from "@/lib/api";
 import dayjs from "dayjs";
@@ -54,6 +54,9 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Use ref to prevent duplicate saves across re-renders
+    const saveInProgressRef = useRef(false);
 
     // Generate time options in 15-minute intervals - EXTENDED HOURS
     const generateTimeOptions = () => {
@@ -313,6 +316,12 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
 
     // NEW: Save functions for draft and submit
     const handleSave = async (saveType: 'draft' | 'submit') => {
+        // Prevent multiple simultaneous save operations using ref
+        if (saveInProgressRef.current || isSubmitting) {
+            console.log("⏸️ Save already in progress, ignoring click");
+            return;
+        }
+
         if (!selectedProject) {
             setError("Selecteer een project");
             return;
@@ -367,22 +376,27 @@ export default function TimeEntryForm({ day, existingEntry, onClose, onEntrySave
             status: saveType === 'submit' ? 'ingediend' : 'concept' // NEW: Status based on save type
         };
 
+        // Set ref flag FIRST (synchronous) to prevent any duplicate calls
+        saveInProgressRef.current = true;
         setIsSubmitting(true);
         setError("");
 
         try {
             if (existingEntry && existingEntry.id) {
-                console.log(" Updating existing entry:", existingEntry.id);
+                console.log("✏️ Updating existing entry:", existingEntry.id);
                 await updateTimeEntry(existingEntry.id, data);
             } else {
-                console.log("Opslaan Creating new entry");
+                console.log("➕ Creating new entry");
                 await registerTimeEntry(data);
             }
+            // Close modal IMMEDIATELY after successful save
             onEntrySaved();
+            // Keep ref flag set permanently to prevent any further saves
         } catch (err) {
-            console.error("Save error:", err);
+            console.error("❌ Save error:", err);
             setError("Fout bij opslaan van de uren");
-        } finally {
+            // Only reset on error so user can retry
+            saveInProgressRef.current = false;
             setIsSubmitting(false);
         }
     };

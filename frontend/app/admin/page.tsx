@@ -1,360 +1,323 @@
 "use client";
-import {useState, useEffect, JSX} from "react";
-import { getAdminStats } from "@/lib/api";
-import AdminRoute from "@/components/AdminRoute";
-import { AdminStats } from "@/lib/types";
-import {
-    UsersIcon,
-    ClockIcon,
-    FolderIcon,
-    CalendarDaysIcon,
-    ChartBarIcon,
-    ExclamationTriangleIcon,
-    CheckCircleIcon,
-    ArrowUpIcon,
-    ArrowDownIcon,
-    BellIcon,
-    ComputerDesktopIcon,
-    ServerIcon,
-    AtSymbolIcon
-} from "@heroicons/react/24/outline";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Users, Building2, Briefcase, Clock, TrendingUp, CheckCircle, XCircle, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
 
-interface StatCard {
-    title: string;
-    value: string | number;
-    subtitle: string;
-    icon: React.ComponentType<{ className?: string }>;
-    gradient: string;
-    textColor: string;
-    trend?: {
-        value: number;
-        isPositive: boolean;
-    };
-}
+export default function AdminDashboardPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalCompanies: 0,
+    totalProjects: 0,
+    totalHoursThisMonth: 0,
+    pendingApprovals: 0,
+    pendingVacations: 0,
+  });
+  const [recentEntries, setRecentEntries] = useState<any[]>([]);
+  const [recentVacations, setRecentVacations] = useState<any[]>([]);
 
-export default function AdminDashboard(): JSX.Element {
-    const [stats, setStats] = useState<AdminStats | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [adminName, setAdminName] = useState<string>("");
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-    useEffect(() => {
-        const fetchData = async (): Promise<void> => {
-            try {
-                const data = await getAdminStats();
-                setStats(data || {
-                    totalUsers: 0,
-                    hoursThisMonth: 0,
-                    activeProjects: 0,
-                    pendingVacations: 0,
-                    totalHours: 0
-                });
+  const loadDashboardData = async () => {
+    try {
+      // Fetch users
+      const usersRes = await fetch("http://localhost:5000/api/users");
+      const users = await usersRes.json();
 
-                try {
-                    const firstName = localStorage.getItem("firstName") || "";
-                    const lastName = localStorage.getItem("lastName") || "";
-                    setAdminName(`${firstName} ${lastName}`.trim() || "Administrator");
-                } catch (storageError) {
-                    setAdminName("Administrator");
-                }
-            } catch (error) {
-                console.error("Error fetching admin stats:", error);
-                setStats({
-                    totalUsers: 0,
-                    hoursThisMonth: 0,
-                    activeProjects: 0,
-                    pendingVacations: 0,
-                    totalHours: 0
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
+      // Fetch companies
+      const companiesRes = await fetch("http://localhost:5000/api/companies");
+      const companies = await companiesRes.json();
 
-        fetchData();
-    }, []);
+      // Fetch projects
+      const projectsRes = await fetch("http://localhost:5000/api/projects");
+      const projects = await projectsRes.json();
 
-    const safeToFixed = (value: any, decimals: number = 1): string => {
-        if (typeof value === 'number' && !isNaN(value) && isFinite(value)) {
-            return value.toFixed(decimals);
-        }
-        return '0.' + '0'.repeat(decimals);
-    };
+      // Fetch time entries
+      const entriesRes = await fetch("http://localhost:5000/api/time-entries");
+      const entries = await entriesRes.json();
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-blue-100">
-                <div className="text-center">
-                    <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
-                    <p className="text-lg font-semibold text-gray-700">Dashboard laden...</p>
-                </div>
-            </div>
-        );
+      // Fetch vacation requests
+      const vacationsRes = await fetch("http://localhost:5000/api/vacation-requests");
+      const vacations = await vacationsRes.json();
+
+      // Calculate stats
+      const pendingEntries = entries.filter((e: any) => e.status === "ingeleverd");
+      const pendingVacs = vacations.filter((v: any) => v.status === "pending");
+
+      const monthStart = dayjs().startOf("month");
+      const monthEnd = dayjs().endOf("month");
+      const monthEntries = entries.filter((e: any) => {
+        const entryDate = dayjs(e.startTime);
+        return entryDate.isAfter(monthStart) && entryDate.isBefore(monthEnd);
+      });
+
+      const totalHours = monthEntries.reduce((sum: number, e: any) => {
+        const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
+        return sum + (diff - (e.breakMinutes || 0)) / 60;
+      }, 0);
+
+      setStats({
+        totalUsers: users.length,
+        totalCompanies: companies.length,
+        totalProjects: projects.length,
+        totalHoursThisMonth: totalHours,
+        pendingApprovals: pendingEntries.length,
+        pendingVacations: pendingVacs.length,
+      });
+
+      // Recent entries (last 10)
+      const sorted = entries
+        .sort((a: any, b: any) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+        .slice(0, 10);
+      setRecentEntries(sorted);
+
+      // Recent vacation requests (last 5)
+      const sortedVacs = vacations
+        .sort((a: any, b: any) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+        .slice(0, 5);
+      setRecentVacations(sortedVacs);
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const statCards: StatCard[] = [
-        {
-            title: "Totaal Gebruikers",
-            value: stats?.totalUsers || 0,
-            subtitle: "Actieve medewerkers",
-            icon: UsersIcon,
-            gradient: "from-blue-500 to-blue-600",
-            textColor: "text-blue-100",
-            trend: { value: 12, isPositive: true }
-        },
-        {
-            title: "Uren Deze Maand",
-            value: safeToFixed(stats?.hoursThisMonth),
-            subtitle: "Geregistreerde werkuren",
-            icon: ClockIcon,
-            gradient: "from-green-500 to-green-600",
-            textColor: "text-green-100",
-            trend: { value: 8, isPositive: true }
-        },
-        {
-            title: "Actieve Projecten",
-            value: stats?.activeProjects || 0,
-            subtitle: "Lopende projecten",
-            icon: FolderIcon,
-            gradient: "from-purple-500 to-purple-600",
-            textColor: "text-purple-100",
-            trend: { value: 3, isPositive: false }
-        },
-        {
-            title: "Vakantie Aanvragen",
-            value: stats?.pendingVacations || 0,
-            subtitle: "Wachten op goedkeuring",
-            icon: CalendarDaysIcon,
-            gradient: "from-orange-500 to-orange-600",
-            textColor: "text-orange-100"
-        }
-    ];
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "goedgekeurd":
+      case "approved":
+        return <Badge className="bg-green-500">Goedgekeurd</Badge>;
+      case "ingeleverd":
+      case "pending":
+        return <Badge className="bg-yellow-500">In behandeling</Badge>;
+      case "afgekeurd":
+      case "rejected":
+        return <Badge className="bg-red-500">Afgekeurd</Badge>;
+      default:
+        return <Badge variant="secondary">Concept</Badge>;
+    }
+  };
 
-    const quickActions = [
-        {
-            title: "Uren Goedkeuren",
-            description: "Bekijk en keur urenregistraties goed",
-            href: "/admin/time-entries",
-            icon: CheckCircleIcon,
-            color: "bg-green-500 hover:bg-green-600"
-        },
-        {
-            title: "Vakantie Beheren",
-            description: "Verwerk vakantie-aanvragen",
-            href: "/admin/vacation-requests",
-            icon: CalendarDaysIcon,
-            color: "bg-blue-500 hover:bg-blue-600"
-        },
-        {
-            title: "Gebruikers Beheren",
-            description: "Voeg gebruikers toe of bewerk gegevens",
-            href: "/admin/users",
-            icon: UsersIcon,
-            color: "bg-purple-500 hover:bg-purple-600"
-        },
-        {
-            title: "Project Toewijzingen",
-            description: "Wijs gebruikers toe aan projecten",
-            href: "/admin/user-projects",
-            icon: FolderIcon,
-            color: "bg-indigo-500 hover:bg-indigo-600"
-        }
-    ];
-
+  if (loading) {
     return (
-        <AdminRoute>
-            <div className="p-6 space-y-8 max-w-7xl mx-auto">
-                {/* Header Section */}
-                <div className="bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 text-white rounded-3xl p-8 shadow-md-lg relative overflow-hidden">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/5 rounded-full blur-xl"></div>
-
-                    <div className="relative flex items-center justify-between">
-                        <div>
-                            <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-                            <p className="text-blue-100 text-lg">Welkom terug, {adminName}!</p>
-                            <p className="text-blue-200 text-sm mt-1">Hier is je overzicht van vandaag</p>
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-                                <ChartBarIcon className="w-16 h-16 text-white" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {statCards.map((card, index) => {
-                        const Icon = card.icon;
-                        return (
-                            <div
-                                key={card.title}
-                                className="bg-white rounded-2xl shadow-md hover:shadow-md-lg overflow-hidden"
-                                style={{ animationDelay: `${index * 100}ms` }}
-                            >
-                                <div className={`bg-gradient-to-br ${card.gradient} p-6 text-white relative overflow-hidden`}>
-                                    {/* Background Pattern */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
-                                    <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full blur-lg"></div>
-
-                                    <div className="relative flex items-center justify-between mb-4">
-                                        <Icon className="w-8 h-8" />
-                                        {card.trend && (
-                                            <div className={`flex items-center text-sm ${card.textColor}`}>
-                                                {card.trend.isPositive ? (
-                                                    <ArrowUpIcon className="w-4 h-4 mr-1" />
-                                                ) : (
-                                                    <ArrowDownIcon className="w-4 h-4 mr-1" />
-                                                )}
-                                                {card.trend.value}%
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="relative text-3xl font-bold mb-1">{card.value}</div>
-                                    <div className={`relative text-sm ${card.textColor}`}>{card.subtitle}</div>
-                                </div>
-                                <div className="p-4 bg-gradient-to-r from-gray-50 to-white">
-                                    <div className="text-sm font-medium text-gray-700">{card.title}</div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Quick Actions */}
-                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="bg-blue-600 p-3 rounded-xl shadow-lg">
-                            <CheckCircleIcon className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800">Snelle Acties</h2>
-                            <p className="text-gray-600">Meest gebruikte beheerfuncties</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {quickActions.map((action) => {
-                            const Icon = action.icon;
-                            return (
-                                <button
-                                    key={action.title}
-                                    onClick={() => window.location.href = action.href}
-                                    className="group p-6 rounded-xl border-2 border-gray-200 hover:border-blue-300 text-left bg-gradient-to-br from-white to-gray-50 hover:shadow-md"
-                                >
-                                    <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200 shadow-lg`}>
-                                        <Icon className="w-6 h-6 text-white" />
-                                    </div>
-                                    <h3 className="font-semibold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors duration-200">
-                                        {action.title}
-                                    </h3>
-                                    <p className="text-sm text-gray-600">{action.description}</p>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Status Overview */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* System Status */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <CheckCircleIcon className="w-6 h-6 text-green-500" />
-                            Systeem Status
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-4 bg-blue-100 rounded-xl border border-green-200">
-                                <div className="flex items-center gap-3">
-                                    <ServerIcon className="w-5 h-5 text-green-600" />
-                                    <span className="text-sm font-medium text-gray-700">Database</span>
-                                </div>
-                                <span className="badge badge-success">Operationeel</span>
-                            </div>
-                            <div className="flex items-center justify-between p-4 bg-blue-100 rounded-xl border border-green-200">
-                                <div className="flex items-center gap-3">
-                                    <ComputerDesktopIcon className="w-5 h-5 text-green-600" />
-                                    <span className="text-sm font-medium text-gray-700">API Services</span>
-                                </div>
-                                <span className="badge badge-success">Operationeel</span>
-                            </div>
-                            <div className="flex items-center justify-between p-4 bg-blue-100 rounded-xl border border-yellow-200">
-                                <div className="flex items-center gap-3">
-                                    <AtSymbolIcon className="w-5 h-5 text-yellow-600" />
-                                    <span className="text-sm font-medium text-gray-700">Email Service</span>
-                                </div>
-                                <span className="badge badge-warning">Onderhoud</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Recent Activity */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <BellIcon className="w-6 h-6 text-blue-500" />
-                            Recente Activiteit
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-xl border border-blue-200">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-700">5 nieuwe urenregistraties</p>
-                                    <p className="text-xs text-gray-500">2 minuten geleden</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-xl border border-green-200">
-                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-700">Vakantie aanvraag goedgekeurd</p>
-                                    <p className="text-xs text-gray-500">15 minuten geleden</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-4 bg-blue-100 rounded-xl border border-purple-200">
-                                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-700">Nieuwe gebruiker toegevoegd</p>
-                                    <p className="text-xs text-gray-500">1 uur geleden</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Alerts Section */}
-                {stats?.pendingVacations && stats.pendingVacations > 0 && (
-                    <div className="bg-gradient-to-r from-orange-100 via-yellow-100 to-red-100 border-2 border-orange-200 rounded-2xl p-6 shadow-md">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-orange-500 p-3 rounded-xl shadow-lg">
-                                <ExclamationTriangleIcon className="w-8 h-8 text-white" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-lg font-bold text-orange-800">Actie Vereist</h3>
-                                <p className="text-orange-700">
-                                    Je hebt {stats.pendingVacations} vakantie-aanvra{stats.pendingVacations === 1 ? 'ag' : 'gen'} die wacht{stats.pendingVacations === 1 ? '' : 'en'} op goedkeuring.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => window.location.href = "/admin/vacation-requests"}
-                                className="btn bg-gradient-warning border-0 text-white rounded-xl hover:shadow-lg"
-                            >
-                                Bekijken
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Footer Info */}
-                <div className="bg-blue-100 rounded-2xl p-6 border border-gray-200">
-                    <div className="text-center">
-                        <h4 className="font-semibold text-gray-800 mb-2">Tip van de dag</h4>
-                        <p className="text-gray-600 text-sm">
-                            Controleer regelmatig de pending vakantie-aanvragen en urenregistraties om de workflow soepel te houden.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </AdminRoute>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Admin Dashboard</h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-1">Systeem overzicht en statistieken</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => router.push("/admin/users")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Totaal Gebruikers</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalUsers}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => router.push("/admin/companies")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Totaal Bedrijven</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalCompanies}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => router.push("/admin/projects")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Totaal Projecten</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalProjects}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => router.push("/admin/approvals")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Goedkeuringen</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.pendingApprovals}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Deze Maand</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.totalHoursThisMonth.toFixed(0)}u</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => router.push("/admin/vacation")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Vakantie Aanvragen</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{stats.pendingVacations}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Time Entries */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recente Registraties</h2>
+              <Button variant="outline" size="sm" onClick={() => router.push("/admin/approvals")}>
+                Alles Bekijken
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {recentEntries.length === 0 ? (
+                <p className="text-center text-slate-600 dark:text-slate-400 py-4">Geen registraties</p>
+              ) : (
+                recentEntries.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                          {entry.user?.firstName?.charAt(0)}{entry.user?.lastName?.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {entry.user?.firstName} {entry.user?.lastName}
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          {dayjs(entry.startTime).format("DD MMM HH:mm")} • {entry.project?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {getStatusBadge(entry.status)}
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                        {((dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") - (entry.breakMinutes || 0)) / 60).toFixed(1)}u
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Vacation Requests */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Vakantie Aanvragen</h2>
+              <Button variant="outline" size="sm" onClick={() => router.push("/admin/vacation")}>
+                Alles Bekijken
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {recentVacations.length === 0 ? (
+                <p className="text-center text-slate-600 dark:text-slate-400 py-4">Geen vakantie aanvragen</p>
+              ) : (
+                recentVacations.map((vacation) => (
+                  <div key={vacation.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                        <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {vacation.user?.firstName} {vacation.user?.lastName}
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          {dayjs(vacation.startDate).format("DD MMM")} - {dayjs(vacation.endDate).format("DD MMM")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {getStatusBadge(vacation.status)}
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                        {dayjs(vacation.endDate).diff(dayjs(vacation.startDate), "day")} dagen
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardContent className="pt-6">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Snelle Acties</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => router.push("/admin/users")}>
+              <Users className="w-5 h-5" />
+              <span className="text-sm">Gebruikers</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => router.push("/admin/companies")}>
+              <Building2 className="w-5 h-5" />
+              <span className="text-sm">Bedrijven</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => router.push("/admin/projects")}>
+              <Briefcase className="w-5 h-5" />
+              <span className="text-sm">Projecten</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex-col gap-2" onClick={() => router.push("/admin/approvals")}>
+              <Clock className="w-5 h-5" />
+              <span className="text-sm">Goedkeuringen</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

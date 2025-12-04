@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <html lang="nl" suppressHydrationWarning>
         <body className={poppins.className}>
         <ThemeProvider>
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-x-hidden">
                 {children}
             </div>
         </ThemeProvider>

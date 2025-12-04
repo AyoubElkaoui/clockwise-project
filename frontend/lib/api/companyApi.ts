@@ -55,3 +55,14 @@ export async function getProjects(projectGroupId: number): Promise<Project[]> {
     throw error;
   }
 }
+
+// Maak een nieuwe project group aan
+export async function createProjectGroup(data: { name: string; companyId: number }): Promise<ProjectGroup> {
+  try {
+    const response = await axios.post(`${API_URL}/project-groups`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating project group:", error);
+    throw error;
+  }
+}

@@ -12,6 +12,7 @@ public class ClockwiseDbContext : DbContext
     public DbSet<Activity> Activities { get; set; }
     public DbSet<UserProject> UserProjects { get; set; }
     public DbSet<VacationRequest> VacationRequests { get; set; }
+    public DbSet<Holiday> Holidays { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +73,13 @@ public class ClockwiseDbContext : DbContext
             .HasForeignKey(up => up.AssignedByUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict); // belangrijk: geen cascade-loop via User
+
+        modelBuilder.Entity<Holiday>()
+            .HasOne(h => h.Company)
+            .WithMany()
+            .HasForeignKey(h => h.CompanyId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Manager-Employee relationship (self-referencing)
         modelBuilder.Entity<User>()

@@ -18,4 +18,9 @@ public class VacationRequest
 
     // Status: "pending", "approved", "rejected"
     public string Status { get; set; } = "pending";
+    
+    // Manager feedback bij goedkeuren/afkeuren
+    public string? ManagerComment { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public int? ReviewedBy { get; set; }
 }

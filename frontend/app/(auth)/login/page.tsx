@@ -46,11 +46,11 @@ export default function LoginPage(): JSX.Element {
 
             // Stuur naar juiste dashboard
             if (user.rank === "admin") {
-                router.push("/admin-dashboard");
+                router.push("/admin");
             } else if (user.rank === "manager") {
-                router.push("/manager-dashboard");
+                router.push("/manager/dashboard");
             } else {
-                router.push("/");
+                router.push("/dashboard");
             }
         } catch (e: unknown) {
             if (e instanceof Error) {

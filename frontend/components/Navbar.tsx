@@ -127,6 +127,11 @@ const hideNotifications =
               placeholder="Zoeken..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  window.location.href = `/zoeken?q=${encodeURIComponent(searchQuery)}`;
+                }
+              }}
               className="
                 w-full pl-10 pr-4 py-2 rounded-xl 
                 bg-slate-100 dark:bg-slate-800
@@ -134,7 +139,7 @@ const hideNotifications =
                 border border-slate-300 dark:border-slate-700
                 placeholder-slate-500 dark:placeholder-slate-400
                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50
-               
+                outline-none transition
               "
             />
           </div>
