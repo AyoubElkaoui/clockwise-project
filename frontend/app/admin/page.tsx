@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,23 +29,23 @@ export default function AdminDashboardPage() {
   const loadDashboardData = async () => {
     try {
       // Fetch users
-      const usersRes = await fetch("http://localhost:5000/api/users");
+      const usersRes = await fetch("${API_URL}/users");
       const users = await usersRes.json();
 
       // Fetch companies
-      const companiesRes = await fetch("http://localhost:5000/api/companies");
+      const companiesRes = await fetch("${API_URL}/companies");
       const companies = await companiesRes.json();
 
       // Fetch projects
-      const projectsRes = await fetch("http://localhost:5000/api/projects");
+      const projectsRes = await fetch("${API_URL}/projects");
       const projects = await projectsRes.json();
 
       // Fetch time entries
-      const entriesRes = await fetch("http://localhost:5000/api/time-entries");
+      const entriesRes = await fetch("${API_URL}/time-entries");
       const entries = await entriesRes.json();
 
       // Fetch vacation requests
-      const vacationsRes = await fetch("http://localhost:5000/api/vacation-requests");
+      const vacationsRes = await fetch("${API_URL}/vacation-requests");
       const vacations = await vacationsRes.json();
 
       // Calculate stats

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { API_URL } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Clock, Search, Download, Calendar, ChevronLeft, ChevronRight, User, Building } from "lucide-react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
+import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
 
 dayjs.extend(isoWeek);
+dayjs.extend(isBetween);
 dayjs.locale("nl");
 
 export default function ManagerTeamHoursPage() {
@@ -29,12 +32,12 @@ export default function ManagerTeamHoursPage() {
     try {
       const managerId = Number(localStorage.getItem("userId"));
       
-      const usersRes = await fetch("http://localhost:5000/api/users");
+      const usersRes = await fetch("${API_URL}/users");
       const users = await usersRes.json();
       const team = users.filter((u: any) => u.managerId === managerId);
       setTeamMembers(team);
 
-      const res = await fetch(`http://localhost:5000/api/time-entries/team?managerId=${managerId}`);
+      const res = await fetch(`${API_URL}/time-entries/team?managerId=${managerId}`);
       const data = await res.json();
       setEntries(data);
     } catch (error) {
@@ -49,18 +52,18 @@ export default function ManagerTeamHoursPage() {
 
     // Period filter
     if (viewMode === "week") {
-      const weekStart = currentPeriod.startOf("day");
-      const weekEnd = currentPeriod.add(6, "day").endOf("day");
+      const weekStart = currentPeriod.startOf("isoWeek");
+      const weekEnd = currentPeriod.endOf("isoWeek");
       filtered = filtered.filter(entry => {
         const entryDate = dayjs(entry.startTime);
-        return entryDate.isAfter(weekStart) && entryDate.isBefore(weekEnd);
+        return entryDate.isBetween(weekStart, weekEnd, null, '[]');
       });
     } else {
       const monthStart = currentPeriod.startOf("month");
       const monthEnd = currentPeriod.endOf("month");
       filtered = filtered.filter(entry => {
         const entryDate = dayjs(entry.startTime);
-        return entryDate.isAfter(monthStart) && entryDate.isBefore(monthEnd);
+        return entryDate.isBetween(monthStart, monthEnd, null, '[]');
       });
     }
 

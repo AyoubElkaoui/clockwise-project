@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
 
 const managerMenuItems = [
-  { icon: Shield, label: "Manager Panel", href: "/manager/team", badgeKey: null },
+  { icon: LayoutDashboard, label: "Manager Dashboard", href: "/manager/dashboard", badgeKey: null },
   { icon: Users, label: "Mijn Team", href: "/manager/team", badgeKey: null },
   { icon: CheckCircle2, label: "Goedkeuringen", href: "/manager/approve", badgeKey: "pendingApprovals" },
   { icon: Clock, label: "Team Uren", href: "/manager/hours", badgeKey: null },

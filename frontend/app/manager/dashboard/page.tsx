@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,15 +33,15 @@ export default function ManagerDashboard() {
       const managerId = Number(localStorage.getItem("userId"));
       
       // Load team time entries
-      const entriesRes = await fetch(`http://localhost:5000/api/time-entries/team?managerId=${managerId}`);
+      const entriesRes = await fetch(`${API_URL}/time-entries/team?managerId=${managerId}`);
       const entries = await entriesRes.json();
       
       // Load vacation requests
-      const vacationsRes = await fetch("http://localhost:5000/api/vacation-requests");
+      const vacationsRes = await fetch("${API_URL}/vacation-requests");
       const vacations = await vacationsRes.json();
       
       // Load team members
-      const usersRes = await fetch("http://localhost:5000/api/users");
+      const usersRes = await fetch("${API_URL}/users");
       const users = await usersRes.json();
       const team = users.filter((u: any) => u.managerId === managerId);
 
@@ -98,7 +99,7 @@ export default function ManagerDashboard() {
 
   const handleApprove = async (id: number) => {
     try {
-      await fetch(`http://localhost:5000/api/time-entries/${id}/approve`, {
+      await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: true }),
@@ -111,7 +112,7 @@ export default function ManagerDashboard() {
 
   const handleReject = async (id: number) => {
     try {
-      await fetch(`http://localhost:5000/api/time-entries/${id}/approve`, {
+      await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: false }),

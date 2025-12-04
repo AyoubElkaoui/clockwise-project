@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { API_URL } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, User, Mail, Lock, MapPin, Home } from "lucide-react";
 
@@ -25,7 +26,7 @@ export default function CreateUserPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/users/register", {
+      const response = await fetch("${API_URL}/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

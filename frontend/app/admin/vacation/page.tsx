@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { API_URL } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ export default function AdminVacationPage() {
 
   const loadRequests = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/vacation-requests");
+      const res = await fetch("${API_URL}/vacation-requests");
       const data = await res.json();
       setRequests(data);
     } catch (error) {
@@ -55,7 +56,7 @@ export default function AdminVacationPage() {
 
   const handleApprove = async (id: number, managerComment: string) => {
     try {
-      await fetch(`http://localhost:5000/api/vacation-requests/${id}`, {
+      await fetch(`${API_URL}/vacation-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,7 +76,7 @@ export default function AdminVacationPage() {
 
   const handleReject = async (id: number, managerComment: string) => {
     try {
-      await fetch(`http://localhost:5000/api/vacation-requests/${id}`, {
+      await fetch(`${API_URL}/vacation-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

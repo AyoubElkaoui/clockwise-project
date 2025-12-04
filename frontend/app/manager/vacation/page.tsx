@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,11 +30,11 @@ export default function ManagerVacationPage() {
   const loadRequests = async () => {
     try {
       const managerId = Number(localStorage.getItem("userId"));
-      const usersRes = await fetch("http://localhost:5000/api/users");
+      const usersRes = await fetch("${API_URL}/users");
       const users = await usersRes.json();
       const teamIds = users.filter((u: any) => u.managerId === managerId).map((u: any) => u.id);
 
-      const res = await fetch("http://localhost:5000/api/vacation-requests");
+      const res = await fetch("${API_URL}/vacation-requests");
       const data = await res.json();
       
       // Filter for team members only
@@ -64,7 +65,7 @@ export default function ManagerVacationPage() {
 
   const handleApprove = async (id: number, comment: string) => {
     try {
-      await fetch(`http://localhost:5000/api/vacation-requests/${id}`, {
+      await fetch(`${API_URL}/vacation-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -84,7 +85,7 @@ export default function ManagerVacationPage() {
 
   const handleReject = async (id: number, comment: string) => {
     try {
-      await fetch(`http://localhost:5000/api/vacation-requests/${id}`, {
+      await fetch(`${API_URL}/vacation-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ export default function ManagerApprovePage() {
   const loadEntries = async () => {
     try {
       const managerId = Number(localStorage.getItem("userId"));
-      const res = await fetch(`http://localhost:5000/api/time-entries/team?managerId=${managerId}`);
+      const res = await fetch(`${API_URL}/time-entries/team?managerId=${managerId}`);
       const data = await res.json();
       setEntries(data);
     } catch (error) {
@@ -55,7 +56,7 @@ export default function ManagerApprovePage() {
 
   const handleApprove = async (id: number) => {
     try {
-      await fetch(`http://localhost:5000/api/time-entries/${id}/approve`, {
+      await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: true }),
@@ -70,7 +71,7 @@ export default function ManagerApprovePage() {
 
   const handleReject = async (id: number) => {
     try {
-      await fetch(`http://localhost:5000/api/time-entries/${id}/approve`, {
+      await fetch(`${API_URL}/time-entries/${id}/approve`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approved: false }),

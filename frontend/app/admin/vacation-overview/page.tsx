@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import { Calendar, Users, TrendingUp, Loader2, Download } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
@@ -63,7 +64,7 @@ export default function VacationOverviewPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/vacation-requests/annual-overview?year=${selectedYear}`
+        `${API_URL}/vacation-requests/annual-overview?year=${selectedYear}`
       );
       if (!response.ok) throw new Error("Failed to load overview");
       const result = await response.json();

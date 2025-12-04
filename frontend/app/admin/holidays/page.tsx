@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import { Calendar, Plus, Trash2, Edit2, Loader2 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
@@ -64,8 +65,8 @@ export default function HolidaysPage() {
     setLoading(true);
     try {
       const [holidaysRes, companiesRes] = await Promise.all([
-        fetch("http://localhost:5000/api/holidays"),
-        fetch("http://localhost:5000/api/companies"),
+        fetch("${API_URL}/holidays"),
+        fetch("${API_URL}/companies"),
       ]);
       const holidaysData = await holidaysRes.json();
       const companiesData = await companiesRes.json();
@@ -83,8 +84,8 @@ export default function HolidaysPage() {
     e.preventDefault();
     try {
       const url = editingId
-        ? `http://localhost:5000/api/holidays/${editingId}`
-        : "http://localhost:5000/api/holidays";
+        ? `${API_URL}/holidays/${editingId}`
+        : "${API_URL}/holidays";
       const method = editingId ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -112,7 +113,7 @@ export default function HolidaysPage() {
     if (!confirm("Weet je zeker dat je deze dag wilt verwijderen?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/holidays/${id}`, {
+      const response = await fetch(`${API_URL}/holidays/${id}`, {
         method: "DELETE",
       });
 

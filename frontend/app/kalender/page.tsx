@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -36,7 +37,7 @@ export default function KalenderPage() {
       const userId = Number(localStorage.getItem("userId"));
       if (!userId) return;
 
-      const res = await fetch(`http://localhost:5000/api/time-entries/user/${userId}`);
+      const res = await fetch(`${API_URL}/time-entries/user/${userId}`);
       const data = await res.json();
       
       // Filter entries for current month
