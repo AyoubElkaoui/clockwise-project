@@ -23,6 +23,7 @@ import { ToastContainer } from "@/components/Toast";
 import type { ToastType } from "@/components/Toast";
 import { getUser, updateUser } from "@/lib/api";
 import { getUserId } from "@/lib/auth-utils";
+import { useLanguage } from "@/lib/language-context";
 
 interface ToastMessage {
   id: string;
@@ -46,6 +47,7 @@ interface UserData {
 }
 
 export default function AccountPage() {
+  const { t } = useLanguage();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -214,7 +216,7 @@ export default function AccountPage() {
           {/* Page Header */}
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              Mijn Account 
+              {t("account.title")}
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
               Beheer je profiel en account instellingen

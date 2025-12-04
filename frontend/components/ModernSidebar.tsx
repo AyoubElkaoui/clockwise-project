@@ -27,6 +27,7 @@ import { MiniCalendar } from "./MiniCalendar";
 import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
 import { HelpCircle } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 
 /* ======================
@@ -47,21 +48,21 @@ type BadgesState = Record<BadgeKey, number | null>;
 /* ======================
    Menu items
 ====================== */
-const werknemerMenuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", rank: "all" },
-  { icon: Clock, label: "Uren Registreren", href: "/tijd-registratie", rank: "all" },
-  { icon: List, label: "Uren Overzicht", href: "/uren-overzicht", rank: "all" },
-  { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
+const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
+  { icon: LayoutDashboard, label: t("nav.dashboard"), href: "/dashboard", rank: "all" },
+  { icon: Clock, label: t("nav.hours"), href: "/tijd-registratie", rank: "all" },
+  { icon: List, label: t("nav.overview"), href: "/uren-overzicht", rank: "all" },
+  { icon: Plane, label: t("nav.vacation"), href: "/vakantie", rank: "all" },
   {
     icon: Bell,
-    label: "Notificaties",
+    label: t("nav.notifications"),
     href: "/notificaties",
     badgeKey: "unreadNotifications",
     rank: "all",
   },
-  { icon: User, label: "Mijn Account", href: "/account", rank: "all" },
-  { icon: Settings, label: "Instellingen", href: "/instellingen", rank: "all" },
-  { icon: HelpCircle, label: "FAQ", href: "/faq", rank: "all" },
+  { icon: User, label: t("nav.account"), href: "/account", rank: "all" },
+  { icon: Settings, label: t("nav.settings"), href: "/instellingen", rank: "all" },
+  { icon: HelpCircle, label: t("nav.faq"), href: "/faq", rank: "all" },
 ];
 
 const managerMenuItems: MenuItem[] = [
@@ -98,6 +99,7 @@ const adminMenuItems: MenuItem[] = [
 ====================== */
 export function ModernSidebar() {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [collapsed, setCollapsed] = useState(false);
@@ -144,12 +146,12 @@ export function ModernSidebar() {
   }, [loadBadges]);
 
   const menuItems = useMemo(() => {
-    let items: MenuItem[] = [...werknemerMenuItems];
+    let items: MenuItem[] = [...getWerknemerMenuItems(t)];
 
     if (userRank === "admin") {
-      items = [...adminMenuItems, ...werknemerMenuItems];
+      items = [...adminMenuItems, ...getWerknemerMenuItems(t)];
     } else if (userRank === "manager") {
-      items = [...managerMenuItems, ...werknemerMenuItems];
+      items = [...managerMenuItems, ...getWerknemerMenuItems(t)];
     }
 
     // Remove duplicates by href
@@ -161,7 +163,7 @@ export function ModernSidebar() {
       ...item,
       badge: item.badgeKey ? badges[item.badgeKey] : null,
     }));
-  }, [userRank, badges]);
+  }, [userRank, badges, t]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -300,7 +302,7 @@ export function ModernSidebar() {
             )}
           >
             <LogOut className="w-5 h-5" />
-            {!collapsed && <span className="font-medium">Uitloggen</span>}
+            {!collapsed && <span className="font-medium">{t("nav.logout")}</span>}
           </button>
         </div>
       </div>
