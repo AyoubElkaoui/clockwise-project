@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { ToastContainer } from "@/components/Toast";
 import type { ToastType } from "@/components/Toast";
 import { getUser, updateUser } from "@/lib/api";
+import { getUserId } from "@/lib/auth-utils";
 
 interface ToastMessage {
   id: string;
