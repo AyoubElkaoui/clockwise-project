@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: clockwise-backend
+    runtime: docker
+    dockerfile: backend/Dockerfile.prod
+    region: eu-west-1
+    plan: starter
+    envVars:
+      - key: SEED_ON_START
+        value: "true"
+      - key: DatabaseType
+        value: "firebird"
+    autoDeploy: true
