@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,15 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
     serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
     serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+
+    // HTTP on 8080 (for backward compatibility)
+    serverOptions.ListenAnyIP(8080);
+
+    // HTTPS on 443
+    serverOptions.ListenAnyIP(443, listenOptions =>
+    {
+        listenOptions.UseHttps("C:\\clockwise\\cert.pfx", "YourSecurePassword123!");
+    });
 });
 
 // ===== Controllers + JSON =====
