@@ -4,6 +4,17 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ===== Performance optimizations =====
+// Configure Kestrel for production with connection limits
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxConcurrentConnections = 200;
+    serverOptions.Limits.MaxConcurrentUpgradedConnections = 200;
+    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+});
+
 // ===== Controllers + JSON =====
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -12,12 +23,33 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
-// ===== DB context =====
+// ===== Response compression =====
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
+// ===== Response caching =====
+builder.Services.AddResponseCaching();
+
+// ===== Memory cache voor frequently accessed data =====
+builder.Services.AddMemoryCache();
+
+// ===== DB context met connection pooling =====
 // Pakt connection string uit appsettings.json of env var "DefaultConnection"
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DefaultConnection");
+
+// Ensure connection pooling is enabled
+if (!connectionString.Contains("Pooling", StringComparison.OrdinalIgnoreCase))
+{
+    connectionString += ";Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
+}
+
 builder.Services.AddDbContext<ClockwiseDbContext>(opts =>
-    opts.UseFirebird(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? Environment.GetEnvironmentVariable("DefaultConnection"))
+    opts.UseFirebird(connectionString)
+        .EnableSensitiveDataLogging(false) // Disable in production
+        .EnableDetailedErrors(false) // Disable in production
 );
 
 // ===== CORS =====
@@ -62,7 +94,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ===== Middleware volgorde =====
+// ===== Middleware volgorde (optimized for performance) =====
+app.UseResponseCompression(); // Compress responses first
+app.UseResponseCaching(); // Cache responses
 app.UseRouting();
 app.UseCors(CorsPolicyName);
 app.UseAuthorization();
