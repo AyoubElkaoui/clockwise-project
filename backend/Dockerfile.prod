@@ -1,4 +1,4 @@
-# Multi-stage build voor production
+# Multi-stage build для production
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 WORKDIR /src
@@ -10,12 +10,12 @@ RUN apt-get update && \
     echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/fbclient.conf && ldconfig && \
     rm -rf /var/lib/apt/lists/*
 
-# Kopieer project file
-COPY ["backend.csproj", "./"]
+# Kopieer project file - context is repository root
+COPY ["backend/backend.csproj", "./"]
 RUN dotnet restore "backend.csproj"
 
 # Kopieer rest van source
-COPY . .
+COPY ["backend", "."]
 
 # Build
 RUN dotnet build "backend.csproj" -c Release -o /app/build
