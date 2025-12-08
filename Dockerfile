@@ -11,18 +11,18 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Kopieer project file - context is repository root
-COPY ["backend/backend.csproj", "./"]
-RUN dotnet restore "backend.csproj"
+COPY backend/backend.csproj ./
+RUN dotnet restore
 
-# Kopieer rest van source
-COPY ["backend", "."]
+# Kopieer rest van source (node_modules, bin, obj worden genegeerd via .dockerignore)
+COPY backend/ ./
 
 # Build
-RUN dotnet build "backend.csproj" -c Release -o /app/build
+RUN dotnet build -c Release -o /app/build
 
 # Publish
 FROM build AS publish
-RUN dotnet publish "backend.csproj" -c Release -o /app/publish
+RUN dotnet publish -c Release -o /app/publish
 
 # Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
