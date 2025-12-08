@@ -19,4 +19,12 @@ public class ProjectsController : ControllerBase
     {
         return await _context.Projects.ToListAsync();
     }
+
+    [HttpGet("group/{projectGroupId}")]
+    public async Task<ActionResult<IEnumerable<Project>>> GetProjectsByGroup(int projectGroupId)
+    {
+        return await _context.Projects
+            .Where(p => p.ProjectGroupId == projectGroupId)
+            .ToListAsync();
+    }
 }

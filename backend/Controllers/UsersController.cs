@@ -16,13 +16,31 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Haal alle users op (manager/admin-doeleinden)
+    /// Haal alle users op (ADMIN ONLY - zie alles)
     /// GET: /api/users
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
-        return await _context.Users.ToListAsync();
+        return await _context.Users
+            .Include(u => u.Manager)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Haal alleen de team members van de ingelogde manager op
+    /// GET: /api/users/my-team
+    /// </summary>
+    [HttpGet("my-team")]
+    public async Task<ActionResult<IEnumerable<User>>> GetMyTeam([FromQuery] int managerId)
+    {
+        var team = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Include(u => u.Manager)
+            .OrderBy(u => u.FirstName)
+            .ToListAsync();
+        
+        return Ok(team);
     }
 
     /// <summary>
@@ -164,6 +182,29 @@ public class UsersController : ControllerBase
         return Ok("User verwijderd");
     }
 
+    /// <summary>
+    /// Wachtwoord wijzigen
+    /// POST: /api/users/{id}/change-password
+    /// </summary>
+    [HttpPost("{id}/change-password")]
+    public async Task<ActionResult> ChangePassword(int id, [FromBody] ChangePasswordDto dto)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null) return NotFound("Gebruiker niet gevonden");
+
+        // Verify current password
+        if (user.Password != dto.CurrentPassword)
+        {
+            return BadRequest("Huidig wachtwoord is incorrect");
+        }
+
+        // Update to new password
+        user.Password = dto.NewPassword;
+        await _context.SaveChangesAsync();
+
+        return Ok("Wachtwoord succesvol gewijzigd");
+    }
+
     private bool UserExists(int id)
     {
         return _context.Users.Any(e => e.Id == id);
@@ -203,4 +244,10 @@ public class UserUpdateDto
     public string City { get; set; }
     public string LoginName { get; set; }
     public string Password { get; set; }
+}
+
+public class ChangePasswordDto
+{
+    public string CurrentPassword { get; set; }
+    public string NewPassword { get; set; }
 }

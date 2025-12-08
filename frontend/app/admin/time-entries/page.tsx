@@ -254,9 +254,9 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
     return (
         <AdminRoute>
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-8">
                 {/* Header Section */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                     <div className="flex items-center gap-3 mb-4">
                         <ClockIcon className="w-8 h-8" />
                         <h1 className="text-4xl font-bold">Uren Beheer</h1>
@@ -266,9 +266,9 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl">
+                            <div className="bg-blue-600 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -278,9 +278,9 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 rounded-xl">
+                            <div className="bg-blue-100 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -290,9 +290,9 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl">
+                            <div className="bg-green-600 p-3 rounded-xl">
                                 <CheckCircleIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -302,9 +302,9 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-red-500 to-red-600 p-3 rounded-xl">
+                            <div className="bg-blue-100 p-3 rounded-xl">
                                 <XCircleIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -314,9 +314,9 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-gray-500 to-gray-600 p-3 rounded-xl">
+                            <div className="bg-blue-100 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -328,7 +328,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                 </div>
 
                 {/* Filters Section */}
-                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
+                <div className="card bg-white shadow-lg border-0 rounded-2xl">
                     <div className="card-body p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <FunnelIcon className="w-6 h-6 text-elmar-primary" />
@@ -338,7 +338,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                    <span className="label-text font-semibold text-gray-700">Datum Startdatum</span>
                                 </label>
                                 <input
                                     type="date"
@@ -350,7 +350,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
                             <div>
                                 <label className="label">
-                                    <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                    <span className="label-text font-semibold text-gray-700">Datum Einddatum</span>
                                 </label>
                                 <input
                                     type="date"
@@ -399,7 +399,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
                         <div className="form-control mt-4">
                             <label className="label">
-                                <span className="label-text font-semibold text-gray-700">🔍 Zoeken</span>
+                                <span className="label-text font-semibold text-gray-700">Zoeken</span>
                             </label>
                             <div className="relative">
                                 <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -415,7 +415,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
 
                         <div className="card-actions justify-end mt-4">
                             <button
-                                className="btn btn-primary rounded-xl hover:scale-105 transition-all duration-200"
+                                className="btn btn-primary rounded-xl"
                                 onClick={() => {
                                     setStartDate(dayjs().subtract(30, 'day').format('YYYY-MM-DD'));
                                     setEndDate(dayjs().format('YYYY-MM-DD'));
@@ -431,7 +431,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                 </div>
 
                 {/* Time Entries Table */}
-                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
+                <div className="card bg-white shadow-lg border-0 rounded-2xl">
                     <div className="card-body p-0">
                         <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
                             <div className="flex items-center justify-between">
@@ -447,15 +447,15 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                             <table className="table w-full">
                                 <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="text-gray-700 font-semibold">📅 Datum</th>
+                                    <th className="text-gray-700 font-semibold">Datum Datum</th>
                                     <th className="text-gray-700 font-semibold">👤 Medewerker</th>
                                     <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
                                     <th className="text-gray-700 font-semibold">📁 Project</th>
-                                    <th className="text-gray-700 font-semibold">⏰ Start</th>
-                                    <th className="text-gray-700 font-semibold">⏰ Eind</th>
-                                    <th className="text-gray-700 font-semibold">⏱️ Uren</th>
-                                    <th className="text-gray-700 font-semibold">📊 Status</th>
-                                    <th className="text-gray-700 font-semibold">⚙️ Acties</th>
+                                    <th className="text-gray-700 font-semibold">Tijd Start</th>
+                                    <th className="text-gray-700 font-semibold">Tijd Eind</th>
+                                    <th className="text-gray-700 font-semibold">Uren Uren</th>
+                                    <th className="text-gray-700 font-semibold">Status</th>
+                                    <th className="text-gray-700 font-semibold">Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -493,7 +493,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                                                 <td>
                                                     <div className="flex items-center gap-2">
                                                         <div className="avatar placeholder">
-                                                            <div className="bg-gradient-elmar text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                                            <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
                                                                     <span className="text-xs font-bold">
                                                                         {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                                                     </span>
@@ -524,7 +524,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                                                 <td>
                                                     <div className="flex gap-2">
                                                         <button
-                                                            className="btn btn-sm btn-outline btn-primary rounded-lg hover:scale-105 transition-all duration-200"
+                                                            className="btn btn-sm btn-outline btn-primary rounded-lg"
                                                             onClick={() => handleViewDetails(entry.id as number)}
                                                             title="Details bekijken"
                                                         >
@@ -533,14 +533,14 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                                                         {entry.status !== 'goedgekeurd' && entry.status !== 'afgekeurd' && (
                                                             <>
                                                                 <button
-                                                                    className="btn btn-sm btn-success rounded-lg hover:scale-105 transition-all duration-200"
+                                                                    className="btn btn-sm btn-success rounded-lg"
                                                                     onClick={() => handleApprove(entry.id as number)}
                                                                     title="Goedkeuren"
                                                                 >
                                                                     <CheckCircleIcon className="w-4 h-4" />
                                                                 </button>
                                                                 <button
-                                                                    className="btn btn-sm btn-error rounded-lg hover:scale-105 transition-all duration-200"
+                                                                    className="btn btn-sm btn-error rounded-lg"
                                                                     onClick={() => handleReject(entry.id as number)}
                                                                     title="Afkeuren"
                                                                 >
@@ -566,7 +566,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                                     <tr>
                                         <td colSpan={9} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-4">
-                                                <div className="text-6xl">⏰</div>
+                                                <div className="text-6xl">Tijd:</div>
                                                 <div className="text-xl font-semibold text-gray-600">Geen entries gevonden</div>
                                                 <div className="text-gray-500">Probeer je filters aan te passen</div>
                                             </div>
@@ -638,7 +638,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                 {/* Details modal */}
                 {showDetailsModal && selectedEntry && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-8 rounded-2xl shadow-elmar-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="bg-white p-8 rounded-2xl shadow-md-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-2xl font-bold text-gray-800">Urenregistratie Details</h3>
                                 <button
@@ -748,7 +748,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                             {selectedEntry.status !== 'goedgekeurd' && selectedEntry.status !== 'afgekeurd' && (
                                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
                                     <button
-                                        className="btn btn-error rounded-xl hover:scale-105 transition-all duration-200"
+                                        className="btn btn-error rounded-xl"
                                         onClick={() => {
                                             handleReject(selectedEntry.id as number);
                                             setShowDetailsModal(false);
@@ -758,7 +758,7 @@ export default function AdminTimeEntriesPage(): JSX.Element {
                                         Afkeuren
                                     </button>
                                     <button
-                                        className="btn btn-success rounded-xl hover:scale-105 transition-all duration-200"
+                                        className="btn btn-success rounded-xl"
                                         onClick={() => {
                                             handleApprove(selectedEntry.id as number);
                                             setShowDetailsModal(false);

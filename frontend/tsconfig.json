@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "baseUrl": ".",
     "plugins": [
       {
         "name": "next"
@@ -37,10 +38,6 @@
     "allowUnusedLabels": true,
     "allowUnreachableCode": true,
     "exactOptionalPropertyTypes": false,
-    "noImplicitUseStrict": true,
-    "noStrictGenericChecks": true,
-    "suppressExcessPropertyErrors": true,
-    "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },

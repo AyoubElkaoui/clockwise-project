@@ -100,9 +100,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
 
     return (
         <AdminRoute>
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-8">
                 {/* Header Section */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
+                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
                     <div className="flex items-center gap-3 mb-4">
                         <CalendarDaysIcon className="w-8 h-8" />
                         <h1 className="text-4xl font-bold">Vakantie-aanvragen Beheer</h1>
@@ -112,9 +112,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl">
+                            <div className="bg-blue-600 p-3 rounded-xl">
                                 <CalendarDaysIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -124,9 +124,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 rounded-xl">
+                            <div className="bg-blue-100 p-3 rounded-xl">
                                 <ClockIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -136,9 +136,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl">
+                            <div className="bg-green-600 p-3 rounded-xl">
                                 <CheckCircleIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -148,9 +148,9 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card hover:shadow-elmar-hover transition-all duration-300">
+                    <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-red-500 to-red-600 p-3 rounded-xl">
+                            <div className="bg-blue-100 p-3 rounded-xl">
                                 <XCircleIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
@@ -162,7 +162,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                 </div>
 
                 {/* Filters */}
-                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
+                <div className="card bg-white shadow-lg border-0 rounded-2xl">
                     <div className="card-body p-8">
                         <div className="flex items-center gap-3 mb-6">
                             <FunnelIcon className="w-6 h-6 text-elmar-primary" />
@@ -188,7 +188,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                 </div>
 
                 {/* Requests Table */}
-                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
+                <div className="card bg-white shadow-lg border-0 rounded-2xl">
                     <div className="card-body p-0">
                         <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
                             <div className="flex items-center gap-3">
@@ -203,12 +203,12 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                 <thead className="bg-gray-50">
                                 <tr>
                                     <th className="text-gray-700 font-semibold">👤 Medewerker</th>
-                                    <th className="text-gray-700 font-semibold">📅 Startdatum</th>
-                                    <th className="text-gray-700 font-semibold">📅 Einddatum</th>
-                                    <th className="text-gray-700 font-semibold">⏰ Uren</th>
-                                    <th className="text-gray-700 font-semibold">📝 Reden</th>
-                                    <th className="text-gray-700 font-semibold">📊 Status</th>
-                                    <th className="text-gray-700 font-semibold">⚙️ Acties</th>
+                                    <th className="text-gray-700 font-semibold">Datum Startdatum</th>
+                                    <th className="text-gray-700 font-semibold">Datum Einddatum</th>
+                                    <th className="text-gray-700 font-semibold">Tijd Uren</th>
+                                    <th className="text-gray-700 font-semibold">Reden</th>
+                                    <th className="text-gray-700 font-semibold">Status</th>
+                                    <th className="text-gray-700 font-semibold">Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -216,7 +216,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                     <tr>
                                         <td colSpan={7} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-4">
-                                                <div className="text-6xl">🏖️</div>
+                                                <div className="text-6xl">Vakantie</div>
                                                 <div className="text-xl font-semibold text-gray-600">
                                                     Geen vakantie-aanvragen gevonden
                                                 </div>
@@ -232,7 +232,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                             <td>
                                                 <div className="flex items-center gap-3">
                                                     <div className="avatar placeholder">
-                                                        <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
+                                                        <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
                                                             <UserIcon className="w-6 h-6" />
                                                         </div>
                                                     </div>
@@ -258,13 +258,13 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                                                 'badge-error'
                                                     }`}>
                                                         {request.status === 'pending' ? '⏳ Openstaand' :
-                                                            request.status === 'approved' ? '✅ Goedgekeurd' : '❌ Afgewezen'}
+                                                            request.status === 'approved' ? 'Goedgekeurd' : 'Afgewezen'}
                                                     </span>
                                             </td>
                                             <td>
                                                 <div className="flex gap-2">
                                                     <button
-                                                        className="btn btn-sm btn-outline btn-primary rounded-lg hover:scale-105 transition-all duration-200"
+                                                        className="btn btn-sm btn-outline btn-primary rounded-lg"
                                                         onClick={() => handleViewDetails(request)}
                                                         title="Details bekijken"
                                                     >
@@ -273,14 +273,14 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                                     {request.status === 'pending' && (
                                                         <>
                                                             <button
-                                                                className="btn btn-sm btn-success rounded-lg hover:scale-105 transition-all duration-200"
+                                                                className="btn btn-sm btn-success rounded-lg"
                                                                 onClick={() => handleApprove(request.id)}
                                                                 title="Goedkeuren"
                                                             >
                                                                 <CheckCircleIcon className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                className="btn btn-sm btn-error rounded-lg hover:scale-105 transition-all duration-200"
+                                                                className="btn btn-sm btn-error rounded-lg"
                                                                 onClick={() => handleReject(request.id)}
                                                                 title="Afwijzen"
                                                             >
@@ -302,7 +302,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                 {/* Details Modal */}
                 {showDetailsModal && selectedRequest && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-8 rounded-2xl shadow-elmar-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="bg-white p-8 rounded-2xl shadow-md-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-2xl font-bold text-gray-800">Vakantie-aanvraag Details</h3>
                                 <button
@@ -347,7 +347,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                                         'badge-error'
                                             }`}>
                                                 {selectedRequest.status === 'pending' ? '⏳ Openstaand' :
-                                                    selectedRequest.status === 'approved' ? '✅ Goedgekeurd' : '❌ Afgewezen'}
+                                                    selectedRequest.status === 'approved' ? 'Goedgekeurd' : 'Afgewezen'}
                                             </span>
                                         </div>
                                     </div>
@@ -366,7 +366,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                             {selectedRequest.status === 'pending' && (
                                 <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
                                     <button
-                                        className="btn btn-error rounded-xl hover:scale-105 transition-all duration-200"
+                                        className="btn btn-error rounded-xl"
                                         onClick={() => {
                                             handleReject(selectedRequest.id);
                                             setShowDetailsModal(false);
@@ -376,7 +376,7 @@ export default function AdminVacationRequestsPage(): JSX.Element {
                                         Afwijzen
                                     </button>
                                     <button
-                                        className="btn btn-success rounded-xl hover:scale-105 transition-all duration-200"
+                                        className="btn btn-success rounded-xl"
                                         onClick={() => {
                                             handleApprove(selectedRequest.id);
                                             setShowDetailsModal(false);

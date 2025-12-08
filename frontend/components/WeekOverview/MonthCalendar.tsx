@@ -121,17 +121,17 @@ export default function MonthCalendar({
                 const isInMonth = isInCurrentMonth(d);
                 const hasHours = hours > 0;
 
-                let cellClass = "border-2 text-center w-12 h-12 text-xs font-medium transition-all duration-200 hover:scale-105 ";
+                let cellClass = "border-2 text-center w-12 h-12 text-xs font-medium ";
 
                 if (isToday) {
-                    cellClass += "bg-gradient-elmar text-white border-elmar-primary shadow-lg ";
+                    cellClass += "bg-blue-600 text-white border-elmar-primary shadow-lg ";
                 } else if (hasHours && isInMonth) {
                     if (hours >= 8) {
-                        cellClass += "bg-gradient-to-br from-green-100 to-green-200 text-green-800 border-green-300 ";
+                        cellClass += "bg-blue-100 text-green-800 border-green-300 ";
                     } else if (hours >= 4) {
-                        cellClass += "bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300 ";
+                        cellClass += "bg-blue-100 text-yellow-800 border-yellow-300 ";
                     } else {
-                        cellClass += "bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 border-blue-300 ";
+                        cellClass += "bg-blue-100 text-blue-800 border-blue-300 ";
                     }
                 } else if (isInMonth) {
                     cellClass += "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 ";
@@ -167,13 +167,13 @@ export default function MonthCalendar({
 
         return (
             <tr key={week.isoWeekNumber} className="text-center">
-                <td className="border-2 font-bold w-10 h-12 text-xs bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700">
+                <td className="border-2 font-bold w-10 h-12 text-xs bg-blue-100 text-gray-700">
                     <div className="flex items-center justify-center h-full">
                         {week.isoWeekNumber}
                     </div>
                 </td>
                 {dayCells}
-                <td className="border-2 w-12 h-12 text-center font-bold text-xs bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800">
+                <td className="border-2 w-12 h-12 text-center font-bold text-xs bg-blue-100 text-blue-800">
                     <div className="flex items-center justify-center h-full">
                         {rowSum > 0 ? formatHours(rowSum) : ""}
                     </div>
@@ -183,7 +183,7 @@ export default function MonthCalendar({
     });
 
     const totalRow = (
-        <tr className="text-center font-bold bg-gradient-to-r from-indigo-100 to-purple-200">
+        <tr className="text-center font-bold bg-blue-100">
             <td className="border-2 w-10 h-10 text-xs text-indigo-800">
                 <div className="flex items-center justify-center h-full">
                     Totaal
@@ -205,11 +205,11 @@ export default function MonthCalendar({
     );
 
     return (
-        <div className="card bg-white shadow-elmar-card border-0 rounded-2xl overflow-hidden">
+        <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
             <div className="card-body p-6">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="bg-gradient-elmar p-3 rounded-xl shadow-lg">
+                    <div className="bg-blue-600 p-3 rounded-xl shadow-lg">
                         <CalendarIcon className="w-6 h-6 text-white"/>
                     </div>
                     <div>
@@ -224,7 +224,7 @@ export default function MonthCalendar({
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                    <div className="bg-blue-100 rounded-xl p-4 border border-blue-200">
                         <div className="flex items-center gap-2 mb-2">
                             <ClockIcon className="w-4 h-4 text-blue-600" />
                             <span className="text-sm font-semibold text-gray-700">Totaal</span>
@@ -234,14 +234,14 @@ export default function MonthCalendar({
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+                    <div className="bg-blue-100 rounded-xl p-4 border border-green-200">
                         <div className="text-sm font-semibold text-gray-700 mb-2">Dagen</div>
                         <div className="text-2xl font-bold text-green-600">
                             {colTotal.filter(sum => sum > 0).length}
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border border-purple-200">
+                    <div className="bg-blue-100 rounded-xl p-4 border border-purple-200">
                         <div className="text-sm font-semibold text-gray-700 mb-2">Gemiddeld</div>
                         <div className="text-2xl font-bold text-purple-600">
                             {monthTotal > 0 ? formatHours(monthTotal / colTotal.filter(sum => sum > 0).length) : "0u"}
@@ -253,7 +253,7 @@ export default function MonthCalendar({
                 <div className="overflow-hidden rounded-xl border-2 border-gray-200">
                     <table className="table-auto border-collapse w-full">
                         <thead>
-                        <tr className="text-center bg-gradient-elmar text-white">
+                        <tr className="text-center bg-blue-600 text-white">
                             <th className="border-2 border-blue-400 w-10 h-10 text-xs font-bold">Wk</th>
                             <th className="border-2 border-blue-400 w-12 h-10 text-xs font-bold">Ma</th>
                             <th className="border-2 border-blue-400 w-12 h-10 text-xs font-bold">Di</th>
@@ -273,23 +273,23 @@ export default function MonthCalendar({
                 </div>
 
                 {/* Legend */}
-                <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
-                    <h4 className="font-semibold text-gray-800 mb-3 text-sm">📊 Legenda</h4>
+                <div className="mt-6 p-4 bg-blue-100 rounded-xl border border-gray-200">
+                    <h4 className="font-semibold text-gray-800 mb-3 text-sm">Legenda</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-gradient-to-br from-green-100 to-green-200 border border-green-300 rounded"></div>
+                            <div className="w-4 h-4 bg-blue-100 border border-green-300 rounded"></div>
                             <span className="text-gray-600">8+ uur</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-gradient-to-br from-yellow-100 to-yellow-200 border border-yellow-300 rounded"></div>
+                            <div className="w-4 h-4 bg-blue-100 border border-yellow-300 rounded"></div>
                             <span className="text-gray-600">4-8 uur</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-gradient-to-br from-blue-100 to-blue-200 border border-blue-300 rounded"></div>
+                            <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
                             <span className="text-gray-600">1-4 uur</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-gradient-elmar rounded"></div>
+                            <div className="w-4 h-4 bg-blue-600 rounded"></div>
                             <span className="text-gray-600">Vandaag</span>
                         </div>
                     </div>
@@ -299,7 +299,7 @@ export default function MonthCalendar({
                 {monthTotal > 0 && (
                     <div className="mt-4 text-center">
                         <div className="text-sm text-gray-600">
-                            💡 Dit is gemiddeld <span className="font-semibold text-elmar-primary">
+                            Dit is gemiddeld <span className="font-semibold text-elmar-primary">
                                 {(monthTotal / 4).toFixed(1)} uur per week
                             </span> deze maand
                         </div>

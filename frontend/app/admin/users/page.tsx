@@ -1,7 +1,6 @@
 "use client";
 import {useState, useEffect, JSX} from "react";
 import { getUsers, deleteUser } from "@/lib/api";
-import AdminRoute from "@/components/AdminRoute";
 import { useRouter } from "next/navigation";
 import ToastNotification from "@/components/ToastNotification";
 import { User } from "@/lib/types";
@@ -129,96 +128,89 @@ export default function AdminUsersPage(): JSX.Element {
     }
 
     return (
-        <AdminRoute>
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-8">
                 {/* Header Section */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <UsersIcon className="w-8 h-8" />
-                                <h1 className="text-4xl font-bold">Gebruikersbeheer</h1>
-                            </div>
-                            <p className="text-blue-100 text-lg">Beheer alle gebruikers en hun rechten</p>
-                        </div>
-                        <button
-                            onClick={() => router.push("/admin/users/create")}
-                            className="btn bg-white/20 border-white/30 text-white hover:bg-white/30 rounded-xl"
-                        >
-                            <UserPlusIcon className="w-5 h-5 mr-2" />
-                            Nieuwe Gebruiker
-                        </button>
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Gebruikersbeheer</h1>
+                        <p className="text-gray-600 dark:text-slate-400">Beheer alle gebruikers en hun rechten</p>
                     </div>
+                    <button
+                        onClick={() => router.push("/admin/users/create")}
+                        className="btn btn-primary gap-2"
+                    >
+                        <UserPlusIcon className="w-5 h-5" />
+                        Nieuwe Gebruiker
+                    </button>
                 </div>
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl">
+                            <div className="bg-blue-600 p-3 rounded-xl">
                                 <UsersIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
-                                <p className="text-gray-600 text-sm font-medium">Totaal</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.length}</p>
+                                <p className="text-gray-600 dark:text-slate-400 text-sm font-medium">Totaal</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.length}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl">
+                            <div className="bg-green-600 p-3 rounded-xl">
                                 <UsersIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
-                                <p className="text-gray-600 text-sm font-medium">Actief</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.rank !== 'inactive').length}</p>
+                                <p className="text-gray-600 dark:text-slate-400 text-sm font-medium">Actief</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.filter(u => u.rank !== 'inactive').length}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl">
+                            <div className="bg-purple-600 p-3 rounded-xl">
                                 <UsersIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
-                                <p className="text-gray-600 text-sm font-medium">Admins</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.rank === 'admin').length}</p>
+                                <p className="text-gray-600 dark:text-slate-400 text-sm font-medium">Admins</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.filter(u => u.rank === 'admin').length}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-6 shadow-elmar-card">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg">
                         <div className="flex items-center gap-4">
-                            <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 rounded-xl">
+                            <div className="bg-orange-600 p-3 rounded-xl">
                                 <UsersIcon className="w-8 h-8 text-white" />
                             </div>
                             <div>
-                                <p className="text-gray-600 text-sm font-medium">Managers</p>
-                                <p className="text-2xl font-bold text-gray-800">{users.filter(u => u.rank === 'manager').length}</p>
+                                <p className="text-gray-600 dark:text-slate-400 text-sm font-medium">Managers</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{users.filter(u => u.rank === 'manager').length}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Search and Filters */}
-                <div className="card bg-white shadow-elmar-card border-0 rounded-2xl">
-                    <div className="card-body p-8">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800">Alle Gebruikers</h2>
-                            <div className="text-sm text-gray-600">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Alle Gebruikers</h2>
+                            <div className="text-sm text-gray-600 dark:text-slate-400">
                                 <span className="font-semibold">{filteredUsers.length}</span> van <span className="font-semibold">{users.length}</span> gebruikers
                             </div>
                         </div>
 
-                        <div className="form-control mb-6">
+                        <div className="mb-6">
                             <div className="relative">
                                 <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
                                     placeholder="Zoek op naam of email..."
-                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl pl-10 w-full"
+                                    className="input input-bordered w-full pl-10"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -227,13 +219,13 @@ export default function AdminUsersPage(): JSX.Element {
 
                         <div className="overflow-x-auto">
                             <table className="table w-full">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-slate-50 dark:bg-slate-700">
                                 <tr>
-                                    <th className="text-gray-700 font-semibold">👤 Gebruiker</th>
-                                    <th className="text-gray-700 font-semibold">📧 Email</th>
-                                    <th className="text-gray-700 font-semibold">💼 Functie</th>
-                                    <th className="text-gray-700 font-semibold">🔑 Rol</th>
-                                    <th className="text-gray-700 font-semibold">⚙️ Acties</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">👤 Gebruiker</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">📧 Email</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">Functie</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">🔑 Rol</th>
+                                    <th className="text-gray-700 dark:text-slate-300 font-semibold">Acties</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -253,7 +245,7 @@ export default function AdminUsersPage(): JSX.Element {
                                                     <td>
                                                         <div className="flex items-center gap-3">
                                                             <div className="avatar placeholder">
-                                                                <div className="bg-gradient-elmar text-white rounded-full w-10 h-10 flex items-center justify-center">
+                                                                <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
                                                                         <span className="text-sm font-bold">
                                                                             {`${user.firstName || ''} ${user.lastName || ''}`.trim().split(' ').map(n => n[0]).join('').substring(0, 2) || 'NN'}
                                                                         </span>
@@ -278,7 +270,7 @@ export default function AdminUsersPage(): JSX.Element {
                                                     <td>
                                                         <div className="flex gap-2">
                                                             <button
-                                                                className="btn btn-sm btn-outline btn-primary rounded-lg hover:scale-105 transition-all duration-200"
+                                                                className="btn btn-sm btn-outline btn-primary rounded-lg"
                                                                 onClick={() => handleEditClick(user.id)}
                                                                 disabled={!user.id}
                                                                 title="Bewerken"
@@ -286,7 +278,7 @@ export default function AdminUsersPage(): JSX.Element {
                                                                 <PencilIcon className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                className="btn btn-sm btn-outline btn-error rounded-lg hover:scale-105 transition-all duration-200"
+                                                                className="btn btn-sm btn-outline btn-error rounded-lg"
                                                                 onClick={() => handleDeleteClick(user.id)}
                                                                 disabled={!user.id}
                                                                 title="Verwijderen"
@@ -324,27 +316,26 @@ export default function AdminUsersPage(): JSX.Element {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
                 </div>
 
                 {/* Delete confirmation modal */}
                 {showDeleteModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-8 rounded-2xl shadow-elmar-lg max-w-md w-full mx-4">
-                            <h3 className="text-xl font-bold mb-4 text-gray-800">Gebruiker verwijderen</h3>
-                            <p className="text-gray-600 mb-6">
+                        <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg max-w-md w-full mx-4">
+                            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Gebruiker verwijderen</h3>
+                            <p className="text-gray-600 dark:text-slate-400 mb-6">
                                 Weet je zeker dat je deze gebruiker wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
                             </p>
 
                             <div className="flex justify-end gap-3">
                                 <button
-                                    className="btn btn-outline rounded-xl"
+                                    className="btn btn-outline"
                                     onClick={() => setShowDeleteModal(false)}
                                 >
                                     Annuleren
                                 </button>
                                 <button
-                                    className="btn btn-error rounded-xl hover:scale-105 transition-all duration-200"
+                                    className="btn btn-error"
                                     onClick={confirmDelete}
                                 >
                                     <TrashIcon className="w-4 h-4 mr-2" />
@@ -359,6 +350,5 @@ export default function AdminUsersPage(): JSX.Element {
                     <ToastNotification message={toastMessage} type={toastType} />
                 )}
             </div>
-        </AdminRoute>
     );
 }

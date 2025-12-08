@@ -44,18 +44,18 @@ export default function LoginPage(): JSX.Element {
             document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
             document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
 
-            // Stuur naar juiste pagina
-            if (user.rank === "admin" || user.rank === "manager") {
+            // Stuur naar juiste dashboard
+            if (user.rank === "admin") {
                 router.push("/admin");
+            } else if (user.rank === "manager") {
+                router.push("/manager/dashboard");
             } else {
                 router.push("/dashboard");
             }
         } catch (e: unknown) {
             if (e instanceof Error) {
-                console.error("Login error:", e.message);
                 setError("Ongeldige inloggegevens. Controleer je e-mail en wachtwoord.");
             } else {
-                console.error("Onbekende fout:", e);
                 setError("Er is een onbekende fout opgetreden. Probeer het opnieuw.");
             }
         } finally {
@@ -73,15 +73,15 @@ export default function LoginPage(): JSX.Element {
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center p-4">
             {/* Background Pattern */}
             <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70-slow"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70-slow"></div>
             </div>
 
             {/* Main Login Card */}
             <div className="relative w-full max-w-md">
-                <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-elmar-card border border-white/50 overflow-hidden">
+                <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-lg border border-white/50 overflow-hidden">
                     {/* Header Section */}
-                    <div className="bg-gradient-elmar p-8 text-white">
+                    <div className="bg-blue-600 p-8 text-white">
                         <div className="flex justify-center mb-6">
                             <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
                                 <Image
@@ -115,7 +115,7 @@ export default function LoginPage(): JSX.Element {
                                         onChange={(e) => setUserInput(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder="voornaam@elmarservices.nl"
-                                        className="input input-bordered w-full pl-10 border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl transition-all duration-200"
+                                        className="input input-bordered w-full pl-10 border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
                                         disabled={isLoading}
                                     />
                                 </div>
@@ -134,7 +134,7 @@ export default function LoginPage(): JSX.Element {
                                         onChange={(e) => setPassword(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder="••••••••"
-                                        className="input input-bordered w-full pl-10 pr-12 border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl transition-all duration-200"
+                                        className="input input-bordered w-full pl-10 pr-12 border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
                                         disabled={isLoading}
                                     />
                                     <button
@@ -165,7 +165,7 @@ export default function LoginPage(): JSX.Element {
                             <button
                                 onClick={handleLogin}
                                 disabled={isLoading || !userInput.trim() || !password.trim()}
-                                className="btn w-full bg-gradient-elmar border-0 text-white rounded-xl py-3 h-auto min-h-0 hover:scale-105 hover:shadow-elmar-hover transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                                className="btn w-full bg-blue-600 border-0 text-white rounded-xl py-3 h-auto min-h-0 hover:shadow-xl disabled:opacity-50 disabled:transform-none"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
@@ -198,8 +198,8 @@ export default function LoginPage(): JSX.Element {
                 </div>
 
                 {/* Floating Elements */}
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse"></div>
-                <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-br from-green-400 to-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-50 animate-pulse"></div>
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-50"></div>
+                <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-50"></div>
             </div>
         </div>
     );

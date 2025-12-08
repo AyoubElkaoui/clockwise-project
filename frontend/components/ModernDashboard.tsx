@@ -1,0 +1,333 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { StatCard } from "./ui/stat-card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import {
+  Clock,
+  Calendar,
+  Plane,
+  TrendingUp,
+  Plus,
+  ChevronRight,
+} from "lucide-react";
+import { formatDateShort, getWeekRange } from "@/lib/utils";
+
+interface TimeEntry {
+  id: number;
+  projectName: string;
+  date: string;
+  hours: number;
+  status: string;
+  description: string;
+}
+
+export default function ModernDashboard() {
+  const [firstName, setFirstName] = useState<string>("");
+  const [stats, setStats] = useState({
+    weekHours: 15.5,
+    monthHours: 65,
+    vacationDays: 12,
+  });
+  const [recentEntries, setRecentEntries] = useState<TimeEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fName = localStorage.getItem("firstName") || "";
+    setFirstName(fName);
+
+    // Simuleer API-data
+    setTimeout(() => {
+      setRecentEntries([
+        {
+          id: 1,
+          projectName: "Website Herontwerp",
+          date: "2025-10-30",
+          hours: 8,
+          status: "In Ontwikkeling",
+          description: "Nieuwe dashboard componenten geïmplementeerd",
+        },
+        {
+          id: 2,
+          projectName: "Mobiele App",
+          date: "2025-10-29",
+          hours: 7.5,
+          status: "In Ontwikkeling",
+          description: "Bug fixes en UI verbeteringen",
+        },
+        {
+          id: 3,
+          projectName: "API Ontwikkeling",
+          date: "2025-10-28",
+          hours: 6,
+          status: "Voltooid",
+          description: "Authenticatie endpoints ontwikkeling",
+        },
+      ]);
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Goedemorgen";
+    if (hour < 18) return "Goedemiddag";
+    return "Goedenavond";
+  };
+
+  const weekRange = getWeekRange();
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(weekRange.start);
+    day.setDate(weekRange.start.getDate() + i);
+    weekDays.push(day);
+  }
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "voltooid":
+      case "goedgekeurd":
+        return "success";
+      case "in ontwikkeling":
+      case "in behandeling":
+        return "info";
+      case "afgewezen":
+        return "danger";
+      default:
+        return "default";
+    }
+  };
+
+  return (
+  <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
+    
+ 
+    {/* === Dashboard Content === */}
+    <main className="p-6 md:p-10 space-y-8">
+
+      {/* Welcome Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+          {getGreeting()}, {firstName}! 👋
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400 text-lg">
+          Welkom terug op je dashboard. Hier is een overzicht van je week.
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="Gewone Uren Deze Week"
+          value={`${stats.weekHours}u`}
+          subtitle="van 40u deze week"
+          icon={<Clock className="w-6 h-6" />}
+          iconBgColor="bg-blue-600"
+          trend={{ value: "+2.5u", isPositive: true }}
+        />
+        <StatCard
+          title="Totaal Deze Maand"
+          value={`${stats.monthHours}u`}
+          subtitle="18 werkdagen"
+          icon={<Calendar className="w-6 h-6" />}
+          iconBgColor="bg-green-600"
+        />
+        <StatCard
+          title="Vakantiedagen Resterend"
+          value={`${stats.vacationDays} dagen`}
+          subtitle="Over van 25 dagen"
+          icon={<Plane className="w-6 h-6" />}
+          iconBgColor="bg-purple-600"
+        />
+      </div>
+
+      {/* Hoofdsecties */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Uren Invoeren */}
+        <Card variant="elevated" padding="lg" className="lg:col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+          <CardHeader>
+            <CardTitle className="text-slate-900 dark:text-slate-100">Uren Invoeren</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-4">
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                  Project
+                </label>
+                <select className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500">
+                  <option>Selecteer project...</option>
+                  <option>Website Herontwerp</option>
+                  <option>Mobiele App</option>
+                  <option>API Ontwikkeling</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Voortgang deze week</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    {stats.weekHours}u{" "}
+                    <span className="text-sm text-slate-500 dark:text-slate-400">/ 40u</span>
+                  </p>
+                </div>
+                <div className="flex items-center text-green-600 dark:text-green-400">
+                  <TrendingUp className="w-5 h-5 mr-1" />
+                  <span className="text-sm font-medium">Op schema</span>
+                </div>
+              </div>
+
+              <div className="w-full bg-slate-300 dark:bg-slate-700 rounded-full h-2">
+                <div
+                  className="bg-blue-100 h-2 rounded-full"
+                  style={{ width: `${(stats.weekHours / 40) * 100}%` }}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
+                  Beschrijving
+                </label>
+                <textarea
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 resize-none"
+                  rows={3}
+                  placeholder="Waar heb je vandaag aan gewerkt?"
+                />
+              </div>
+
+              <Button className="w-full" size="lg">
+                <Plus className="w-5 h-5 mr-2" />
+                Uren Invoeren
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Week Overzicht */}
+        <Card variant="elevated" padding="lg" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between text-slate-900 dark:text-slate-100">
+              <span>Week Overzicht</span>
+              <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
+                Huidige Week
+              </span>
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-3">
+              {weekDays.map((day, index) => {
+                const isToday =
+                  day.toDateString() === new Date().toDateString();
+                const dayHours = index < 3 ? Math.random() * 8 + 4 : 0;
+
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      isToday
+                        ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-800"
+                        : "bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p
+                          className={`text-sm font-medium ${
+                            isToday
+                              ? "text-blue-800 dark:text-blue-300"
+                              : "text-slate-900 dark:text-slate-100"
+                          }`}
+                        >
+                          {day.toLocaleDateString("nl-NL", {
+                            weekday: "short",
+                          })}
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          {formatDateShort(day)}
+                        </p>
+                      </div>
+
+                      {dayHours > 0 ? (
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                            {dayHours.toFixed(1)}u
+                          </p>
+                          <Badge variant="success" size="sm">
+                            Goedgekeurd
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          Geen uren
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* Tijd Registraties */}
+      <Card variant="elevated" padding="lg" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-slate-900 dark:text-slate-100">Tijd Registraties</CardTitle>
+            <Button variant="ghost" size="sm">
+              Bekijk alles
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          {loading ? (
+            <p className="text-slate-600 dark:text-slate-400">Laden...</p>
+          ) : (
+            <div className="space-y-4">
+              {recentEntries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-4 p-4 bg-slate-100 dark:bg-slate-900 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer group"
+                >
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                    {entry.hours}u
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-slate-900 dark:text-slate-100">
+                        {entry.projectName}
+                      </p>
+                      <Badge variant={getStatusBadgeVariant(entry.status)} size="sm">
+                        {entry.status}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                      {entry.description}
+                    </p>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      {formatDateShort(entry.date)}
+                    </p>
+                  </div>
+
+                  <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-blue-400 transition-colors" />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </main>
+  </div>
+);

@@ -14,13 +14,50 @@ public class VacationRequestsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/vacation-requests
+    // GET: api/vacation-requests (ADMIN - alle vakantie aanvragen)
     [HttpGet]
     public async Task<ActionResult<IEnumerable<VacationRequest>>> GetVacationRequests()
     {
         return await _context.VacationRequests
             .Include(v => v.User)
+            .OrderByDescending(v => v.StartDate)
             .ToListAsync();
+    }
+
+    // GET: api/vacation-requests/team?managerId=5 (MANAGER - team vakantie)
+    [HttpGet("team")]
+    public async Task<ActionResult<IEnumerable<VacationRequest>>> GetTeamVacationRequests([FromQuery] int managerId)
+    {
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        var vacations = await _context.VacationRequests
+            .Include(v => v.User)
+            .Where(v => teamMemberIds.Contains(v.UserId))
+            .OrderByDescending(v => v.StartDate)
+            .ToListAsync();
+
+        return Ok(vacations);
+    }
+
+    // GET: api/vacation-requests/team/pending?managerId=5 (MANAGER - pending)
+    [HttpGet("team/pending")]
+    public async Task<ActionResult<IEnumerable<VacationRequest>>> GetTeamPendingVacations([FromQuery] int managerId)
+    {
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        var pending = await _context.VacationRequests
+            .Include(v => v.User)
+            .Where(v => teamMemberIds.Contains(v.UserId) && v.Status == "pending")
+            .OrderByDescending(v => v.StartDate)
+            .ToListAsync();
+
+        return Ok(pending);
     }
 
     // POST: api/vacation-requests
@@ -86,5 +123,49 @@ public class VacationRequestsController : ControllerBase
         _context.VacationRequests.Remove(vacation);
         await _context.SaveChangesAsync();
         return Ok("Vakantie verwijderd");
+    }
+
+    // GET: api/vacation-requests/annual-overview?year=2025
+    [HttpGet("annual-overview")]
+    public async Task<ActionResult<object>> GetAnnualVacationOverview([FromQuery] int? year)
+    {
+        var targetYear = year ?? DateTime.UtcNow.Year;
+
+        var users = await _context.Users
+            .Where(u => u.Rank == "user" || u.Rank == "manager")
+            .ToListAsync();
+
+        var vacations = await _context.VacationRequests
+            .Where(v => v.Status == "approved" && 
+                   (v.StartDate.Year == targetYear || v.EndDate.Year == targetYear))
+            .ToListAsync();
+
+        var overview = users.Select(user => {
+            var userVacations = vacations.Where(v => v.UserId == user.Id).ToList();
+            var totalHours = userVacations.Sum(v => v.Hours);
+            var totalDays = totalHours / 8.0;
+
+            return new {
+                UserId = user.Id,
+                UserName = $"{user.FirstName} {user.LastName}",
+                Email = user.Email,
+                TotalVacationDays = totalDays,
+                TotalVacationHours = totalHours,
+                ApprovedRequests = userVacations.Count,
+                Requests = userVacations.Select(v => new {
+                    v.Id,
+                    v.StartDate,
+                    v.EndDate,
+                    v.Hours,
+                    Days = v.Hours / 8.0,
+                    v.Reason
+                }).OrderBy(v => v.StartDate)
+            };
+        }).OrderByDescending(u => u.TotalVacationDays);
+
+        return Ok(new {
+            Year = targetYear,
+            Overview = overview
+        });
     }
 }

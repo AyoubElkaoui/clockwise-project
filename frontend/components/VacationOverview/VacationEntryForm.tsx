@@ -206,7 +206,7 @@ export default function VacationEntryForm() {
 
     if (loadingBalance) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+            <div className="min-h-screen bg-blue-100 flex items-center justify-center">
                 <div className="text-center">
                     <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
                     <p className="text-lg font-semibold text-gray-700">Vakantie gegevens laden...</p>
@@ -216,16 +216,16 @@ export default function VacationEntryForm() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="min-h-screen bg-blue-100 p-4">
             {/* Background Pattern */}
             <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse-slow"></div>
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70-slow"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70-slow"></div>
             </div>
 
             <div className="relative max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="bg-gradient-elmar text-white rounded-2xl p-8 shadow-elmar-card mb-8">
+                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg mb-8">
                     <div className="flex items-center justify-between">
                         <div>
                             <div className="flex items-center gap-3 mb-4">
@@ -251,11 +251,11 @@ export default function VacationEntryForm() {
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     {/* Main Form */}
                     <div className="xl:col-span-2">
-                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl overflow-hidden">
+                        <div className="card bg-white/80 backdrop-blur-lg shadow-lg border border-white/50 rounded-2xl overflow-hidden">
                             <div className="card-body p-8">
                                 {/* Vakantie Balans */}
                                 {vacationBalance && (
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-8 border border-green-200">
+                                    <div className="bg-blue-100 rounded-xl p-6 mb-8 border border-green-200">
                                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                             <CurrencyEuroIcon className="w-6 h-6 text-green-600" />
                                             Jouw Vakantie Balans {vacationBalance.year}
@@ -288,7 +288,7 @@ export default function VacationEntryForm() {
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-4">
                                                 <div
-                                                    className="bg-gradient-to-r from-orange-400 to-orange-600 h-4 rounded-full transition-all duration-300"
+                                                    className="bg-blue-100 h-4 rounded-full"
                                                     style={{ width: `${(vacationBalance.usedHours / vacationBalance.totalHours) * 100}%` }}
                                                 ></div>
                                             </div>
@@ -297,7 +297,7 @@ export default function VacationEntryForm() {
                                 )}
 
                                 {/* Date Selection */}
-                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-200">
+                                <div className="bg-blue-100 rounded-xl p-6 mb-8 border border-blue-200">
                                     <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                         <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
                                         Selecteer Periode
@@ -306,7 +306,7 @@ export default function VacationEntryForm() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="form-control">
                                             <label className="label">
-                                                <span className="label-text font-semibold text-gray-700">📅 Startdatum</span>
+                                                <span className="label-text font-semibold text-gray-700">Datum Startdatum</span>
                                             </label>
                                             <input
                                                 type="date"
@@ -319,7 +319,7 @@ export default function VacationEntryForm() {
 
                                         <div className="form-control">
                                             <label className="label">
-                                                <span className="label-text font-semibold text-gray-700">📅 Einddatum</span>
+                                                <span className="label-text font-semibold text-gray-700">Datum Einddatum</span>
                                             </label>
                                             <input
                                                 type="date"
@@ -333,7 +333,7 @@ export default function VacationEntryForm() {
                                 </div>
 
                                 {/* Reason */}
-                                <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl p-6 mb-8 border border-purple-200">
+                                <div className="bg-blue-100 rounded-xl p-6 mb-8 border border-purple-200">
                                     <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                         <InformationCircleIcon className="w-6 h-6 text-purple-600" />
                                         Reden voor Vakantie
@@ -385,9 +385,9 @@ export default function VacationEntryForm() {
 
                                 {/* Submit Button */}
                                 <button
-                                    className={`btn w-full py-4 h-auto min-h-0 rounded-xl hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:transform-none ${
+                                    className={`btn w-full py-4 h-auto min-h-0 rounded-xl disabled:opacity-50 disabled:transform-none ${
                                         canSubmit && workDays > 0
-                                            ? 'bg-gradient-elmar border-0 text-white hover:shadow-elmar-hover'
+                                            ? 'bg-blue-600 border-0 text-white hover:shadow-xl'
                                             : 'btn-disabled'
                                     }`}
                                     onClick={handleSubmit}
@@ -412,7 +412,7 @@ export default function VacationEntryForm() {
                     {/* Sidebar */}
                     <div className="xl:col-span-1 space-y-6">
                         {/* Calculation Preview */}
-                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl">
+                        <div className="card bg-white/80 backdrop-blur-lg shadow-lg border border-white/50 rounded-2xl">
                             <div className="card-body p-6">
                                 <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                     <ClockIcon className="w-6 h-6 text-elmar-primary" />
@@ -444,7 +444,7 @@ export default function VacationEntryForm() {
 
                                     <hr className="my-4" />
 
-                                    <div className="flex justify-between items-center p-4 bg-gradient-elmar text-white rounded-xl">
+                                    <div className="flex justify-between items-center p-4 bg-blue-600 text-white rounded-xl">
                                         <span className="font-bold">Uren benodigd:</span>
                                         <span className="text-xl font-bold">{requestedHours} uur</span>
                                     </div>
@@ -464,7 +464,7 @@ export default function VacationEntryForm() {
                         </div>
 
                         {/* Info Box */}
-                        <div className="card bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-2xl">
+                        <div className="card bg-blue-100 border-2 border-yellow-200 rounded-2xl">
                             <div className="card-body p-6">
                                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <InformationCircleIcon className="w-5 h-5 text-yellow-600" />
@@ -481,13 +481,13 @@ export default function VacationEntryForm() {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="card bg-white/80 backdrop-blur-lg shadow-elmar-card border border-white/50 rounded-2xl">
+                        <div className="card bg-white/80 backdrop-blur-lg shadow-lg border border-white/50 rounded-2xl">
                             <div className="card-body p-6">
                                 <h4 className="font-bold text-gray-800 mb-3">Snelle Acties</h4>
                                 <div className="space-y-2">
                                     <button
                                         onClick={() => router.push("/vacation")}
-                                        className="btn btn-outline btn-primary rounded-xl w-full justify-start hover:scale-105 transition-all duration-200"
+                                        className="btn btn-outline btn-primary rounded-xl w-full justify-start"
                                     >
                                         <ArrowLeftIcon className="w-4 h-4 mr-2" />
                                         Terug naar Overzicht

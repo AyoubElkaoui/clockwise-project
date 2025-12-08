@@ -122,9 +122,9 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
 
     const getStatusColor = (): string => {
         if (totalHours === 0) return "border-gray-200 bg-gradient-to-r from-gray-50 to-white";
-        if (totalHours >= 8) return "border-green-200 bg-gradient-to-r from-green-50 to-emerald-50";
-        if (totalHours >= 4) return "border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50";
-        return "border-orange-200 bg-gradient-to-r from-orange-50 to-red-50";
+        if (totalHours >= 8) return "border-green-200 bg-blue-100";
+        if (totalHours >= 4) return "border-yellow-200 bg-blue-100";
+        return "border-orange-200 bg-blue-100";
     };
 
     const getHoursColor = (): string => {
@@ -147,7 +147,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
     return (
         <>
             <div className={`
-                relative overflow-hidden rounded-xl border-2 transition-all duration-200 hover:shadow-md
+                relative overflow-hidden rounded-xl border-2 hover:shadow-md
                 ${isToday ? 'ring-1 ring-elmar-primary ring-opacity-30' : ''}
                 ${getStatusColor()}
             `}>
@@ -183,7 +183,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     <div className="mb-3">
                         <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
-                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                className={`h-1.5 rounded-full ${
                                     totalHours >= 8 ? 'bg-green-500' :
                                         totalHours >= 4 ? 'bg-yellow-500' : 'bg-orange-500'
                                 }`}
@@ -199,7 +199,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     {entries.length === 0 ? (
                         <div className="text-center py-3">
                             <p className="text-xs text-gray-500">
-                                {isWeekend ? '🌅 Weekend' : '⏰ Geen uren'}
+                                {isWeekend ? 'Weekend Weekend' : 'Tijd Geen uren'}
                             </p>
                         </div>
                     ) : (
@@ -209,7 +209,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                     if (!entry.startTime || !entry.endTime) {
                                         return (
                                             <div key={index} className="text-xs text-error bg-red-50 p-2 rounded">
-                                                ⚠️ Ongeldige entry
+                                                Ongeldige entry
                                             </div>
                                         );
                                     }
@@ -220,7 +220,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                     if (!start.isValid() || !end.isValid()) {
                                         return (
                                             <div key={index} className="text-xs text-error bg-red-50 p-2 rounded">
-                                                ⚠️ Ongeldige tijd
+                                                Ongeldige tijd
                                             </div>
                                         );
                                     }
@@ -241,7 +241,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                     return (
                                         <div
                                             key={entry.id || index}
-                                            className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-sm ${getEntryStatusBg()}`}
+                                            className={`p-3 rounded-lg border hover:shadow-sm ${getEntryStatusBg()}`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
@@ -262,8 +262,8 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                                 </div>
 
                                                 <div className="flex items-center gap-1">
-                                                    {entry.status === 'goedgekeurd' && <span className="text-xs">✅</span>}
-                                                    {entry.status === 'afgekeurd' && <span className="text-xs">❌</span>}
+                                                    {entry.status === 'goedgekeurd' && <span className="text-xs">[OK]</span>}
+                                                    {entry.status === 'afgekeurd' && <span className="text-xs">[X]</span>}
                                                     {entry.status === 'ingeleverd' && <span className="text-xs">⏳</span>}
 
                                                     {canEdit && (
@@ -314,7 +314,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                     console.warn("Error rendering entry:", entry, error);
                                     return (
                                         <div key={index} className="text-xs text-error bg-red-50 p-2 rounded">
-                                            ⚠️ Fout bij laden
+                                            Fout bij laden
                                         </div>
                                     );
                                 }
@@ -335,7 +335,7 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                     {canEdit && (
                         <button
                             onClick={handleAddEntry}
-                            className="btn btn-sm bg-gradient-elmar border-0 text-white w-full rounded-lg hover:scale-105 transition-all duration-200 mt-3"
+                            className="btn btn-sm bg-blue-600 border-0 text-white w-full rounded-lg mt-3"
                         >
                             <PlusIcon className="w-4 h-4 mr-1" />
                             {entries.length === 0 ? 'Uren Toevoegen' : 'Nieuwe Entry'}
@@ -348,8 +348,8 @@ function DayEntry({ date, entries, onUpdate, weekStatus, onShowToast, onSelectEn
                                 weekStatus === 'goedgekeurd' ? 'bg-green-100 text-green-800' :
                                     weekStatus === 'ingeleverd' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                             }`}>
-                                {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
-                                    weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' : '❌ Afgekeurd'}
+                                {weekStatus === 'goedgekeurd' ? 'Goedgekeurd' :
+                                    weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' : 'Afgekeurd'}
                             </span>
                         </div>
                     )}
@@ -386,6 +386,8 @@ export default function WeekOverview() {
     const [toastType, setToastType] = useState<"success" | "error">("success");
     const [isSaving, setIsSaving] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [viewMode, setViewMode] = useState<"week" | "month">("week");
+    const [isNavigating, setIsNavigating] = useState(false);
 
     useEffect(() => {
         fetchFromDB();
@@ -420,6 +422,9 @@ export default function WeekOverview() {
     };
 
     async function fetchFromDB() {
+        if (isNavigating) return; // Prevent multiple simultaneous fetches
+        
+        setIsNavigating(true);
         try {
             const data = await getTimeEntries();
             let safeData: TimeEntry[] = [];
@@ -460,6 +465,8 @@ export default function WeekOverview() {
             console.error("Error fetching time entries:", err);
             setLocalEntries([]);
             setWeekStatus("concept");
+        } finally {
+            setIsNavigating(false); // Always reset navigation state
         }
     }
 
@@ -587,6 +594,10 @@ export default function WeekOverview() {
     const handlePrevWeek = () => setCurrentWeek((w) => w.subtract(1, "week"));
     const handleNextWeek = () => setCurrentWeek((w) => w.add(1, "week"));
     const handleToday = () => setCurrentWeek(dayjs().startOf("isoWeek"));
+    
+    const handlePrevMonth = () => setCurrentWeek((w) => w.subtract(1, "month").startOf("month").startOf("isoWeek"));
+    const handleNextMonth = () => setCurrentWeek((w) => w.add(1, "month").startOf("month").startOf("isoWeek"));
+    const handleToggleView = () => setViewMode(viewMode === "week" ? "month" : "week");
 
     function closeModal() {
         setSelectedDay(null);
@@ -625,6 +636,20 @@ export default function WeekOverview() {
     const eindVanWeek = currentWeek.add(6, "day");
 
     const days = Array.from({ length: 7 }, (_, i) => currentWeek.add(i, "day"));
+    
+    // Get all days in current month for month view
+    const monthStart = currentWeek.startOf("month");
+    const monthEnd = currentWeek.endOf("month");
+    const monthDays: Dayjs[] = [];
+    
+    // Start from first day of week containing first day of month
+    let currentDay = monthStart.startOf("isoWeek");
+    const lastDay = monthEnd.endOf("isoWeek");
+    
+    while (currentDay.isBefore(lastDay) || currentDay.isSame(lastDay, "day")) {
+        monthDays.push(currentDay);
+        currentDay = currentDay.add(1, "day");
+    }
 
     // Get concept entries for this week
     const weekStart = currentWeek.startOf("day");
@@ -642,17 +667,25 @@ export default function WeekOverview() {
     const canEdit = weekStatus === "concept";
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6">
             {/* Week Header */}
-            <div className="bg-gradient-elmar text-white rounded-2xl p-6 shadow-elmar-card">
+            <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-lg">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
                             <CalendarDaysIcon className="w-8 h-8" />
-                            Week {weekNummer} - {maandNaam} {jaar}
+                            {viewMode === "week" ? (
+                                <>Week {weekNummer} - {maandNaam} {jaar}</>
+                            ) : (
+                                <>{maandNaam} {jaar}</>
+                            )}
                         </h2>
                         <p className="text-blue-100 text-lg">
-                            {startVanWeek.format("D MMM")} - {eindVanWeek.format("D MMM YYYY")}
+                            {viewMode === "week" ? (
+                                <>{startVanWeek.format("D MMM")} - {eindVanWeek.format("D MMM YYYY")}</>
+                            ) : (
+                                <>{monthDays[0]?.format("D MMM")} - {monthDays[monthDays.length - 1]?.format("D MMM YYYY")}</>
+                            )}
                         </p>
                         {weekStatus !== "concept" && (
                             <div className="mt-2">
@@ -661,9 +694,9 @@ export default function WeekOverview() {
                                         weekStatus === 'ingeleverd' ? 'bg-yellow-500 text-white' :
                                             'bg-red-500 text-white'
                                 }`}>
-                                    {weekStatus === 'goedgekeurd' ? '✅ Goedgekeurd' :
+                                    {weekStatus === 'goedgekeurd' ? 'Goedgekeurd' :
                                         weekStatus === 'ingeleverd' ? '⏳ Ingeleverd' :
-                                            '❌ Afgekeurd'}
+                                            'Afgekeurd'}
                                 </span>
                             </div>
                         )}
@@ -682,7 +715,8 @@ export default function WeekOverview() {
                     <div className="flex gap-2">
                         <button
                             className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
-                            onClick={handlePrevWeek}
+                            onClick={viewMode === "week" ? handlePrevWeek : handlePrevMonth}
+                            disabled={isNavigating}
                         >
                             <ArrowLeftIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Vorige</span>
@@ -690,16 +724,26 @@ export default function WeekOverview() {
                         <button
                             className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
                             onClick={handleToday}
+                            disabled={isNavigating}
                         >
                             <HomeIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Vandaag</span>
                         </button>
                         <button
                             className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
-                            onClick={handleNextWeek}
+                            onClick={viewMode === "week" ? handleNextWeek : handleNextMonth}
+                            disabled={isNavigating}
                         >
                             <ArrowRightIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Volgende</span>
+                        </button>
+                        <button
+                            className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
+                            onClick={handleToggleView}
+                            disabled={isNavigating}
+                        >
+                            <CalendarDaysIcon className="w-5 h-5" />
+                            <span className="hidden sm:inline">{viewMode === "week" ? "Maand" : "Week"}</span>
                         </button>
                     </div>
 
@@ -742,29 +786,31 @@ export default function WeekOverview() {
                 </div>
             </div>
 
-            {/* Compact Week Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-                {days.map((day, index) => {
+            {/* Compact Week/Month Overview */}
+            <div className={`grid gap-4 ${viewMode === "week" ? "grid-cols-1 lg:grid-cols-7" : "grid-cols-7"}`}>
+                {(viewMode === "week" ? days : monthDays).map((day, index) => {
                     const entries = getDayEntries(day);
+                    const isCurrentMonth = viewMode === "month" && day.month() === currentWeek.month();
 
                     return (
-                        <DayEntry
-                            key={day.format("YYYY-MM-DD")}
-                            date={day}
-                            entries={entries}
-                            onUpdate={fetchFromDB}
-                            weekStatus={weekStatus}
-                            onShowToast={showToast}
-                            onSelectEntry={handleSelectEntry}
-                            selectedEntries={selectedEntries}
-                        />
+                        <div key={day.format("YYYY-MM-DD")} className={viewMode === "month" && !isCurrentMonth ? "opacity-40" : ""}>
+                            <DayEntry
+                                date={day}
+                                entries={entries}
+                                onUpdate={fetchFromDB}
+                                weekStatus={weekStatus}
+                                onShowToast={showToast}
+                                onSelectEntry={handleSelectEntry}
+                                selectedEntries={selectedEntries}
+                            />
+                        </div>
                     );
                 })}
             </div>
 
             {/* Week Summary */}
             {totalHoursThisWeek > 0 && (
-                <div className="card bg-white shadow-elmar-card">
+                <div className="card bg-white shadow-lg">
                     <div className="card-body p-6">
                         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <ClockIcon className="w-6 h-6 text-elmar-primary" />
@@ -772,26 +818,26 @@ export default function WeekOverview() {
                         </h3>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center">
+                            <div className="bg-blue-100 rounded-xl p-4 text-center">
                                 <div className="text-2xl font-bold text-blue-600">{formatHours(totalHoursThisWeek)}</div>
                                 <div className="text-sm text-gray-600">Totaal uren</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 text-center">
+                            <div className="bg-blue-100 rounded-xl p-4 text-center">
                                 <div className="text-2xl font-bold text-green-600">
                                     {days.filter(day => getDayHours(day) > 0).length}
                                 </div>
                                 <div className="text-sm text-gray-600">Werkdagen</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 text-center">
+                            <div className="bg-blue-100 rounded-xl p-4 text-center">
                                 <div className="text-2xl font-bold text-purple-600">
                                     {totalHoursThisWeek > 0 ? formatHours(totalHoursThisWeek / days.filter(day => getDayHours(day) > 0).length) : '0u'}
                                 </div>
                                 <div className="text-sm text-gray-600">Gemiddeld</div>
                             </div>
 
-                            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 text-center">
+                            <div className="bg-blue-100 rounded-xl p-4 text-center">
                                 <div className="text-2xl font-bold text-orange-600">
                                     {((totalHoursThisWeek / 40) * 100).toFixed(0)}%
                                 </div>
@@ -807,7 +853,7 @@ export default function WeekOverview() {
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3">
                                 <div
-                                    className={`h-3 rounded-full transition-all duration-500 ${
+                                    className={`h-3 rounded-full ${
                                         totalHoursThisWeek >= 40 ? 'bg-green-500' :
                                             totalHoursThisWeek >= 32 ? 'bg-yellow-500' : 'bg-blue-500'
                                     }`}

@@ -1,0 +1,139 @@
+import { HelpCircle } from "lucide-react";
+import FaqAccordion from "./FaqAccordion";
+import ModernLayout from "@/components/ModernLayout";
+import { Card, CardContent } from "@/components/ui/card";
+
+export const metadata = {
+  title: "FAQ | Clockwise",
+};
+
+const faqs = [
+  {
+    category: "Urenregistratie",
+    items: [
+      {
+        q: "Hoe registreer ik uren?",
+        a: "Ga naar 'Uren Registreren', kies een project en vul je uren in. Klik op Opslaan.",
+      },
+      {
+        q: "Kan ik uren op meerdere projecten op één dag boeken?",
+        a: "Ja, je kunt meerdere regels toevoegen en je uren verdelen over de juiste projecten.",
+      },
+      {
+        q: "Wat moet ik invullen bij omschrijving/opmerking?",
+        a: "Schrijf kort wat je hebt gedaan, bijvoorbeeld: 'administratie', 'project X' of 'training'.",
+      },
+    ],
+  },
+  {
+    category: "Uren aanpassen & goedkeuren",
+    items: [
+      {
+        q: "Kan ik uren achteraf aanpassen?",
+        a: "Ja, zolang ze nog niet zijn goedgekeurd. Dit kan via 'Uren Overzicht'.",
+      },
+      {
+        q: "Wat betekenen de statussen In behandeling / Goedgekeurd / Afgekeurd?",
+        a: "In behandeling betekent dat je manager nog moet kijken. Goedgekeurd is definitief. Afgekeurd betekent dat je het moet aanpassen en opnieuw indienen.",
+      },
+      {
+        q: "Waarom zijn mijn uren afgekeurd?",
+        a: "Meestal omdat het verkeerde project is gekozen of tijden niet kloppen. Pas het aan volgens de opmerking van je manager.",
+      },
+    ],
+  },
+  {
+    category: "Uren overzicht",
+    items: [
+      {
+        q: "Waar kan ik mijn uren per week of maand bekijken?",
+        a: "Ga naar 'Uren Overzicht' en filter op week of maand om je totaaluren te zien.",
+      },
+      {
+        q: "Kan ik mijn uren exporteren?",
+        a: "Als export is ingeschakeld, kun je in 'Uren Overzicht' je uren downloaden als PDF of Excel.",
+      },
+      {
+        q: "Hoe zie ik of mijn uren al zijn goedgekeurd?",
+        a: "In het overzicht staat per dag of regel de status. Goedgekeurd betekent dat het vaststaat.",
+      },
+    ],
+  },
+  {
+    category: "Vakantie aanvragen",
+    items: [
+      {
+        q: "Hoe vraag ik vakantie aan?",
+        a: "Open 'Vakantie', kies je periode en klik op Aanvragen. Je manager krijgt een melding.",
+      },
+      {
+        q: "Hoeveel vakantiedagen heb ik nog?",
+        a: "Bovenaan de pagina 'Vakantie' zie je hoeveel dagen je beschikbaar hebt.",
+      },
+      {
+        q: "Kan ik een vakantieaanvraag wijzigen of intrekken?",
+        a: "Ja, zolang de aanvraag nog niet is goedgekeurd kun je deze aanpassen of intrekken.",
+      },
+    ],
+  },
+  {
+    category: "Problemen / support",
+    items: [
+      {
+        q: "Ik kan niet inloggen, wat moet ik doen?",
+        a: "Controleer je e-mailadres en wachtwoord of gebruik 'Wachtwoord vergeten'. Lukt het niet, neem contact op met HR/admin.",
+      },
+      {
+        q: "Een project ontbreekt in de lijst, wat nu?",
+        a: "Meld dit bij je manager of admin zodat het project toegevoegd kan worden.",
+      },
+      {
+        q: "Het systeem werkt traag of laadt niet goed.",
+        a: "Probeer een harde refresh (Ctrl+F5) of een andere browser. Blijft het probleem, meld het bij support.",
+      },
+    ],
+  },
+];
+
+export default function FAQPage() {
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center gap-3 mb-8">
+        <HelpCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Veelgestelde vragen
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Antwoorden op de meest gestelde vragen over Clockwise
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {faqs.map((section, idx) => (
+          <Card key={idx} className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                {section.category}
+              </h2>
+              <div className="space-y-4">
+                {section.items.map((item, itemIdx) => (
+                  <div key={itemIdx}>
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-2 flex items-start gap-2">
+                      <span className="text-blue-600 dark:text-blue-400 mt-0.5">•</span>
+                      {item.q}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 ml-4">
+                      {item.a}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

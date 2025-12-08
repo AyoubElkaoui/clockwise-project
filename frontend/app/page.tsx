@@ -1,12 +1,13 @@
 "use client";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import DashboardContent from "@/components/DashboardContent";
-import {JSX} from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function DashboardPage(): JSX.Element {
-    return (
-        <ProtectedRoute>
-            <DashboardContent />
-        </ProtectedRoute>
-    );
+export default function HomePage() {
+    const router = useRouter();
+    
+    useEffect(() => {
+        router.push("/dashboard");
+    }, [router]);
+    
+    return null;
 }

@@ -1,17 +1,19 @@
 "use client";
 import { useState } from "react";
+import { API_URL } from "@/lib/api";
+import { showToast } from "@/components/ui/toast";
 
 export default function RegisterTime() {
     const [hours, setHours] = useState("");
 
     const handleSubmit = async () => {
-        await fetch("http://localhost:5203/api/time-entries", {
+        await fetch(`${API_URL}/time-entries`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ hours: Number(hours) }),
         });
 
-        alert("Uren opgeslagen!");
+        showToast("Uren succesvol opgeslagen!", "success");
     };
 
     return (

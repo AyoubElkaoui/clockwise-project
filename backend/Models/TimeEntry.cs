@@ -14,4 +14,8 @@ public class TimeEntry
     public string? Notes { get; set; }
     // Nieuwe property voor de workflow-status
     public string Status { get; set; } = "opgeslagen"; // standaardstatus
+    // Manager feedback bij goedkeuren/afkeuren
+    public string? ManagerComment { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public int? ReviewedBy { get; set; }
 }
