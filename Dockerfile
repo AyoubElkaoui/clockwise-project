@@ -17,6 +17,9 @@ RUN dotnet restore
 # Kopieer rest van source (node_modules, bin, obj worden genegeerd via .dockerignore)
 COPY backend/ ./
 
+# Firebird embedded database-bestand meepakken in de container
+COPY database/CLOCKWISE.FDB /app/CLOCKWISE.FDB
+
 # Build
 RUN dotnet build -c Release -o /app/build
 
