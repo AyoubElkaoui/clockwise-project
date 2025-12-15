@@ -31,15 +31,10 @@ const eslintConfig = [
       // Alles op warning i.p.v. error
       "@typescript-eslint/no-unused-expressions": "warn",
       "react/jsx-key": "warn",
-      "react/display-name": "warn"
+      "react/display-name": "warn",
     },
-    ignores: [
-      "node_modules/",
-      ".next/",
-      "out/",
-      "build/"
-    ]
-  }
+    ignores: ["node_modules/", ".next/", "out/", "build/", "**/dist/**"],
+  },
 ];
 
 export default eslintConfig;

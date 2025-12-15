@@ -15,6 +15,10 @@ RUN apt-get update && \
 COPY ./backend.csproj ./
 RUN dotnet restore ./backend.csproj
 
+# Installeer dotnet-ef tool voor migrations
+RUN dotnet tool install --global dotnet-ef --version 8.0.0
+ENV PATH="$PATH:/root/.dotnet/tools"
+
 # Rest van source code wordt via volume gemount
 # zodat hot reload werkt
 

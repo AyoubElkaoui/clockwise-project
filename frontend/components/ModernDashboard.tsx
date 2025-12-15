@@ -102,8 +102,8 @@ export default function ModernDashboard() {
 
   return (
   <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors">
-    
- 
+
+
     {/* === Dashboard Content === */}
     <main className="p-6 md:p-10 space-y-8">
 
@@ -147,7 +147,7 @@ export default function ModernDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Uren Invoeren */}
-        <Card variant="elevated" padding="lg" className="lg:col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+        <Card className="lg:col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors p-8">
           <CardHeader>
             <CardTitle className="text-slate-900 dark:text-slate-100">Uren Invoeren</CardTitle>
           </CardHeader>
@@ -208,7 +208,7 @@ export default function ModernDashboard() {
         </Card>
 
         {/* Week Overzicht */}
-        <Card variant="elevated" padding="lg" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+        <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors p-8">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-slate-900 dark:text-slate-100">
               <span>Week Overzicht</span>
@@ -277,7 +277,7 @@ export default function ModernDashboard() {
       </div>
 
       {/* Tijd Registraties */}
-      <Card variant="elevated" padding="lg" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors">
+      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors p-8">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-slate-900 dark:text-slate-100">Tijd Registraties</CardTitle>

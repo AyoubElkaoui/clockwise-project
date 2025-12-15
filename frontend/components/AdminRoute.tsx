@@ -1,30 +1,43 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-// Remove unused imports: axios and API_URL
 
-export default function AdminRoute({ children }: { children: React.ReactNode }) {
-    const router = useRouter();
-    const [loading, setLoading] = useState(true);
+export default function AdminRoute({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const userId = localStorage.getItem("userId");
-        const userRank = localStorage.getItem("userRank");
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    const userRank = localStorage.getItem("userRank");
 
-        if (!userId) {
-            router.push("/login");
-        } else if (userRank !== "admin" && userRank !== "manager") {
-            router.push("/dashboard");
-        } else {
-            setLoading(false);
-        }
-    }, [router]);
-
-    if (loading) {
-        return <div className="flex justify-center items-center min-h-screen">
-            <div className="loading loading-spinner loading-lg"></div>
-        </div>;
+    if (!userId) {
+      router.push("/login");
+      return;
     }
 
-    return <>{children}</>;
+    // Alleen admins hebben toegang tot admin routes
+    if (userRank === "admin") {
+      setLoading(false);
+    } else if (userRank === "manager") {
+      // Managers naar hun eigen dashboard
+      router.push("/manager/dashboard");
+    } else {
+      // Gewone users naar user dashboard
+      router.push("/dashboard");
+    }
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }

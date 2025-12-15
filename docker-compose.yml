@@ -6,7 +6,6 @@ services:
     image: jacobalberty/firebird:v3.0
     container_name: clockwise-firebird
     environment:
-      - FIREBIRD_DATABASE=CLOCKWISE.FDB
       - FIREBIRD_USER=SYSDBA
       - FIREBIRD_PASSWORD=masterkey
       - ISC_PASSWORD=masterkey
@@ -35,7 +34,8 @@ services:
       - ASPNETCORE_URLS=http://+:5000
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
-      - SEED_ON_START=true
+      - SEED_ON_START=false
+      - DefaultConnection=Database=firebird:3050:CLOCKWISE.FDB;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=0;ClientLibrary=/usr/lib/x86_64-linux-gnu/libfbclient.so.2;Pooling=true
     ports:
       - "5000:5000"
     depends_on:
@@ -65,7 +65,8 @@ services:
     container_name: clockwise-frontend
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - NEXT_PUBLIC_API_URL=http://host.docker.internal:5000
+      - INTERNAL_API_URL=http://backend:5000
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
     ports:
@@ -77,9 +78,9 @@ services:
     volumes:
       # Mount source code voor hot reload
       - ./frontend:/app:cached
-      # Exclude node_modules en .next (blijven in container)
-      - /app/node_modules
-      - /app/.next
+      # Use named volumes for node_modules and .next to persist them
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -91,3 +92,5 @@ networks:
 volumes:
   firebird_data:
   nuget_cache:
+  frontend_node_modules:
+  frontend_next:

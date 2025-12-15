@@ -23,14 +23,50 @@ import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
 
 const managerMenuItems = [
-  { icon: LayoutDashboard, label: "Manager Dashboard", href: "/manager/dashboard", badgeKey: null },
+  {
+    icon: LayoutDashboard,
+    label: "Manager Dashboard",
+    href: "/manager/dashboard",
+    badgeKey: null,
+  },
   { icon: Users, label: "Mijn Team", href: "/manager/team", badgeKey: null },
-  { icon: CheckCircle2, label: "Goedkeuringen", href: "/manager/approve", badgeKey: "pendingApprovals" },
+  {
+    icon: CheckCircle2,
+    label: "Goedkeuringen",
+    href: "/manager/approve",
+    badgeKey: "pendingApprovals",
+  },
   { icon: Clock, label: "Team Uren", href: "/manager/hours", badgeKey: null },
-  { icon: Plane, label: "Vakantie Aanvragen", href: "/manager/vacation", badgeKey: null },
-  { icon: Calendar, label: "Team Planning", href: "/manager/planning", badgeKey: null },
-  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications" },
-  { icon: Settings, label: "Instellingen", href: "/manager/settings", badgeKey: null },
+  {
+    icon: Plane,
+    label: "Vakantie Aanvragen",
+    href: "/manager/vacation",
+    badgeKey: null,
+  },
+  {
+    icon: Clock,
+    label: "Team Planning",
+    href: "/manager/planning",
+    badgeKey: null,
+  },
+  {
+    icon: Calendar,
+    label: "Vakantie Kalender",
+    href: "/manager/vacation-calendar",
+    badgeKey: null,
+  },
+  {
+    icon: Bell,
+    label: "Notificaties",
+    href: "/notificaties",
+    badgeKey: "unreadNotifications",
+  },
+  {
+    icon: Settings,
+    label: "Instellingen",
+    href: "/manager/settings",
+    badgeKey: null,
+  },
 ];
 
 export function ManagerSidebar() {
@@ -47,23 +83,25 @@ export function ManagerSidebar() {
     setMounted(true);
     setFirstName(localStorage.getItem("firstName") || "");
     setLastName(localStorage.getItem("lastName") || "");
-    
+
     loadBadges();
-    
+
     const interval = setInterval(() => {
       loadBadges();
     }, 15000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
   const loadBadges = async () => {
     try {
-      const activities = await getActivities(50, userId);
+      const activities = await getActivities(10, userId);
       const unreadCount = activities.filter((a: any) => !a.read).length;
 
       const entries = await getTimeEntries();
-      const pendingCount = entries.filter((e: any) => e.status === "ingeleverd").length;
+      const pendingCount = entries.filter(
+        (e: any) => e.status === "ingeleverd",
+      ).length;
 
       setBadges({
         unreadNotifications: unreadCount > 0 ? unreadCount : null,
@@ -74,9 +112,9 @@ export function ManagerSidebar() {
     }
   };
 
-  const menuItems = managerMenuItems.map(item => ({
+  const menuItems = managerMenuItems.map((item) => ({
     ...item,
-    badge: item.badgeKey ? badges[item.badgeKey] || null : null
+    badge: item.badgeKey ? badges[item.badgeKey] || null : null,
   }));
 
   const handleLogout = () => {
@@ -90,7 +128,7 @@ export function ManagerSidebar() {
     <aside
       className={cn(
         "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50",
-        collapsed ? "w-20" : "w-72"
+        collapsed ? "w-20" : "w-72",
       )}
     >
       <div className="flex flex-col h-full">
@@ -137,13 +175,15 @@ export function ManagerSidebar() {
                   "flex items-center gap-3 px-3 py-3 rounded-lg group relative",
                   isActive
                     ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
                 )}
               >
                 <Icon className={cn("w-5 h-5", collapsed ? "mx-auto" : "")} />
                 {!collapsed && (
                   <>
-                    <span className="flex-1 font-medium text-sm">{item.label}</span>
+                    <span className="flex-1 font-medium text-sm">
+                      {item.label}
+                    </span>
                     {item.badge && (
                       <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
                         {item.badge}
@@ -171,7 +211,8 @@ export function ManagerSidebar() {
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {firstName.charAt(0)}{lastName.charAt(0)}
+                  {firstName.charAt(0)}
+                  {lastName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -190,7 +231,7 @@ export function ManagerSidebar() {
             onClick={handleLogout}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium",
-              collapsed && "justify-center"
+              collapsed && "justify-center",
             )}
           >
             <LogOut className="w-5 h-5" />

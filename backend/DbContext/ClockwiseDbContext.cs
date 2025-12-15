@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 public class ClockwiseDbContext : DbContext
 {
@@ -122,6 +122,8 @@ public class ClockwiseDbContext : DbContext
 
         modelBuilder.Entity<Activity>()
             .HasIndex(a => new { a.UserId, a.Read, a.Timestamp });
+
+
     }
 
     // Fallback: alleen als AddDbContext elders NIET is geconfigureerd.

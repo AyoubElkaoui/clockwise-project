@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Clock,
@@ -11,6 +12,7 @@ import {
   TrendingUp,
   UserCheck,
   ClipboardList,
+  RefreshCw,
 } from "lucide-react";
 import { getUsers, getTimeEntries, getVacationRequests } from "@/lib/api";
 import dayjs from "dayjs";
@@ -27,6 +29,7 @@ interface StatCard {
 }
 
 export default function ManagerDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<StatCard[]>([]);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
@@ -36,6 +39,10 @@ export default function ManagerDashboard() {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  const handleRefresh = () => {
+    loadDashboardData();
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -50,15 +57,21 @@ export default function ManagerDashboard() {
       }
 
       // Import team-specific API functions
-      const { getMyTeam, getTeamTimeEntries, getTeamPendingHours, getTeamPendingVacations } = await import("@/lib/api");
+      const {
+        getMyTeam,
+        getTeamTimeEntries,
+        getTeamPendingHours,
+        getTeamPendingVacations,
+      } = await import("@/lib/api");
 
       // Load team-specific data using secure endpoints
-      const [team, timeEntries, pendingHours, pendingVacations] = await Promise.all([
-        getMyTeam(managerId),
-        getTeamTimeEntries(managerId),
-        getTeamPendingHours(managerId),
-        getTeamPendingVacations(managerId),
-      ]);
+      const [team, timeEntries, pendingHours, pendingVacations] =
+        await Promise.all([
+          getMyTeam(managerId),
+          getTeamTimeEntries(managerId),
+          getTeamPendingHours(managerId),
+          getTeamPendingVacations(managerId),
+        ]);
 
       setTeamMembers(team);
 
@@ -68,7 +81,7 @@ export default function ManagerDashboard() {
         const currentWeek = dayjs().isoWeek();
         return entryWeek === currentWeek && e.status === "goedgekeurd";
       }).length;
-      
+
       const totalHoursThisWeek = timeEntries
         .filter((e: any) => {
           const entryWeek = dayjs(e.date).isoWeek();
@@ -111,7 +124,10 @@ export default function ManagerDashboard() {
 
       // Recent submissions (laatste ingeleverde entries van team)
       const recent = [...pendingHours]
-        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )
         .slice(0, 8);
       setRecentSubmissions(recent);
 
@@ -121,7 +137,6 @@ export default function ManagerDashboard() {
         ...pendingVacations.map((v: any) => ({ ...v, type: "vacation" })),
       ].slice(0, 10);
       setPendingApprovals(pending);
-
     } catch (error) {
       console.error("Failed to load manager dashboard:", error);
     } finally {
@@ -180,7 +195,9 @@ export default function ManagerDashboard() {
                 <span className="text-xs text-gray-500">{stat.change}</span>
               )}
             </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">{stat.title}</h3>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">
+              {stat.title}
+            </h3>
             <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
           </div>
         ))}
@@ -190,22 +207,42 @@ export default function ManagerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pending Approvals - Takes 2 columns */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <div className="flex items-center gap-3 mb-6">
-            <AlertCircle className="w-6 h-6 text-orange-600" />
-            <h2 className="text-xl font-bold text-gray-900">Te Goedkeuren</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6 text-orange-600" />
+              <h2 className="text-xl font-bold text-gray-900">Te Goedkeuren</h2>
+            </div>
+            <button
+              onClick={handleRefresh}
+              className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              title="Vernieuwen"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
           </div>
           <div className="space-y-3 max-h-[600px] overflow-y-auto">
             {pendingApprovals.length === 0 ? (
               <div className="text-center py-12">
                 <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <p className="text-xl font-medium text-gray-700 mb-2">Alles goedgekeurd! !</p>
-                <p className="text-gray-500">Je hebt geen openstaande goedkeuringen</p>
+                <p className="text-xl font-medium text-gray-700 mb-2">
+                  Alles goedgekeurd! !
+                </p>
+                <p className="text-gray-500">
+                  Je hebt geen openstaande goedkeuringen
+                </p>
               </div>
             ) : (
               pendingApprovals.map((item: any, index: number) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 bg-blue-100 rounded-xl hover:shadow-md border border-orange-100"
+                  className="flex items-center justify-between p-4 bg-blue-100 rounded-xl hover:shadow-md border border-orange-100 cursor-pointer"
+                  onClick={() => {
+                    if (item.type === "timeEntry") {
+                      router.push(`/manager/time-entries`);
+                    } else {
+                      router.push(`/manager/vacation`);
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-4 flex-1">
                     {item.type === "timeEntry" ? (
@@ -223,11 +260,13 @@ export default function ManagerDashboard() {
                         {item.type === "timeEntry"
                           ? dayjs(item.date).format("DD MMM YYYY")
                           : `${dayjs(item.startDate).format("DD MMM")} - ${dayjs(
-                              item.endDate
+                              item.endDate,
                             ).format("DD MMM")}`}
                       </p>
                       {item.notes && (
-                        <p className="text-xs text-gray-400 mt-1">{item.notes}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {item.notes}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -235,12 +274,20 @@ export default function ManagerDashboard() {
                     <button
                       className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md hover:shadow-lg"
                       title="Goedkeuren"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Implement approve logic
+                      }}
                     >
                       <CheckCircle2 className="w-5 h-5" />
                     </button>
                     <button
                       className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-md hover:shadow-lg"
                       title="Afkeuren"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Implement reject logic
+                      }}
                     >
                       <XCircle className="w-5 h-5" />
                     </button>
@@ -267,7 +314,8 @@ export default function ManagerDashboard() {
                   className="flex items-center gap-3 p-3 bg-blue-100 rounded-xl hover:shadow-md"
                 >
                   <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                    {member.firstName[0]}{member.lastName[0]}
+                    {member.firstName[0]}
+                    {member.lastName[0]}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">
@@ -287,11 +335,15 @@ export default function ManagerDashboard() {
       <div className="mt-6 bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
         <div className="flex items-center gap-3 mb-6">
           <ClipboardList className="w-6 h-6 text-purple-600" />
-          <h2 className="text-xl font-bold text-gray-900">Recente Inleveringen</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            Recente Inleveringen
+          </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {recentSubmissions.length === 0 ? (
-            <p className="text-gray-500 col-span-full text-center py-8">Geen recente inleveringen</p>
+            <p className="text-gray-500 col-span-full text-center py-8">
+              Geen recente inleveringen
+            </p>
           ) : (
             recentSubmissions.map((entry: any, index: number) => (
               <div
@@ -302,10 +354,12 @@ export default function ManagerDashboard() {
                   <Clock className="w-4 h-4 text-purple-600" />
                   <p className="font-bold text-gray-900">{entry.hours}u</p>
                 </div>
-                <p className="text-sm text-gray-600">{dayjs(entry.date).format("DD MMM YYYY")}</p>
+                <p className="text-sm text-gray-600">
+                  {dayjs(entry.date).format("DD MMM YYYY")}
+                </p>
                 <span
                   className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    entry.status
+                    entry.status,
                   )}`}
                 >
                   {entry.status}
@@ -318,15 +372,24 @@ export default function ManagerDashboard() {
 
       {/* Quick Actions */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button className="p-4 bg-blue-600 text-white rounded-xl hover:shadow-lg">
+        <button
+          onClick={() => router.push("/manager/team")}
+          className="p-4 bg-blue-600 text-white rounded-xl hover:shadow-lg transition-colors"
+        >
           <Users className="w-6 h-6 mb-2" />
           <p className="font-medium">Team Beheren</p>
         </button>
-        <button className="p-4 bg-orange-600 text-white rounded-xl hover:shadow-lg">
+        <button
+          onClick={() => router.push("/manager/time-entries")}
+          className="p-4 bg-orange-600 text-white rounded-xl hover:shadow-lg transition-colors"
+        >
           <CheckCircle2 className="w-6 h-6 mb-2" />
           <p className="font-medium">Uren Goedkeuren</p>
         </button>
-        <button className="p-4 bg-purple-600 text-white rounded-xl hover:shadow-lg">
+        <button
+          onClick={() => router.push("/manager/vacation")}
+          className="p-4 bg-purple-600 text-white rounded-xl hover:shadow-lg transition-colors"
+        >
           <Calendar className="w-6 h-6 mb-2" />
           <p className="font-medium">Vakantie Goedkeuren</p>
         </button>

@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Check, Trash2, Loader2 } from "lucide-react";
-import { getRelativeTime } from "@/lib/utils";
-import { getActivities, markActivityAsRead, markAllActivitiesAsRead } from "@/lib/api";
+import { Bell, Check, Trash2, Loader2, Users, User } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import ModernLayout from "@/components/ModernLayout";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/nl";
@@ -26,15 +24,23 @@ interface Activity {
   action: string;
   message: string;
   details: string;
-  read: boolean; // API uses 'read' not 'isRead'
-  timestamp: string; // API uses 'timestamp' not 'createdAt'
+  read: boolean;
+  timestamp: string;
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export default function NotificatiesPage() {
   const [notifications, setNotifications] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRank, setUserRank] = useState<string>("");
 
   useEffect(() => {
+    const rank = localStorage.getItem("userRank") || "";
+    setUserRank(rank);
     loadNotifications();
   }, []);
 
@@ -46,9 +52,42 @@ export default function NotificatiesPage() {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
-      const data = await getActivities(50, userId);
+
+      let data: Activity[] = [];
+
+      // Voor managers: haal team notificaties op
+      if (userRank === "manager") {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/team?managerId=${userId}&limit=100`,
+        );
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          // Fallback naar eigen notificaties
+          const fallbackResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=50&userId=${userId}`,
+          );
+          data = await fallbackResponse.json();
+        }
+      }
+      // Voor admins: haal alle notificaties op
+      else if (userRank === "admin") {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=100`,
+        );
+        data = await response.json();
+      }
+      // Voor gewone users: alleen eigen notificaties
+      else {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=50&userId=${userId}`,
+        );
+        data = await response.json();
+      }
+
       setNotifications(data);
     } catch (error) {
+      console.error("Error loading notifications:", error);
       showToast("Fout bij laden notificaties", "error");
     } finally {
       setLoading(false);
@@ -57,9 +96,22 @@ export default function NotificatiesPage() {
 
   const handleMarkAllRead = async () => {
     try {
-      await markAllActivitiesAsRead();
-      showToast("Alle notificaties gemarkeerd als gelezen", "success");
-      loadNotifications();
+      const userId = getUserId();
+      if (!userId) return;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/read-all?userId=${userId}`,
+        {
+          method: "PUT",
+        },
+      );
+
+      if (response.ok) {
+        showToast("Alle notificaties gemarkeerd als gelezen", "success");
+        loadNotifications();
+      } else {
+        showToast("Fout bij markeren als gelezen", "error");
+      }
     } catch (error) {
       showToast("Fout bij markeren als gelezen", "error");
     }
@@ -67,15 +119,51 @@ export default function NotificatiesPage() {
 
   const handleMarkRead = async (id: number) => {
     try {
-      await markActivityAsRead(id);
-      loadNotifications();
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/${id}/read`,
+        {
+          method: "PUT",
+        },
+      );
+
+      if (response.ok) {
+        loadNotifications();
+      } else {
+        showToast("Fout bij markeren als gelezen", "error");
+      }
     } catch (error) {
       showToast("Fout bij markeren als gelezen", "error");
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const readCount = notifications.filter(n => n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const readCount = notifications.filter((n) => n.read).length;
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "time_entry":
+        return "⏰";
+      case "vacation":
+        return "🏖️";
+      case "project":
+        return "📁";
+      default:
+        return "📢";
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case "time_entry":
+        return "text-blue-600 dark:text-blue-400";
+      case "vacation":
+        return "text-green-600 dark:text-green-400";
+      case "project":
+        return "text-purple-600 dark:text-purple-400";
+      default:
+        return "text-slate-600 dark:text-slate-400";
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -87,118 +175,194 @@ export default function NotificatiesPage() {
                 Notificaties
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Je hebt {unreadCount} ongelezen notificatie{unreadCount !== 1 ? "s" : ""}
+                {userRank === "manager" && "Team notificaties en updates"}
+                {userRank === "admin" && "Alle systeem notificaties"}
+                {userRank === "user" && "Jouw persoonlijke notificaties"}
+                {unreadCount > 0 && ` • ${unreadCount} ongelezen`}
               </p>
             </div>
-            <Button
-              variant="secondary"
-              onClick={handleMarkAllRead}
-              disabled={unreadCount === 0}
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Alles Markeren als Gelezen
-            </Button>
-
+            <div className="flex items-center gap-3">
+              {userRank === "manager" && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <Users className="w-4 h-4" />
+                  <span>Team overzicht</span>
+                </div>
+              )}
+              {userRank === "admin" && (
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <User className="w-4 h-4" />
+                  <span>Systeem breed</span>
+                </div>
+              )}
+              <Button
+                variant="secondary"
+                onClick={handleMarkAllRead}
+                disabled={unreadCount === 0}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Alles Gelezen
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card variant="elevated" padding="md">
-              <div className="flex items-center gap-4">
-                <Bell className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                <div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {loading ? "..." : notifications.length}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Totaal</p>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Totaal
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                      {loading ? "..." : notifications.length}
+                    </p>
+                  </div>
+                  <Bell className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
-              </div>
+              </CardContent>
             </Card>
-            <Card variant="elevated" padding="md">
-              <div className="flex items-center gap-4">
-                <Bell className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                <div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {loading ? "..." : unreadCount}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Ongelezen</p>
+
+            <Card className="border-l-4 border-l-orange-500">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Ongelezen
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                      {loading ? "..." : unreadCount}
+                    </p>
+                  </div>
+                  <Bell className="w-8 h-8 text-orange-600 dark:text-orange-400" />
                 </div>
-              </div>
+              </CardContent>
             </Card>
-            <Card variant="elevated" padding="md">
-              <div className="flex items-center gap-4">
-                <Bell className="w-8 h-8 text-green-600 dark:text-green-400" />
-                <div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                    {loading ? "..." : readCount}
-                  </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Gelezen</p>
+
+            <Card className="border-l-4 border-l-green-500">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Gelezen
+                    </p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                      {loading ? "..." : readCount}
+                    </p>
+                  </div>
+                  <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
-              </div>
+              </CardContent>
             </Card>
           </div>
 
           {/* Notifications List */}
-          <Card variant="elevated" padding="lg">
+          <Card>
             <CardHeader>
-              <CardTitle>Alle Notificaties</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                {userRank === "manager" && "Team Notificaties"}
+                {userRank === "admin" && "Systeem Notificaties"}
+                {userRank === "user" && "Mijn Notificaties"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="flex items-center justify-center py-8">
+                <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                  <span className="ml-2 text-slate-600">Laden...</span>
+                  <span className="ml-2 text-slate-600">
+                    Notificaties laden...
+                  </span>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-12">
                   <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-600 dark:text-slate-400">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
                     Geen notificaties
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {userRank === "manager" &&
+                      "Er zijn nog geen team notificaties"}
+                    {userRank === "admin" &&
+                      "Er zijn nog geen systeem notificaties"}
+                    {userRank === "user" &&
+                      "Je hebt nog geen notificaties ontvangen"}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {notifications.map((notification) => (
-                    <div
+                    <Card
                       key={notification.id}
-                      className={`p-4 rounded-lg border ${!notification.read
-                          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                          : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                        }`}
+                      className={`transition-all duration-200 hover:shadow-md ${
+                        !notification.read
+                          ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                          : "bg-slate-50/50 dark:bg-slate-800/50"
+                      }`}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${!notification.read ? "bg-blue-500" : "bg-gray-400"
-                          }`} />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-semibold text-slate-900 dark:text-slate-100">
-                              {notification.message}
-                            </p>
-                            {!notification.read && (
-                              <Badge variant="info" size="sm">
-                                Nieuw
-                              </Badge>
-                            )}
+                      <CardContent className="pt-6">
+                        <div className="flex items-start gap-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                              <span className="text-lg">
+                                {getNotificationIcon(notification.type)}
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                            {notification.details}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-500">
-                            {dayjs(notification.timestamp).fromNow()}
-                          </p>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold text-slate-900 dark:text-slate-100">
+                                    {notification.message}
+                                  </h4>
+                                  {!notification.read && (
+                                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                      Nieuw
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                  {notification.details}
+                                </p>
+                                <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                                  <span>
+                                    {dayjs(notification.timestamp).fromNow()}
+                                  </span>
+                                  {notification.user && userRank !== "user" && (
+                                    <span className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {notification.user.firstName}{" "}
+                                      {notification.user.lastName}
+                                    </span>
+                                  )}
+                                  <span
+                                    className={`capitalize ${getNotificationColor(notification.type)}`}
+                                  >
+                                    {notification.type.replace("_", " ")}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {!notification.read && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleMarkRead(notification.id)
+                                  }
+                                  className="flex-shrink-0 ml-4"
+                                >
+                                  <Check className="w-4 h-4 mr-1" />
+                                  Markeren als gelezen
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        {!notification.read && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleMarkRead(notification.id)}
-                            title="Markeer als gelezen"
-                          >
-                            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               )}

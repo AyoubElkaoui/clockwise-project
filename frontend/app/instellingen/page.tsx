@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
 import { useTheme } from "@/lib/theme-context";
-import { useLanguage } from "@/lib/language-context";
+import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 
 export default function InstellingenPage() {
   const { theme, setTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   const handleClearNotifications = async () => {
@@ -47,24 +48,24 @@ export default function InstellingenPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Globe className="h-5 w-5" />
-                  Language / Taal
+                  {t("settings.language")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-3">
                   <Button
-                    variant={language === "nl" ? "default" : "outline"}
-                    onClick={() => setLanguage("nl")}
+                    variant={i18n.language === "nl" ? "default" : "outline"}
+                    onClick={() => i18n.changeLanguage("nl")}
                     className="flex items-center gap-2"
                   >
-                    🇳🇱 Nederlands
+                    Nederlands
                   </Button>
                   <Button
-                    variant={language === "en" ? "default" : "outline"}
-                    onClick={() => setLanguage("en")}
+                    variant={i18n.language === "en" ? "default" : "outline"}
+                    onClick={() => i18n.changeLanguage("en")}
                     className="flex items-center gap-2"
                   >
-                    🇬🇧 English
+                    English
                   </Button>
                 </div>
               </CardContent>

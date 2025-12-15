@@ -8,7 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { Calendar, Search, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
+import {
+  Calendar,
+  Search,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  User,
+} from "lucide-react";
 import dayjs from "dayjs";
 
 export default function AdminVacationPage() {
@@ -37,28 +44,28 @@ export default function AdminVacationPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
   const filteredRequests = useMemo(() => {
     let filtered = requests;
 
     // Status filter
     if (filterStatus !== "all") {
-      filtered = filtered.filter(req => req.status === filterStatus);
+      filtered = filtered.filter((req) => req.status === filterStatus);
     }
 
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(req =>
-        req.user?.firstName?.toLowerCase().includes(query) ||
-        req.user?.lastName?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (req) =>
+          req.user?.firstName?.toLowerCase().includes(query) ||
+          req.user?.lastName?.toLowerCase().includes(query),
       );
     }
 
-    return filtered.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    return filtered.sort(
+      (a, b) =>
+        new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+    );
   }, [requests, filterStatus, searchQuery]);
 
   const handleApprove = async (id: number, managerComment: string) => {
@@ -126,13 +133,17 @@ export default function AdminVacationPage() {
     );
   }
 
-  const pendingCount = requests.filter(r => r.status === "pending").length;
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Vakantie Aanvragen</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">{pendingCount} in behandeling</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          Vakantie Aanvragen
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-1">
+          {pendingCount} in behandeling
+        </p>
       </div>
 
       {successMessage && (
@@ -222,25 +233,38 @@ export default function AdminVacationPage() {
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           <span className="text-sm text-slate-900 dark:text-slate-100">
-                            {dayjs(request.startDate).format("DD MMM YYYY")} - {dayjs(request.endDate).format("DD MMM YYYY")}
+                            {dayjs(request.startDate).format("DD MMM YYYY")} -{" "}
+                            {dayjs(request.endDate).format("DD MMM YYYY")}
                           </span>
                         </div>
-                        <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400">
-                          {calculateDays(request.startDate, request.endDate)} dagen
+                        <Badge
+                          variant="secondary"
+                          className="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                        >
+                          {calculateDays(request.startDate, request.endDate)}{" "}
+                          dagen
                         </Badge>
                       </div>
 
                       {request.reason && (
                         <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Reden</p>
-                          <p className="text-sm text-slate-900 dark:text-slate-100">{request.reason}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                            Reden
+                          </p>
+                          <p className="text-sm text-slate-900 dark:text-slate-100">
+                            {request.reason}
+                          </p>
                         </div>
                       )}
 
                       {request.managerComment && (
                         <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Manager opmerking</p>
-                          <p className="text-sm text-slate-900 dark:text-slate-100">{request.managerComment}</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+                            Manager opmerking
+                          </p>
+                          <p className="text-sm text-slate-900 dark:text-slate-100">
+                            {request.managerComment}
+                          </p>
                         </div>
                       )}
 
@@ -253,15 +277,29 @@ export default function AdminVacationPage() {
                             className="min-h-[80px]"
                           />
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleApprove(request.id, comment)}>
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(request.id, comment)}
+                            >
                               <CheckCircle className="w-4 h-4 mr-1" />
                               Goedkeuren
                             </Button>
-                          <Button size="sm" variant="danger" onClick={() => handleReject(request.id, comment)}>
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Afkeuren
-                          </Button>
-                            <Button size="sm" variant="outline" onClick={() => { setSelectedRequest(null); setComment(""); }}>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleReject(request.id, comment)}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Afkeuren
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedRequest(null);
+                                setComment("");
+                              }}
+                            >
                               Annuleren
                             </Button>
                           </div>
@@ -270,11 +308,15 @@ export default function AdminVacationPage() {
                     </div>
                   </div>
 
-                  {request.status === "pending" && selectedRequest !== request.id && (
-                    <Button size="sm" onClick={() => setSelectedRequest(request.id)}>
-                      Behandelen
-                    </Button>
-                  )}
+                  {request.status === "pending" &&
+                    selectedRequest !== request.id && (
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedRequest(request.id)}
+                      >
+                        Behandelen
+                      </Button>
+                    )}
                 </div>
               </CardContent>
             </Card>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography.X509Certificates;
+using backend.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,14 +16,18 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
     serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
 
-    // HTTP on 8080 (for backward compatibility)
-    serverOptions.ListenAnyIP(8080);
+    // HTTP on 5000 (matches docker-compose)
+    serverOptions.ListenAnyIP(5000);
 
-    // HTTPS on 443
-    serverOptions.ListenAnyIP(443, listenOptions =>
+    // HTTPS on 443 - only in production
+    var environment = builder.Environment.EnvironmentName;
+    if (environment == "Production")
     {
-        listenOptions.UseHttps("C:\\_Install\\clockwise-project\\backend\\cert.pfx", "YourSecurePassword123!");
-    });
+        serverOptions.ListenAnyIP(443, listenOptions =>
+        {
+            listenOptions.UseHttps("C:\\_Install\\clockwise-project\\backend\\cert.pfx", "YourSecurePassword123!");
+        });
+    }
 });
 
 // ===== Controllers + JSON =====
@@ -50,6 +55,11 @@ builder.Services.AddMemoryCache();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? Environment.GetEnvironmentVariable("DefaultConnection");
 
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Connection string not found. Please set DefaultConnection in appsettings.json or environment variables.");
+}
+
 // Ensure connection pooling is enabled
 if (!connectionString.Contains("Pooling", StringComparison.OrdinalIgnoreCase))
 {
@@ -68,37 +78,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(CorsPolicyName, policy =>
     {
-        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001",
-            "https://clockwise-project.vercel.app"
-        };
-
-        var extra = Environment.GetEnvironmentVariable("CORS_ORIGINS");
-        if (!string.IsNullOrWhiteSpace(extra))
-        {
-            foreach (var origin in extra.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                allowed.Add(origin);
-        }
-
         policy
-            .WithOrigins(allowed.ToArray())
-            .SetIsOriginAllowed(origin =>
-            {
-                try
-                {
-                    var host = new Uri(origin).Host;
-                    return host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
-                           || allowed.Contains(origin);
-                }
-                catch { return false; }
-            })
+            .AllowAnyOrigin()
             .AllowAnyHeader()
             .AllowAnyMethod();
-            // .AllowCredentials(); // alleen als je cookies/credentials gebruikt
     });
 });
 
@@ -117,6 +100,23 @@ app.MapControllers();
 // Health + root
 app.MapGet("/", () => Results.Text("ok"));
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// Manual seed endpoint
+app.MapPost("/seed", () =>
+{
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ClockwiseDbContext>();
+    try
+    {
+        context.Database.Migrate();
+        SeedData.Initialize(context);
+        return Results.Ok("Database seeded successfully");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Seeding failed: {ex.Message}");
+    }
+});
 
 // ===== Seeding opties =====
 

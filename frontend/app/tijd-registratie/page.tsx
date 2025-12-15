@@ -1,15 +1,43 @@
 "use client";
+import { useTranslation } from "react-i18next";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, Plus, Save, Send, Trash2, Calendar, Copy, Clipboard } from "lucide-react";
-import { getCompanies, getProjectGroups, getProjects } from "@/lib/api/companyApi";
+import dayjs from "dayjs";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  Save,
+  Send,
+  Trash2,
+  Calendar,
+  Copy,
+  Clipboard,
+} from "lucide-react";
+import {
+  getCompanies,
+  getProjectGroups,
+  getProjects,
+} from "@/lib/api/companyApi";
 import { saveBulkEntries, getWeekEntries } from "@/lib/api/timeEntryApi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
-interface Company { id: number; name: string; }
-interface ProjectGroup { id: number; name: string; companyId: number; }
-interface Project { id: number; name: string; projectGroupId: number; }
+interface Company {
+  id: number;
+  name: string;
+}
+interface ProjectGroup {
+  id: number;
+  name: string;
+  companyId: number;
+}
+interface Project {
+  id: number;
+  name: string;
+  projectGroupId: number;
+}
 interface ProjectRow {
   companyId: number;
   companyName: string;
@@ -18,7 +46,21 @@ interface ProjectRow {
   projectId: number;
   projectName: string;
 }
-interface TimeEntry { date: string; projectId: number; hours: number; km?: number; expenses?: number; notes?: string; status?: string; }
+interface TimeEntry {
+  date: string;
+  projectId: number;
+  hours: number;
+  km?: number;
+  expenses?: number;
+  notes?: string;
+  status?: string;
+}
+
+interface ClosedDay {
+  id: number;
+  date: string;
+  reason: string;
+}
 
 function formatDate(date: Date): string {
   const y = date.getFullYear();
@@ -40,11 +82,13 @@ function getWeekDays(date: Date): Date[] {
 }
 
 function getWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 function getMonthWeeks(date: Date): Date[] {
@@ -58,7 +102,7 @@ function getMonthWeeks(date: Date): Date[] {
 
   while (current <= lastDay) {
     const weekDays = getWeekDays(current);
-    if (!weeks.some(w => formatDate(w) === formatDate(weekDays[0]))) {
+    if (!weeks.some((w) => formatDate(w) === formatDate(weekDays[0]))) {
       weeks.push(weekDays[0]);
     }
     current.setDate(current.getDate() + 7);
@@ -68,30 +112,82 @@ function getMonthWeeks(date: Date): Date[] {
 }
 
 export default function TimeRegistrationPage() {
+  const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [projectGroups, setProjectGroups] = useState<Record<number, ProjectGroup[]>>({});
+  const [projectGroups, setProjectGroups] = useState<
+    Record<number, ProjectGroup[]>
+  >({});
   const [projects, setProjects] = useState<Record<number, Project[]>>({});
   const [expandedCompanies, setExpandedCompanies] = useState<number[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
   const [projectRows, setProjectRows] = useState<ProjectRow[]>([]);
   const [entries, setEntries] = useState<Record<string, TimeEntry>>({});
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
+  const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
-  const monthNames = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+  const monthNames = [
+    "januari",
+    "februari",
+    "maart",
+    "april",
+    "mei",
+    "juni",
+    "juli",
+    "augustus",
+    "september",
+    "oktober",
+    "november",
+    "december",
+  ];
   const weekNumber = getWeekNumber(currentWeek);
   const monthWeeks = getMonthWeeks(currentWeek);
 
-  useEffect(() => { loadCompanies(); loadEntries(); }, [currentWeek, viewMode]);
+  useEffect(() => {
+    loadCompanies();
+    loadEntries();
+  }, [currentWeek, viewMode]);
+
+  useEffect(() => {
+    loadClosedDays();
+  }, [currentWeek]);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const loadClosedDays = async () => {
+    try {
+      const year = currentWeek.getFullYear();
+      console.log("Loading closed days for year:", year);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/holidays/closed?year=${year}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Loaded closed days:", data);
+        setClosedDays(data);
+      } else {
+        console.error("Failed to load closed days:", response.status);
+      }
+    } catch (error) {
+      console.error("Fout bij laden gesloten dagen:", error);
+    }
+  };
+
+  const isClosedDay = (date: string) => {
+    const isClosed = closedDays.some((day) => day.date === date);
+    console.log(`Checking if ${date} is closed:`, isClosed, closedDays);
+    return isClosed;
   };
 
   const loadCompanies = async () => {
@@ -110,14 +206,18 @@ export default function TimeRegistrationPage() {
         const allEntries: Record<string, TimeEntry> = {};
         for (const weekStart of monthWeeks) {
           const data = await getWeekEntries(1, formatDate(weekStart));
-          data.forEach((e: any) => { allEntries[`${e.date}-${e.projectId}`] = e; });
+          data.forEach((e: any) => {
+            allEntries[`${e.date}-${e.projectId}`] = e;
+          });
         }
         setEntries(allEntries);
       } else {
         // Load only current week
         const data = await getWeekEntries(1, formatDate(weekDays[0]));
         const map: Record<string, TimeEntry> = {};
-        data.forEach((e: any) => { map[`${e.date}-${e.projectId}`] = e; });
+        data.forEach((e: any) => {
+          map[`${e.date}-${e.projectId}`] = e;
+        });
         setEntries(map);
       }
     } catch (error) {
@@ -127,13 +227,13 @@ export default function TimeRegistrationPage() {
 
   const toggleCompany = async (id: number) => {
     if (expandedCompanies.includes(id)) {
-      setExpandedCompanies(prev => prev.filter(x => x !== id));
+      setExpandedCompanies((prev) => prev.filter((x) => x !== id));
     } else {
-      setExpandedCompanies(prev => [...prev, id]);
+      setExpandedCompanies((prev) => [...prev, id]);
       if (!projectGroups[id]) {
         try {
           const groups = await getProjectGroups(id);
-          setProjectGroups(prev => ({ ...prev, [id]: groups }));
+          setProjectGroups((prev) => ({ ...prev, [id]: groups }));
         } catch (error) {
           showToast("Kon groepen niet laden", "error");
         }
@@ -143,13 +243,13 @@ export default function TimeRegistrationPage() {
 
   const toggleGroup = async (id: number) => {
     if (expandedGroups.includes(id)) {
-      setExpandedGroups(prev => prev.filter(x => x !== id));
+      setExpandedGroups((prev) => prev.filter((x) => x !== id));
     } else {
-      setExpandedGroups(prev => [...prev, id]);
+      setExpandedGroups((prev) => [...prev, id]);
       if (!projects[id]) {
         try {
           const projs = await getProjects(id);
-          setProjects(prev => ({ ...prev, [id]: projs }));
+          setProjects((prev) => ({ ...prev, [id]: projs }));
         } catch (error) {
           showToast("Kon projecten niet laden", "error");
         }
@@ -157,16 +257,23 @@ export default function TimeRegistrationPage() {
     }
   };
 
-  const addProject = (company: Company, group: ProjectGroup, project: Project) => {
-    if (!projectRows.some(r => r.projectId === project.id)) {
-      setProjectRows(prev => [...prev, {
-        companyId: company.id,
-        companyName: company.name,
-        projectGroupId: group.id,
-        projectGroupName: group.name,
-        projectId: project.id,
-        projectName: project.name
-      }]);
+  const addProject = (
+    company: Company,
+    group: ProjectGroup,
+    project: Project,
+  ) => {
+    if (!projectRows.some((r) => r.projectId === project.id)) {
+      setProjectRows((prev) => [
+        ...prev,
+        {
+          companyId: company.id,
+          companyName: company.name,
+          projectGroupId: group.id,
+          projectGroupName: group.name,
+          projectId: project.id,
+          projectName: project.name,
+        },
+      ]);
     }
   };
 
@@ -174,13 +281,22 @@ export default function TimeRegistrationPage() {
     const key = `${date}-${projectId}`;
     const entry = entries[key];
 
-    if (!entry || (entry.hours === 0 && entry.km === 0 && entry.expenses === 0 && !entry.notes)) {
+    if (
+      !entry ||
+      (entry.hours === 0 &&
+        entry.km === 0 &&
+        entry.expenses === 0 &&
+        !entry.notes)
+    ) {
       showToast("Geen data om te kopiëren", "error");
       return;
     }
 
     setCopiedCell({ ...entry });
-    showToast("Cel gekopieerd! Klik op een andere cel om te plakken", "success");
+    showToast(
+      "Cel gekopieerd! Klik op een andere cel om te plakken",
+      "success",
+    );
   };
 
   const pasteCell = (projectId: number, date: string) => {
@@ -199,7 +315,7 @@ export default function TimeRegistrationPage() {
     }
 
     // Plak de data
-    setEntries(prev => ({
+    setEntries((prev) => ({
       ...prev,
       [key]: {
         date,
@@ -208,37 +324,44 @@ export default function TimeRegistrationPage() {
         km: copiedCell.km || 0,
         expenses: copiedCell.expenses || 0,
         notes: copiedCell.notes || "",
-        status: "opgeslagen"
-      }
+        status: "opgeslagen",
+      },
     }));
 
     showToast("Geplakt!", "success");
   };
 
   const removeProject = (projectId: number) => {
-    setProjectRows(prev => prev.filter(r => r.projectId !== projectId));
+    setProjectRows((prev) => prev.filter((r) => r.projectId !== projectId));
     const newEntries = { ...entries };
-    Object.keys(newEntries).forEach(k => {
+    Object.keys(newEntries).forEach((k) => {
       if (newEntries[k].projectId === projectId) delete newEntries[k];
     });
     setEntries(newEntries);
   };
 
-  const updateEntry = (projectId: number, date: string, field: 'hours' | 'km' | 'expenses' | 'notes', value: any) => {
+  const updateEntry = (
+    projectId: number,
+    date: string,
+    field: "hours" | "km" | "expenses" | "notes",
+    value: any,
+  ) => {
     const key = `${date}-${projectId}`;
-    setEntries(prev => ({
+    setEntries((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
         date,
         projectId,
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   const getTotalDay = (date: string) =>
-    Object.values(entries).filter(e => e.date === date).reduce((sum, e) => sum + (e.hours || 0), 0);
+    Object.values(entries)
+      .filter((e) => e.date === date)
+      .reduce((sum, e) => sum + (e.hours || 0), 0);
 
   const getTotalProject = (projectId: number) =>
     weekDays.reduce((sum, day) => {
@@ -246,11 +369,14 @@ export default function TimeRegistrationPage() {
       return sum + (entries[key]?.hours || 0);
     }, 0);
 
-  const getTotalWeek = () => projectRows.reduce((sum, r) => sum + getTotalProject(r.projectId), 0);
+  const getTotalWeek = () =>
+    projectRows.reduce((sum, r) => sum + getTotalProject(r.projectId), 0);
 
   // KM totals
   const getTotalKmDay = (date: string) =>
-    Object.values(entries).filter(e => e.date === date).reduce((sum, e) => sum + (e.km || 0), 0);
+    Object.values(entries)
+      .filter((e) => e.date === date)
+      .reduce((sum, e) => sum + (e.km || 0), 0);
 
   const getTotalKmProject = (projectId: number) =>
     weekDays.reduce((sum, day) => {
@@ -258,11 +384,14 @@ export default function TimeRegistrationPage() {
       return sum + (entries[key]?.km || 0);
     }, 0);
 
-  const getTotalKmWeek = () => projectRows.reduce((sum, r) => sum + getTotalKmProject(r.projectId), 0);
+  const getTotalKmWeek = () =>
+    projectRows.reduce((sum, r) => sum + getTotalKmProject(r.projectId), 0);
 
   // Expenses totals
   const getTotalExpensesDay = (date: string) =>
-    Object.values(entries).filter(e => e.date === date).reduce((sum, e) => sum + (e.expenses || 0), 0);
+    Object.values(entries)
+      .filter((e) => e.date === date)
+      .reduce((sum, e) => sum + (e.expenses || 0), 0);
 
   const getTotalExpensesProject = (projectId: number) =>
     weekDays.reduce((sum, day) => {
@@ -270,28 +399,38 @@ export default function TimeRegistrationPage() {
       return sum + (entries[key]?.expenses || 0);
     }, 0);
 
-  const getTotalExpensesWeek = () => projectRows.reduce((sum, r) => sum + getTotalExpensesProject(r.projectId), 0);
+  const getTotalExpensesWeek = () =>
+    projectRows.reduce(
+      (sum, r) => sum + getTotalExpensesProject(r.projectId),
+      0,
+    );
 
   const saveAll = async () => {
     setSaving(true);
     try {
-      const toSave = Object.values(entries).filter(e => e.hours > 0 || e.km > 0 || e.expenses > 0).map(e => {
-        const row = projectRows.find(r => r.projectId === e.projectId);
-        return {
-          date: e.date,
-          projectId: e.projectId,
-          hours: e.hours || 0,
-          km: e.km || 0,
-          expenses: e.expenses || 0,
-          notes: e.notes || "",
-          userId: 1,
-          companyId: row?.companyId || 0,
-          projectGroupId: row?.projectGroupId || 0,
-          breakMinutes: 0,
-          status: "opgeslagen"
-        };
-      });
-      if (toSave.length === 0) { showToast("Geen uren om op te slaan", "error"); return; }
+      const toSave = Object.values(entries)
+        .filter((e) => e.hours > 0 || e.km > 0 || e.expenses > 0)
+        .map((e) => {
+          const row = projectRows.find((r) => r.projectId === e.projectId);
+          return {
+            date: e.date,
+            projectId: e.projectId,
+            hours: e.hours || 0,
+            km: e.km || 0,
+            expenses: e.expenses || 0,
+            notes: e.notes || "",
+            userId: 1,
+            companyId: row?.companyId || 0,
+            projectGroupId: row?.projectGroupId || 0,
+            breakMinutes: 0,
+            status: "opgeslagen",
+          };
+        })
+        .filter((entry) => !isClosedDay(entry.date)); // Filter out closed days
+      if (toSave.length === 0) {
+        showToast("Geen uren om op te slaan", "error");
+        return;
+      }
       await saveBulkEntries(1, toSave);
       showToast("Opgeslagen!", "success");
       await loadEntries();
@@ -305,23 +444,29 @@ export default function TimeRegistrationPage() {
   const submitAll = async () => {
     setSaving(true);
     try {
-      const toSave = Object.values(entries).filter(e => e.hours > 0 || e.km > 0 || e.expenses > 0).map(e => {
-        const row = projectRows.find(r => r.projectId === e.projectId);
-        return {
-          date: e.date,
-          projectId: e.projectId,
-          hours: e.hours || 0,
-          km: e.km || 0,
-          expenses: e.expenses || 0,
-          notes: e.notes || "",
-          userId: 1,
-          companyId: row?.companyId || 0,
-          projectGroupId: row?.projectGroupId || 0,
-          breakMinutes: 0,
-          status: "ingeleverd"
-        };
-      });
-      if (toSave.length === 0) { showToast("Geen uren om in te leveren", "error"); return; }
+      const toSave = Object.values(entries)
+        .filter((e) => e.hours > 0 || e.km > 0 || e.expenses > 0)
+        .map((e) => {
+          const row = projectRows.find((r) => r.projectId === e.projectId);
+          return {
+            date: e.date,
+            projectId: e.projectId,
+            hours: e.hours || 0,
+            km: e.km || 0,
+            expenses: e.expenses || 0,
+            notes: e.notes || "",
+            userId: 1,
+            companyId: row?.companyId || 0,
+            projectGroupId: row?.projectGroupId || 0,
+            breakMinutes: 0,
+            status: "ingeleverd",
+          };
+        })
+        .filter((entry) => !isClosedDay(entry.date)); // Filter out closed days
+      if (toSave.length === 0) {
+        showToast("Geen uren om in te leveren", "error");
+        return;
+      }
       await saveBulkEntries(1, toSave);
       showToast("Ingeleverd!", "success");
       await loadEntries();
@@ -337,12 +482,15 @@ export default function TimeRegistrationPage() {
       <ModernLayout>
         <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
           {toast && (
-            <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${toast.type === "success"
-                ? "bg-blue-100"
-                : "bg-blue-100"
-              }`}>
+            <div
+              className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
+                toast.type === "success" ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
               <div className="flex items-center gap-2">
-                <span className="text-lg">{toast.type === "success" ? "✓" : "✕"}</span>
+                <span className="text-lg">
+                  {toast.type === "success" ? "✓" : "✕"}
+                </span>
                 <span className="font-medium">{toast.message}</span>
               </div>
             </div>
@@ -351,30 +499,34 @@ export default function TimeRegistrationPage() {
           <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
             <div className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Uren Registreren</h1>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  Uren Registreren
+                </h1>
 
-                <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode("week")}
-                    className={`px-3 py-1.5 rounded text-sm font-medium ${viewMode === "week"
-                        ? "bg-blue-100 text-white shadow-md"
-                        : "text-slate-600 hover:text-slate-900"
-                      }`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      viewMode === "week"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
                   >
                     Week
                   </button>
                   <button
                     onClick={() => setViewMode("month")}
-                    className={`px-3 py-1.5 rounded text-sm font-medium ${viewMode === "month"
-                        ? "bg-blue-100 text-white shadow-md"
-                        : "text-slate-600 hover:text-slate-900"
-                      }`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      viewMode === "month"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
                   >
                     Maand
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => {
                       const d = new Date(currentWeek);
@@ -385,14 +537,14 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
-                    <ChevronLeft className="w-5 h-5" />
+                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </button>
-                  <div className="px-4 py-2 font-semibold">
+                  <div className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">
                     {viewMode === "week"
                       ? `Week ${weekNumber}`
-                      : monthNames[currentWeek.getMonth()]
-                    }
+                      : monthNames[currentWeek.getMonth()]}
                   </div>
                   <button
                     onClick={() => {
@@ -404,18 +556,25 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
-                    <ChevronRight className="w-5 h-5" />
+                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   </button>
                 </div>
               </div>
               <div className="flex gap-3">
-                <button onClick={saveAll} disabled={saving}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition">
+                <button
+                  onClick={saveAll}
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                >
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
-                <button onClick={submitAll} disabled={saving}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition">
+                <button
+                  onClick={submitAll}
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                >
                   <Send className="w-4 h-4" /> Inleveren
                 </button>
               </div>
@@ -423,36 +582,50 @@ export default function TimeRegistrationPage() {
           </div>
 
           <div className="flex h-[calc(100vh-5rem)]">
-            <div className="  w-80 
-    bg-white dark:bg-slate-800 
-    border-r 
-    border-slate-200 dark:border-slate-700 
-    overflow-y-auto 
-    shadow-lg">
+            <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
               <div className="p-4 space-y-1">
-                {companies.map(company => (
+                {companies.map((company) => (
                   <div key={company.id}>
-                    <div onClick={() => toggleCompany(company.id)}
-                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg cursor-pointer group">
-                      <ChevronDown className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`} />
-                      <span className="font-medium group-hover:text-blue-600">{company.name}</span>
+                    <div
+                      onClick={() => toggleCompany(company.id)}
+                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-lg cursor-pointer group"
+                    >
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
+                      />
+                      <span className="font-medium group-hover:text-blue-600">
+                        {company.name}
+                      </span>
                     </div>
                     {expandedCompanies.includes(company.id) && (
                       <div className="ml-5 space-y-1">
-                        {projectGroups[company.id]?.map(group => (
+                        {projectGroups[company.id]?.map((group) => (
                           <div key={group.id}>
-                            <div onClick={() => toggleGroup(group.id)}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer group">
-                              <ChevronDown className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-purple-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`} />
-                              <span className="text-sm group-hover:text-purple-600">{group.name}</span>
+                            <div
+                              onClick={() => toggleGroup(group.id)}
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer group"
+                            >
+                              <ChevronDown
+                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-purple-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                              />
+                              <span className="text-sm group-hover:text-purple-600">
+                                {group.name}
+                              </span>
                             </div>
                             {expandedGroups.includes(group.id) && (
                               <div className="ml-5 space-y-1">
-                                {projects[group.id]?.map(project => (
-                                  <div key={project.id} onClick={() => addProject(company, group, project)}
-                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-lg cursor-pointer group">
+                                {projects[group.id]?.map((project) => (
+                                  <div
+                                    key={project.id}
+                                    onClick={() =>
+                                      addProject(company, group, project)
+                                    }
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-lg cursor-pointer group"
+                                  >
                                     <Plus className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <span className="text-sm text-slate-600 group-hover:text-emerald-600">{project.name}</span>
+                                    <span className="text-sm text-slate-600 group-hover:text-emerald-600">
+                                      {project.name}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
@@ -471,8 +644,12 @@ export default function TimeRegistrationPage() {
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
                     <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Geen projecten geselecteerd</h3>
-                    <p className="text-slate-600">Selecteer een project in de sidebar</p>
+                    <h3 className="text-xl font-semibold mb-2">
+                      Geen projecten geselecteerd
+                    </h3>
+                    <p className="text-slate-600">
+                      Selecteer een project in de sidebar
+                    </p>
                   </div>
                 </div>
               ) : viewMode === "month" ? (
@@ -483,191 +660,328 @@ export default function TimeRegistrationPage() {
                     const currentYear = currentWeek.getFullYear();
                     const weekNum = getWeekNumber(weekStart);
                     return (
-                      <div key={idx} className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+                      <div
+                        key={idx}
+                        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                      >
                         <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
-                          <div className="font-semibold text-slate-900">Week {weekNum}</div>
+                          <div className="font-semibold text-slate-900">
+                            Week {weekNum}
+                          </div>
                           <div className="text-xs text-slate-600">
-                            {formatDate(weekDaysForWeek[0])} - {formatDate(weekDaysForWeek[6])}
+                            {formatDate(weekDaysForWeek[0])} -{" "}
+                            {formatDate(weekDaysForWeek[6])}
                           </div>
                         </div>
 
                         <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
-                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4 bg-slate-100 dark:bg-slate-800">
                             <div />
-                            <div className="font-semibold text-slate-700">Project</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              Project
+                            </div>
                             {weekDaysForWeek.map((day, i) => {
-                              const isInCurrentMonth = day.getMonth() === currentMonth && day.getFullYear() === currentYear;
+                              const isInCurrentMonth =
+                                day.getMonth() === currentMonth &&
+                                day.getFullYear() === currentYear;
                               return (
-                                <div key={i} className={`text-center ${!isInCurrentMonth ? 'opacity-40' : ''}`}>
-                                  <div className="text-xs text-slate-500">{dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}</div>
-                                  <div className="text-sm font-semibold text-slate-700">{day.getDate()}</div>
+                                <div
+                                  key={i}
+                                  className={
+                                    "text-center" +
+                                    (!isInCurrentMonth ? " opacity-50" : "")
+                                  }
+                                >
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                    {
+                                      dayNames[
+                                        day.getDay() === 0
+                                          ? 6
+                                          : day.getDay() - 1
+                                      ]
+                                    }
+                                  </div>
+                                  <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                                    {day.getDate()}
+                                  </div>
                                 </div>
                               );
                             })}
-                            <div className="text-center font-semibold text-slate-700">Totaal</div>
+                            <div className="text-center font-bold text-slate-800 dark:text-slate-200">
+                              Totaal
+                            </div>
                           </div>
                         </div>
 
                         <div className="divide-y divide-slate-200">
-                          {projectRows.map(row => {
-                            const weekTotal = weekDaysForWeek.reduce((sum, day) => {
-                              const key = `${formatDate(day)}-${row.projectId}`;
-                              return sum + (entries[key]?.hours || 0);
-                            }, 0);
-                            const weekKmTotal = weekDaysForWeek.reduce((sum, day) => {
-                              const key = `${formatDate(day)}-${row.projectId}`;
-                              return sum + (entries[key]?.km || 0);
-                            }, 0);
-                            const weekExpensesTotal = weekDaysForWeek.reduce((sum, day) => {
-                              const key = `${formatDate(day)}-${row.projectId}`;
-                              return sum + (entries[key]?.expenses || 0);
-                            }, 0);
-
-                            return (
-                              <div key={row.projectId} className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
-                                  <div />
-                                  <div>
-                                    <div className="text-xs text-slate-500">{row.companyName} › {row.projectGroupName}</div>
-                                    <div className="font-medium mb-2">{row.projectName}</div>
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => removeProject(row.projectId)}
-                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded border border-red-200"
-                                        title="Verwijder project"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
+                          {projectRows.map((row) => (
+                            <div
+                              key={row.projectId}
+                              className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
+                            >
+                              <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
+                                <div />
+                                <div>
+                                  <div className="text-xs text-slate-500">
+                                    {row.companyName} › {row.projectGroupName}
                                   </div>
-                                  {weekDaysForWeek.map(day => {
-                                    const date = formatDate(day);
-                                    const key = `${date}-${row.projectId}`;
-                                    const entry = entries[key] || { date, projectId: row.projectId, hours: 0, km: 0, expenses: 0, notes: "", status: "opgeslagen" };
-                                    const isInCurrentMonth = day.getMonth() === currentMonth && day.getFullYear() === currentYear;
-                                    const isSubmitted = entry.status === "ingeleverd";
-                                    const isDisabled = !isInCurrentMonth || isSubmitted;
-                                    return (
-                                      <div key={date} className={`space-y-1 ${!isInCurrentMonth ? 'opacity-30' : ''}`}>
-                                        {!isDisabled && (
-                                          <div className="flex gap-1 mb-1">
-                                            <button
-                                              onClick={() => copyCell(row.projectId, date)}
-                                              className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
-                                              title="Kopieer cel"
-                                            >
-                                              Kopiëren
-                                            </button>
-                                            <button
-                                              onClick={() => pasteCell(row.projectId, date)}
-                                              className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
-                                              title="Plak cel"
-                                            >
-                                              Plakken
-                                            </button>
-                                          </div>
-                                        )}
-                                        <input
-                                          type="number"
-                                          step="0.5"
-                                          min="0"
-                                          max="24"
-                                          value={entry.hours || ""}
-                                          onChange={e => updateEntry(row.projectId, date, 'hours', parseFloat(e.target.value) || 0)}
-                                          disabled={isDisabled}
-                                          className={`w-full px-2 py-1.5 border border-slate-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="Uren"
-                                        />
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={entry.km || ""}
-                                          onChange={e => updateEntry(row.projectId, date, 'km', parseInt(e.target.value) || 0)}
-                                          disabled={isDisabled}
-                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="KM"
-                                        />
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          min="0"
-                                          value={entry.expenses || ""}
-                                          onChange={e => updateEntry(row.projectId, date, 'expenses', parseFloat(e.target.value) || 0)}
-                                          disabled={isDisabled}
-                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:focus:ring-purple-400 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="€ Onkosten"
-                                        />
-                                        <input
-                                          type="text"
-                                          value={entry.notes || ""}
-                                          onChange={e => updateEntry(row.projectId, date, 'notes', e.target.value)}
-                                          disabled={isDisabled}
-                                          className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 ${isDisabled ? 'bg-slate-100 cursor-not-allowed' : ''}`}
-                                          placeholder="Opmerking"
-                                        />
-                                      </div>
-                                    );
-                                  })}
-                                  <div className="flex flex-col items-center justify-center gap-0.5">
-                                    <span className="text-sm font-bold text-blue-600">{weekTotal}u</span>
-                                    <span className="text-xs text-slate-600">{weekKmTotal} km</span>
-                                    <span className="text-xs text-slate-600">€ {weekExpensesTotal.toFixed(2)}</span>
+                                  <div className="font-medium mb-2">
+                                    {row.projectName}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() =>
+                                        removeProject(row.projectId)
+                                      }
+                                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 transition-colors"
+                                      title="Verwijder project"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 </div>
+                                {weekDaysForWeek.map((day) => {
+                                  const date = formatDate(day);
+                                  const key = `${date}-${row.projectId}`;
+                                  const entry = entries[key] || {
+                                    date,
+                                    projectId: row.projectId,
+                                    hours: 0,
+                                    km: 0,
+                                    expenses: 0,
+                                    notes: "",
+                                    status: "opgeslagen",
+                                  };
+                                  const isInCurrentMonth =
+                                    day.getMonth() === currentMonth &&
+                                    day.getFullYear() === currentYear;
+                                  const isSubmitted =
+                                    entry.status === "ingeleverd";
+                                  const isClosed = isClosedDay(date);
+                                  const isDisabled =
+                                    !isInCurrentMonth ||
+                                    isSubmitted ||
+                                    isClosed;
+                                  return (
+                                    <div
+                                      key={date}
+                                      className={
+                                        "space-y-1" +
+                                        (!isInCurrentMonth ? " opacity-30" : "")
+                                      }
+                                    >
+                                      {!isDisabled && (
+                                        <div className="flex gap-1 mb-1">
+                                          <button
+                                            onClick={() =>
+                                              copyCell(row.projectId, date)
+                                            }
+                                            className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
+                                            title="Kopieer cel"
+                                          >
+                                            Kopiëren
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              pasteCell(row.projectId, date)
+                                            }
+                                            className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
+                                            title="Plak cel"
+                                          >
+                                            Plakken
+                                          </button>
+                                        </div>
+                                      )}
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={entry.hours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "hours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className="w-full px-3 py-2 border rounded-lg text-center font-semibold"
+                                        placeholder="Uren"
+                                        title={
+                                          isClosed
+                                            ? "Gesloten dag - geen uren registratie mogelijk"
+                                            : ""
+                                        }
+                                      />
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        value={entry.km || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "km",
+                                            parseInt(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
+                                        placeholder="KM"
+                                        title={
+                                          isClosed
+                                            ? "Gesloten dag - geen uren registratie mogelijk"
+                                            : ""
+                                        }
+                                      />
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={entry.expenses || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "expenses",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
+                                        placeholder="€ Onkosten"
+                                        title={
+                                          isClosed
+                                            ? "Gesloten dag - geen uren registratie mogelijk"
+                                            : ""
+                                        }
+                                      />
+                                      <input
+                                        type="text"
+                                        value={entry.notes || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "notes",
+                                            e.target.value,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-slate-700 dark:text-slate-100"
+                                        placeholder="Opmerking"
+                                        title={
+                                          isClosed
+                                            ? "Gesloten dag - geen uren registratie mogelijk"
+                                            : ""
+                                        }
+                                      />
+                                    </div>
+                                  );
+                                })}
+                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                  <span className="text-sm font-bold text-blue-600">
+                                    {weekTotal}u
+                                  </span>
+                                  <span className="text-xs text-slate-600">
+                                    {weekKmTotal} km
+                                  </span>
+                                  <span className="text-xs text-slate-600">
+                                    € {weekExpensesTotal.toFixed(2)}
+                                  </span>
+                                </div>
                               </div>
-                            );
-                          })}
+                            </div>
+                          ))}
                         </div>
 
-                        <div className="bg-slate-50 border-t border-slate-200">
-                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
+                        <div className="bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
                             <div />
-                            <div className="font-semibold text-slate-700">Totaal per dag</div>
-                            {weekDaysForWeek.map(day => {
-                              const dayTotal = projectRows.reduce((sum, row) => {
-                                const key = `${formatDate(day)}-${row.projectId}`;
-                                return sum + (entries[key]?.hours || 0);
-                              }, 0);
-                              const dayKmTotal = projectRows.reduce((sum, row) => {
-                                const key = `${formatDate(day)}-${row.projectId}`;
-                                return sum + (entries[key]?.km || 0);
-                              }, 0);
-                              const dayExpensesTotal = projectRows.reduce((sum, row) => {
-                                const key = `${formatDate(day)}-${row.projectId}`;
-                                return sum + (entries[key]?.expenses || 0);
-                              }, 0);
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              Totaal per dag
+                            </div>
+                            {weekDaysForWeek.map((day) => {
+                              const dayTotal = projectRows.reduce(
+                                (sum, row) => {
+                                  const key = `${formatDate(day)}-${row.projectId}`;
+                                  return sum + (entries[key]?.hours || 0);
+                                },
+                                0,
+                              );
+                              const dayKmTotal = projectRows.reduce(
+                                (sum, row) => {
+                                  const key = `${formatDate(day)}-${row.projectId}`;
+                                  return sum + (entries[key]?.km || 0);
+                                },
+                                0,
+                              );
+                              const dayExpensesTotal = projectRows.reduce(
+                                (sum, row) => {
+                                  const key = `${formatDate(day)}-${row.projectId}`;
+                                  return sum + (entries[key]?.expenses || 0);
+                                },
+                                0,
+                              );
                               return (
-                                <div key={formatDate(day)} className="flex flex-col items-center gap-0.5">
-                                  <span className="text-sm font-bold text-blue-600">{dayTotal}u</span>
-                                  <span className="text-xs text-slate-600">{dayKmTotal} km</span>
-                                  <span className="text-xs text-slate-600">€ {dayExpensesTotal.toFixed(2)}</span>
+                                <div
+                                  key={formatDate(day)}
+                                  className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-slate-700 rounded-lg"
+                                >
+                                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                    {dayTotal}u
+                                  </span>
+                                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                                    {dayKmTotal} km
+                                  </span>
+                                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                                    € {dayExpensesTotal.toFixed(2)}
+                                  </span>
                                 </div>
                               );
                             })}
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-sm font-bold text-emerald-600">
-                                {weekDaysForWeek.reduce((sum, day) => {
-                                  return sum + projectRows.reduce((s, row) => {
-                                    const key = `${formatDate(day)}-${row.projectId}`;
-                                    return s + (entries[key]?.hours || 0);
-                                  }, 0);
-                                }, 0)}u
+                            <div className="flex flex-col items-center gap-1 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                                {weekDaysForWeek.reduce(
+                                  (sum, day) =>
+                                    sum +
+                                    projectRows.reduce((s, row) => {
+                                      const key = `${formatDate(day)}-${row.projectId}`;
+                                      return s + (entries[key]?.hours || 0);
+                                    }, 0),
+                                  0,
+                                )}
+                                u
                               </span>
-                              <span className="text-xs text-slate-600">
-                                {weekDaysForWeek.reduce((sum, day) => {
-                                  return sum + projectRows.reduce((s, row) => {
-                                    const key = `${formatDate(day)}-${row.projectId}`;
-                                    return s + (entries[key]?.km || 0);
-                                  }, 0);
-                                }, 0)} km
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                {weekDaysForWeek.reduce(
+                                  (sum, day) =>
+                                    sum +
+                                    projectRows.reduce((s, row) => {
+                                      const key = `${formatDate(day)}-${row.projectId}`;
+                                      return s + (entries[key]?.km || 0);
+                                    }, 0),
+                                  0,
+                                )}{" "}
+                                km
                               </span>
-                              <span className="text-xs text-slate-600">
-                                € {weekDaysForWeek.reduce((sum, day) => {
-                                  return sum + projectRows.reduce((s, row) => {
-                                    const key = `${formatDate(day)}-${row.projectId}`;
-                                    return s + (entries[key]?.expenses || 0);
-                                  }, 0);
-                                }, 0).toFixed(2)}
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                €{" "}
+                                {weekDaysForWeek
+                                  .reduce(
+                                    (sum, day) =>
+                                      sum +
+                                      projectRows.reduce((s, row) => {
+                                        const key = `${formatDate(day)}-${row.projectId}`;
+                                        return (
+                                          s + (entries[key]?.expenses || 0)
+                                        );
+                                      }, 0),
+                                    0,
+                                  )
+                                  .toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -682,25 +996,40 @@ export default function TimeRegistrationPage() {
                     <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
                       <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                         <div />
-                        <div className="font-semibold text-slate-700">Project</div>
+                        <div className="font-semibold text-slate-700">
+                          Project
+                        </div>
                         {weekDays.map((day, i) => (
                           <div key={i} className="text-center">
-                            <div className="text-xs text-slate-500">{dayNames[i]}</div>
-                            <div className="text-sm font-semibold text-slate-700">{day.getDate()}</div>
+                            <div className="text-xs text-slate-500">
+                              {dayNames[i]}
+                            </div>
+                            <div className="text-sm font-semibold text-slate-700">
+                              {day.getDate()}
+                            </div>
                           </div>
                         ))}
-                        <div className="text-center font-semibold text-slate-700">Totaal</div>
+                        <div className="text-center font-semibold text-slate-700">
+                          Totaal
+                        </div>
                       </div>
                     </div>
 
                     <div className="divide-y divide-slate-200">
-                      {projectRows.map(row => (
-                        <div key={row.projectId} className="hover:bg-slate-50 transition-colors">
+                      {projectRows.map((row) => (
+                        <div
+                          key={row.projectId}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
+                        >
                           <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                             <div />
                             <div>
-                              <div className="text-xs text-slate-500">{row.companyName} › {row.projectGroupName}</div>
-                              <div className="font-medium mb-2">{row.projectName}</div>
+                              <div className="text-xs text-slate-500">
+                                {row.companyName} › {row.projectGroupName}
+                              </div>
+                              <div className="font-medium mb-2">
+                                {row.projectName}
+                              </div>
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => removeProject(row.projectId)}
@@ -711,24 +1040,37 @@ export default function TimeRegistrationPage() {
                                 </button>
                               </div>
                             </div>
-                            {weekDays.map(day => {
+                            {weekDays.map((day) => {
                               const date = formatDate(day);
                               const key = `${date}-${row.projectId}`;
-                              const entry = entries[key] || { date, projectId: row.projectId, hours: 0, km: 0, expenses: 0, notes: "", status: "opgeslagen" };
+                              const entry = entries[key] || {
+                                date,
+                                projectId: row.projectId,
+                                hours: 0,
+                                km: 0,
+                                expenses: 0,
+                                notes: "",
+                                status: "opgeslagen",
+                              };
                               const isSubmitted = entry.status === "ingeleverd";
+                              const isClosed = isClosedDay(date);
                               return (
                                 <div key={date} className="space-y-1">
-                                  {!isSubmitted && (
+                                  {!isSubmitted && !isClosed && (
                                     <div className="flex gap-1 mb-1">
                                       <button
-                                        onClick={() => copyCell(row.projectId, date)}
+                                        onClick={() =>
+                                          copyCell(row.projectId, date)
+                                        }
                                         className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                         title="Kopieer cel"
                                       >
                                         Kopiëren
                                       </button>
                                       <button
-                                        onClick={() => pasteCell(row.projectId, date)}
+                                        onClick={() =>
+                                          pasteCell(row.projectId, date)
+                                        }
                                         className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                         title="Plak cel"
                                       >
@@ -742,45 +1084,102 @@ export default function TimeRegistrationPage() {
                                     min="0"
                                     max="24"
                                     value={entry.hours || ""}
-                                    onChange={e => updateEntry(row.projectId, date, 'hours', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) =>
+                                      updateEntry(
+                                        row.projectId,
+                                        date,
+                                        "hours",
+                                        parseFloat(e.target.value) || 0,
+                                      )
+                                    }
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1.5 border border-slate-300 rounded-lg text-center font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className="w-full px-3 py-2 border rounded text-center"
                                     placeholder="Uren"
+                                    title={
+                                      isClosed
+                                        ? "Gesloten dag - geen uren registratie mogelijk"
+                                        : ""
+                                    }
                                   />
                                   <input
                                     type="number"
                                     min="0"
                                     value={entry.km || ""}
-                                    onChange={e => updateEntry(row.projectId, date, 'km', parseInt(e.target.value) || 0)}
+                                    onChange={(e) =>
+                                      updateEntry(
+                                        row.projectId,
+                                        date,
+                                        "km",
+                                        parseInt(e.target.value) || 0,
+                                      )
+                                    }
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
                                     placeholder="KM"
+                                    title={
+                                      isClosed
+                                        ? "Gesloten dag - geen uren registratie mogelijk"
+                                        : ""
+                                    }
                                   />
                                   <input
                                     type="number"
                                     step="0.01"
                                     min="0"
                                     value={entry.expenses || ""}
-                                    onChange={e => updateEntry(row.projectId, date, 'expenses', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) =>
+                                      updateEntry(
+                                        row.projectId,
+                                        date,
+                                        "expenses",
+                                        parseFloat(e.target.value) || 0,
+                                      )
+                                    }
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500 dark:focus:ring-purple-400 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
                                     placeholder="€ Onkosten"
+                                    title={
+                                      isClosed
+                                        ? "Gesloten dag - geen uren registratie mogelijk"
+                                        : ""
+                                    }
                                   />
                                   <input
                                     type="text"
                                     value={entry.notes || ""}
-                                    onChange={e => updateEntry(row.projectId, date, 'notes', e.target.value)}
+                                    onChange={(e) =>
+                                      updateEntry(
+                                        row.projectId,
+                                        date,
+                                        "notes",
+                                        e.target.value,
+                                      )
+                                    }
                                     disabled={isSubmitted}
-                                    className={`w-full px-2 py-1 border border-slate-200 rounded text-xs bg-white dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:focus:ring-indigo-400 ${isSubmitted ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+                                    className="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-slate-700 dark:text-slate-100"
                                     placeholder="Opmerking"
+                                    title={
+                                      isClosed
+                                        ? "Gesloten dag - geen uren registratie mogelijk"
+                                        : ""
+                                    }
                                   />
                                 </div>
                               );
                             })}
                             <div className="flex flex-col items-center justify-center gap-0.5">
-                              <span className="text-sm font-bold text-blue-600">{getTotalProject(row.projectId)}u</span>
-                              <span className="text-xs text-slate-600">{getTotalKmProject(row.projectId)} km</span>
-                              <span className="text-xs text-slate-600">€ {getTotalExpensesProject(row.projectId).toFixed(2)}</span>
+                              <span className="text-sm font-bold text-blue-600">
+                                {getTotalProject(row.projectId)}u
+                              </span>
+                              <span className="text-xs text-slate-600">
+                                {getTotalKmProject(row.projectId)} km
+                              </span>
+                              <span className="text-xs text-slate-600">
+                                €{" "}
+                                {getTotalExpensesProject(row.projectId).toFixed(
+                                  2,
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -790,18 +1189,36 @@ export default function TimeRegistrationPage() {
                     <div className="bg-slate-50 border-t border-slate-200">
                       <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                         <div />
-                        <div className="font-semibold text-slate-700">Totaal per dag</div>
-                        {weekDays.map(day => (
-                          <div key={formatDate(day)} className="flex flex-col items-center gap-0.5">
-                            <span className="text-sm font-bold text-blue-600">{getTotalDay(formatDate(day))}u</span>
-                            <span className="text-xs text-slate-600">{getTotalKmDay(formatDate(day))} km</span>
-                            <span className="text-xs text-slate-600">€ {getTotalExpensesDay(formatDate(day)).toFixed(2)}</span>
+                        <div className="font-semibold text-slate-700">
+                          Totaal per dag
+                        </div>
+                        {weekDays.map((day) => (
+                          <div
+                            key={formatDate(day)}
+                            className="flex flex-col items-center gap-0.5"
+                          >
+                            <span className="text-sm font-bold text-blue-600">
+                              {getTotalDay(formatDate(day))}u
+                            </span>
+                            <span className="text-xs text-slate-600">
+                              {getTotalKmDay(formatDate(day))} km
+                            </span>
+                            <span className="text-xs text-slate-600">
+                              €{" "}
+                              {getTotalExpensesDay(formatDate(day)).toFixed(2)}
+                            </span>
                           </div>
                         ))}
                         <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-sm font-bold text-emerald-600">{getTotalWeek()}u</span>
-                          <span className="text-xs text-slate-600">{getTotalKmWeek()} km</span>
-                          <span className="text-xs text-slate-600">€ {getTotalExpensesWeek().toFixed(2)}</span>
+                          <span className="text-sm font-bold text-emerald-600">
+                            {getTotalWeek()}u
+                          </span>
+                          <span className="text-xs text-slate-600">
+                            {getTotalKmWeek()} km
+                          </span>
+                          <span className="text-xs text-slate-600">
+                            € {getTotalExpensesWeek().toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </div>

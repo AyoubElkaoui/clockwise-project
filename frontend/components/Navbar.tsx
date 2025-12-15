@@ -11,20 +11,20 @@ import {
 } from "@heroicons/react/24/outline";
 import { Calendar, Clock, Globe } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useLanguage } from "@/lib/language-context";
+import { useTranslation } from "react-i18next";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 export default function Navbar(): JSX.Element {
   const pathname = usePathname();
-  const { language, setLanguage, t } = useLanguage();
+  const { t, i18n } = useTranslation();
 
-// super-robust: case-insensitive + werkt ook voor /FAQ, /faq/iets, /dashboard/faq, etc.
-const cleanPath = (pathname || "").toLowerCase();
-const hideNotifications =
-  cleanPath === "/faq" ||
-  cleanPath.startsWith("/faq/") ||
-  cleanPath.endsWith("/faq") ||
-  cleanPath.includes("/faq/");
-
+  // super-robust: case-insensitive + werkt ook voor /FAQ, /faq/iets, /dashboard/faq, etc.
+  const cleanPath = (pathname || "").toLowerCase();
+  const hideNotifications =
+    cleanPath === "/faq" ||
+    cleanPath.startsWith("/faq/") ||
+    cleanPath.endsWith("/faq") ||
+    cleanPath.includes("/faq/");
 
   const [userName, setUserName] = useState<string>("");
   const [userRank, setUserRank] = useState<string>("");
@@ -55,8 +55,7 @@ const hideNotifications =
 
   const handleLogout = (): void => {
     localStorage.clear();
-    document.cookie =
-      "userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "userId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie =
       "userRank=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     window.location.href = "/login";
@@ -111,7 +110,7 @@ const hideNotifications =
     <nav
       className="
         sticky top-0 z-40 px-6 py-3 shadow-md backdrop-blur-lg transition-colors
-        bg-white/80 dark:bg-slate-900/80 
+        bg-white/80 dark:bg-slate-900/80
         border-b border-slate-200 dark:border-slate-700
         text-slate-900 dark:text-slate-100
       "
@@ -132,12 +131,12 @@ const hideNotifications =
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
+                if (e.key === "Enter" && searchQuery.trim()) {
                   window.location.href = `/zoeken?q=${encodeURIComponent(searchQuery)}`;
                 }
               }}
               className="
-                w-full pl-10 pr-4 py-2 rounded-xl 
+                w-full pl-10 pr-4 py-2 rounded-xl
                 bg-slate-100 dark:bg-slate-800
                 text-slate-800 dark:text-slate-100
                 border border-slate-300 dark:border-slate-700
@@ -169,9 +168,14 @@ const hideNotifications =
 
         {/* === RIGHT SIDE === */}
         <div className="flex items-center gap-3 flex-1 justify-end">
+          {/* Dark Mode Toggle */}
+          <ThemeToggle />
+
           {/* Language Switcher */}
           <button
-            onClick={() => setLanguage(language === "nl" ? "en" : "nl")}
+            onClick={() =>
+              i18n.changeLanguage(i18n.language === "nl" ? "en" : "nl")
+            }
             className="
               flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
               bg-slate-100 dark:bg-slate-800
@@ -180,19 +184,24 @@ const hideNotifications =
               border border-slate-300 dark:border-slate-600
               transition-all duration-200
             "
-            title={language === "nl" ? "Switch to English" : "Schakel naar Nederlands"}
+            title={
+              i18n.language === "nl"
+                ? "Switch to English"
+                : "Schakel naar Nederlands"
+            }
           >
             <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">{language === "nl" ? "🇳🇱 NL" : "🇬🇧 EN"}</span>
+            <span className="hidden sm:inline">
+              {i18n.language === "nl" ? "NL" : "EN"}
+            </span>
           </button>
 
           {/* Notifications - verbergen op FAQ */}
           {!hideNotifications && (
-  <div className="text-blue-500 dark:text-blue-400">
-    <NotificationBell />
-  </div>
-)}
-
+            <div className="text-blue-500 dark:text-blue-400">
+              <NotificationBell />
+            </div>
+          )}
 
           {/* Admin panel */}
           {(userRank === "admin" || userRank === "manager") && (
@@ -242,7 +251,7 @@ const hideNotifications =
             className="
               hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
               bg-red-50 dark:bg-red-950/30
-              border border-red-200 dark:border-red-800 
+              border border-red-200 dark:border-red-800
               text-red-600 dark:text-red-400
               hover:bg-red-100 dark:hover:bg-red-900/50
               transition-all duration-200

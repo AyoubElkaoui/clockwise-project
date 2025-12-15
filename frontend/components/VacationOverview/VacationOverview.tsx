@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation } from "react-i18next";
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import {
@@ -178,6 +179,7 @@ const formatHoursToDays = (hours: number): string => {
 };
 
 export default function VacationOverview(): React.JSX.Element {
+  const { t } = useTranslation();
     const [requests, setRequests] = useState<VacationRequest[]>([]);
     const [balance, setBalance] = useState<VacationBalance>({
         totalHours: 200,
@@ -209,7 +211,7 @@ export default function VacationOverview(): React.JSX.Element {
             setBalance(balanceData);
         } catch (err) {
             console.error('Error fetching vacation data:', err);
-            setError("Fout bij het ophalen van vakantiegegevens");
+            setError(t("vacation.errorLoading"));
         } finally {
             setLoading(false);
         }
@@ -338,7 +340,7 @@ export default function VacationOverview(): React.JSX.Element {
                 <div className="bg-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-blue-100 text-sm font-medium">Totaal Vakantie-uren</p>
+                            <p className="text-blue-100 text-sm font-medium">{t("vacation.totalVacationHours")}</p>
                             <p className="text-3xl font-bold">{balance.totalHours}u</p>
                             <p className="text-blue-200 text-xs">{balance.totalHours / 8} dagen</p>
                         </div>
@@ -349,7 +351,7 @@ export default function VacationOverview(): React.JSX.Element {
                 <div className="bg-gradient-success text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm font-medium">Opgenomen Uren</p>
+                            <p className="text-green-100 text-sm font-medium">{t("vacation.usedHours")}</p>
                             <p className="text-3xl font-bold">{balance.usedHours}u</p>
                             <p className="text-green-200 text-xs">{balance.usedHours / 8} dagen</p>
                         </div>
@@ -360,7 +362,7 @@ export default function VacationOverview(): React.JSX.Element {
                 <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-yellow-100 text-sm font-medium">In Behandeling</p>
+                            <p className="text-yellow-100 text-sm font-medium">{t("vacation.pending")}</p>
                             <p className="text-3xl font-bold">{balance.pendingHours}u</p>
                             <p className="text-yellow-200 text-xs">{balance.pendingHours / 8} dagen</p>
                         </div>
@@ -371,7 +373,7 @@ export default function VacationOverview(): React.JSX.Element {
                 <div className="bg-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-purple-100 text-sm font-medium">Beschikbaar</p>
+                            <p className="text-purple-100 text-sm font-medium">{t("vacation.available")}</p>
                             <p className="text-3xl font-bold">{balance.remainingHours}u</p>
                             <p className="text-purple-200 text-xs">{balance.remainingHours / 8} dagen</p>
                         </div>
@@ -386,13 +388,13 @@ export default function VacationOverview(): React.JSX.Element {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <PlusCircleIcon className="w-6 h-6 text-elmar-primary" />
-                            <h2 className="text-2xl font-bold text-gray-800">Nieuwe Vakantieaanvraag</h2>
+                            <h2 className="text-2xl font-bold text-gray-800">{t("vacation.newRequest")}</h2>
                         </div>
                         <button
                             className="btn btn-primary rounded-xl"
                             onClick={() => setShowForm(!showForm)}
                         >
-                            {showForm ? 'Annuleren' : 'Nieuwe Aanvraag'}
+                            {showForm ? t("vacation.cancel") : t("vacation.newRequestButton")}
                         </button>
                     </div>
 
@@ -480,7 +482,7 @@ export default function VacationOverview(): React.JSX.Element {
                                             Aanmaken...
                                         </>
                                     ) : (
-                                        'Aanvraag Indienen'
+                                        t("vacation.submitRequest")
                                     )}
                                 </button>
                             </div>
@@ -495,7 +497,7 @@ export default function VacationOverview(): React.JSX.Element {
                     <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
                         <div className="flex items-center gap-3">
                             <CalendarDaysIcon className="w-6 h-6 text-elmar-primary" />
-                            <h2 className="text-2xl font-bold text-gray-800">Mijn Vakantieaanvragen</h2>
+                            <h2 className="text-2xl font-bold text-gray-800">{t("vacation.myRequests")}</h2>
                         </div>
                     </div>
 
@@ -546,8 +548,8 @@ export default function VacationOverview(): React.JSX.Element {
                                     <td colSpan={5} className="text-center py-12">
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="text-6xl">Vakantie</div>
-                                            <div className="text-xl font-semibold text-gray-600">Geen vakantieaanvragen gevonden</div>
-                                            <div className="text-gray-500">Maak je eerste vakantieaanvraag om hier iets te zien</div>
+                                            <div className="text-xl font-semibold text-gray-600">{t("vacation.noRequests")}</div>
+                                            <div className="text-gray-500">{t("vacation.makeFirstRequest")}</div>
                                         </div>
                                     </td>
                                 </tr>
@@ -687,22 +689,22 @@ export default function VacationOverview(): React.JSX.Element {
             {/* Quick Actions */}
             {balance.remainingHours > 0 && (
                 <div className="bg-blue-600 text-white rounded-2xl p-6 text-center">
-                    <h3 className="text-2xl font-bold mb-2">Plan je vakantie!</h3>
+                    <h3 className="text-2xl font-bold mb-2">{t("vacation.planVacation")}</h3>
                     <p className="mb-4">Je hebt nog <strong>{balance.remainingHours} uur</strong> ({balance.remainingHours / 8} dagen) vakantie over dit jaar.</p>
                     <button
                         className="btn btn-outline btn-lg text-white border-white hover:bg-white hover:text-blue-600 rounded-xl"
                         onClick={() => setShowForm(true)}
                     >
                         <PlusCircleIcon className="w-6 h-6 mr-2" />
-                        Nieuwe Vakantie Plannen
+                        {t("vacation.planNewVacation")}
                     </button>
                 </div>
             )}
 
             {balance.remainingHours <= 0 && (
                 <div className="bg-slate-600 text-white rounded-2xl p-6 text-center">
-                    <h3 className="text-2xl font-bold mb-2">Geen vakantie meer beschikbaar</h3>
-                    <p>Je hebt al je vakantie-uren voor dit jaar gebruikt of aangevraagd.</p>
+                    <h3 className="text-2xl font-bold mb-2">{t("vacation.noVacationLeft")}</h3>
+                    <p>{t("vacation.allVacationUsed")}</p>
                 </div>
             )}
         </div>

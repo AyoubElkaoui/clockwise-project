@@ -1,9 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 public class Holiday
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public DateTime Date { get; set; }
-    public string Type { get; set; } = "Feestdag"; // "Feestdag" or "Sluitingsdag"
+    public string? Type { get; set; } = "Feestdag"; // "Feestdag" or "Sluitingsdag"
     public bool IsRecurring { get; set; } // Repeat yearly
     public int? CompanyId { get; set; } // null = all companies
     public Company? Company { get; set; }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using System;
 
 [Route("api/time-entries")]
 [ApiController]
@@ -125,15 +126,19 @@ public class TimeEntryController : ControllerBase
         int updated = 0;
         int created = 0;
 
+        // Get next Id for new entries
+        var maxId = await _context.TimeEntries.MaxAsync(te => (int?)te.Id) ?? 0;
+        var nextId = maxId + 1;
+
         foreach (var dto in entries)
         {
             var entryDate = DateTime.Parse(dto.Date).Date;
-            
+
             // Check if entry already exists for this user/project/date
             var existingEntry = await _context.TimeEntries
-                .FirstOrDefaultAsync(te => 
-                    te.UserId == dto.UserId && 
-                    te.ProjectId == dto.ProjectId && 
+                .FirstOrDefaultAsync(te =>
+                    te.UserId == dto.UserId &&
+                    te.ProjectId == dto.ProjectId &&
                     te.StartTime.Date == entryDate);
 
             if (existingEntry != null)
@@ -152,6 +157,7 @@ public class TimeEntryController : ControllerBase
                 // INSERT new entry
                 var newEntry = new TimeEntry
                 {
+                    Id = nextId++,
                     UserId = dto.UserId,
                     ProjectId = dto.ProjectId,
                     StartTime = entryDate,
@@ -169,10 +175,11 @@ public class TimeEntryController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { 
-            message = $"Uren opgeslagen: {created} nieuw, {updated} gewijzigd", 
-            created, 
-            updated 
+        return Ok(new
+        {
+            message = $"Uren opgeslagen: {created} nieuw, {updated} gewijzigd",
+            created,
+            updated
         });
     }
 
@@ -195,7 +202,7 @@ public class TimeEntryController : ControllerBase
             // Controleer of de gebruiker een admin of manager is
             var user = await _context.Users.FindAsync(entry.UserId);
             bool isAdminOrManager = user != null && (user.Rank == "admin" || user.Rank == "manager");
-        
+
             // Als geen admin/manager, weiger toegang
             if (!isAdminOrManager)
             {
@@ -265,7 +272,7 @@ public class TimeEntryController : ControllerBase
             .Include(te => te.User)
             .Include(te => te.Project)
             .FirstOrDefaultAsync(te => te.Id == id);
-        
+
         if (entry == null)
         {
             return NotFound();
@@ -273,7 +280,7 @@ public class TimeEntryController : ControllerBase
 
         entry.Status = "ingeleverd";
         _context.Entry(entry).State = EntityState.Modified;
-    
+
         // Voeg activiteit toe
         var activity = new Activity
         {
@@ -283,40 +290,65 @@ public class TimeEntryController : ControllerBase
             Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn ingeleverd",
             Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
         };
-    
+
         _context.Activities.Add(activity);
         await _context.SaveChangesAsync();
 
         return Ok("Uren ingeleverd");
     }
-    
+
     [HttpPut("{id}/approve")]
-    public async Task<IActionResult> ApproveTimeEntry(int id)
+    public async Task<IActionResult> ApproveTimeEntry(int id, [FromBody] ApproveRejectDto dto)
     {
         var entry = await _context.TimeEntries
             .Include(te => te.User)
             .Include(te => te.Project)
             .FirstOrDefaultAsync(te => te.Id == id);
-        
+
         if (entry == null)
             return NotFound();
 
-        entry.Status = "goedgekeurd";
-    
-        // Voeg activiteit toe
-        var activity = new Activity
+        if (dto.Approved)
         {
-            UserId = entry.UserId,
-            Type = "time_entry",
-            Action = "approved",
-            Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn goedgekeurd",
-            Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
-        };
-    
-        _context.Activities.Add(activity);
+            entry.Status = "goedgekeurd";
+
+            // Voeg activiteit toe
+            var activity = new Activity
+            {
+                UserId = entry.UserId,
+                Type = "time_entry",
+                Action = "approved",
+                Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn goedgekeurd",
+                Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+            };
+
+            _context.Activities.Add(activity);
+        }
+        else
+        {
+            entry.Status = "afgekeurd";
+
+            // Voeg activiteit toe
+            var activity = new Activity
+            {
+                UserId = entry.UserId,
+                Type = "time_entry",
+                Action = "rejected",
+                Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn afgekeurd",
+                Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+            };
+
+            _context.Activities.Add(activity);
+        }
+
+        // Set review metadata
+        entry.ManagerComment = dto.Comment;
+        entry.ReviewedAt = DateTime.Now;
+        // ReviewedBy would need to be passed or obtained from auth context
+
         await _context.SaveChangesAsync();
 
-        return Ok();
+        return Ok(dto.Approved ? "Uren goedgekeurd" : "Uren afgekeurd");
     }
 
 
@@ -327,12 +359,12 @@ public class TimeEntryController : ControllerBase
             .Include(te => te.User)
             .Include(te => te.Project)
             .FirstOrDefaultAsync(te => te.Id == id);
-        
+
         if (entry == null)
             return NotFound();
 
         entry.Status = "afgekeurd";
-    
+
         // Voeg activiteit toe
         var activity = new Activity
         {
@@ -342,13 +374,13 @@ public class TimeEntryController : ControllerBase
             Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn afgekeurd",
             Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
         };
-    
+
         _context.Activities.Add(activity);
         await _context.SaveChangesAsync();
 
         return Ok();
     }
-    
+
 
     [HttpGet("{id}/details")]
     public async Task<ActionResult<TimeEntry>> GetTimeEntryDetails(int id)
@@ -359,14 +391,104 @@ public class TimeEntryController : ControllerBase
             .ThenInclude(p => p.ProjectGroup)
             .ThenInclude(pg => pg.Company)
             .FirstOrDefaultAsync(te => te.Id == id);
-    
+
         if (entry == null)
             return NotFound();
-    
+
         return entry;
     }
-    
-    
-    
-    
+
+    // PUT: api/time-entries/bulk-approve
+    [HttpPut("bulk-approve")]
+    public async Task<IActionResult> BulkApproveTimeEntries([FromBody] BulkActionDto bulkAction)
+    {
+        if (bulkAction == null || bulkAction.EntryIds == null || !bulkAction.EntryIds.Any())
+        {
+            return BadRequest("Geen entries geselecteerd");
+        }
+
+        if (bulkAction.Action != "approve" && bulkAction.Action != "reject")
+        {
+            return BadRequest("Ongeldige actie. Gebruik 'approve' of 'reject'");
+        }
+
+        var entries = await _context.TimeEntries
+            .Include(te => te.User)
+            .Include(te => te.Project)
+            .Where(te => bulkAction.EntryIds.Contains(te.Id))
+            .ToListAsync();
+
+        if (entries.Count != bulkAction.EntryIds.Count)
+        {
+            return BadRequest("Sommige entries bestaan niet");
+        }
+
+        int successCount = 0;
+        int errorCount = 0;
+
+        foreach (var entry in entries)
+        {
+            try
+            {
+                if (bulkAction.Action == "approve")
+                {
+                    entry.Status = "goedgekeurd";
+
+                    // Set review metadata
+                    entry.ReviewedAt = DateTime.Now;
+
+                    // Voeg activiteit toe
+                    var activity = new Activity
+                    {
+                        UserId = entry.UserId,
+                        Type = "time_entry",
+                        Action = "approved",
+                        Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn goedgekeurd (bulk)",
+                        Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+                    };
+                    _context.Activities.Add(activity);
+                }
+                else if (bulkAction.Action == "reject")
+                {
+                    entry.Status = "afgekeurd";
+
+                    // Set review metadata
+                    entry.ReviewedAt = DateTime.Now;
+
+                    // Voeg activiteit toe
+                    var activity = new Activity
+                    {
+                        UserId = entry.UserId,
+                        Type = "time_entry",
+                        Action = "rejected",
+                        Message = $"Uren voor {entry.StartTime.ToString("dd-MM-yyyy")} zijn afgekeurd (bulk)",
+                        Details = $"Project: {entry.Project?.Name ?? "Onbekend"}"
+                    };
+                    _context.Activities.Add(activity);
+                }
+
+                successCount++;
+            }
+            catch (Exception)
+            {
+                errorCount++;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"{successCount} entries succesvol {(bulkAction.Action == "approve" ? "goedgekeurd" : "afgekeurd")}",
+            successCount,
+            errorCount
+        });
+    }
+
+}
+
+public class ApproveRejectDto
+{
+    public bool Approved { get; set; }
+    public string? Comment { get; set; }
 }

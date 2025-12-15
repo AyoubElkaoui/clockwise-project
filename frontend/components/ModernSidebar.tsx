@@ -27,8 +27,8 @@ import { MiniCalendar } from "./MiniCalendar";
 import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
 import { HelpCircle } from "lucide-react";
-import { useLanguage } from "@/lib/language-context";
-
+import { useTranslation } from "react-i18next";
+import { useTheme } from "@/lib/theme-context";
 
 /* ======================
    Types
@@ -49,9 +49,24 @@ type BadgesState = Record<BadgeKey, number | null>;
    Menu items
 ====================== */
 const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
-  { icon: LayoutDashboard, label: t("nav.dashboard"), href: "/dashboard", rank: "all" },
-  { icon: Clock, label: t("nav.hours"), href: "/tijd-registratie", rank: "all" },
-  { icon: List, label: t("nav.overview"), href: "/uren-overzicht", rank: "all" },
+  {
+    icon: LayoutDashboard,
+    label: t("nav.dashboard"),
+    href: "/dashboard",
+    rank: "all",
+  },
+  {
+    icon: Clock,
+    label: t("nav.hours"),
+    href: "/tijd-registratie",
+    rank: "all",
+  },
+  {
+    icon: List,
+    label: t("nav.overview"),
+    href: "/uren-overzicht",
+    rank: "all",
+  },
   { icon: Plane, label: t("nav.vacation"), href: "/vakantie", rank: "all" },
   {
     icon: Bell,
@@ -61,12 +76,22 @@ const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
     rank: "all",
   },
   { icon: User, label: t("nav.account"), href: "/account", rank: "all" },
-  { icon: Settings, label: t("nav.settings"), href: "/instellingen", rank: "all" },
+  {
+    icon: Settings,
+    label: t("nav.settings"),
+    href: "/instellingen",
+    rank: "all",
+  },
   { icon: HelpCircle, label: t("nav.faq"), href: "/faq", rank: "all" },
 ];
 
 const managerMenuItems: MenuItem[] = [
-  { icon: Shield, label: "Manager Dashboard", href: "/manager/dashboard", rank: "manager" },
+  {
+    icon: Shield,
+    label: "Manager Dashboard",
+    href: "/manager/dashboard",
+    rank: "manager",
+  },
   { icon: Users, label: "Team Beheren", href: "/admin/users", rank: "manager" },
   {
     icon: CheckCircle2,
@@ -75,15 +100,30 @@ const managerMenuItems: MenuItem[] = [
     badgeKey: "pendingApprovals",
     rank: "manager",
   },
-  { icon: Plane, label: "Vakantie Aanvragen", href: "/manager/vacation", rank: "manager" },
+  {
+    icon: Plane,
+    label: "Vakantie Aanvragen",
+    href: "/manager/vacation",
+    rank: "manager",
+  },
   { icon: Clock, label: "Team Uren", href: "/manager/hours", rank: "manager" },
 ];
 
 const adminMenuItems: MenuItem[] = [
   { icon: Shield, label: "Admin Dashboard", href: "/admin", rank: "admin" },
   { icon: Users, label: "Gebruikers", href: "/admin/users", rank: "admin" },
-  { icon: Building2, label: "Bedrijven", href: "/admin/companies", rank: "admin" },
-  { icon: FolderKanban, label: "Projecten", href: "/admin/projects", rank: "admin" },
+  {
+    icon: Building2,
+    label: "Bedrijven",
+    href: "/admin/companies",
+    rank: "admin",
+  },
+  {
+    icon: FolderKanban,
+    label: "Projecten",
+    href: "/admin/projects",
+    rank: "admin",
+  },
   {
     icon: CheckCircle2,
     label: "Alle Goedkeuringen",
@@ -91,7 +131,12 @@ const adminMenuItems: MenuItem[] = [
     badgeKey: "pendingApprovals",
     rank: "admin",
   },
-  { icon: Plane, label: "Vakantie Aanvragen", href: "/admin/vacation", rank: "admin" },
+  {
+    icon: Plane,
+    label: "Vakantie Aanvragen",
+    href: "/admin/vacation",
+    rank: "admin",
+  },
 ];
 
 /* ======================
@@ -99,8 +144,9 @@ const adminMenuItems: MenuItem[] = [
 ====================== */
 export function ModernSidebar() {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const router = useRouter();
+  const { theme } = useTheme();
 
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -121,7 +167,9 @@ export function ModernSidebar() {
       const unreadCount = activities.filter((a: any) => !a.read).length;
 
       const entries = await getTimeEntries();
-      const pendingCount = entries.filter((e: any) => e.status === "ingeleverd").length;
+      const pendingCount = entries.filter(
+        (e: any) => e.status === "ingeleverd",
+      ).length;
 
       setBadges({
         unreadNotifications: unreadCount > 0 ? unreadCount : null,
@@ -155,8 +203,9 @@ export function ModernSidebar() {
     }
 
     // Remove duplicates by href
-    const uniqueItems = items.filter((item, index, self) => 
-      index === self.findIndex((t) => t.href === item.href)
+    const uniqueItems = items.filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.href === item.href),
     );
 
     return uniqueItems.map((item) => ({
@@ -176,7 +225,7 @@ export function ModernSidebar() {
     <aside
       className={cn(
         "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50",
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-20" : "w-64",
       )}
     >
       <div className="flex flex-col h-full">
@@ -191,20 +240,20 @@ export function ModernSidebar() {
             >
               {!collapsed ? (
                 <Image
-                  src="/logo.png"
+                  src={theme === "dark" ? "/white_logo.png" : "/logo.png"}
                   alt="Clockwise logo"
                   width={140}
                   height={40}
                   priority
-                  className="h-10 w-auto object-contain transition dark:grayscale dark:invert dark:contrast-150"
+                  className="h-10 w-auto object-contain transition"
                 />
               ) : (
                 <Image
-                  src="/logo.png"
+                  src={theme === "dark" ? "/white_logo.png" : "/logo.png"}
                   alt="Clockwise logo small"
                   width={32}
                   height={32}
-                  className="h-8 w-8 object-contain dark:invert"
+                  className="h-8 w-8 object-contain"
                 />
               )}
             </Link>
@@ -238,7 +287,7 @@ export function ModernSidebar() {
                   "flex items-center gap-3 px-3 py-3 rounded-lg group relative",
                   isActive
                     ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
                 )}
               >
                 <Icon className={cn("w-5 h-5", collapsed && "mx-auto")} />
@@ -298,11 +347,13 @@ export function ModernSidebar() {
             onClick={handleLogout}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg",
-              collapsed && "justify-center"
+              collapsed && "justify-center",
             )}
           >
             <LogOut className="w-5 h-5" />
-            {!collapsed && <span className="font-medium">{t("nav.logout")}</span>}
+            {!collapsed && (
+              <span className="font-medium">{t("nav.logout")}</span>
+            )}
           </button>
         </div>
       </div>

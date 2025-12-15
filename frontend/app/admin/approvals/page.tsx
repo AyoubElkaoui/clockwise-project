@@ -7,7 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { Clock, Search, CheckCircle, XCircle, AlertCircle, User, Building } from "lucide-react";
+import {
+  Clock,
+  Search,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  User,
+  Building,
+} from "lucide-react";
 import dayjs from "dayjs";
 
 export default function AdminApprovalsPage() {
@@ -23,7 +31,7 @@ export default function AdminApprovalsPage() {
 
   const loadEntries = async () => {
     try {
-      const res = await fetch("${API_URL}/time-entries");
+      const res = await fetch(`${API_URL}/time-entries`);
       if (!res.ok) throw new Error("Laden mislukt");
       const data = await res.json();
       setEntries(data);
@@ -34,29 +42,29 @@ export default function AdminApprovalsPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
   const filteredEntries = useMemo(() => {
     let filtered = entries;
 
     // Status filter
     if (filterStatus !== "all") {
-      filtered = filtered.filter(entry => entry.status === filterStatus);
+      filtered = filtered.filter((entry) => entry.status === filterStatus);
     }
 
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(entry =>
-        entry.user?.firstName?.toLowerCase().includes(query) ||
-        entry.user?.lastName?.toLowerCase().includes(query) ||
-        entry.project?.name?.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (entry) =>
+          entry.user?.firstName?.toLowerCase().includes(query) ||
+          entry.user?.lastName?.toLowerCase().includes(query) ||
+          entry.project?.name?.toLowerCase().includes(query),
       );
     }
 
-    return filtered.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    return filtered.sort(
+      (a, b) =>
+        new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+    );
   }, [entries, filterStatus, searchQuery]);
 
   const handleApprove = async (id: number) => {
@@ -90,7 +98,7 @@ export default function AdminApprovalsPage() {
   };
 
   const handleBulkApprove = async () => {
-    const pending = filteredEntries.filter(e => e.status === "ingeleverd");
+    const pending = filteredEntries.filter((e) => e.status === "ingeleverd");
     for (const entry of pending) {
       await handleApprove(entry.id);
     }
@@ -117,14 +125,18 @@ export default function AdminApprovalsPage() {
     );
   }
 
-  const pendingCount = entries.filter(e => e.status === "ingeleverd").length;
+  const pendingCount = entries.filter((e) => e.status === "ingeleverd").length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Alle Goedkeuringen</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">{pendingCount} in behandeling</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Alle Goedkeuringen
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            {pendingCount} in behandeling
+          </p>
         </div>
         {pendingCount > 0 && (
           <Button onClick={handleBulkApprove}>
@@ -205,7 +217,8 @@ export default function AdminApprovalsPage() {
                   <div className="flex items-start gap-4 flex-1">
                     <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                       <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                        {entry.user?.firstName?.charAt(0)}{entry.user?.lastName?.charAt(0)}
+                        {entry.user?.firstName?.charAt(0)}
+                        {entry.user?.lastName?.charAt(0)}
                       </span>
                     </div>
                     <div className="flex-1">
@@ -221,25 +234,42 @@ export default function AdminApprovalsPage() {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                         <div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400">Datum</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Datum
+                          </p>
                           <p className="font-medium text-slate-900 dark:text-slate-100">
                             {dayjs(entry.startTime).format("DD MMM YYYY")}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400">Tijd</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Tijd
+                          </p>
                           <p className="font-medium text-slate-900 dark:text-slate-100">
-                            {dayjs(entry.startTime).format("HH:mm")} - {dayjs(entry.endTime).format("HH:mm")}
+                            {dayjs(entry.startTime).format("HH:mm")} -{" "}
+                            {dayjs(entry.endTime).format("HH:mm")}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400">Totaal</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Totaal
+                          </p>
                           <p className="font-medium text-slate-900 dark:text-slate-100">
-                            {((dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") - (entry.breakMinutes || 0)) / 60).toFixed(2)} uur
+                            {(
+                              (dayjs(entry.endTime).diff(
+                                dayjs(entry.startTime),
+                                "minute",
+                              ) -
+                                (entry.breakMinutes || 0)) /
+                              60
+                            ).toFixed(2)}{" "}
+                            uur
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400">Pauze</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Pauze
+                          </p>
                           <p className="font-medium text-slate-900 dark:text-slate-100">
                             {entry.breakMinutes || 0} min
                           </p>
@@ -248,13 +278,20 @@ export default function AdminApprovalsPage() {
 
                       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-2">
                         <Building className="w-4 h-4" />
-                        <span>{entry.project?.projectGroup?.company?.name} • {entry.project?.name}</span>
+                        <span>
+                          {entry.project?.projectGroup?.company?.name} •{" "}
+                          {entry.project?.name}
+                        </span>
                       </div>
 
                       {entry.notes && (
                         <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">Notities</p>
-                          <p className="text-sm text-slate-900 dark:text-slate-100">{entry.notes}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                            Notities
+                          </p>
+                          <p className="text-sm text-slate-900 dark:text-slate-100">
+                            {entry.notes}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -266,7 +303,11 @@ export default function AdminApprovalsPage() {
                         <CheckCircle className="w-4 h-4 mr-1" />
                         Goedkeuren
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleReject(entry.id)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleReject(entry.id)}
+                      >
                         <XCircle className="w-4 h-4 mr-1" />
                         Afkeuren
                       </Button>

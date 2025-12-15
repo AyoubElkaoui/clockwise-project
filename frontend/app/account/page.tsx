@@ -23,7 +23,7 @@ import { ToastContainer } from "@/components/Toast";
 import type { ToastType } from "@/components/Toast";
 import { getUser, updateUser } from "@/lib/api";
 import { getUserId } from "@/lib/auth-utils";
-import { useLanguage } from "@/lib/language-context";
+import { useTranslation } from "react-i18next";
 
 interface ToastMessage {
   id: string;
@@ -47,7 +47,7 @@ interface UserData {
 }
 
 export default function AccountPage() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

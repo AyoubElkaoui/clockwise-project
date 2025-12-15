@@ -32,6 +32,29 @@ public class ActivitiesController : ControllerBase
         return await query.Take(limit).ToListAsync();
     }
 
+    // GET: api/activities/team?managerId=5
+    [HttpGet("team")]
+    public async Task<ActionResult<IEnumerable<Activity>>> GetTeamActivities([FromQuery] int managerId, [FromQuery] int limit = 50)
+    {
+        // Haal eerst alle team member IDs op
+        var teamMemberIds = await _context.Users
+            .Where(u => u.ManagerId == managerId && u.Rank == "user")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        // Voeg manager ID toe aan de lijst
+        teamMemberIds.Add(managerId);
+
+        var activities = await _context.Activities
+            .Include(a => a.User)
+            .Where(a => teamMemberIds.Contains(a.UserId))
+            .OrderByDescending(a => a.Timestamp)
+            .Take(limit)
+            .ToListAsync();
+
+        return Ok(activities);
+    }
+
     // POST: api/activities
     [HttpPost]
     public async Task<ActionResult<Activity>> CreateActivity(Activity activity)

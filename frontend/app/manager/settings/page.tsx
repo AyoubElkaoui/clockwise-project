@@ -2,18 +2,32 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, User, Save, CheckCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { showToast } from "@/components/ui/toast";
+import { getUserId } from "@/lib/auth-utils";
+import { API_URL } from "@/lib/api";
 
 export default function ManagerSettingsPage() {
   const router = useRouter();
-  
+
   // Notification settings
   const [emailOnRequests, setEmailOnRequests] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [dailySummary, setDailySummary] = useState(false);
-  
+
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   // UI State
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   // Load settings from localStorage
   useEffect(() => {
@@ -35,16 +49,16 @@ export default function ManagerSettingsPage() {
 
   const handleSave = () => {
     setSaving(true);
-    
+
     const settings = {
       emailOnRequests,
       pushNotifications,
       dailySummary,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
-    
+
     localStorage.setItem("managerSettings", JSON.stringify(settings));
-    
+
     setTimeout(() => {
       setSaving(false);
       setSaved(true);
@@ -52,104 +66,237 @@ export default function ManagerSettingsPage() {
     }, 500);
   };
 
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      showToast("Nieuwe wachtwoorden komen niet overeen", "error");
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      showToast("Nieuw wachtwoord moet minimaal 6 karakters bevatten", "error");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const userId = getUserId();
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/users/${userId}/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        showToast("Wachtwoord succesvol gewijzigd", "success");
+        setPasswordChanged(true);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => setPasswordChanged(false), 3000);
+      } else {
+        const error = await response.text();
+        showToast(`Fout bij wijzigen wachtwoord: ${error}`, "error");
+      }
+    } catch (error) {
+      console.error("Error changing password:", error);
+      showToast("Fout bij wijzigen wachtwoord", "error");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleEditProfile = () => {
     router.push("/account");
   };
 
   return (
-      <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Instellingen
-          </h1>
-          <p className="text-gray-600 dark:text-slate-400">Manager voorkeuren</p>
-        </div>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Instellingen
+        </h1>
+        <p className="text-gray-600 dark:text-slate-400">Manager voorkeuren</p>
+      </div>
 
-        <div className="space-y-6">
-          {/* Notifications */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Bell className="w-5 h-5 text-purple-600" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notificaties</h3>
-            </div>
+      <div className="space-y-6">
+        {/* Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notificaties
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="checkbox checkbox-primary" 
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="emailOnRequests"
                   checked={emailOnRequests}
-                  onChange={(e) => setEmailOnRequests(e.target.checked)}
+                  onCheckedChange={(checked) =>
+                    setEmailOnRequests(checked as boolean)
+                  }
                 />
-                <span className="text-sm text-gray-700 dark:text-slate-300">Email bij nieuwe aanvragen</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="checkbox checkbox-primary" 
+                <label
+                  htmlFor="emailOnRequests"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Email bij nieuwe aanvragen
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="pushNotifications"
                   checked={pushNotifications}
-                  onChange={(e) => setPushNotifications(e.target.checked)}
+                  onCheckedChange={(checked) =>
+                    setPushNotifications(checked as boolean)
+                  }
                 />
-                <span className="text-sm text-gray-700 dark:text-slate-300">Push notificaties</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="checkbox checkbox-primary" 
+                <label
+                  htmlFor="pushNotifications"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Push notificaties
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="dailySummary"
                   checked={dailySummary}
-                  onChange={(e) => setDailySummary(e.target.checked)}
+                  onCheckedChange={(checked) =>
+                    setDailySummary(checked as boolean)
+                  }
                 />
-                <span className="text-sm text-gray-700 dark:text-slate-300">Dagelijkse samenvatting</span>
-              </label>
+                <label
+                  htmlFor="dailySummary"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Dagelijkse samenvatting
+                </label>
+              </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Profile */}
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <User className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Profiel</h3>
+        {/* Password Change */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Wachtwoord Wijzigen
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Huidig Wachtwoord</label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nieuw Wachtwoord</label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Bevestig Nieuw Wachtwoord
+                </label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <Button
+                onClick={handleChangePassword}
+                disabled={changingPassword || passwordChanged}
+                className="w-full"
+              >
+                {changingPassword ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                    Wijzigen...
+                  </>
+                ) : passwordChanged ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Gewijzigd!
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Wachtwoord Wijzigen
+                  </>
+                )}
+              </Button>
             </div>
-            <button 
-              onClick={handleEditProfile}
-              className="btn btn-outline gap-2"
-            >
-              <User className="w-4 h-4" />
+          </CardContent>
+        </Card>
+
+        {/* Profile */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profiel
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleEditProfile} variant="outline">
+              <User className="w-4 h-4 mr-2" />
               Bewerk Profiel
-            </button>
-          </div>
+            </Button>
+          </CardContent>
+        </Card>
 
-          {/* Save Button */}
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={handleSave}
-              disabled={saving || saved}
-              className="btn btn-primary gap-2"
-            >
-              {saving ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  Opslaan...
-                </>
-              ) : saved ? (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Opgeslagen!
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Wijzigingen Opslaan
-                </>
-              )}
-            </button>
-            
-            {saved && (
-              <span className="text-sm text-green-600 dark:text-green-400">
-                ✓ Voorkeuren succesvol opgeslagen
-              </span>
+        {/* Save Button */}
+        <div className="flex items-center gap-4">
+          <Button onClick={handleSave} disabled={saving || saved}>
+            {saving ? (
+              <>
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                Opslaan...
+              </>
+            ) : saved ? (
+              <>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Opgeslagen!
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Wijzigingen Opslaan
+              </>
             )}
-          </div>
+          </Button>
+
+          {saved && (
+            <span className="text-sm text-green-600 dark:text-green-400">
+              ✓ Voorkeuren succesvol opgeslagen
+            </span>
+          )}
         </div>
       </div>
+    </div>
   );
 }

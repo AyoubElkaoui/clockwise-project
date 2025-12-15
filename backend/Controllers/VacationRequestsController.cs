@@ -73,7 +73,7 @@ public class VacationRequestsController : ControllerBase
         vacation.Status = "pending"; // standaard
 
         _context.VacationRequests.Add(vacation);
-    
+
         // Voeg activiteit toe
         var activity = new Activity
         {
@@ -83,9 +83,9 @@ public class VacationRequestsController : ControllerBase
             Message = $"Vakantie-aanvraag van {vacation.StartDate.ToString("dd-MM-yyyy")} tot {vacation.EndDate.ToString("dd-MM-yyyy")} is ingediend",
             Details = $"Uren: {vacation.Hours}, Reden: {vacation.Reason ?? "Geen reden opgegeven"}"
         };
-    
+
         _context.Activities.Add(activity);
-    
+
         await _context.SaveChangesAsync();
         return Ok("Vakantie aangevraagd!");
     }
@@ -97,7 +97,40 @@ public class VacationRequestsController : ControllerBase
         if (id != updatedVacation.Id)
             return BadRequest("ID mismatch");
 
-        _context.Entry(updatedVacation).State = EntityState.Modified;
+        var existingRequest = await _context.VacationRequests
+            .Include(v => v.User)
+            .FirstOrDefaultAsync(v => v.Id == id);
+
+        if (existingRequest == null)
+            return NotFound();
+
+        // Check if status is being changed (approval/rejection)
+        bool statusChanged = existingRequest.Status != updatedVacation.Status &&
+                            (updatedVacation.Status == "approved" || updatedVacation.Status == "rejected");
+
+        if (statusChanged)
+        {
+            // Create activity for approval/rejection
+            var activity = new Activity
+            {
+                UserId = existingRequest.UserId,
+                Type = "vacation",
+                Action = updatedVacation.Status == "approved" ? "approved" : "rejected",
+                Message = $"Vakantie-aanvraag van {existingRequest.StartDate.ToString("dd-MM-yyyy")} tot {existingRequest.EndDate.ToString("dd-MM-yyyy")} is {(updatedVacation.Status == "approved" ? "goedgekeurd" : "afgekeurd")}",
+                Details = $"Uren: {existingRequest.Hours}, Reden: {existingRequest.Reason ?? "Geen reden opgegeven"}"
+            };
+
+            _context.Activities.Add(activity);
+
+            // Set review metadata
+            existingRequest.ReviewedAt = DateTime.Now;
+            // ReviewedBy would need to be passed or obtained from auth context
+        }
+
+        // Update the request
+        existingRequest.Status = updatedVacation.Status;
+        existingRequest.ManagerComment = updatedVacation.ManagerComment;
+
         try
         {
             await _context.SaveChangesAsync();
@@ -136,23 +169,26 @@ public class VacationRequestsController : ControllerBase
             .ToListAsync();
 
         var vacations = await _context.VacationRequests
-            .Where(v => v.Status == "approved" && 
+            .Where(v => v.Status == "approved" &&
                    (v.StartDate.Year == targetYear || v.EndDate.Year == targetYear))
             .ToListAsync();
 
-        var overview = users.Select(user => {
+        var overview = users.Select(user =>
+        {
             var userVacations = vacations.Where(v => v.UserId == user.Id).ToList();
             var totalHours = userVacations.Sum(v => v.Hours);
             var totalDays = totalHours / 8.0;
 
-            return new {
+            return new
+            {
                 UserId = user.Id,
                 UserName = $"{user.FirstName} {user.LastName}",
                 Email = user.Email,
                 TotalVacationDays = totalDays,
                 TotalVacationHours = totalHours,
                 ApprovedRequests = userVacations.Count,
-                Requests = userVacations.Select(v => new {
+                Requests = userVacations.Select(v => new
+                {
                     v.Id,
                     v.StartDate,
                     v.EndDate,
@@ -163,7 +199,8 @@ public class VacationRequestsController : ControllerBase
             };
         }).OrderByDescending(u => u.TotalVacationDays);
 
-        return Ok(new {
+        return Ok(new
+        {
             Year = targetYear,
             Overview = overview
         });

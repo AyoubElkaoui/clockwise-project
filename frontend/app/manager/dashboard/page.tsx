@@ -8,11 +8,34 @@ import { Badge } from "@/components/ui/badge";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { getUserId } from "@/lib/auth-utils";
-import { 
-  Users, Clock, CheckCircle, XCircle, AlertCircle, 
-  TrendingUp, Calendar, ChevronRight 
+import {
+  Users,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  ChevronRight,
+  Activity,
+  Target,
+  BarChart3,
+  PieChart,
+  ArrowUpRight,
+  ArrowDownRight,
+  UserCheck,
+  Timer,
+  RefreshCw,
 } from "lucide-react";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import isoWeek from "dayjs/plugin/isoWeek";
+import "dayjs/locale/nl";
+
+dayjs.extend(relativeTime);
+dayjs.extend(isoWeek);
+dayjs.locale("nl");
 
 export default function ManagerDashboard() {
   const router = useRouter();
@@ -23,9 +46,15 @@ export default function ManagerDashboard() {
     pendingVacations: 0,
     thisWeekHours: 0,
     thisMonthHours: 0,
+    lastWeekHours: 0,
+    lastMonthHours: 0,
+    activeProjects: 0,
+    avgHoursPerDay: 0,
+    utilizationRate: 0,
   });
   const [pendingEntries, setPendingEntries] = useState<any[]>([]);
   const [teamActivity, setTeamActivity] = useState<any[]>([]);
+  const [teamPerformance, setTeamPerformance] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -39,31 +68,86 @@ export default function ManagerDashboard() {
         router.push("/login");
         return;
       }
-      
-      // Load team time entries
-      const entriesRes = await fetch(`${API_URL}/time-entries/team?managerId=${managerId}`);
-      const entries = await entriesRes.json();
-      
-      // Load vacation requests
-      const vacationsRes = await fetch("${API_URL}/vacation-requests");
-      const vacations = await vacationsRes.json();
-      
-      // Load team members
-      const usersRes = await fetch("${API_URL}/users");
-      const users = await usersRes.json();
-      const team = users.filter((u: any) => u.managerId === managerId);
 
-      // Calculate stats
+      // Load team time entries
+      console.log("Loading team time entries for manager:", managerId);
+      const entriesRes = await fetch(
+        `${API_URL}/time-entries/team?managerId=${managerId}`,
+      );
+      if (!entriesRes.ok) {
+        console.error(
+          "Failed to load team time entries:",
+          entriesRes.status,
+          entriesRes.statusText,
+        );
+        throw new Error(`Team entries fetch failed: ${entriesRes.status}`);
+      }
+      const entries = await entriesRes.json();
+      console.log(
+        "Team entries loaded:",
+        entries?.length || 0,
+        "entries:",
+        entries,
+      );
+
+      // Load team vacation requests
+      console.log("Loading team vacation requests for manager:", managerId);
+      const vacationsRes = await fetch(
+        `${API_URL}/vacation-requests/team/pending?managerId=${managerId}`,
+      );
+      if (!vacationsRes.ok) {
+        console.error(
+          "Failed to load team vacation requests:",
+          vacationsRes.status,
+          vacationsRes.statusText,
+        );
+        throw new Error(`Team vacations fetch failed: ${vacationsRes.status}`);
+      }
+      const vacations = await vacationsRes.json();
+      console.log(
+        "Team vacations loaded:",
+        vacations?.length || 0,
+        "vacations:",
+        vacations,
+      );
+
+      // Load team members
+      console.log("Loading users");
+      const usersRes = await fetch(`${API_URL}/users`);
+      if (!usersRes.ok) {
+        console.error(
+          "Failed to load users:",
+          usersRes.status,
+          usersRes.statusText,
+        );
+        throw new Error(`Users fetch failed: ${usersRes.status}`);
+      }
+      const users = await usersRes.json();
+      console.log("All users loaded:", users?.length || 0, "users:", users);
+      const team = users.filter((u: any) => u.managerId === managerId);
+      console.log("Team members loaded:", team.length, "team:", team);
+
+      // Calculate comprehensive stats
       const pending = entries.filter((e: any) => e.status === "ingeleverd");
       const pendingVac = vacations.filter((v: any) => v.status === "pending");
-      
+
+      // Current week
       const weekStart = dayjs().startOf("isoWeek");
       const weekEnd = dayjs().endOf("isoWeek");
       const weekEntries = entries.filter((e: any) => {
         const date = dayjs(e.startTime);
         return date.isAfter(weekStart) && date.isBefore(weekEnd);
       });
-      
+
+      // Last week
+      const lastWeekStart = dayjs().subtract(1, "week").startOf("isoWeek");
+      const lastWeekEnd = dayjs().subtract(1, "week").endOf("isoWeek");
+      const lastWeekEntries = entries.filter((e: any) => {
+        const date = dayjs(e.startTime);
+        return date.isAfter(lastWeekStart) && date.isBefore(lastWeekEnd);
+      });
+
+      // Current month
       const monthStart = dayjs().startOf("month");
       const monthEnd = dayjs().endOf("month");
       const monthEntries = entries.filter((e: any) => {
@@ -71,43 +155,121 @@ export default function ManagerDashboard() {
         return date.isAfter(monthStart) && date.isBefore(monthEnd);
       });
 
-      const calculateHours = (entries: any[]) => {
-        return entries.reduce((sum, e) => {
-          if (e.startTime && e.endTime) {
-            const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
-            return sum + (diff - (e.breakMinutes || 0)) / 60;
-          }
-          return sum;
-        }, 0);
-      };
-
-      setStats({
-        teamSize: team.length,
-        pendingApprovals: pending.length,
-        pendingVacations: pendingVac.length,
-        thisWeekHours: calculateHours(weekEntries),
-        thisMonthHours: calculateHours(monthEntries),
+      // Last month
+      const lastMonthStart = dayjs().subtract(1, "month").startOf("month");
+      const lastMonthEnd = dayjs().subtract(1, "month").endOf("month");
+      const lastMonthEntries = entries.filter((e: any) => {
+        const date = dayjs(e.startTime);
+        return date.isAfter(lastMonthStart) && date.isBefore(lastMonthEnd);
       });
 
-      // Get latest 5 pending entries
-      setPendingEntries(pending.slice(0, 5));
-      
-      // Get team activity (recent entries)
-      const recent = entries
-        .sort((a: any, b: any) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-        .slice(0, 10);
-      setTeamActivity(recent);
-      
+      try {
+        const calculateHours = (entries: any[]) => {
+          return entries.reduce((sum, e) => {
+            if (e.startTime && e.endTime) {
+              const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
+              return sum + (diff - (e.breakMinutes || 0)) / 60;
+            }
+            return sum;
+          }, 0);
+        };
+
+        const thisWeekHours = calculateHours(weekEntries);
+        const lastWeekHours = calculateHours(lastWeekEntries);
+        const thisMonthHours = calculateHours(monthEntries);
+        const lastMonthHours = calculateHours(lastMonthEntries);
+
+        // Calculate utilization rate (assuming 8 hours per day, 5 days per week)
+        const workingDaysThisWeek = Math.min(dayjs().isoWeekday(), 5);
+        const expectedHoursThisWeek = team.length * workingDaysThisWeek * 8;
+        const utilizationRate =
+          expectedHoursThisWeek > 0
+            ? (thisWeekHours / expectedHoursThisWeek) * 100
+            : 0;
+
+        // Get unique active projects
+        const activeProjects = new Set(
+          entries
+            .filter((e) => e.status === "goedgekeurd")
+            .map((e) => e.projectId),
+        ).size;
+
+        // Calculate average hours per day
+        const avgHoursPerDay =
+          workingDaysThisWeek > 0
+            ? thisWeekHours / (team.length * workingDaysThisWeek)
+            : 0;
+
+        setStats({
+          teamSize: team.length,
+          pendingApprovals: pending.length,
+          pendingVacations: pendingVac.length,
+          thisWeekHours,
+          thisMonthHours,
+          lastWeekHours,
+          lastMonthHours,
+          activeProjects,
+          avgHoursPerDay,
+          utilizationRate,
+        });
+
+        // Get latest 5 pending entries
+        setPendingEntries(pending.slice(0, 5));
+
+        // Get team activity (recent entries)
+        const recent = entries
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+          )
+          .slice(0, 8);
+        setTeamActivity(recent);
+
+        // Calculate team performance metrics
+        const teamPerf = team
+          .map((member) => {
+            const memberEntries = entries.filter(
+              (e) => e.userId === member.id && e.status === "goedgekeurd",
+            );
+            const memberWeekHours = calculateHours(
+              memberEntries.filter((e) => {
+                const date = dayjs(e.startTime);
+                return date.isAfter(weekStart) && date.isBefore(weekEnd);
+              }),
+            );
+            return {
+              ...member,
+              weekHours: memberWeekHours,
+              monthHours: calculateHours(
+                memberEntries.filter((e) => {
+                  const date = dayjs(e.startTime);
+                  return date.isAfter(monthStart) && date.isBefore(monthEnd);
+                }),
+              ),
+              lastWeekHours: calculateHours(
+                memberEntries.filter((e) => {
+                  const date = dayjs(e.startTime);
+                  return (
+                    date.isAfter(lastWeekStart) && date.isBefore(lastWeekEnd)
+                  );
+                }),
+              ),
+            };
+          })
+          .sort((a, b) => b.weekHours - a.weekHours);
+
+        setTeamPerformance(teamPerf);
+      } catch (calcError) {
+        console.error("Error in dashboard calculations:", calcError);
+        throw calcError;
+      }
     } catch (error) {
+      console.error("Dashboard loading error:", error);
       showToast("Fout bij laden dashboard", "error");
     } finally {
       setLoading(false);
     }
   };
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
 
   const handleApprove = async (id: number) => {
     try {
@@ -117,8 +279,9 @@ export default function ManagerDashboard() {
         body: JSON.stringify({ approved: true }),
       });
       loadDashboardData();
+      showToast("Uren goedgekeurd", "success");
     } catch (error) {
-      console.error("Failed to approve:", error);
+      showToast("Fout bij goedkeuren", "error");
     }
   };
 
@@ -130,196 +293,447 @@ export default function ManagerDashboard() {
         body: JSON.stringify({ approved: false }),
       });
       loadDashboardData();
+      showToast("Uren afgekeurd", "success");
     } catch (error) {
-      console.error("Failed to reject:", error);
+      showToast("Fout bij afkeuren", "error");
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "goedgekeurd":
-        return <Badge className="bg-green-500">Goedgekeurd</Badge>;
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+            Goedgekeurd
+          </Badge>
+        );
       case "ingeleverd":
-        return <Badge className="bg-yellow-500">In behandeling</Badge>;
+        return (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+            In Behandeling
+          </Badge>
+        );
       case "afgekeurd":
-        return <Badge className="bg-red-500">Afgekeurd</Badge>;
+        return (
+          <Badge className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+            Afgekeurd
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">Concept</Badge>;
     }
   };
 
+  const getTrendIndicator = (current: number, previous: number) => {
+    const change = ((current - previous) / previous) * 100;
+    if (change > 0) {
+      return {
+        icon: ArrowUpRight,
+        color: "text-emerald-600",
+        change: `+${change.toFixed(1)}%`,
+      };
+    } else if (change < 0) {
+      return {
+        icon: ArrowDownRight,
+        color: "text-red-600",
+        change: `${change.toFixed(1)}%`,
+      };
+    }
+    return { icon: null, color: "text-slate-500", change: "0%" };
+  };
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
+  const weekTrend = getTrendIndicator(stats.thisWeekHours, stats.lastWeekHours);
+  const monthTrend = getTrendIndicator(
+    stats.thisMonthHours,
+    stats.lastMonthHours,
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-          Manager Dashboard
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Overzicht van je team en goedkeuringen
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Team Dashboard
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Overzicht van team prestaties en goedkeuringen
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => loadDashboardData()}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Vernieuwen
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/manager/hours")}
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Gedetailleerd Rapport
+          </Button>
+          <Button onClick={() => router.push("/manager/approve")}>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Goedkeuringen
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Team Size */}
+        <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Team Grootte</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Teamleden
+                </p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.teamSize}
                 </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Actieve medewerkers
+                </p>
               </div>
-              <Users className="w-10 h-10 text-blue-600" />
+              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition" onClick={() => router.push("/manager/approve")}>
+        {/* Utilization Rate */}
+        <Card className="border-l-4 border-l-emerald-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Uren Goedkeuring</p>
-                <p className="text-3xl font-bold text-orange-600 mt-2">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Benutting
+                </p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                  {stats.utilizationRate.toFixed(0)}%
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Deze week
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                <Target className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Hours This Week */}
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Uren Deze Week
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                    {stats.thisWeekHours.toFixed(1)}
+                  </p>
+                  {weekTrend.icon && (
+                    <weekTrend.icon className={`w-4 h-4 ${weekTrend.color}`} />
+                  )}
+                </div>
+                <p className={`text-xs mt-1 ${weekTrend.color}`}>
+                  {weekTrend.change} vs vorige week
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pending Approvals */}
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Te Goedkeuren
+                </p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.pendingApprovals}
                 </p>
-              </div>
-              <Clock className="w-10 h-10 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-lg transition" onClick={() => router.push("/manager/vacation")}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Vakantie Verzoeken</p>
-                <p className="text-3xl font-bold text-purple-600 mt-2">
-                  {stats.pendingVacations}
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Wachtende registraties
                 </p>
               </div>
-              <Calendar className="w-10 h-10 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Deze Week</p>
-                <p className="text-3xl font-bold text-green-600 mt-2">
-                  {stats.thisWeekHours.toFixed(1)}u
-                </p>
+              <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
               </div>
-              <TrendingUp className="w-10 h-10 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Deze Maand</p>
-                <p className="text-3xl font-bold text-indigo-600 mt-2">
-                  {stats.thisMonthHours.toFixed(0)}u
-                </p>
-              </div>
-              <Clock className="w-10 h-10 text-indigo-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pending Approvals */}
-      {stats.pendingApprovals > 0 && (
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Gemiddeld per Dag
+                </p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                  {stats.avgHoursPerDay.toFixed(1)}u
+                </p>
+              </div>
+              <Timer className="w-8 h-8 text-slate-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Actieve Projecten
+                </p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                  {stats.activeProjects}
+                </p>
+              </div>
+              <Activity className="w-8 h-8 text-slate-400" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Vakantie Aanvragen
+                </p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                  {stats.pendingVacations}
+                </p>
+              </div>
+              <Calendar className="w-8 h-8 text-slate-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Pending Approvals */}
+        {stats.pendingApprovals > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  Wachtend op Goedkeuring
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push("/manager/approve")}
+                >
+                  Alles bekijken
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pendingEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                            {entry.user?.firstName?.charAt(0)}
+                            {entry.user?.lastName?.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">
+                            {entry.user?.firstName} {entry.user?.lastName}
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {entry.project?.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                        <span>
+                          {dayjs(entry.startTime).format("DD MMM YYYY")}
+                        </span>
+                        <span>
+                          {dayjs(entry.startTime).format("HH:mm")} -{" "}
+                          {dayjs(entry.endTime).format("HH:mm")}
+                        </span>
+                        <span className="font-medium">
+                          {(
+                            (dayjs(entry.endTime).diff(
+                              dayjs(entry.startTime),
+                              "minute",
+                            ) -
+                              (entry.breakMinutes || 0)) /
+                            60
+                          ).toFixed(1)}
+                          u
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                        onClick={() => handleApprove(entry.id)}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Goedkeuren
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                        onClick={() => handleReject(entry.id)}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Afkeuren
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Team Performance */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Wachtend op Goedkeuring</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => router.push("/manager/approve")}>
-                Bekijk Alles
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-600" />
+                Team Prestaties
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/manager/hours")}
+              >
+                Details
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {pendingEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">
-                      {entry.user?.firstName} {entry.user?.lastName}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {dayjs(entry.startTime).format("DD MMM YYYY")} • {entry.project?.name}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {dayjs(entry.startTime).format("HH:mm")} - {dayjs(entry.endTime).format("HH:mm")} 
-                      ({((dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") - (entry.breakMinutes || 0)) / 60).toFixed(1)}u)
-                    </p>
+              {teamPerformance.slice(0, 5).map((member) => {
+                const memberTrend = getTrendIndicator(
+                  member.weekHours,
+                  member.lastWeekHours,
+                );
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                          {member.firstName?.charAt(0)}
+                          {member.lastName?.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {member.firstName} {member.lastName}
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          {member.weekHours.toFixed(1)}u deze week
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {memberTrend.icon && (
+                        <memberTrend.icon
+                          className={`w-4 h-4 ${memberTrend.color}`}
+                        />
+                      )}
+                      <span className={`text-xs ${memberTrend.color}`}>
+                        {memberTrend.change}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="text-green-600 border-green-600" onClick={() => handleApprove(entry.id)}>
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Goedkeuren
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-red-600 border-red-600" onClick={() => handleReject(entry.id)}>
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Afkeuren
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Team Activity */}
+      {/* Recent Activity Timeline */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Recente Team Activiteit</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => router.push("/manager/hours")}>
-              Alle Uren
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-slate-600" />
+            Recente Activiteit
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {teamActivity.map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                      {entry.user?.firstName?.charAt(0)}{entry.user?.lastName?.charAt(0)}
+          <div className="space-y-4">
+            {teamActivity.map((entry, index) => (
+              <div key={entry.id} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                      {entry.user?.firstName?.charAt(0)}
+                      {entry.user?.lastName?.charAt(0)}
                     </span>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 dark:text-slate-100">
-                      {entry.user?.firstName} {entry.user?.lastName}
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {entry.project?.name} • {dayjs(entry.startTime).format("DD MMM HH:mm")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">
-                      {((dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") - (entry.breakMinutes || 0)) / 60).toFixed(1)}u
-                    </p>
-                    {getStatusBadge(entry.status)}
+                  {index < teamActivity.length - 1 && (
+                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mt-2"></div>
+                  )}
+                </div>
+                <div className="flex-1 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {entry.user?.firstName} {entry.user?.lastName}
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        {entry.project?.name} •{" "}
+                        {dayjs(entry.startTime).fromNow()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {(
+                          (dayjs(entry.endTime).diff(
+                            dayjs(entry.startTime),
+                            "minute",
+                          ) -
+                            (entry.breakMinutes || 0)) /
+                          60
+                        ).toFixed(1)}
+                        u
+                      </p>
+                      {getStatusBadge(entry.status)}
+                    </div>
                   </div>
                 </div>
               </div>

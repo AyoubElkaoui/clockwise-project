@@ -1,10 +1,12 @@
 "use client";
+import { useTranslation } from "react-i18next";
 import React, { useState, useEffect, JSX } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { User, Shield, Eye, EyeOff, Bell } from "lucide-react";
 import { getUser, updateUser } from "@/lib/api";
 
 export default function AccountPage(): JSX.Element {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -74,13 +76,13 @@ export default function AccountPage(): JSX.Element {
 
       await updateUser(userId, data);
 
-      setMessage("Gegevens succesvol bijgewerkt!");
+      setMessage(t("account.updateSuccess"));
       setIsSuccess(true);
       localStorage.setItem("firstName", profileData.firstName);
       localStorage.setItem("lastName", profileData.lastName);
       setPassword("");
     } catch (error: any) {
-      setMessage(error.response?.data?.message || "Fout bij bijwerken van gegevens.");
+      setMessage(error.response?.data?.message || t("account.updateError"));
       setIsSuccess(false);
     } finally {
       setIsLoading(false);
@@ -93,15 +95,15 @@ export default function AccountPage(): JSX.Element {
       <div className="min-h-screen bg-black text-white p-6 space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-semibold mb-2">Mijn Account</h1>
-          <p className="text-gray-400">Beheer je profiel en account instellingen</p>
+          <h1 className="text-3xl font-semibold mb-2">{t("account.title")}</h1>
+          <p className="text-gray-400">{t("account.subtitle")}</p>
         </div>
 
         {/* Grid layout voor profiel + medewerker info */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profiel informatie */}
           <div className="lg:col-span-2 bg-neutral-900 border border-black rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold">Profiel Informatie</h2>
+            <h2 className="text-xl font-semibold">{t("account.profileInfo")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-400 mb-1">Voornaam</label>
@@ -139,7 +141,7 @@ export default function AccountPage(): JSX.Element {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-gray-400 mb-1">Adres</label>
+                <label className="block text-gray-400 mb-1">{t("account.address")}</label>
                 <input
                   type="text"
                   value={profileData.address}
@@ -148,7 +150,7 @@ export default function AccountPage(): JSX.Element {
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-1">Huisnummer</label>
+                <label className="block text-gray-400 mb-1">{t("account.houseNumber")}</label>
                 <input
                   type="text"
                   value={profileData.houseNumber}
@@ -160,7 +162,7 @@ export default function AccountPage(): JSX.Element {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-400 mb-1">Postcode</label>
+                <label className="block text-gray-400 mb-1">{t("account.postalCode")}</label>
                 <input
                   type="text"
                   value={profileData.postalCode}
@@ -169,7 +171,7 @@ export default function AccountPage(): JSX.Element {
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-1">Plaats</label>
+                <label className="block text-gray-400 mb-1">{t("account.city")}</label>
                 <input
                   type="text"
                   value={profileData.city}
@@ -181,12 +183,12 @@ export default function AccountPage(): JSX.Element {
 
             {/* Bio */}
             <div>
-              <label className="block text-gray-400 mb-1">Bio</label>
+              <label className="block text-gray-400 mb-1">{t("account.bio")}</label>
               <textarea
                 value={profileData.bio}
                 onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                 className="w-full bg-black border border-black rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-600 resize-none h-24"
-                placeholder="Vertel iets over jezelf"
+                placeholder={t("account.bioPlaceholder")}
               />
             </div>
           </div>
@@ -218,7 +220,7 @@ export default function AccountPage(): JSX.Element {
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
-                placeholder="Laat leeg als je niet wilt wijzigen"
+                placeholder={t("account.passwordPlaceholder")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-black border border-black rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-600 pr-10"
@@ -236,7 +238,7 @@ export default function AccountPage(): JSX.Element {
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition disabled:opacity-50"
             >
-              {isLoading ? "Opslaan..." : "Wachtwoord Wijzigen"}
+              {isLoading ? t("account.saving") : t("account.changePassword")}
             </button>
           </div>
 
@@ -249,8 +251,8 @@ export default function AccountPage(): JSX.Element {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p>E-mail Notificaties</p>
-                  <p className="text-sm text-gray-400">Ontvang updates via e-mail</p>
+                  <p>{t("account.emailNotifications")}</p>
+                  <p className="text-sm text-gray-400">{t("account.emailNotificationsDesc")}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -264,8 +266,8 @@ export default function AccountPage(): JSX.Element {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Browser Notificaties</p>
-                  <p className="text-sm text-gray-400">Ontvang browser meldingen</p>
+                  <p>{t("account.pushNotifications")}</p>
+                  <p className="text-sm text-gray-400">{t("account.pushNotificationsDesc")}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -279,8 +281,8 @@ export default function AccountPage(): JSX.Element {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Wekelijkse Rapporten</p>
-                  <p className="text-sm text-gray-400">Ontvang wekelijkse samenvatting</p>
+                  <p>{t("account.weeklyReports")}</p>
+                  <p className="text-sm text-gray-400">{t("account.weeklyReportsDesc")}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -294,8 +296,8 @@ export default function AccountPage(): JSX.Element {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p>Vakantie Herinneringen</p>
-                  <p className="text-sm text-gray-400">Aankomende vakantie waarschuwingen</p>
+                  <p>{t("account.holidayReminders")}</p>
+                  <p className="text-sm text-gray-400">{t("account.holidayRemindersDesc")}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -310,7 +312,7 @@ export default function AccountPage(): JSX.Element {
 
             {/* Taal */}
             <div>
-              <label className="block mb-1 text-gray-400">Taal</label>
+              <label className="block mb-1 text-gray-400">{t("account.language")}</label>
               <select
                 value={preferences.language}
                 onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
@@ -325,16 +327,16 @@ export default function AccountPage(): JSX.Element {
 
             {/* Tijdzone */}
             <div>
-              <label className="block mb-1 text-gray-400">Tijdzone</label>
+              <label className="block mb-1 text-gray-400">{t("account.timezone")}</label>
               <select
                 value={preferences.timezone}
                 onChange={(e) => setPreferences({ ...preferences, timezone: e.target.value })}
                 className="w-full bg-black border border-black rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-600"
               >
-                <option value="Europe/Amsterdam">Europa/Amsterdam</option>
-                <option value="Europe/London">Europa/Londen</option>
-                <option value="Europe/Berlin">Europa/Berlijn</option>
-                <option value="America/New_York">Amerika/New York</option>
+                <option value="Europe/Amsterdam">{t("account.timezoneAmsterdam")}</option>
+                <option value="Europe/London">{t("account.timezoneLondon")}</option>
+                <option value="Europe/Berlin">{t("account.timezoneBerlin")}</option>
+                <option value="America/New_York">{t("account.timezoneNewYork")}</option>
               </select>
             </div>
           </div>

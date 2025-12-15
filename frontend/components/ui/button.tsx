@@ -7,12 +7,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md",
-        secondary: "bg-slate-200 text-slate-900 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600",
-        outline: "border-2 border-slate-300 bg-transparent hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800 text-white",
-        ghost: "hover:bg-slate-100 dark:hover:bg-slate-800",
-        danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
-        success: "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md",
+        default:
+          "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md",
+        secondary:
+          "bg-slate-200 text-slate-900 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600",
+        outline:
+          "border-2 border-slate-300 bg-transparent hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800 text-slate-900 dark:text-white",
+        ghost:
+          "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white",
+        danger:
+          "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
+        success:
+          "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md",
       },
       size: {
         sm: "h-9 px-3 text-sm",
@@ -25,17 +31,21 @@ const buttonVariants = cva(
       variant: "default",
       size: "md",
     },
-  }
+  },
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, isLoading, children, disabled, ...props }, ref) => {
+  (
+    { className, variant, size, isLoading, children, disabled, ...props },
+    ref,
+  ) => {
     return (
       <button
         className={cn(buttonVariants({ variant, size, className }))}
@@ -68,7 +78,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 Button.displayName = "Button";
 
