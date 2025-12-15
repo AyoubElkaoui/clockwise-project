@@ -1,4 +1,10 @@
-export function LoadingSpinner({ size = "default" }: { size?: "small" | "default" | "large" }) {
+export function LoadingSpinner({
+  size = "default",
+  className,
+}: {
+  size?: "small" | "default" | "large";
+  className?: string;
+}) {
   const sizeClasses = {
     small: "h-6 w-6 border-2",
     default: "h-12 w-12 border-3",
@@ -7,7 +13,9 @@ export function LoadingSpinner({ size = "default" }: { size?: "small" | "default
 
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className={`animate-spin rounded-full border-b-2 border-blue-600 ${sizeClasses[size]}`}></div>
+      <div
+        className={`animate-spin rounded-full border-b-2 border-blue-600 ${sizeClasses[size]} ${className || ""}`}
+      ></div>
     </div>
   );
 }
@@ -21,7 +29,11 @@ export function InlineLoader() {
   );
 }
 
-export function PageLoader({ message = "Gegevens laden..." }: { message?: string }) {
+export function PageLoader({
+  message = "Gegevens laden...",
+}: {
+  message?: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4">
       <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
@@ -39,7 +40,7 @@ public class UsersController : ControllerBase
             .Include(u => u.Manager)
             .OrderBy(u => u.FirstName)
             .ToListAsync();
-        
+
         return Ok(team);
     }
 
@@ -88,6 +89,17 @@ public class UsersController : ControllerBase
         }
 
         Console.WriteLine("✅ Login succesvol!");
+
+        // Log successful login
+        var log = new Log
+        {
+            Level = "info",
+            Component = "Authentication",
+            Message = $"Gebruiker {user.FirstName} {user.LastName} ({user.LoginName}) heeft ingelogd",
+            UserId = user.Id
+        };
+        _context.Logs.Add(log);
+        await _context.SaveChangesAsync();
 
         return Ok(user);
     }
@@ -139,15 +151,15 @@ public class UsersController : ControllerBase
         if (user == null) return NotFound("User niet gevonden");
 
         // Pas alleen de velden aan die de gebruiker mag wijzigen
-        user.FirstName   = dto.FirstName;
-        user.LastName    = dto.LastName;
-        user.Email       = dto.Email;
-        user.Address     = dto.Address;
+        user.FirstName = dto.FirstName;
+        user.LastName = dto.LastName;
+        user.Email = dto.Email;
+        user.Address = dto.Address;
         user.HouseNumber = dto.HouseNumber;
-        user.PostalCode  = dto.PostalCode;
-        user.City        = dto.City;
-        user.LoginName   = dto.LoginName;
-        user.Password    = dto.Password; // In productie gehashte password
+        user.PostalCode = dto.PostalCode;
+        user.City = dto.City;
+        user.LoginName = dto.LoginName;
+        user.Password = dto.Password; // In productie gehashte password
         // user.Rank laten we meestal ongemoeid, tenzij admin
 
         try
@@ -215,39 +227,39 @@ public class UsersController : ControllerBase
 
 public class UserLoginDto
 {
-    public string UserInput { get; set; }  // email of loginName
-    public string Password { get; set; }
+    public string? UserInput { get; set; }  // email of loginName
+    public string? Password { get; set; }
 }
 
 public class UserRegistrationDto
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string Address { get; set; }
-    public string HouseNumber { get; set; }
-    public string PostalCode { get; set; }
-    public string City { get; set; }
-    public string LoginName { get; set; }
-    public string Password { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? Address { get; set; }
+    public string? HouseNumber { get; set; }
+    public string? PostalCode { get; set; }
+    public string? City { get; set; }
+    public string? LoginName { get; set; }
+    public string? Password { get; set; }
 }
 
 public class UserUpdateDto
 {
     // Zelfde velden als RegistrationDto, maar evt. niet allemaal verplicht
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
-    public string Address { get; set; }
-    public string HouseNumber { get; set; }
-    public string PostalCode { get; set; }
-    public string City { get; set; }
-    public string LoginName { get; set; }
-    public string Password { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? Address { get; set; }
+    public string? HouseNumber { get; set; }
+    public string? PostalCode { get; set; }
+    public string? City { get; set; }
+    public string? LoginName { get; set; }
+    public string? Password { get; set; }
 }
 
 public class ChangePasswordDto
 {
-    public string CurrentPassword { get; set; }
-    public string NewPassword { get; set; }
+    public string? CurrentPassword { get; set; }
+    public string? NewPassword { get; set; }
 }

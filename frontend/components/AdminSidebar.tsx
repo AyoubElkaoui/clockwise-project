@@ -24,16 +24,39 @@ import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
 
 const adminMenuItems = [
-  { icon: Shield, label: "Admin Dashboard", href: "/admin-dashboard", badgeKey: null },
-  { icon: Users, label: "Gebruikers Beheer", href: "/admin/users", badgeKey: null },
-  { icon: Building2, label: "Bedrijven", href: "/admin/companies", badgeKey: null },
-  { icon: FolderKanban, label: "Projecten", href: "/admin/projects", badgeKey: null },
-  { icon: CheckCircle2, label: "Goedkeuringen", href: "/admin/approve-hours", badgeKey: "pendingApprovals" },
-  { icon: Clock, label: "Alle Uren", href: "/admin/time-entries", badgeKey: null },
-  { icon: Plane, label: "Vakantie Beheer", href: "/admin/vacation-requests", badgeKey: null },
-  { icon: BarChart3, label: "Rapporten", href: "/admin/reports", badgeKey: null },
-  { icon: Bell, label: "Notificaties", href: "/notificaties", badgeKey: "unreadNotifications" },
-  { icon: Settings, label: "Systeem Instellingen", href: "/admin/settings", badgeKey: null },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/admin", badgeKey: null },
+  {
+    icon: Users,
+    label: "Medewerkers",
+    href: "/admin/employees",
+    badgeKey: null,
+  },
+  {
+    icon: Clock,
+    label: "Tijd Registraties",
+    href: "/admin/time-entries",
+    badgeKey: null,
+  },
+  {
+    icon: FolderKanban,
+    label: "Projecten",
+    href: "/admin/projects",
+    badgeKey: null,
+  },
+  {
+    icon: CheckCircle2,
+    label: "Validaties",
+    href: "/admin/validations",
+    badgeKey: null,
+  },
+  { icon: BarChart3, label: "Logs", href: "/admin/logs", badgeKey: null },
+  { icon: Settings, label: "Systeem", href: "/admin/system", badgeKey: null },
+  {
+    icon: Settings,
+    label: "Instellingen",
+    href: "/admin/settings",
+    badgeKey: null,
+  },
 ];
 
 export function AdminSidebar() {
@@ -50,13 +73,13 @@ export function AdminSidebar() {
     setMounted(true);
     setFirstName(localStorage.getItem("firstName") || "");
     setLastName(localStorage.getItem("lastName") || "");
-    
+
     loadBadges();
-    
+
     const interval = setInterval(() => {
       loadBadges();
     }, 15000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -66,7 +89,9 @@ export function AdminSidebar() {
       const unreadCount = activities.filter((a: any) => !a.read).length;
 
       const entries = await getTimeEntries();
-      const pendingCount = entries.filter((e: any) => e.status === "ingeleverd").length;
+      const pendingCount = entries.filter(
+        (e: any) => e.status === "ingeleverd",
+      ).length;
 
       setBadges({
         unreadNotifications: unreadCount > 0 ? unreadCount : null,
@@ -77,9 +102,9 @@ export function AdminSidebar() {
     }
   };
 
-  const menuItems = adminMenuItems.map(item => ({
+  const menuItems = adminMenuItems.map((item) => ({
     ...item,
-    badge: item.badgeKey ? badges[item.badgeKey] || null : null
+    badge: item.badgeKey ? badges[item.badgeKey] || null : null,
   }));
 
   const handleLogout = () => {
@@ -93,7 +118,7 @@ export function AdminSidebar() {
     <aside
       className={cn(
         "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50",
-        collapsed ? "w-20" : "w-72"
+        collapsed ? "w-20" : "w-72",
       )}
     >
       <div className="flex flex-col h-full">
@@ -140,13 +165,15 @@ export function AdminSidebar() {
                   "flex items-center gap-3 px-3 py-3 rounded-lg group relative",
                   isActive
                     ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
                 )}
               >
                 <Icon className={cn("w-5 h-5", collapsed ? "mx-auto" : "")} />
                 {!collapsed && (
                   <>
-                    <span className="flex-1 font-medium text-sm">{item.label}</span>
+                    <span className="flex-1 font-medium text-sm">
+                      {item.label}
+                    </span>
                     {item.badge && (
                       <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
                         {item.badge}
@@ -174,7 +201,8 @@ export function AdminSidebar() {
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                  {firstName.charAt(0)}{lastName.charAt(0)}
+                  {firstName.charAt(0)}
+                  {lastName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
@@ -193,7 +221,7 @@ export function AdminSidebar() {
             onClick={handleLogout}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium",
-              collapsed && "justify-center"
+              collapsed && "justify-center",
             )}
           >
             <LogOut className="w-5 h-5" />

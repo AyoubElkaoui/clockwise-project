@@ -1,17 +1,30 @@
 "use client";
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toast";
-import { Settings, Bell, Shield, Database, Save, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { LoadingSpinner } from "@/components/ui/loading";
+import {
+  Settings,
+  Bell,
+  Shield,
+  Database,
+  Save,
+  CheckCircle,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function AdminSettingsPage() {
+  const { t } = useTranslation();
+
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
-  
+
   // Security settings
   const [require2FA, setRequire2FA] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(false);
-  
+
   // UI State
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -37,17 +50,17 @@ export default function AdminSettingsPage() {
 
   const handleSave = () => {
     setSaving(true);
-    
+
     const settings = {
       emailNotifications,
       pushNotifications,
       require2FA,
       sessionTimeout,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
-    
+
     localStorage.setItem("adminSettings", JSON.stringify(settings));
-    
+
     setTimeout(() => {
       setSaving(false);
       setSaved(true);
@@ -56,16 +69,18 @@ export default function AdminSettingsPage() {
   };
 
   const handleBackup = () => {
-    showToast("Database backup functionaliteit wordt binnenkort toegevoegd!", "info");
+    showToast(t("admin.settings.backup"), "info");
   };
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Systeem Instellingen
+          {t("admin.settings.title")}
         </h1>
-        <p className="text-gray-600 dark:text-slate-400">Beheer systeem configuratie</p>
+        <p className="text-gray-600 dark:text-slate-400">
+          {t("admin.settings.subtitle")}
+        </p>
       </div>
 
       <div className="space-y-6">
@@ -73,27 +88,33 @@ export default function AdminSettingsPage() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-4">
             <Bell className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notificaties</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {t("admin.settings.notifications")}
+            </h3>
           </div>
           <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="checkbox checkbox-primary" 
+            <div className="flex items-center gap-3">
+              <Checkbox
                 checked={emailNotifications}
-                onChange={(e) => setEmailNotifications(e.target.checked)}
+                onCheckedChange={(checked) =>
+                  setEmailNotifications(checked as boolean)
+                }
               />
-              <span className="text-sm text-gray-700 dark:text-slate-300">Email notificaties</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="checkbox checkbox-primary" 
+              <label className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                {t("admin.settings.emailNotifications")}
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox
                 checked={pushNotifications}
-                onChange={(e) => setPushNotifications(e.target.checked)}
+                onCheckedChange={(checked) =>
+                  setPushNotifications(checked as boolean)
+                }
               />
-              <span className="text-sm text-gray-700 dark:text-slate-300">Push notificaties</span>
-            </label>
+              <label className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                {t("admin.settings.pushNotifications")}
+              </label>
+            </div>
           </div>
         </div>
 
@@ -101,27 +122,31 @@ export default function AdminSettingsPage() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-4">
             <Shield className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Beveiliging</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {t("admin.settings.security")}
+            </h3>
           </div>
           <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="checkbox checkbox-primary" 
+            <div className="flex items-center gap-3">
+              <Checkbox
                 checked={require2FA}
-                onChange={(e) => setRequire2FA(e.target.checked)}
+                onCheckedChange={(checked) => setRequire2FA(checked as boolean)}
               />
-              <span className="text-sm text-gray-700 dark:text-slate-300">Two-factor authenticatie vereist</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="checkbox checkbox-primary" 
+              <label className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                {t("admin.settings.require2FA")}
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox
                 checked={sessionTimeout}
-                onChange={(e) => setSessionTimeout(e.target.checked)}
+                onCheckedChange={(checked) =>
+                  setSessionTimeout(checked as boolean)
+                }
               />
-              <span className="text-sm text-gray-700 dark:text-slate-300">Session timeout na 1 uur</span>
-            </label>
+              <label className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                {t("admin.settings.sessionTimeout")}
+              </label>
+            </div>
           </div>
         </div>
 
@@ -129,45 +154,40 @@ export default function AdminSettingsPage() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-4">
             <Database className="w-5 h-5 text-green-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Database</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {t("admin.settings.database")}
+            </h3>
           </div>
-          <button 
-            onClick={handleBackup}
-            className="btn btn-outline gap-2"
-          >
-            <Database className="w-4 h-4" />
-            Backup Database
-          </button>
+          <Button onClick={handleBackup} variant="outline">
+            <Database className="w-4 h-4 mr-2" />
+            {t("admin.settings.backup")}
+          </Button>
         </div>
 
         {/* Save Button */}
         <div className="flex items-center gap-4">
-          <button 
-            onClick={handleSave}
-            disabled={saving || saved}
-            className="btn btn-primary gap-2"
-          >
+          <Button onClick={handleSave} disabled={saving || saved}>
             {saving ? (
               <>
-                <span className="loading loading-spinner loading-sm"></span>
-                Opslaan...
+                <LoadingSpinner className="w-4 h-4 mr-2" />
+                {t("admin.settings.saving")}
               </>
             ) : saved ? (
               <>
-                <CheckCircle className="w-5 h-5" />
-                Opgeslagen!
+                <CheckCircle className="w-5 h-5 mr-2" />
+                {t("admin.settings.saved")}
               </>
             ) : (
               <>
-                <Save className="w-5 h-5" />
-                Wijzigingen Opslaan
+                <Save className="w-5 h-5 mr-2" />
+                {t("admin.settings.save")}
               </>
             )}
-          </button>
-          
+          </Button>
+
           {saved && (
             <span className="text-sm text-green-600 dark:text-green-400">
-              ✓ Instellingen succesvol opgeslagen
+              ✓ {t("admin.settings.successMessage")}
             </span>
           )}
         </div>

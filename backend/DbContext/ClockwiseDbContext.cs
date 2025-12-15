@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using backend.Models;
 
 public class ClockwiseDbContext : DbContext
 {
@@ -13,6 +14,7 @@ public class ClockwiseDbContext : DbContext
     public DbSet<UserProject> UserProjects { get; set; }
     public DbSet<VacationRequest> VacationRequests { get; set; }
     public DbSet<Holiday> Holidays { get; set; }
+    public DbSet<Log> Logs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -123,6 +125,14 @@ public class ClockwiseDbContext : DbContext
         modelBuilder.Entity<Activity>()
             .HasIndex(a => new { a.UserId, a.Read, a.Timestamp });
 
+        modelBuilder.Entity<Log>()
+            .HasOne(l => l.User)
+            .WithMany()
+            .HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Log>()
+            .HasIndex(l => l.Timestamp);
 
     }
 

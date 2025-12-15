@@ -33,7 +33,7 @@ export default function AdminVacationPage() {
 
   const loadRequests = async () => {
     try {
-      const res = await fetch("${API_URL}/vacation-requests");
+      const res = await fetch(`${API_URL}/vacation-requests`);
       if (!res.ok) throw new Error("Laden mislukt");
       const data = await res.json();
       setRequests(data);

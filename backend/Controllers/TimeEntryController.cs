@@ -20,8 +20,9 @@ public class TimeEntryController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TimeEntry>>> GetTimeEntries()
     {
-        // Include Project -> ThenInclude ProjectGroup -> ThenInclude Company
+        // Include User, Project -> ThenInclude ProjectGroup -> ThenInclude Company
         var entries = await _context.TimeEntries
+            .Include(te => te.User)
             .Include(te => te.Project)
                 .ThenInclude(p => p.ProjectGroup)
                     .ThenInclude(pg => pg.Company)

@@ -11,6 +11,10 @@ public class User
     public required string LoginName { get; set; }
     public required string Password { get; set; }
     public required string Rank { get; set; }
+    public string? Department { get; set; }
+    public string? Phone { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Manager Relations
     public int? ManagerId { get; set; }  // Foreign key naar manager

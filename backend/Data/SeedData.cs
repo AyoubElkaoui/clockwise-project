@@ -11,38 +11,6 @@ namespace backend.Data
     {
         public static void Initialize(ClockwiseDbContext context)
         {
-            // Add missing columns if they don't exist
-            try
-            {
-                context.Database.ExecuteSqlRaw("ALTER TABLE TIMEENTRIES ADD MANAGERCOMMENT BLOB SUB_TYPE TEXT");
-            }
-            catch { }
-            try
-            {
-                context.Database.ExecuteSqlRaw("ALTER TABLE TIMEENTRIES ADD REVIEWEDAT TIMESTAMP");
-            }
-            catch { }
-            try
-            {
-                context.Database.ExecuteSqlRaw("ALTER TABLE TIMEENTRIES ADD REVIEWEDBY INTEGER");
-            }
-            catch { }
-            try
-            {
-                context.Database.ExecuteSqlRaw("ALTER TABLE VACATIONREQUESTS ADD MANAGERCOMMENT BLOB SUB_TYPE TEXT");
-            }
-            catch { }
-            try
-            {
-                context.Database.ExecuteSqlRaw("ALTER TABLE VACATIONREQUESTS ADD REVIEWEDAT TIMESTAMP");
-            }
-            catch { }
-            try
-            {
-                context.Database.ExecuteSqlRaw("ALTER TABLE VACATIONREQUESTS ADD REVIEWEDBY INTEGER");
-            }
-            catch { }
-
             if (context.Users.Any() || context.Companies.Any())
             {
                 return; // Database is already seeded

@@ -3,6 +3,7 @@ using System;
 using FirebirdSql.EntityFrameworkCore.Firebird.Metadata;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(ClockwiseDbContext))]
-    partial class ClockwiseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215191105_AddCreatedAtToUsers")]
+    partial class AddCreatedAtToUsers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -364,43 +367,6 @@ namespace backend.Migrations
                     b.ToTable("VacationRequests");
                 });
 
-            modelBuilder.Entity("backend.Models.Log", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasAnnotation("Fb:ValueGenerationStrategy", FbValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Component")
-                        .IsRequired()
-                        .HasColumnType("BLOB SUB_TYPE TEXT");
-
-                    b.Property<string>("Details")
-                        .HasColumnType("BLOB SUB_TYPE TEXT");
-
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasColumnType("BLOB SUB_TYPE TEXT");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("BLOB SUB_TYPE TEXT");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("TIMESTAMP");
-
-                    b.Property<int?>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Timestamp");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Logs");
-                });
-
             modelBuilder.Entity("Activity", b =>
                 {
                     b.HasOne("User", "User")
@@ -506,16 +472,6 @@ namespace backend.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("backend.Models.Log", b =>
-                {
-                    b.HasOne("User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("User");
                 });

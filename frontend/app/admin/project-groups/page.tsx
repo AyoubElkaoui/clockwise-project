@@ -1,211 +1,208 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getCompanies, getProjectGroups, createProjectGroup } from "@/lib/api/companyApi";
-import AdminRoute from "@/components/AdminRoute";
-import ToastNotification from "@/components/ToastNotification";
-import { Company, ProjectGroup } from "@/lib/types";
 import {
-    PlusIcon,
-    BuildingOfficeIcon,
-    FolderIcon,
-    CheckCircleIcon,
-    ExclamationTriangleIcon
-} from "@heroicons/react/24/outline";
+  getCompanies,
+  getProjectGroups,
+  createProjectGroup,
+} from "@/lib/api/companyApi";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { Company, ProjectGroup } from "@/lib/types";
+import { useTranslation } from "react-i18next";
+import {
+  Plus,
+  Building2,
+  Folder,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function AdminProjectGroupsPage() {
-    const [companies, setCompanies] = useState<Company[]>([]);
-    const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
-    const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    // Form state
-    const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
-    const [projectGroupName, setProjectGroupName] = useState("");
+  // Form state
+  const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
+  const [projectGroupName, setProjectGroupName] = useState("");
 
-    // Toast
-    const [toastMessage, setToastMessage] = useState("");
-    const [toastType, setToastType] = useState<"success" | "error">("success");
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const companiesData = await getCompanies();
-                setCompanies(companiesData);
-            } catch (error) {
-                console.error("Error fetching companies:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    useEffect(() => {
-        if (selectedCompany) {
-            const fetchProjectGroups = async () => {
-                try {
-                    const data = await getProjectGroups(selectedCompany);
-                    setProjectGroups(data);
-                } catch (error) {
-                    console.error("Error fetching project groups:", error);
-                }
-            };
-
-            fetchProjectGroups();
-        } else {
-            setProjectGroups([]);
-        }
-    }, [selectedCompany]);
-
-    const handleCreateProjectGroup = async () => {
-        if (!selectedCompany || !projectGroupName.trim()) {
-            setToastMessage("Vul alle velden in");
-            setToastType("error");
-            setTimeout(() => setToastMessage(""), 3000);
-            return;
-        }
-
-        try {
-            await createProjectGroup({
-                name: projectGroupName,
-                companyId: selectedCompany
-            });
-
-            setToastMessage("Projectgroep succesvol aangemaakt!");
-            setToastType("success");
-
-            // Reset form
-            setProjectGroupName("");
-
-            // Reload project groups
-            const data = await getProjectGroups(selectedCompany);
-            setProjectGroups(data);
-
-            setTimeout(() => setToastMessage(""), 3000);
-        } catch (error) {
-            setToastMessage("Fout bij aanmaken projectgroep");
-            setToastType("error");
-            setTimeout(() => setToastMessage(""), 3000);
-        }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const companiesData = await getCompanies();
+        setCompanies(companiesData);
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    return (
-        <AdminRoute>
-            <div className="p-8 space-y-8">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                            Projectgroepen Beheren
-                        </h1>
-                        <p className="text-gray-600 dark:text-slate-400 mt-2">
-                            Maak en beheer projectgroepen per bedrijf
-                        </p>
-                    </div>
-                </div>
+    fetchData();
+  }, []);
 
-                {/* Create New Project Group Card */}
-                <div className="bg-blue-600 rounded-2xl shadow-xl p-8 text-white">
-                    <div className="flex items-center mb-6">
-                        <PlusIcon className="w-8 h-8 mr-3" />
-                        <h2 className="text-2xl font-bold">Nieuwe Projectgroep Aanmaken</h2>
-                    </div>
+  useEffect(() => {
+    if (selectedCompany) {
+      const fetchProjectGroups = async () => {
+        try {
+          const data = await getProjectGroups(selectedCompany);
+          setProjectGroups(data);
+        } catch (error) {
+          console.error("Error fetching project groups:", error);
+        }
+      };
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label className="block mb-2 text-sm font-medium">
-                                <BuildingOfficeIcon className="w-5 h-5 inline mr-2" />
-                                Bedrijf
-                            </label>
-                            <select
-                                value={selectedCompany || ""}
-                                onChange={(e) => setSelectedCompany(Number(e.target.value))}
-                                className="w-full px-4 py-3 rounded-lg bg-white/20 backdrop-blur-sm text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-                            >
-                                <option value="" className="text-gray-900">Selecteer bedrijf...</option>
-                                {companies.map((company) => (
-                                    <option key={company.id} value={company.id} className="text-gray-900">
-                                        {company.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+      fetchProjectGroups();
+    } else {
+      setProjectGroups([]);
+    }
+  }, [selectedCompany]);
 
-                        <div>
-                            <label className="block mb-2 text-sm font-medium">
-                                <FolderIcon className="w-5 h-5 inline mr-2" />
-                                Projectgroep Naam
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Bijv. Marketing Projecten"
-                                value={projectGroupName}
-                                onChange={(e) => setProjectGroupName(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-white/20 backdrop-blur-sm text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-                            />
-                        </div>
-                    </div>
+  const handleCreateProjectGroup = async () => {
+    if (!selectedCompany || !projectGroupName.trim()) {
+      showToast(t("admin.projectGroups.fillAllFields"), "error");
+      return;
+    }
 
-                    <button
-                        onClick={handleCreateProjectGroup}
-                        className="w-full md:w-auto px-8 py-3 bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-300 rounded-lg font-bold hover:bg-purple-50 dark:hover:bg-slate-600 flex items-center justify-center gap-2 shadow-lg"
-                    >
-                        <CheckCircleIcon className="w-5 h-5" />
-                        Projectgroep Aanmaken
-                    </button>
-                </div>
+    try {
+      await createProjectGroup({
+        name: projectGroupName,
+        companyId: selectedCompany,
+      });
 
-                {/* Existing Project Groups */}
-                {selectedCompany && (
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                            <FolderIcon className="w-6 h-6 text-purple-600" />
-                            Bestaande Projectgroepen ({projectGroups.length})
-                        </h3>
-                        
-                        {loading ? (
-                            <div className="flex justify-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                            </div>
-                        ) : projectGroups.length === 0 ? (
-                            <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-                                <ExclamationTriangleIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                <p>Nog geen projectgroepen voor dit bedrijf</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {projectGroups.map((group) => (
-                                    <div
-                                        key={group.id}
-                                        className="bg-blue-100 dark:from-slate-700 dark:to-slate-600 rounded-lg p-4 border border-purple-200 dark:border-slate-500"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-purple-600 rounded-lg">
-                                                <FolderIcon className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">
-                                                    {group.name}
-                                                </h4>
-                                                <p className="text-sm text-gray-600 dark:text-slate-300">
-                                                    {group.projects?.length || 0} projecten
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+      showToast(t("admin.projectGroups.created"), "success");
 
-                {toastMessage && (
-                    <ToastNotification
-                        message={toastMessage}
-                        type={toastType}
-                        onClose={() => setToastMessage("")}
-                    />
-                )}
+      // Reset form
+      setProjectGroupName("");
+
+      // Reload project groups
+      const data = await getProjectGroups(selectedCompany);
+      setProjectGroups(data);
+    } catch (error) {
+      showToast(t("admin.projectGroups.createError"), "error");
+    }
+  };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {t("admin.projectGroups.title")}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            {t("admin.projectGroups.subtitle")}
+          </p>
+        </div>
+      </div>
+
+      {/* Create New Project Group */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            {t("admin.projectGroups.createTitle")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block mb-2 text-sm font-medium">
+                <Building2 className="w-4 h-4 inline mr-2" />
+                {t("admin.companies.company")}
+              </label>
+              <select
+                value={selectedCompany || ""}
+                onChange={(e) =>
+                  setSelectedCompany(Number(e.target.value) || null)
+                }
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+              >
+                <option value="">
+                  {t("admin.projectGroups.selectCompany")}
+                </option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
             </div>
-        </AdminRoute>
-    );
+
+            <div>
+              <label className="block mb-2 text-sm font-medium">
+                <Folder className="w-4 h-4 inline mr-2" />
+                {t("admin.projectGroups.groupName")}
+              </label>
+              <Input
+                placeholder={t("admin.projectGroups.namePlaceholder")}
+                value={projectGroupName}
+                onChange={(e) => setProjectGroupName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <Button onClick={handleCreateProjectGroup}>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            {t("admin.projectGroups.createGroup")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Existing Project Groups */}
+      {selectedCompany && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Folder className="w-5 h-5" />
+              {t("admin.projectGroups.existingGroups")} ({projectGroups.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {projectGroups.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>{t("admin.projectGroups.noGroups")}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {projectGroups.map((group) => (
+                  <Card
+                    key={group.id}
+                    className="hover:shadow-md transition-shadow"
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+                          <Folder className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 dark:text-slate-100">
+                            {group.name}
+                          </h4>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {group.projects?.length || 0}{" "}
+                            {t("admin.projects.project").toLowerCase()}
+                            {group.projects?.length !== 1 ? "en" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
 }

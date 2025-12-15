@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { User } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 import {
   Users,
   UserPlus,
@@ -37,6 +38,7 @@ dayjs.locale("nl");
 
 export default function AdminUsersPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,7 +73,7 @@ export default function AdminUsersPage() {
       setUsers(safeData);
     } catch (error) {
       console.error("Error loading users:", error);
-      showToast("Fout bij laden gebruikers", "error");
+      showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);
     }
@@ -173,7 +175,7 @@ export default function AdminUsersPage() {
       setShowDeleteModal(false);
 
       showToast(
-        `${selectedUsers.size} gebruikers succesvol verwijderd`,
+        `${selectedUsers.size} ${t("admin.users.bulkDeleted")}`,
         "success",
       );
     } catch (error) {
@@ -194,22 +196,29 @@ export default function AdminUsersPage() {
       setUsers(users.filter((u) => u.id !== userToDelete.id));
       setShowDeleteModal(false);
       setUserToDelete(null);
-      showToast("Gebruiker succesvol verwijderd", "success");
+      showToast(t("admin.users.deleted"), "success");
     } catch (error) {
-      showToast("Fout bij verwijderen gebruiker", "error");
+      showToast(t("admin.users.errorDelete"), "error");
     }
   };
 
   const exportUsers = () => {
     const csvContent = [
-      ["Naam", "Email", "Rol", "Functie", "Status", "Aangemaakt"].join(","),
+      [
+        t("common.name"),
+        t("common.email"),
+        t("common.role"),
+        t("common.function"),
+        t("common.status"),
+        t("common.created"),
+      ].join(","),
       ...filteredAndSortedUsers.map((user) =>
         [
           `"${user.firstName} ${user.lastName}"`,
           user.email || "",
           user.rank || "user",
           user.function || "",
-          user.rank === "inactive" ? "Inactief" : "Actief",
+          user.rank === "inactive" ? t("status.inactive") : t("status.active"),
           user.createdAt ? dayjs(user.createdAt).format("YYYY-MM-DD") : "",
         ].join(","),
       ),
@@ -230,21 +239,21 @@ export default function AdminUsersPage() {
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
             <Shield className="w-3 h-3 mr-1" />
-            Admin
+            {t("common.admin")}
           </Badge>
         );
       case "manager":
         return (
           <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
             <UserCheck className="w-3 h-3 mr-1" />
-            Manager
+            {t("common.manager")}
           </Badge>
         );
       default:
         return (
           <Badge className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
             <Users className="w-3 h-3 mr-1" />
-            Medewerker
+            {t("common.employee")}
           </Badge>
         );
     }
@@ -260,20 +269,20 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Gebruikersbeheer
+            {t("admin.users.title")}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Beheer alle gebruikers, rollen en rechten
+            {t("admin.users.subtitle")}
           </p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={exportUsers}>
             <Download className="w-4 h-4 mr-2" />
-            Exporteren
+            {t("admin.users.export")}
           </Button>
           <Button onClick={() => router.push("/admin/users/create")}>
             <UserPlus className="w-4 h-4 mr-2" />
-            Nieuwe Gebruiker
+            {t("admin.users.createUser")}
           </Button>
         </div>
       </div>
@@ -285,7 +294,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Totaal Gebruikers
+                  {t("admin.dashboard.totalUsers")}
                 </p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.total}
@@ -303,7 +312,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Actieve Gebruikers
+                  {t("admin.dashboard.activeUsers")}
                 </p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.active}
@@ -321,7 +330,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Administrators
+                  {t("common.admins")}
                 </p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.admins}
@@ -339,7 +348,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Managers
+                  {t("common.managers")}
                 </p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.managers}
@@ -357,7 +366,7 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Medewerkers
+                  {t("common.employees")}
                 </p>
                 <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
                   {stats.employees}
@@ -378,7 +387,7 @@ export default function AdminUsersPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
-                placeholder="Zoek op naam of email..."
+                placeholder={t("admin.users.search")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -390,29 +399,31 @@ export default function AdminUsersPage() {
                 onChange={(e) => setFilterRole(e.target.value)}
                 className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-sm"
               >
-                <option value="all">Alle rollen</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="user">Medewerker</option>
+                <option value="all">{t("admin.users.allRoles")}</option>
+                <option value="admin">{t("common.admin")}</option>
+                <option value="manager">{t("common.manager")}</option>
+                <option value="user">{t("common.employee")}</option>
               </select>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-sm"
               >
-                <option value="all">Alle status</option>
-                <option value="active">Actief</option>
-                <option value="inactive">Inactief</option>
+                <option value="all">{t("admin.users.allStatuses")}</option>
+                <option value="active">{t("status.active")}</option>
+                <option value="inactive">{t("status.inactive")}</option>
               </select>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-sm"
               >
-                <option value="name">Sorteren op naam</option>
-                <option value="email">Sorteren op email</option>
-                <option value="role">Sorteren op rol</option>
-                <option value="created">Sorteren op aangemaakt</option>
+                <option value="name">{t("admin.users.sortByName")}</option>
+                <option value="email">{t("admin.users.sortByEmail")}</option>
+                <option value="role">{t("admin.users.sortByRole")}</option>
+                <option value="created">
+                  {t("admin.users.sortByCreated")}
+                </option>
               </select>
               <Button
                 variant="outline"
@@ -433,8 +444,9 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {selectedUsers.size} gebruiker
-                  {selectedUsers.size !== 1 ? "s" : ""} geselecteerd
+                  {selectedUsers.size} {t("common.user")}
+                  {selectedUsers.size !== 1 ? "s" : ""}{" "}
+                  {t("admin.users.selected")}
                 </span>
               </div>
               <div className="flex gap-2">
@@ -443,7 +455,7 @@ export default function AdminUsersPage() {
                   variant="outline"
                   onClick={() => setSelectedUsers(new Set())}
                 >
-                  Deselecteren
+                  {t("admin.users.deselect")}
                 </Button>
                 <Button
                   size="sm"
@@ -452,7 +464,7 @@ export default function AdminUsersPage() {
                   onClick={handleBulkDelete}
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
-                  Verwijderen
+                  {t("admin.users.delete")}
                 </Button>
               </div>
             </div>
@@ -470,7 +482,7 @@ export default function AdminUsersPage() {
                 onCheckedChange={handleSelectAll}
               />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
-                {filteredAndSortedUsers.length} gebruiker
+                {filteredAndSortedUsers.length} {t("common.user")}
                 {filteredAndSortedUsers.length !== 1 ? "s" : ""}
               </span>
             </div>
@@ -481,14 +493,14 @@ export default function AdminUsersPage() {
                 <CardContent className="pt-12 pb-12 text-center">
                   <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                    Geen gebruikers gevonden
+                    {t("admin.users.noUsers")}
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400">
                     {searchQuery ||
                     filterRole !== "all" ||
                     filterStatus !== "all"
-                      ? "Probeer andere zoekcriteria"
-                      : "Er zijn nog geen gebruikers toegevoegd"}
+                      ? t("admin.users.tryFilters")
+                      : t("common.noData")}
                   </p>
                 </CardContent>
               </Card>
@@ -572,18 +584,18 @@ export default function AdminUsersPage() {
               <CardTitle className="flex items-center gap-2 text-red-600">
                 <AlertTriangle className="w-5 h-5" />
                 {userToDelete
-                  ? "Gebruiker verwijderen"
-                  : "Gebruikers verwijderen"}
+                  ? t("admin.users.deleteConfirm")
+                  : t("admin.users.deleteBulkConfirm")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-slate-600 dark:text-slate-400">
                 {userToDelete
-                  ? `Weet je zeker dat je ${userToDelete.firstName} ${userToDelete.lastName} wilt verwijderen?`
-                  : `Weet je zeker dat je ${selectedUsers.size} gebruiker${selectedUsers.size !== 1 ? "s" : ""} wilt verwijderen?`}
+                  ? `${t("admin.users.deleteMessage")} ${userToDelete.firstName} ${userToDelete.lastName}?`
+                  : `${t("admin.users.deleteMessage")} ${selectedUsers.size} ${t("common.user")}${selectedUsers.size !== 1 ? "s" : ""}?`}
                 <br />
                 <span className="text-sm text-red-600 dark:text-red-400 font-medium">
-                  Deze actie kan niet ongedaan worden gemaakt.
+                  {t("admin.users.deleteWarning")}
                 </span>
               </p>
               <div className="flex justify-end gap-3">
@@ -594,14 +606,14 @@ export default function AdminUsersPage() {
                     setUserToDelete(null);
                   }}
                 >
-                  Annuleren
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   className="bg-red-600 hover:bg-red-700"
                   onClick={userToDelete ? confirmDeleteUser : confirmBulkDelete}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Verwijderen
+                  {t("admin.users.delete")}
                 </Button>
               </div>
             </CardContent>
