@@ -53,7 +53,7 @@ builder.Services.AddControllers()
 // ===== Response compression =====
 builder.Services.AddResponseCompression(options =>
 {
-    options.EnableForHttps = true;
+    options.EnableForHttps = false;
 });
 
 // ===== Response caching =====
