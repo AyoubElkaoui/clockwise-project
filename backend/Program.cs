@@ -91,7 +91,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(CorsPolicyName, policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .WithOrigins("https://clockwise-project.vercel.app")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
