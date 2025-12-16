@@ -8,7 +8,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL:
       process.env.NEXT_PUBLIC_API_URL ||
-      "https://loath-lila-unflowing.ngrok-free.dev/api",
+      "https://clockwise-project-1.onrender.com",
   },
 
   reactStrictMode: false,
