@@ -8,13 +8,11 @@ import { TimeEntry, User } from "./types";
  */
 const baseURL =
   typeof window === "undefined"
-    ? process.env.INTERNAL_API_URL // server-side (Docker)
-    : process.env.NEXT_PUBLIC_API_URL; // browser
+    ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL // server-side (Docker/SSR)
+    : process.env.NEXT_PUBLIC_API_URL || ""; // browser defaults to same-origin for Next.js rewrite
 
 // Fallback
-const cleanBase = baseURL
-  ? baseURL.replace(/\/$/, "")
-  : "http://localhost:5000";
+const cleanBase = baseURL ? baseURL.replace(/\/$/, "") : "";
 
 // Backend always uses /api prefix
 export const API_URL = `${cleanBase}/api`;
@@ -24,6 +22,18 @@ axios.defaults.headers.common["Content-Type"] = "application/json";
 
 // Request logging
 axios.interceptors.request.use((request) => {
+  // Attach Medew header when available so backend auth middleware passes
+  if (typeof window !== "undefined") {
+    const medewGcId = localStorage.getItem("medewGcId");
+    if (medewGcId) {
+      if (!request.headers) {
+        request.headers = {} as any;
+      }
+      if (!request.headers["X-MEDEW-GC-ID"]) {
+        request.headers["X-MEDEW-GC-ID"] = medewGcId;
+      }
+    }
+  }
   console.log("API Request:", request.method?.toUpperCase(), request.url);
   return request;
 });
@@ -35,6 +45,13 @@ axios.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Silence logging for 404s on activities endpoint as it's not implemented in backend v1
+    if (
+      error.response?.status === 404 &&
+      error.config?.url?.includes("/api/activities")
+    ) {
+      return Promise.reject(error);
+    }
     console.error(
       "API Error:",
       error.response?.status,
@@ -52,6 +69,78 @@ function safeApiResponse(response: any): any {
   return response;
 }
 
+function getMedewHeaders() {
+  if (typeof localStorage === "undefined") return undefined;
+  const medewGcId = localStorage.getItem("medewGcId");
+  return medewGcId ? { "X-MEDEW-GC-ID": medewGcId } : undefined;
+}
+
+// Normalise time entries from the API into the shape the UI expects
+function transformTimeEntries(raw: any[]) {
+  return raw.map((entry: any) => {
+    const userId =
+      Number(
+        entry.userId ??
+          entry.medewGcId ??
+          entry.MedewGcId ??
+          entry.MEDEW_GC_ID ??
+          entry.medew_gc_id ??
+          null,
+      ) || 0;
+
+    let hours = 0;
+    if (entry.startTime && entry.endTime) {
+      const diffMs =
+        new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime();
+      const minutes = diffMs / (1000 * 60);
+      const workMinutes = minutes - (entry.breakMinutes || 0);
+      hours = workMinutes > 0 ? workMinutes / 60 : 0;
+    }
+
+    // Map Firebird fields when there are no start/end times
+    if (!hours && (entry.Aantal !== undefined || entry.aantal !== undefined)) {
+      hours = Number(entry.Aantal ?? entry.aantal ?? 0);
+    }
+
+    const date =
+      entry.startTime?.split("T")[0] ||
+      entry.date?.split("T")[0] ||
+      entry.datum?.split("T")[0] ||
+      (entry.Datum ? entry.Datum.toString().split("T")[0] : "") ||
+      "";
+
+    const startTime =
+      entry.startTime || (date ? `${date}T00:00:00.000Z` : undefined);
+    const endTime =
+      entry.endTime ||
+      (date && hours
+        ? new Date(
+            new Date(date).getTime() + hours * 60 * 60 * 1000,
+          ).toISOString()
+        : undefined);
+
+    return {
+      ...entry,
+      userId,
+      date,
+      startTime,
+      endTime,
+      hours: parseFloat(hours.toFixed(2)),
+      projectId: entry.projectId ?? entry.WerkGcId ?? entry.WERK_GC_ID ?? 0,
+      projectName: entry.project?.name || "",
+      projectGroupId: entry.project?.projectGroupId || 0,
+      projectGroupName: entry.project?.projectGroup?.name || "",
+      companyId: entry.project?.projectGroup?.companyId || 0,
+      companyName: entry.project?.projectGroup?.company?.name || "",
+      km: entry.distanceKm || 0,
+      expenses: entry.expenses || 0,
+      breakMinutes: entry.breakMinutes || 0,
+      notes: entry.notes || entry.GcOmschrijving || entry.GC_OMSCHRIJVING || "",
+      status: entry.status || entry.Status || "opgeslagen",
+    };
+  });
+}
+
 /* ----------------------------
    YOUR API FUNCTIONS (unchanged)
 ----------------------------- */
@@ -66,8 +155,10 @@ export async function getCompanies() {
   }
 }
 
-export async function deleteCompany(id: number) {
-  return axios.delete(`${API_URL}/companies/${id}`).then(safeApiResponse);
+// Delete not implemented in new backend
+export async function deleteTimeEntry(id: number) {
+  // Dummy
+  return Promise.resolve(null);
 }
 
 export async function getUsers() {
@@ -84,55 +175,15 @@ export async function getUsers() {
   }
 }
 
-export async function getTimeEntries() {
-  try {
-    const res = await axios.get(`${API_URL}/time-entries`);
-    const data = safeApiResponse(res);
-
-    let raw = [];
-    if (Array.isArray(data)) raw = data;
-    else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
-    else if (Array.isArray(data?.data)) raw = data.data;
-    else return [];
-
-    return raw.map((entry: any) => {
-      let hours = 0;
-      if (entry.startTime && entry.endTime) {
-        const diffMs =
-          new Date(entry.endTime).getTime() -
-          new Date(entry.startTime).getTime();
-        const minutes = diffMs / (1000 * 60);
-        const workMinutes = minutes - (entry.breakMinutes || 0);
-        hours = workMinutes > 0 ? workMinutes / 60 : 0;
-      }
-
-      return {
-        ...entry,
-        date: entry.startTime?.split("T")[0] || "",
-        hours: parseFloat(hours.toFixed(2)),
-        projectName: entry.project?.name || "",
-        projectGroupId: entry.project?.projectGroupId || 0,
-        projectGroupName: entry.project?.projectGroup?.name || "",
-        companyId: entry.project?.projectGroup?.companyId || 0,
-        companyName: entry.project?.projectGroup?.company?.name || "",
-        km: entry.distanceKm || 0,
-        expenses: entry.expenses || 0,
-        breakMinutes: entry.breakMinutes || 0,
-        notes: entry.notes || "",
-        status: entry.status || "opgeslagen",
-      };
-    });
-  } catch (error) {
-    console.error(" Error fetching time entries:", error);
-    return [];
-  }
+// Update user not implemented
+export async function updateUser(data: any) {
+  // Dummy
+  return Promise.resolve(null);
 }
 
-export async function getProjectGroups(companyId: number) {
+export async function getProjectGroups() {
   try {
-    const res = await axios.get(
-      `${API_URL}/project-groups/company/${companyId}`,
-    );
+    const res = await axios.get(`${API_URL}/project-groups`);
     return safeApiResponse(res) ?? [];
   } catch (error) {
     console.error(" Error fetching groups:", error);
@@ -140,9 +191,9 @@ export async function getProjectGroups(companyId: number) {
   }
 }
 
-export async function getProjects(projectGroupId: number) {
+export async function getProjects(groupId: number) {
   try {
-    const res = await axios.get(`${API_URL}/projects/group/${projectGroupId}`);
+    const res = await axios.get(`${API_URL}/projects?groupId=${groupId}`);
     return safeApiResponse(res) ?? [];
   } catch (error) {
     console.error(" Error:", error);
@@ -150,191 +201,284 @@ export async function getProjects(projectGroupId: number) {
   }
 }
 
-export async function getAllProjects() {
+export async function getWorkTasks() {
   try {
-    const res = await axios.get(`${API_URL}/projects`);
+    const res = await axios.get(`${API_URL}/tasks/work`);
     return safeApiResponse(res) ?? [];
   } catch (error) {
-    console.error(" Error:", error);
+    console.error(" Error fetching work tasks:", error);
     return [];
   }
 }
 
-export async function registerTimeEntry(data: any) {
-  return axios.post(`${API_URL}/time-entries`, data).then(safeApiResponse);
+export async function getVacationTasks() {
+  try {
+    const res = await axios.get(`${API_URL}/tasks/vacation`);
+    return safeApiResponse(res) ?? [];
+  } catch (error) {
+    console.error(" Error fetching vacation tasks:", error);
+    return [];
+  }
 }
 
-export async function updateTimeEntry(id: number, data: any) {
-  return axios.put(`${API_URL}/time-entries/${id}`, data).then(safeApiResponse);
+export async function getPeriods(count: number = 50) {
+  try {
+    const res = await axios.get(`${API_URL}/periods?count=${count}`);
+    return safeApiResponse(res) ?? [];
+  } catch (error) {
+    console.error(" Error fetching periods:", error);
+    return [];
+  }
 }
 
-export async function deleteTimeEntry(id: number) {
-  return axios.delete(`${API_URL}/time-entries/${id}`).then(safeApiResponse);
-}
-
-export async function submitTimeEntry(id: number) {
+export async function registerWorkTimeEntries(
+  urenperGcId: number,
+  entries: any[],
+) {
+  const data = { UrenperGcId: urenperGcId, Regels: entries };
   return axios
-    .post(`${API_URL}/time-entries/${id}/submit`)
+    .post(`${API_URL}/time-entries/work`, data, {
+      headers: { "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "1" },
+    })
     .then(safeApiResponse);
 }
 
-export async function login(userInput: string, password: string) {
-  const response = await axios.post(`${API_URL}/users/login`, {
-    userInput,
-    password,
-  });
-  const user = safeApiResponse(response);
-  if (!user?.id) throw new Error("Invalid server response");
+export async function registerVacationTimeEntries(
+  urenperGcId: number,
+  entries: any[],
+) {
+  const data = { UrenperGcId: urenperGcId, Regels: entries };
+  return axios
+    .post(`${API_URL}/time-entries/vacation`, data, {
+      headers: { "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "1" },
+    })
+    .then(safeApiResponse);
+}
 
+export async function getTimeEntries(from?: string, to?: string) {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // End of today to include full day
+
+  // Clamp to/today so the backend doesn’t 500 on future ranges
+  const requestedTo = to ? new Date(to) : today;
+  const safeTo = requestedTo > today ? today : requestedTo;
+  const defaultFrom = new Date(safeTo);
+  // Fetch a wider window (±90 days) so October/November entries are included by default
+  defaultFrom.setMonth(defaultFrom.getMonth() - 2);
+  const requestedFrom = from ? new Date(from) : defaultFrom;
+  const safeFrom = requestedFrom > safeTo ? safeTo : requestedFrom;
+
+  // Ensure from is not in the future either
+  const clampedFrom =
+    safeFrom > today
+      ? new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      : safeFrom;
+
+  const fromDate = clampedFrom.toISOString().split("T")[0];
+  const toDate = safeTo.toISOString().split("T")[0];
+
+  // Prevent API call if dates are invalid or in the future
+  if (
+    new Date(fromDate) > new Date(toDate) ||
+    new Date(toDate) > today ||
+    new Date(fromDate) > today
+  ) {
+    console.warn("Invalid or future date range; skipping time entry fetch.");
+    return [];
+  }
+
+  const medewGcId =
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem("medewGcId")
+      : null;
+  if (!medewGcId) {
+    console.warn("No medewGcId set; skipping time entry fetch.");
+    return [];
+  }
+
+  try {
+    const res = await axios.get(`${API_URL}/time-entries`, {
+      params: { from: fromDate, to: toDate },
+      headers: { "X-MEDEW-GC-ID": medewGcId },
+    });
+    const data = safeApiResponse(res);
+
+    let raw: any[] = [];
+    if (Array.isArray(data)) raw = data;
+    else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
+    else if (Array.isArray(data?.data)) raw = data.data;
+    else return [];
+
+    return transformTimeEntries(raw);
+  } catch (error) {
+    console.error(" Error fetching time entries:", error);
+    return [];
+  }
+}
+
+export async function login(medewGcId: string) {
+  // Stub login for MVP
   localStorage.clear();
-  localStorage.setItem("userId", String(user.id));
-  localStorage.setItem("firstName", user.firstName || "");
-  localStorage.setItem("lastName", user.lastName || "");
-  localStorage.setItem("userRank", user.rank || "user");
-  return user;
+  localStorage.setItem("medewGcId", medewGcId);
+  localStorage.setItem("userId", medewGcId); // For compatibility
+  localStorage.setItem("firstName", "User");
+  localStorage.setItem("lastName", medewGcId);
+  localStorage.setItem("userRank", "user");
+  return {
+    id: medewGcId,
+    firstName: "User",
+    lastName: medewGcId,
+    rank: "user",
+  };
 }
 
-export async function registerUser(data: any) {
-  return axios.post(`${API_URL}/users/register`, data).then(safeApiResponse);
+export async function registerWorkTimeEntry(
+  urenperGcId: number,
+  entries: any[],
+) {
+  const clientRequestId = crypto.randomUUID();
+  const data = {
+    UrenperGcId: urenperGcId,
+    Regels: entries,
+    ClientRequestId: clientRequestId,
+  };
+  const medewGcId = localStorage.getItem("medewGcId");
+  if (!medewGcId) throw new Error("Not logged in");
+  return axios
+    .post(`${API_URL}/time-entries/work`, data, {
+      headers: { "X-MEDEW-GC-ID": medewGcId },
+    })
+    .then(safeApiResponse);
 }
 
-export async function registerVacationRequest(data: any) {
-  return axios.post(`${API_URL}/vacation-requests`, data).then(safeApiResponse);
+export async function registerVacationTimeEntry(
+  urenperGcId: number,
+  entries: any[],
+) {
+  const clientRequestId = crypto.randomUUID();
+  const data = {
+    UrenperGcId: urenperGcId,
+    Regels: entries,
+    ClientRequestId: clientRequestId,
+  };
+  const medewGcId = localStorage.getItem("medewGcId");
+  if (!medewGcId) throw new Error("Not logged in");
+  return axios
+    .post(`${API_URL}/time-entries/vacation`, data, {
+      headers: { "X-MEDEW-GC-ID": medewGcId },
+    })
+    .then(safeApiResponse);
 }
 
+// Vacation requests not in new backend
 export async function getVacationRequests() {
-  const res = await axios.get(`${API_URL}/vacation-requests`);
-  const data = safeApiResponse(res);
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.vacations)) return data.vacations;
-  if (Array.isArray(data?.data)) return data.data;
+  // Dummy
   return [];
 }
 
+// Admin stats not implemented
 export async function getAdminStats() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/stats`);
-    return safeApiResponse(res);
-  } catch {
-    return {
-      totalUsers: 0,
-      totalCompanies: 0,
-      totalProjects: 0,
-      totalHours: 0,
-      hoursThisMonth: 0,
-      hoursLastMonth: 0,
-      hoursLastWeek: 0,
-      usersLastWeek: 0,
-      projectsLastWeek: 0,
-      activeProjects: 0,
-      pendingVacations: 0,
-      pendingApprovals: 0,
-      completionRate: 0,
-      activeUsersThisMonth: 0,
-      avgHoursPerUser: 0,
-      systemHealth: 0,
-    };
-  }
+  return {
+    totalUsers: 0,
+    totalCompanies: 0,
+    totalProjects: 0,
+    totalHours: 0,
+    hoursThisMonth: 0,
+    hoursLastMonth: 0,
+    hoursLastWeek: 0,
+    usersLastWeek: 0,
+    projectsLastWeek: 0,
+    activeProjects: 0,
+    pendingVacations: 0,
+    pendingApprovals: 0,
+    completionRate: 0,
+    activeUsersThisMonth: 0,
+    avgHoursPerUser: 0,
+    systemHealth: 0,
+  };
 }
 
+// Admin time entries not implemented
 export async function getAdminTimeEntries() {
-  const res = await axios.get(`${API_URL}/admin/time-entries?t=${Date.now()}`);
-  const data = safeApiResponse(res);
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.timeEntries)) return data.timeEntries;
-  if (Array.isArray(data?.data)) return data.data;
   return [];
 }
 
+// Admin vacation requests not implemented
 export async function getAdminVacationRequests() {
-  const res = await axios.get(`${API_URL}/admin/vacation-requests`);
-  const data = safeApiResponse(res);
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.vacations)) return data.vacations;
-  if (Array.isArray(data?.data)) return data.data;
   return [];
 }
 
+// System status not implemented
 export async function getSystemStatus() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/system-status`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [
-      {
-        id: 1,
-        component: "API Server",
-        status: "unknown",
-        uptime: "0%",
-        responseTime: "N/A",
-      },
-      {
-        id: 2,
-        component: "Database",
-        status: "unknown",
-        uptime: "0%",
-        responseTime: "N/A",
-      },
-      {
-        id: 3,
-        component: "Bestandsopslag",
-        status: "unknown",
-        uptime: "0%",
-        responseTime: "N/A",
-      },
-      {
-        id: 4,
-        component: "E-mail Service",
-        status: "unknown",
-        uptime: "0%",
-        responseTime: "N/A",
-      },
-    ];
-  }
+  return [
+    {
+      id: 1,
+      component: "API Server",
+      status: "unknown",
+      uptime: "0%",
+      responseTime: "N/A",
+    },
+    {
+      id: 2,
+      component: "Database",
+      status: "unknown",
+      uptime: "0%",
+      responseTime: "N/A",
+    },
+  ];
 }
 
+// Process vacation not implemented
 export async function processVacationRequest(id: number, status: string) {
-  return axios
-    .put(`${API_URL}/admin/vacation-requests/${id}`, { status })
-    .then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
-export async function createProject(data: any) {
-  return axios.post(`${API_URL}/admin/projects`, data).then(safeApiResponse);
+// Register not implemented
+export async function registerUser(data: any) {
+  // Dummy
+  return Promise.resolve(null);
 }
 
+// Delete project not implemented
 export async function deleteProject(id: number) {
-  return axios.delete(`${API_URL}/admin/projects/${id}`).then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
+// Get user not implemented
 export async function getUser(id: number) {
-  return axios.get(`${API_URL}/users/${id}`).then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
-export async function updateUser(id: number, data: any) {
-  return axios.put(`${API_URL}/users/${id}`, data).then(safeApiResponse);
+// Update not needed for new backend
+export async function updateTimeEntry(id: number, data: any) {
+  // Dummy for compatibility
+  return Promise.resolve(null);
 }
 
+// Delete user not implemented
 export async function deleteUser(id: number) {
-  return axios.delete(`${API_URL}/users/${id}`).then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
+// Time entry details not implemented
 export async function getTimeEntryDetails(id: number) {
-  return axios
-    .get(`${API_URL}/time-entries/${id}/details`)
-    .then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
+// Submit not separate in new backend
+export async function submitTimeEntry(id: number) {
+  // Dummy
+  return Promise.resolve(null);
+}
+
+// Approve not implemented
 export async function approveTimeEntry(id: number) {
-  return axios
-    .put(`${API_URL}/time-entries/${id}/approve`)
-    .then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
+// Reject time entry not implemented
 export async function rejectTimeEntry(id: number) {
-  return axios
-    .put(`${API_URL}/time-entries/${id}/reject`)
-    .then(safeApiResponse);
+  return Promise.resolve(null);
 }
 
 export async function markAllActivitiesAsRead() {
@@ -346,15 +490,30 @@ export async function markAllActivitiesAsRead() {
 }
 
 export async function getActivities(limit = 10, userId?: number) {
+  if (
+    typeof localStorage !== "undefined" &&
+    !localStorage.getItem("medewGcId")
+  ) {
+    console.warn("No medewGcId set; skipping activities fetch.");
+    return [];
+  }
+
   let url = `${API_URL}/activities?limit=${limit}`;
   if (userId) url += `&userId=${userId}`;
-  const res = await axios.get(url);
-  const data = safeApiResponse(res);
+  try {
+    const res = await axios.get(url);
+    const data = safeApiResponse(res);
 
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.activities)) return data.activities;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.activities)) return data.activities;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+  } catch (error: any) {
+    // Backend v1 has no /activities endpoint; silence 404s for now
+    if (error?.response?.status === 404) return [];
+    console.error("Error fetching activities:", error);
+    return [];
+  }
 }
 
 export async function markActivityAsRead(activityId: number) {

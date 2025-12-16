@@ -1,21 +1,17 @@
-public class TimeEntry
+namespace ClockwiseProject.Backend.Models
 {
-    public int Id { get; set; }
-    public int UserId { get; set; }
-    public User? User { get; set; }
-    public int ProjectId { get; set; }
-    public Project? Project { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public int BreakMinutes { get; set; }
-    public double DistanceKm { get; set; }
-    public decimal TravelCosts { get; set; }
-    public decimal Expenses { get; set; }
-    public string? Notes { get; set; }
-    // Nieuwe property voor de workflow-status
-    public string Status { get; set; } = "opgeslagen"; // standaardstatus
-    // Manager feedback bij goedkeuren/afkeuren
-    public string? ManagerComment { get; set; }
-    public DateTime? ReviewedAt { get; set; }
-    public int? ReviewedBy { get; set; }
+    public class TimeEntry
+    {
+        public int GcId { get; set; }
+        public int DocumentGcId { get; set; }
+        public int TaakGcId { get; set; }
+        public int? WerkGcId { get; set; }
+        public int MedewGcId { get; set; }
+        public int? KostsrtGcId { get; set; }
+        public int? BestparGcId { get; set; }
+        public int GcRegelNr { get; set; }
+        public string? GcOmschrijving { get; set; }
+        public decimal Aantal { get; set; }
+        public DateTime Datum { get; set; }
+    }
 }

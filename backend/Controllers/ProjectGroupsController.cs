@@ -1,38 +1,46 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using ClockwiseProject.Backend.Repositories;
+using ClockwiseProject.Backend.Models;
 
-[Route("api/project-groups")]
-[ApiController]
-public class ProjectGroupsController : ControllerBase
+namespace ClockwiseProject.Backend.Controllers
 {
-    private readonly ClockwiseDbContext _context;
-
-    public ProjectGroupsController(ClockwiseDbContext context)
+    [ApiController]
+    [Route("api/project-groups")]
+    public class ProjectGroupsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IFirebirdDataRepository _repository;
 
-    [HttpGet("company/{companyId}")]
-    public async Task<ActionResult<IEnumerable<ProjectGroup>>> GetProjectGroups(int companyId)
-    {
-        return await _context.ProjectGroups
-            .Where(pg => pg.CompanyId == companyId)
-            .Include(pg => pg.Projects)
-            .ToListAsync();
-    }
+        public ProjectGroupsController(IFirebirdDataRepository repository)
+        {
+            _repository = repository;
+        }
 
-    [HttpPost]
-    public async Task<ActionResult<ProjectGroup>> CreateProjectGroup([FromBody] ProjectGroup projectGroup)
-    {
-        if (projectGroup == null || string.IsNullOrWhiteSpace(projectGroup.Name))
-            return BadRequest("Ongeldige invoer");
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProjectGroup>>> GetProjectGroups()
+        {
+            try
+            {
+                var groups = await _repository.GetProjectGroupsAsync();
+                return Ok(groups);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
 
-        _context.ProjectGroups.Add(projectGroup);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetProjectGroups), new { companyId = projectGroup.CompanyId }, projectGroup);
+        [HttpGet("company/{companyId}")]
+        public async Task<ActionResult<IEnumerable<ProjectGroup>>> GetProjectGroupsByCompany(int companyId)
+        {
+            try
+            {
+                var groups = await _repository.GetProjectGroupsByCompanyAsync(companyId);
+                return Ok(groups);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

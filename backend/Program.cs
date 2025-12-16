@@ -1,168 +1,105 @@
+using ClockwiseProject.Backend.Controllers;
+using ClockwiseProject.Backend.Repositories;
+using ClockwiseProject.Backend.Services;
+using ClockwiseProject.Backend;
+using FirebirdSql.Data.FirebirdClient;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Security.Cryptography.X509Certificates;
-using System.IO;
-using backend.Data;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== Performance optimizations =====
-// Configure Kestrel for production with connection limits
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.Limits.MaxConcurrentConnections = 200;
-    serverOptions.Limits.MaxConcurrentUpgradedConnections = 200;
-    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
-    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
-    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-    // Render injecteert PORT; lokaal val je terug op 5000
-    var portVar = Environment.GetEnvironmentVariable("PORT");
-    var port = int.TryParse(portVar, out var p) ? p : 5000;
+// Configure Firebird connection
+var firebirdConnectionString = builder.Configuration.GetConnectionString("Firebird");
+builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
 
-    // Production: alleen HTTP op de juiste poort
-    if (builder.Environment.IsProduction())
-    {
-        serverOptions.ListenAnyIP(port, listenOptions =>
-        {
-            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-        });
-        return;
-    }
+// Configure Postgres (if needed for users)
+var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres");
+builder.Services.AddDbContext<PostgresDbContext>(options =>
+    options.UseNpgsql(postgresConnectionString));
 
-    // Dev/lokaal: HTTP op 5000 (zoals je docker-compose)
-    serverOptions.ListenAnyIP(5000);
+// Register repositories
+builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
+// builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
+// builder.Services.AddScoped<IVacationRepository, PostgresVacationRepository>();
+builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 
-    // Optioneel: lokaal HTTPS als je echt wilt (en alleen als het bestand bestaat)
-    // var certPath = Path.Combine(AppContext.BaseDirectory, "cert.pfx");
-    // if (File.Exists(certPath))
-    // {
-    //     serverOptions.ListenAnyIP(5001, lo => lo.UseHttps(certPath, "password"));
-    // }
-});
-// ===== Controllers + JSON =====
-builder.Services.AddControllers()
-    .AddJsonOptions(o =>
-    {
-        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    });
+// Register services
+// builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<TimesheetService>();
+// builder.Services.AddScoped<VacationService>();
+builder.Services.AddScoped<TimeEntryService>();
+builder.Services.AddScoped<ActivityService>();
 
-// ===== Response compression =====
-builder.Services.AddResponseCompression(options =>
-{
-    options.EnableForHttps = false;
-});
-
-// ===== Response caching =====
-builder.Services.AddResponseCaching();
-
-// ===== Memory cache voor frequently accessed data =====
-builder.Services.AddMemoryCache();
-
-// ===== DB context =====
-// Pakt connection string uit env var "DefaultConnection" of appsettings.json
-var connectionString = Environment.GetEnvironmentVariable("DefaultConnection")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
-
-if (string.IsNullOrEmpty(connectionString))
-{
-    throw new InvalidOperationException("Connection string not found. Please set DefaultConnection in appsettings.json or environment variables.");
-}
-
-builder.Services.AddDbContext<ClockwiseDbContext>(opts =>
-    opts.UseFirebird(connectionString)
-        .EnableSensitiveDataLogging(false) // Disable in production
-        .EnableDetailedErrors(false) // Disable in production
-);
-
-// ===== CORS =====
-const string CorsPolicyName = "AppCors";
+// Add CORS policy
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(CorsPolicyName, policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy
-            .WithOrigins("https://clockwise-project.vercel.app")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
+
+// Add middleware for X-MEDEW-GC-ID
+
 
 var app = builder.Build();
 
-// ===== Middleware volgorde (optimized for performance) =====
-app.UseResponseCompression(); // Compress responses first
-app.UseResponseCaching(); // Cache responses
-app.UseRouting();
-app.UseCors(CorsPolicyName);
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+// Add custom middleware
+app.UseMiddleware<MedewGcIdMiddleware>();
+
+app.UseCors("AllowFrontend");
+
 app.UseAuthorization();
 
-// ===== Endpoints =====
 app.MapControllers();
 
-// Health + root
-app.MapGet("/", () => Results.Text("ok"));
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
-// Manual seed endpoint
-app.MapPost("/seed", () =>
-{
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ClockwiseDbContext>();
-    try
-    {
-        context.Database.Migrate();
-        SeedData.Initialize(context);
-        return Results.Ok("Database seeded successfully");
-    }
-    catch (Exception ex)
-    {
-        return Results.Problem($"Seeding failed: {ex.Message}");
-    }
-});
-
-// ===== Seeding opties =====
-
-// 1) CLI mode: `dotnet backend.dll seed` -> seed en stop
-if (args.Length > 0 && args[0].Equals("seed", StringComparison.OrdinalIgnoreCase))
-{
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ClockwiseDbContext>();
-    try
-    {
-        context.Database.Migrate();
-        SeedData.Initialize(context);
-        Console.WriteLine("Database succesvol geseed (CLI).");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[SEED ERROR - CLI] {ex.Message}");
-    }
-    return;
-}
-
-// 2) Startup seed via env var (SEED_ON_START=true): seed en ga door met draaien
-var seedOnStart = Environment.GetEnvironmentVariable("SEED_ON_START");
-if (!string.IsNullOrWhiteSpace(seedOnStart) &&
-    seedOnStart.Equals("true", StringComparison.OrdinalIgnoreCase))
-{
-    try
-    {
-        using var scope = app.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ClockwiseDbContext>();
-
-        // Migrate + Seed (zorg dat jouw SeedData.Initialize idempotent is)
-        context.Database.Migrate();
-        SeedData.Initialize(context);
-        Console.WriteLine("Database succesvol geseed (startup).");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[SEED ERROR - STARTUP] {ex.Message}");
-    }
-}
-
 app.Run();
+
+// Middleware class
+public class MedewGcIdMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public MedewGcIdMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        // Skip authentication for OPTIONS requests (CORS preflight)
+        if (context.Request.Method == "OPTIONS")
+        {
+            await _next(context);
+            return;
+        }
+
+        if (!context.Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var medewGcIdHeader) ||
+            !int.TryParse(medewGcIdHeader, out var medewGcId))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+        // Store in HttpContext for later use
+        context.Items["MedewGcId"] = medewGcId;
+        await _next(context);
+    }
+}

@@ -62,7 +62,7 @@ export default function VakantiePage() {
 
       // Use the correct API endpoint for user vacation requests
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation-requests`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation`,
       );
       if (!response.ok) {
         throw new Error("Failed to load vacation requests");
@@ -110,7 +110,7 @@ export default function VakantiePage() {
       const totalHours = workingDays * formData.hours;
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation-requests`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation`,
         {
           method: "POST",
           headers: {

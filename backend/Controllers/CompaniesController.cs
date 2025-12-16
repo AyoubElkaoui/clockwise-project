@@ -1,23 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using ClockwiseProject.Backend.Repositories;
+using ClockwiseProject.Domain;
 
-[Route("api/companies")]
-[ApiController]
-public class CompaniesController : ControllerBase
+namespace ClockwiseProject.Backend.Controllers
 {
-    private readonly ClockwiseDbContext _context;
-
-    public CompaniesController(ClockwiseDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CompaniesController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IFirebirdDataRepository _repository;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Company>>> GetCompanies()
-    {
-        return await _context.Companies.Include(c => c.ProjectGroups).ToListAsync();
+        public CompaniesController(IFirebirdDataRepository repository)
+        {
+            _repository = repository;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Company>>> GetCompanies()
+        {
+            try
+            {
+                var companies = await _repository.GetCompaniesAsync();
+                return Ok(companies);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                return StatusCode(500, "Internal server error");
+            }
+        }
     }
 }

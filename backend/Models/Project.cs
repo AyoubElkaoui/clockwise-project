@@ -1,10 +1,10 @@
-public class Project
+namespace ClockwiseProject.Backend.Models
 {
-    public int Id { get; set; }
-    public required string Name { get; set; }
-    public string? Status { get; set; } = "active";
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    public int ProjectGroupId { get; set; }  // Zorg voor de FK
-    public ProjectGroup? ProjectGroup { get; set; }
+    public class Project
+    {
+        public int GcId { get; set; }
+        public string GcCode { get; set; }
+        public int WerkgrpGcId { get; set; }
+        public string? Description { get; set; }
+    }
 }

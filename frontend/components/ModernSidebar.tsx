@@ -245,7 +245,7 @@ export function ModernSidebar() {
                   width={140}
                   height={40}
                   priority
-                  className="h-10 w-auto object-contain transition"
+                  className="h-10 w-36 object-contain transition"
                 />
               ) : (
                 <Image

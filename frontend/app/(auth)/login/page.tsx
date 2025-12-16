@@ -17,11 +17,9 @@ import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "react-i18next";
 
 export default function LoginPage(): JSX.Element {
-  const [userInput, setUserInput] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [medewGcId, setMedewGcId] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -32,8 +30,8 @@ export default function LoginPage(): JSX.Element {
   };
 
   const handleLogin = async (): Promise<void> => {
-    if (!userInput.trim() || !password.trim()) {
-      setError(t("login.fillAllFields"));
+    if (!medewGcId.trim()) {
+      setError("Voer medewGcId in");
       return;
     }
 
@@ -41,7 +39,7 @@ export default function LoginPage(): JSX.Element {
     setError("");
 
     try {
-      const user = await login(userInput, password);
+      const user = await login(medewGcId);
 
       // Wis eerst alle bestaande data
       localStorage.clear();
@@ -51,24 +49,19 @@ export default function LoginPage(): JSX.Element {
       localStorage.setItem("firstName", user.firstName);
       localStorage.setItem("lastName", user.lastName);
       localStorage.setItem("userRank", user.rank);
+      localStorage.setItem("medewGcId", medewGcId);
 
       // Zet cookies
       document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
       document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
 
-      // Stuur naar juiste dashboard
-      if (user.rank === "admin") {
-        router.push("/admin");
-      } else if (user.rank === "manager") {
-        router.push("/manager/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
+      // Stuur naar dashboard
+      router.push("/dashboard");
     } catch (e: unknown) {
       if (e instanceof Error) {
-        setError(t("login.invalidCredentials"));
+        setError("Ongeldige medewGcId");
       } else {
-        setError(t("login.unknownError"));
+        setError("Onbekende fout");
       }
     } finally {
       setIsLoading(false);
@@ -92,9 +85,9 @@ export default function LoginPage(): JSX.Element {
                 <Image
                   src={theme === "dark" ? "/white_logo.png" : "/logo.png"}
                   alt="Elmar Services Logo"
-                  width={80}
-                  height={80}
-                  className="rounded-xl"
+                  width={96}
+                  height={96}
+                  className="w-24 h-24 rounded-xl object-contain"
                 />
               </div>
             </div>
@@ -128,50 +121,19 @@ export default function LoginPage(): JSX.Element {
 
           {/* Form Section */}
           <CardContent className="space-y-6">
-            {/* Email Input */}
+            {/* MedewGcId Input */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {t("login.emailOrUsername")}
+                Medew GC ID
               </label>
               <Input
                 type="text"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
+                value={medewGcId}
+                onChange={(e) => setMedewGcId(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={t("login.emailPlaceholder")}
-                icon={<EnvelopeIcon className="w-5 h-5" />}
+                placeholder="Voer medewGcId in"
                 disabled={isLoading}
               />
-            </div>
-
-            {/* Password Input */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {t("login.password")}
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={t("login.passwordPlaceholder")}
-                  icon={<LockClosedIcon className="w-5 h-5" />}
-                  disabled={isLoading}
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors duration-200"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
-                  ) : (
-                    <EyeIcon className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
             </div>
 
             {/* Error Message */}
@@ -201,7 +163,7 @@ export default function LoginPage(): JSX.Element {
             {/* Login Button */}
             <Button
               onClick={handleLogin}
-              disabled={isLoading || !userInput.trim() || !password.trim()}
+              disabled={isLoading || !medewGcId.trim()}
               className="w-full text-slate-900 dark:text-white"
               size="lg"
               isLoading={isLoading}

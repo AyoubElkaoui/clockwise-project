@@ -64,3 +64,15 @@ tmp/
 *.seed
 *.pid.lock
 .vercel
+
+# Firebird runtime / lock / temp
+fb_guard
+fb_lock*
+fb_event*
+*.lck
+*.log
+*.tmp
+
+# Firebird databases
+*.fdb
+database/*.fdb

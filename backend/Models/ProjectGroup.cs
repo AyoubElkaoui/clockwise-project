@@ -1,10 +1,9 @@
-using System.Collections.Generic;
-
-public class ProjectGroup
+namespace ClockwiseProject.Backend.Models
 {
-    public int Id { get; set; }
-    public required string Name { get; set; }
-    public int CompanyId { get; set; }
-    public Company? Company { get; set; }  // Maak nullable of gebruik 'required'
-    public List<Project> Projects { get; set; } = new();
+    public class ProjectGroup
+    {
+        public int GcId { get; set; }
+        public string GcCode { get; set; }
+        public string? Description { get; set; }
+    }
 }

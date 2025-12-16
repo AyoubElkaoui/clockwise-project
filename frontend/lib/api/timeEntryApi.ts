@@ -1,8 +1,27 @@
 // API calls voor tijd registratie
 import axios from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
+// Align with main api.ts: prefer same-origin on the client, internal URL on server
+const runtimeBase =
+  typeof window === "undefined"
+    ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || ""
+    : process.env.NEXT_PUBLIC_API_URL || "";
+const cleanBase = runtimeBase.replace(/\/$/, "");
+const API_URL = `${cleanBase}/api`;
+
+axios.defaults.headers.common["Content-Type"] = "application/json";
+axios.interceptors.request.use((request) => {
+  if (typeof window !== "undefined") {
+    const medewGcId = localStorage.getItem("medewGcId");
+    if (medewGcId) {
+      request.headers = request.headers || {};
+      if (!request.headers["X-MEDEW-GC-ID"]) {
+        request.headers["X-MEDEW-GC-ID"] = medewGcId;
+      }
+    }
+  }
+  return request;
+});
 
 export interface TimeEntryAPI {
   id?: number;

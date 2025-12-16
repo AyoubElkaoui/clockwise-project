@@ -12,7 +12,7 @@ services:
     ports:
       - "3050:3050"
     volumes:
-      - firebird_data:/firebird/data
+      - ./database:/firebird/data
     networks:
       - clockwise-network
     healthcheck:
@@ -35,12 +35,13 @@ services:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
       - SEED_ON_START=false
-      - DefaultConnection=Database=firebird:3050:CLOCKWISE.FDB;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=1;ClientLibrary=/usr/lib/x86_64-linux-gnu/libfbclient.so.2;Pooling=true;CreateDatabase=true
+      - ConnectionStrings__Firebird=Database=firebird:3050:/firebird/data/atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=1;Pooling=true;ClientLibrary=/usr/lib/x86_64-linux-gnu/libfbclient.so.2
     ports:
       - "5000:5000"
     depends_on:
       firebird:
         condition: service_healthy
+
     networks:
       - clockwise-network
     volumes:
@@ -51,6 +52,7 @@ services:
       - /app/obj
       # Cache NuGet packages
       - nuget_cache:/root/.nuget/packages
+      - ./database:/firebird/data
     restart: unless-stopped
     stdin_open: true
     tty: true

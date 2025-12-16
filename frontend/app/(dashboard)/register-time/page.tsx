@@ -1,26 +1,104 @@
 "use client";
-import { useState } from "react";
-import { API_URL } from "@/lib/api";
+import { useState, useEffect } from "react";
+import {
+  registerWorkTimeEntry,
+  getWorkTasks,
+  getProjects,
+  getPeriods,
+} from "@/lib/api";
 import { showToast } from "@/components/ui/toast";
 
 export default function RegisterTime() {
-    const [hours, setHours] = useState("");
+  const [urenperGcId, setUrenperGcId] = useState(1); // Default
+  const [taakGcId, setTaakGcId] = useState(30); // Default work task
+  const [werkGcId, setWerkGcId] = useState(1); // Default project
+  const [aantal, setAantal] = useState("");
+  const [datum, setDatum] = useState(new Date().toISOString().split("T")[0]);
+  const [omschrijving, setOmschrijving] = useState("");
 
-    const handleSubmit = async () => {
-        await fetch(`${API_URL}/time-entries`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hours: Number(hours) }),
-        });
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [periods, setPeriods] = useState([]);
 
-        showToast("Uren succesvol opgeslagen!", "success");
+  useEffect(() => {
+    const loadData = async () => {
+      const t = await getWorkTasks();
+      setTasks(t);
+      const p = await getProjects(1); // Assume group 1
+      setProjects(p);
+      const per = await getPeriods(10);
+      setPeriods(per);
     };
+    loadData();
+  }, []);
 
-    return (
-        <div>
-            <h1>Uren Registratie</h1>
-            <input type="number" value={hours} onChange={(e) => setHours(e.target.value)} />
-            <button onClick={handleSubmit}>Opslaan</button>
-        </div>
-    );
+  const handleSubmit = async () => {
+    const entry = {
+      TaakGcId: taakGcId,
+      WerkGcId: werkGcId,
+      Aantal: parseFloat(aantal),
+      Datum: datum,
+      GcOmschrijving: omschrijving,
+    };
+    try {
+      await registerWorkTimeEntry(urenperGcId, [entry]);
+      showToast("Uren succesvol opgeslagen!", "success");
+    } catch (error) {
+      showToast("Fout bij opslaan", "error");
+    }
+  };
+
+  return (
+    <div>
+      <h1>Uren Registratie</h1>
+      <select
+        value={urenperGcId}
+        onChange={(e) => setUrenperGcId(Number(e.target.value))}
+      >
+        {periods.map((p: any) => (
+          <option key={p.GcId} value={p.GcId}>
+            {p.GcCode}
+          </option>
+        ))}
+      </select>
+      <select
+        value={taakGcId}
+        onChange={(e) => setTaakGcId(Number(e.target.value))}
+      >
+        {tasks.map((t: any) => (
+          <option key={t.GcId} value={t.GcId}>
+            {t.GcCode}
+          </option>
+        ))}
+      </select>
+      <select
+        value={werkGcId}
+        onChange={(e) => setWerkGcId(Number(e.target.value))}
+      >
+        {projects.map((p: any) => (
+          <option key={p.GcId} value={p.GcId}>
+            {p.GcCode}
+          </option>
+        ))}
+      </select>
+      <input
+        type="number"
+        value={aantal}
+        onChange={(e) => setAantal(e.target.value)}
+        placeholder="Aantal uren"
+      />
+      <input
+        type="date"
+        value={datum}
+        onChange={(e) => setDatum(e.target.value)}
+      />
+      <input
+        type="text"
+        value={omschrijving}
+        onChange={(e) => setOmschrijving(e.target.value)}
+        placeholder="Omschrijving"
+      />
+      <button onClick={handleSubmit}>Opslaan</button>
+    </div>
+  );
 }

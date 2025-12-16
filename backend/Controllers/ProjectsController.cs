@@ -1,30 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using ClockwiseProject.Backend.Repositories;
+using ClockwiseProject.Backend.Models;
 
-[Route("api/projects")]
-[ApiController]
-public class ProjectsController : ControllerBase
+namespace ClockwiseProject.Backend.Controllers
 {
-    private readonly ClockwiseDbContext _context;
-
-    public ProjectsController(ClockwiseDbContext context)
+    [ApiController]
+    [Route("api/projects")]
+    public class ProjectsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IFirebirdDataRepository _repository;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Project>>> GetProjects()
-    {
-        return await _context.Projects.ToListAsync();
-    }
+        public ProjectsController(IFirebirdDataRepository repository)
+        {
+            _repository = repository;
+        }
 
-    [HttpGet("group/{projectGroupId}")]
-    public async Task<ActionResult<IEnumerable<Project>>> GetProjectsByGroup(int projectGroupId)
-    {
-        return await _context.Projects
-            .Where(p => p.ProjectGroupId == projectGroupId)
-            .ToListAsync();
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Project>>> GetProjects([FromQuery] int? groupId)
+        {
+            if (!groupId.HasValue)
+                return BadRequest("groupId is required");
+
+            var projects = await _repository.GetProjectsByGroupAsync(groupId.Value);
+            return Ok(projects);
+        }
     }
 }
