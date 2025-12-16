@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography.X509Certificates;
+using System.IO;
 using backend.Data;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,20 +18,30 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
     serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
 
-    // HTTP on 5000 (matches docker-compose)
+    // Render injecteert PORT; lokaal val je terug op 5000
+    var portVar = Environment.GetEnvironmentVariable("PORT");
+    var port = int.TryParse(portVar, out var p) ? p : 5000;
+
+    // Production: alleen HTTP op de juiste poort
+    if (builder.Environment.IsProduction())
+    {
+        serverOptions.ListenAnyIP(port, listenOptions =>
+        {
+            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+        });
+        return;
+    }
+
+    // Dev/lokaal: HTTP op 5000 (zoals je docker-compose)
     serverOptions.ListenAnyIP(5000);
 
-    // HTTPS on 443 - only in production
-    var environment = builder.Environment.EnvironmentName;
-    if (environment == "Production")
-    {
-        serverOptions.ListenAnyIP(443, listenOptions =>
-        {
-            listenOptions.UseHttps("C:\\_Install\\clockwise-project\\backend\\cert.pfx", "YourSecurePassword123!");
-        });
-    }
+    // Optioneel: lokaal HTTPS als je echt wilt (en alleen als het bestand bestaat)
+    // var certPath = Path.Combine(AppContext.BaseDirectory, "cert.pfx");
+    // if (File.Exists(certPath))
+    // {
+    //     serverOptions.ListenAnyIP(5001, lo => lo.UseHttps(certPath, "password"));
+    // }
 });
-
 // ===== Controllers + JSON =====
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
