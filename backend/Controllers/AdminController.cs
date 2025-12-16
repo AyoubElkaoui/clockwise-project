@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
+using backend.Models;
 
 [Route("api/admin")]
 [ApiController]
@@ -949,7 +950,8 @@ public class AdminController : ControllerBase
             })
             .FirstOrDefaultAsync();
 
-        return log ?? NotFound();
+        if (log == null) return NotFound();
+        return Ok(log);
     }
 
     /// <summary>
