@@ -62,20 +62,14 @@ builder.Services.AddResponseCaching();
 // ===== Memory cache voor frequently accessed data =====
 builder.Services.AddMemoryCache();
 
-// ===== DB context met connection pooling =====
-// Pakt connection string uit appsettings.json of env var "DefaultConnection"
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? Environment.GetEnvironmentVariable("DefaultConnection");
+// ===== DB context =====
+// Pakt connection string uit env var "DefaultConnection" of appsettings.json
+var connectionString = Environment.GetEnvironmentVariable("DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string not found. Please set DefaultConnection in appsettings.json or environment variables.");
-}
-
-// Ensure connection pooling is enabled
-if (!connectionString.Contains("Pooling", StringComparison.OrdinalIgnoreCase))
-{
-    connectionString += ";Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
 }
 
 builder.Services.AddDbContext<ClockwiseDbContext>(opts =>
