@@ -25,7 +25,7 @@ builder.Services.AddDbContext<PostgresDbContext>(options =>
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
 // builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
 // builder.Services.AddScoped<IVacationRepository, PostgresVacationRepository>();
-builder.Services.AddScoped<IVacationRepository, InMemoryVacationRepository>();
+builder.Services.AddSingleton<IVacationRepository, InMemoryVacationRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 
 // Register services
