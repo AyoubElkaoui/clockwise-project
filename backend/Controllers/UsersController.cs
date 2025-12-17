@@ -3,18 +3,28 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Backend.Models;
+using Dapper;
+using FirebirdSql.Data.FirebirdClient;
+
 
 namespace ClockwiseProject.Backend.Controllers
 {
+    public class UserLoginRequest
+    {
+        public int MedewGcId { get; set; }
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     public class UsersController : ControllerBase
     {
         private readonly IFirebirdDataRepository _repository;
+        private readonly ILogger<UsersController> _logger;
 
-        public UsersController(IFirebirdDataRepository repository)
+        public UsersController(IFirebirdDataRepository repository, ILogger<UsersController> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -46,6 +56,89 @@ namespace ClockwiseProject.Backend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("login")]
+        public async Task<ActionResult<User>> Login([FromBody] UserLoginRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Login attempt for MedewGcId: {MedewGcId}", request.MedewGcId);
+                var user = await _repository.GetUserByIdAsync(request.MedewGcId);
+                if (user == null)
+                {
+                    _logger.LogWarning("Invalid MedewGcId: {MedewGcId}", request.MedewGcId);
+                    return Unauthorized("Invalid MedewGcId");
+                }
+                _logger.LogInformation("Login successful for user: {UserId}", user.Id);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during login for MedewGcId: {MedewGcId}", request.MedewGcId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("seed")]
+        public async Task<IActionResult> SeedDatabase()
+        {
+            try
+            {
+                using var connection = _repository.GetConnection();
+                await connection.OpenAsync();
+                var seedSql = await System.IO.File.ReadAllTextAsync("seed.sql");
+                var commands = seedSql.Split(";", StringSplitOptions.RemoveEmptyEntries);
+                foreach (var command in commands)
+                {
+                    if (!string.IsNullOrWhiteSpace(command))
+                    {
+                        using var cmd = new FbCommand(command.Trim(), connection);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                return Ok("Database seeded");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error seeding database");
+                return StatusCode(500, "Seeding failed");
+            }
+        }
+
+        [HttpGet("test")]
+        public async Task<IActionResult> TestDatabase()
+        {
+            try
+            {
+                using var connection = _repository.GetConnection();
+                await connection.OpenAsync();
+                var result = await connection.QueryAsync("SELECT * FROM AT_MEDEW");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing database");
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("execute")]
+        public async Task<IActionResult> ExecuteSql([FromBody] string sql)
+        {
+            try
+            {
+                using var connection = _repository.GetConnection();
+                await connection.OpenAsync();
+                var result = await connection.ExecuteAsync(sql);
+                return Ok($"Executed, affected rows: {result}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing SQL");
+                return StatusCode(500, ex.Message);
             }
         }
     }

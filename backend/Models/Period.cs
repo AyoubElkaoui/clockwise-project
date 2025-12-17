@@ -6,5 +6,6 @@ namespace ClockwiseProject.Backend.Models
         public string GcCode { get; set; }
         public DateTime BeginDatum { get; set; }
         public DateTime BoekDatum { get; set; }
+        public DateTime EndDate { get; set; }
     }
 }

@@ -13,7 +13,11 @@ import {
   DollarSign,
   Award,
 } from "lucide-react";
-import { getTimeEntries, getVacationRequests, getActivities } from "@/lib/api";
+import {
+  getEnrichedTimeEntries,
+  getVacationRequests,
+  getActivities,
+} from "@/lib/api";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
@@ -56,7 +60,7 @@ export default function Dashboard() {
       setFirstName(userName?.firstName || t("dashboard.defaultUserName"));
 
       // Load time entries
-      const entries = await getTimeEntries();
+      const entries = await getEnrichedTimeEntries();
       const userEntries = entries.filter((e: any) => e.userId === userId);
 
       // Calculate week hours
@@ -382,7 +386,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                          {entry.project?.name || `Project ${entry.projectId}`}
+                          {entry.projectName || `Project ${entry.projectId}`}
                         </p>
                         {getStatusBadge(entry.status)}
                       </div>

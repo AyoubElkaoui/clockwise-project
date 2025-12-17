@@ -20,7 +20,7 @@ import {
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
-import { saveBulkEntries, getWeekEntries } from "@/lib/api/timeEntryApi";
+import { getTimeEntries, registerWorkTimeEntry } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -205,18 +205,40 @@ export default function TimeRegistrationPage() {
         // Load all weeks of the month
         const allEntries: Record<string, TimeEntry> = {};
         for (const weekStart of monthWeeks) {
-          const data = await getWeekEntries(1, formatDate(weekStart));
+          const from = formatDate(weekStart);
+          const to = formatDate(
+            new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
+          );
+          const data = await getTimeEntries(from, to);
           data.forEach((e: any) => {
-            allEntries[`${e.date}-${e.projectId}`] = e;
+            allEntries[`${e.date}-${e.projectId}`] = {
+              date: e.date,
+              projectId: e.projectId,
+              hours: e.hours,
+              km: 0,
+              expenses: 0,
+              notes: e.notes || "",
+              status: "opgeslagen",
+            };
           });
         }
         setEntries(allEntries);
       } else {
         // Load only current week
-        const data = await getWeekEntries(1, formatDate(weekDays[0]));
+        const from = formatDate(weekDays[0]);
+        const to = formatDate(weekDays[6]);
+        const data = await getTimeEntries(from, to);
         const map: Record<string, TimeEntry> = {};
         data.forEach((e: any) => {
-          map[`${e.date}-${e.projectId}`] = e;
+          map[`${e.date}-${e.projectId}`] = {
+            date: e.date,
+            projectId: e.projectId,
+            hours: e.hours,
+            km: 0,
+            expenses: 0,
+            notes: e.notes || "",
+            status: "opgeslagen",
+          };
         });
         setEntries(map);
       }
@@ -405,33 +427,29 @@ export default function TimeRegistrationPage() {
       0,
     );
 
+  const getCurrentPeriodId = () => 100426; // Hardcoded for now
+
   const saveAll = async () => {
     setSaving(true);
     try {
       const toSave = Object.values(entries)
-        .filter((e) => e.hours > 0 || e.km > 0 || e.expenses > 0)
-        .map((e) => {
-          const row = projectRows.find((r) => r.projectId === e.projectId);
-          return {
-            date: e.date,
-            projectId: e.projectId,
-            hours: e.hours || 0,
-            km: e.km || 0,
-            expenses: e.expenses || 0,
-            notes: e.notes || "",
-            userId: 1,
-            companyId: row?.companyId || 0,
-            projectGroupId: row?.projectGroupId || 0,
-            breakMinutes: 0,
-            status: "opgeslagen",
-          };
-        })
-        .filter((entry) => !isClosedDay(entry.date)); // Filter out closed days
+        .filter((e) => e.hours > 0)
+        .map((e) => ({
+          TaakGcId: 100256, // Assume montage task
+          WerkGcId: e.projectId,
+          Aantal: e.hours,
+          Datum: e.date,
+          GcOmschrijving: e.notes || "",
+          KostsrtGcId: null,
+          BestparGcId: null,
+        }))
+        .filter((entry) => !isClosedDay(entry.Datum)); // Filter out closed days
       if (toSave.length === 0) {
         showToast("Geen uren om op te slaan", "error");
         return;
       }
-      await saveBulkEntries(1, toSave);
+      const urenperGcId = getCurrentPeriodId();
+      await registerWorkTimeEntry(urenperGcId, toSave);
       showToast("Opgeslagen!", "success");
       await loadEntries();
     } catch (error) {
@@ -445,29 +463,23 @@ export default function TimeRegistrationPage() {
     setSaving(true);
     try {
       const toSave = Object.values(entries)
-        .filter((e) => e.hours > 0 || e.km > 0 || e.expenses > 0)
-        .map((e) => {
-          const row = projectRows.find((r) => r.projectId === e.projectId);
-          return {
-            date: e.date,
-            projectId: e.projectId,
-            hours: e.hours || 0,
-            km: e.km || 0,
-            expenses: e.expenses || 0,
-            notes: e.notes || "",
-            userId: 1,
-            companyId: row?.companyId || 0,
-            projectGroupId: row?.projectGroupId || 0,
-            breakMinutes: 0,
-            status: "ingeleverd",
-          };
-        })
-        .filter((entry) => !isClosedDay(entry.date)); // Filter out closed days
+        .filter((e) => e.hours > 0)
+        .map((e) => ({
+          TaakGcId: 100256, // Assume montage task
+          WerkGcId: e.projectId,
+          Aantal: e.hours,
+          Datum: e.date,
+          GcOmschrijving: e.notes || "",
+          KostsrtGcId: null,
+          BestparGcId: null,
+        }))
+        .filter((entry) => !isClosedDay(entry.Datum)); // Filter out closed days
       if (toSave.length === 0) {
         showToast("Geen uren om in te leveren", "error");
         return;
       }
-      await saveBulkEntries(1, toSave);
+      const urenperGcId = getCurrentPeriodId();
+      await registerWorkTimeEntry(urenperGcId, toSave);
       showToast("Ingeleverd!", "success");
       await loadEntries();
     } catch (error) {
@@ -599,8 +611,8 @@ export default function TimeRegistrationPage() {
                     </div>
                     {expandedCompanies.includes(company.id) && (
                       <div className="ml-5 space-y-1">
-                        {projectGroups[company.id]?.map((group) => (
-                          <div key={group.id}>
+                        {projectGroups[company.id]?.map((group, index) => (
+                          <div key={group.id || `group-${index}`}>
                             <div
                               onClick={() => toggleGroup(group.id)}
                               className="flex items-center gap-2 px-3 py-2 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 rounded-lg cursor-pointer group"
@@ -661,7 +673,7 @@ export default function TimeRegistrationPage() {
                     const weekNum = getWeekNumber(weekStart);
                     return (
                       <div
-                        key={idx}
+                        key={`week-${weekStart.toISOString()}`}
                         className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
                       >
                         <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
@@ -686,7 +698,7 @@ export default function TimeRegistrationPage() {
                                 day.getFullYear() === currentYear;
                               return (
                                 <div
-                                  key={i}
+                                  key={`day-${day.toISOString()}`}
                                   className={
                                     "text-center" +
                                     (!isInCurrentMonth ? " opacity-50" : "")
@@ -714,9 +726,9 @@ export default function TimeRegistrationPage() {
                         </div>
 
                         <div className="divide-y divide-slate-200">
-                          {projectRows.map((row) => (
+                          {projectRows.map((row, idx) => (
                             <div
-                              key={row.projectId}
+                              key={`${weekStart.toISOString()}-${row.projectId}`}
                               className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
                             >
                               <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
@@ -764,7 +776,7 @@ export default function TimeRegistrationPage() {
                                     isClosed;
                                   return (
                                     <div
-                                      key={date}
+                                      key={`entry-${date}-${row.projectId}`}
                                       className={
                                         "space-y-1" +
                                         (!isInCurrentMonth ? " opacity-30" : "")
@@ -816,49 +828,6 @@ export default function TimeRegistrationPage() {
                                         }
                                       />
                                       <input
-                                        type="number"
-                                        min="0"
-                                        value={entry.km || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "km",
-                                            parseInt(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                                        placeholder="KM"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag - geen uren registratie mogelijk"
-                                            : ""
-                                        }
-                                      />
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={entry.expenses || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "expenses",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                                        placeholder="€ Onkosten"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag - geen uren registratie mogelijk"
-                                            : ""
-                                        }
-                                      />
-                                      <input
                                         type="text"
                                         value={entry.notes || ""}
                                         onChange={(e) =>
@@ -883,13 +852,11 @@ export default function TimeRegistrationPage() {
                                 })}
                                 <div className="flex flex-col items-center justify-center gap-0.5">
                                   <span className="text-sm font-bold text-blue-600">
-                                    {weekTotal}u
-                                  </span>
-                                  <span className="text-xs text-slate-600">
-                                    {weekKmTotal} km
-                                  </span>
-                                  <span className="text-xs text-slate-600">
-                                    € {weekExpensesTotal.toFixed(2)}
+                                    {weekDaysForWeek.reduce((sum, day) => {
+                                      const key = `${formatDate(day)}-${row.projectId}`;
+                                      return sum + (entries[key]?.hours || 0);
+                                    }, 0)}
+                                    u
                                   </span>
                                 </div>
                               </div>
@@ -927,17 +894,11 @@ export default function TimeRegistrationPage() {
                               );
                               return (
                                 <div
-                                  key={formatDate(day)}
+                                  key={`total-${formatDate(day)}`}
                                   className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-slate-700 rounded-lg"
                                 >
                                   <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                                     {dayTotal}u
-                                  </span>
-                                  <span className="text-sm text-slate-600 dark:text-slate-400">
-                                    {dayKmTotal} km
-                                  </span>
-                                  <span className="text-sm text-slate-600 dark:text-slate-400">
-                                    € {dayExpensesTotal.toFixed(2)}
                                   </span>
                                 </div>
                               );
@@ -954,34 +915,6 @@ export default function TimeRegistrationPage() {
                                   0,
                                 )}
                                 u
-                              </span>
-                              <span className="text-sm text-slate-600 dark:text-slate-400">
-                                {weekDaysForWeek.reduce(
-                                  (sum, day) =>
-                                    sum +
-                                    projectRows.reduce((s, row) => {
-                                      const key = `${formatDate(day)}-${row.projectId}`;
-                                      return s + (entries[key]?.km || 0);
-                                    }, 0),
-                                  0,
-                                )}{" "}
-                                km
-                              </span>
-                              <span className="text-sm text-slate-600 dark:text-slate-400">
-                                €{" "}
-                                {weekDaysForWeek
-                                  .reduce(
-                                    (sum, day) =>
-                                      sum +
-                                      projectRows.reduce((s, row) => {
-                                        const key = `${formatDate(day)}-${row.projectId}`;
-                                        return (
-                                          s + (entries[key]?.expenses || 0)
-                                        );
-                                      }, 0),
-                                    0,
-                                  )
-                                  .toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -1016,7 +949,7 @@ export default function TimeRegistrationPage() {
                     </div>
 
                     <div className="divide-y divide-slate-200">
-                      {projectRows.map((row) => (
+                      {projectRows.map((row, idx) => (
                         <div
                           key={row.projectId}
                           className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
@@ -1055,7 +988,10 @@ export default function TimeRegistrationPage() {
                               const isSubmitted = entry.status === "ingeleverd";
                               const isClosed = isClosedDay(date);
                               return (
-                                <div key={date} className="space-y-1">
+                                <div
+                                  key={`week-entry-${date}-${row.projectId}`}
+                                  className="space-y-1"
+                                >
                                   {!isSubmitted && !isClosed && (
                                     <div className="flex gap-1 mb-1">
                                       <button
@@ -1102,49 +1038,6 @@ export default function TimeRegistrationPage() {
                                     }
                                   />
                                   <input
-                                    type="number"
-                                    min="0"
-                                    value={entry.km || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "km",
-                                        parseInt(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isSubmitted}
-                                    className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                                    placeholder="KM"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag - geen uren registratie mogelijk"
-                                        : ""
-                                    }
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={entry.expenses || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "expenses",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isSubmitted}
-                                    className="w-full px-3 py-2 border rounded text-sm text-center bg-slate-50 dark:bg-slate-700 dark:text-slate-100"
-                                    placeholder="€ Onkosten"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag - geen uren registratie mogelijk"
-                                        : ""
-                                    }
-                                  />
-                                  <input
                                     type="text"
                                     value={entry.notes || ""}
                                     onChange={(e) =>
@@ -1171,15 +1064,6 @@ export default function TimeRegistrationPage() {
                               <span className="text-sm font-bold text-blue-600">
                                 {getTotalProject(row.projectId)}u
                               </span>
-                              <span className="text-xs text-slate-600">
-                                {getTotalKmProject(row.projectId)} km
-                              </span>
-                              <span className="text-xs text-slate-600">
-                                €{" "}
-                                {getTotalExpensesProject(row.projectId).toFixed(
-                                  2,
-                                )}
-                              </span>
                             </div>
                           </div>
                         </div>
@@ -1194,30 +1078,17 @@ export default function TimeRegistrationPage() {
                         </div>
                         {weekDays.map((day) => (
                           <div
-                            key={formatDate(day)}
+                            key={`week-total-${formatDate(day)}`}
                             className="flex flex-col items-center gap-0.5"
                           >
                             <span className="text-sm font-bold text-blue-600">
                               {getTotalDay(formatDate(day))}u
-                            </span>
-                            <span className="text-xs text-slate-600">
-                              {getTotalKmDay(formatDate(day))} km
-                            </span>
-                            <span className="text-xs text-slate-600">
-                              €{" "}
-                              {getTotalExpensesDay(formatDate(day)).toFixed(2)}
                             </span>
                           </div>
                         ))}
                         <div className="flex flex-col items-center gap-0.5">
                           <span className="text-sm font-bold text-emerald-600">
                             {getTotalWeek()}u
-                          </span>
-                          <span className="text-xs text-slate-600">
-                            {getTotalKmWeek()} km
-                          </span>
-                          <span className="text-xs text-slate-600">
-                            € {getTotalExpensesWeek().toFixed(2)}
                           </span>
                         </div>
                       </div>

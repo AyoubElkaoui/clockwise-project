@@ -23,7 +23,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { getTimeEntries } from "@/lib/api";
+import { getEnrichedTimeEntries } from "@/lib/api";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
@@ -82,10 +82,11 @@ export default function UrenOverzichtPage() {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
-      const data = await getTimeEntries();
+      const data = await getEnrichedTimeEntries();
       const userEntries = data.filter((entry: any) => entry.userId === userId);
       setEntries(userEntries);
     } catch (error) {
+      console.error("Error in loadEntries:", error);
       showToast("Fout bij laden uren", "error");
     } finally {
       setLoading(false);
@@ -235,7 +236,7 @@ export default function UrenOverzichtPage() {
     const csvContent = [
       [
         "Datum",
-        "Bedrijf",
+        "Groep",
         "Project",
         "Uren",
         "KM",
@@ -246,8 +247,8 @@ export default function UrenOverzichtPage() {
       ...filteredEntries.map((entry) =>
         [
           entry.date,
-          entry.companyName || "",
-          entry.projectName || "",
+          entry.projectGroupName || "",
+          entry.projectName,
           entry.hours,
           entry.km,
           entry.expenses,
@@ -609,8 +610,7 @@ export default function UrenOverzichtPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                              {entry.projectName ||
-                                `Project ${entry.projectId}`}
+                              {entry.projectName}
                             </p>
                             <Badge
                               variant={getStatusBadgeVariant(entry.status)}
@@ -620,9 +620,8 @@ export default function UrenOverzichtPage() {
                             </Badge>
                           </div>
                           <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                            {entry.companyName || `Bedrijf ${entry.companyId}`}
-                            {entry.projectGroupName &&
-                              ` • ${entry.projectGroupName}`}
+                            {entry.projectGroupName ||
+                              `Groep ${entry.projectId}`}
                           </p>
                           {entry.notes && (
                             <p className="text-sm text-slate-500 dark:text-slate-400 italic mt-1 truncate">
@@ -653,7 +652,7 @@ export default function UrenOverzichtPage() {
                             Project
                           </th>
                           <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            Bedrijf
+                            Groep
                           </th>
                           <th className="text-center py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
                             Uren
@@ -684,12 +683,11 @@ export default function UrenOverzichtPage() {
                               )}
                             </td>
                             <td className="py-3 px-4 text-slate-900 dark:text-slate-100">
-                              {entry.projectName ||
-                                `Project ${entry.projectId}`}
+                              {entry.projectName}
                             </td>
                             <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                              {entry.companyName ||
-                                `Bedrijf ${entry.companyId}`}
+                              {entry.projectGroupName ||
+                                `Groep ${entry.projectId}`}
                             </td>
                             <td className="py-3 px-4 text-center font-semibold text-blue-600 dark:text-blue-400">
                               {entry.hours}u

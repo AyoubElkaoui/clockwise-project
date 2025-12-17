@@ -25,12 +25,13 @@ builder.Services.AddDbContext<PostgresDbContext>(options =>
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
 // builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
 // builder.Services.AddScoped<IVacationRepository, PostgresVacationRepository>();
+builder.Services.AddScoped<IVacationRepository, InMemoryVacationRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 
 // Register services
 // builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TimesheetService>();
-// builder.Services.AddScoped<VacationService>();
+builder.Services.AddScoped<VacationService>();
 builder.Services.AddScoped<TimeEntryService>();
 builder.Services.AddScoped<ActivityService>();
 
@@ -62,14 +63,35 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Add custom middleware
-app.UseMiddleware<MedewGcIdMiddleware>();
+app.UseRouting();
 
 app.UseCors("AllowFrontend");
+
+// Add dummy holidays endpoint before middleware so it doesn't require auth
+app.MapGet("/api/holidays/closed", (int? year) => Results.Ok(new string[0]));
+
+app.UseMiddleware<MedewGcIdMiddleware>();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+
+
+// Add route for /api/projects/group/{groupId} to match frontend
+app.MapGet("/api/projects/group/{groupId}", async (string groupId, IFirebirdDataRepository repository) =>
+{
+    if (int.TryParse(groupId, out var id))
+    {
+        var projects = await repository.GetProjectsByGroupAsync(id);
+        return Results.Ok(projects);
+    }
+    else
+    {
+        var allProjects = await repository.GetAllProjectsAsync();
+        return Results.Ok(allProjects);
+    }
+});
 
 app.Run();
 
@@ -87,6 +109,27 @@ public class MedewGcIdMiddleware
     {
         // Skip authentication for OPTIONS requests (CORS preflight)
         if (context.Request.Method == "OPTIONS")
+        {
+            await _next(context);
+            return;
+        }
+
+        // Skip authentication for holidays endpoint
+        if (context.Request.Path.Value?.Contains("/api/holidays") == true)
+        {
+            await _next(context);
+            return;
+        }
+
+        // Skip authentication for login endpoint
+        if (context.Request.Path.Value?.EndsWith("/api/users/login") == true && context.Request.Method == "POST")
+        {
+            await _next(context);
+            return;
+        }
+
+        // Skip authentication for seed endpoint
+        if (context.Request.Path.Value?.EndsWith("/api/users/seed") == true && context.Request.Method == "POST")
         {
             await _next(context);
             return;

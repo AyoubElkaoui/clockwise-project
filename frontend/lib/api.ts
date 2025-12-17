@@ -9,13 +9,13 @@ import { TimeEntry, User } from "./types";
 const baseURL =
   typeof window === "undefined"
     ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL // server-side (Docker/SSR)
-    : process.env.NEXT_PUBLIC_API_URL || ""; // browser defaults to same-origin for Next.js rewrite
+    : process.env.NEXT_PUBLIC_API_URL || window.location.origin; // browser defaults to same-origin for Next.js rewrite
 
-// Fallback
+// Fallback to relative /api when no base is set
 const cleanBase = baseURL ? baseURL.replace(/\/$/, "") : "";
 
 // Backend always uses /api prefix
-export const API_URL = `${cleanBase}/api`;
+export const API_URL = cleanBase ? `${cleanBase}/api` : "/api";
 
 // Set default axios headers
 axios.defaults.headers.common["Content-Type"] = "application/json";
@@ -77,7 +77,7 @@ function getMedewHeaders() {
 
 // Normalise time entries from the API into the shape the UI expects
 function transformTimeEntries(raw: any[]) {
-  return raw.map((entry: any) => {
+  return raw.map((entry: any, index: number) => {
     const userId =
       Number(
         entry.userId ??
@@ -121,12 +121,18 @@ function transformTimeEntries(raw: any[]) {
 
     return {
       ...entry,
+      id: entry.GcId || entry.gcId || entry.id || index + 1,
       userId,
       date,
       startTime,
       endTime,
       hours: parseFloat(hours.toFixed(2)),
-      projectId: entry.projectId ?? entry.WerkGcId ?? entry.WERK_GC_ID ?? 0,
+      projectId:
+        entry.projectId ??
+        entry.werkGcId ??
+        entry.WerkGcId ??
+        entry.WERK_GC_ID ??
+        0,
       projectName: entry.project?.name || "",
       projectGroupId: entry.project?.projectGroupId || 0,
       projectGroupName: entry.project?.projectGroup?.name || "",
@@ -191,9 +197,10 @@ export async function getProjectGroups() {
   }
 }
 
-export async function getProjects(groupId: number) {
+export async function getProjects(groupId?: number) {
   try {
-    const res = await axios.get(`${API_URL}/projects?groupId=${groupId}`);
+    const params = groupId ? `?groupId=${groupId}` : "";
+    const res = await axios.get(`${API_URL}/projects${params}`);
     return safeApiResponse(res) ?? [];
   } catch (error) {
     console.error(" Error:", error);
@@ -316,20 +323,72 @@ export async function getTimeEntries(from?: string, to?: string) {
   }
 }
 
+export async function getEnrichedTimeEntries(from?: string, to?: string) {
+  const [entries, projects, projectGroups, companies] = await Promise.all([
+    getTimeEntries(from, to),
+    getProjects().catch(() => []),
+    getProjectGroups().catch(() => []),
+    getCompanies().catch(() => []),
+  ]);
+
+  console.log("getEnrichedTimeEntries - entries:", entries);
+  console.log("getEnrichedTimeEntries - projects:", projects);
+  console.log("getEnrichedTimeEntries - projectGroups:", projectGroups);
+  console.log("getEnrichedTimeEntries - companies:", companies);
+
+  const projectMap = new Map(
+    projects.map((p: any) => [
+      p.gcId,
+      { gcCode: p.gcCode, werkgrpGcId: p.werkgrpGcId },
+    ]),
+  );
+  const groupMap = new Map(
+    projectGroups.map((g: any) => [
+      g.gcId,
+      { gcCode: g.gcCode, adminisGcId: g.adminisGcId },
+    ]),
+  );
+  const companyMap = new Map(companies.map((c: any) => [c.id, c.name]));
+
+  console.log("getEnrichedTimeEntries - projectMap:", projectMap);
+  console.log("getEnrichedTimeEntries - groupMap:", groupMap);
+  console.log("getEnrichedTimeEntries - companyMap:", companyMap);
+
+  return entries.map((entry: any) => {
+    const project = projectMap.get(entry.projectId);
+    const group = project ? groupMap.get(project.werkgrpGcId) : null;
+    const company = group ? companyMap.get(group.adminisGcId) : null;
+
+    const enriched = {
+      ...entry,
+      projectName: project ? project.gcCode : `Project ${entry.projectId}`,
+      projectGroupName: group ? group.gcCode : "",
+      companyName: company || `Bedrijf ${group?.adminisGcId || 0}`,
+    };
+
+    console.log(
+      `Enriching entry ${entry.id}: projectId=${entry.projectId}, project=${project}, projectName=${enriched.projectName}`,
+    );
+
+    return enriched;
+  });
+}
+
 export async function login(medewGcId: string) {
-  // Stub login for MVP
+  const response = await axios.post(`${API_URL}/users/login`, {
+    medewGcId: parseInt(medewGcId),
+  });
+  const user = response.data;
+
+  // Clear and set localStorage
   localStorage.clear();
   localStorage.setItem("medewGcId", medewGcId);
-  localStorage.setItem("userId", medewGcId); // For compatibility
-  localStorage.setItem("firstName", "User");
-  localStorage.setItem("lastName", medewGcId);
-  localStorage.setItem("userRank", "user");
-  return {
-    id: medewGcId,
-    firstName: "User",
-    lastName: medewGcId,
-    rank: "user",
-  };
+  localStorage.setItem("userId", user.id.toString());
+  localStorage.setItem("firstName", user.firstName);
+  localStorage.setItem("lastName", user.lastName);
+  localStorage.setItem("userRank", user.rank || "user");
+
+  return user;
 }
 
 export async function registerWorkTimeEntry(

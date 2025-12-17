@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
+const API_URL = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
 
 export interface Company {
   id: number;
@@ -35,10 +35,18 @@ export async function getCompanies(): Promise<Company[]> {
 }
 
 // Haal project groups op voor een company
-export async function getProjectGroups(companyId: number): Promise<ProjectGroup[]> {
+export async function getProjectGroups(
+  companyId: number,
+): Promise<ProjectGroup[]> {
   try {
-    const response = await axios.get(`${API_URL}/project-groups/company/${companyId}`);
-    return response.data;
+    const response = await axios.get(
+      `${API_URL}/project-groups/company/${companyId}`,
+    );
+    return response.data.map((g: any) => ({
+      id: g.gcId,
+      name: g.description || g.gcCode,
+      companyId: companyId,
+    }));
   } catch (error) {
     console.error("Error fetching project groups:", error);
     throw error;
@@ -48,8 +56,14 @@ export async function getProjectGroups(companyId: number): Promise<ProjectGroup[
 // Haal projects op voor een project group
 export async function getProjects(projectGroupId: number): Promise<Project[]> {
   try {
-    const response = await axios.get(`${API_URL}/projects/group/${projectGroupId}`);
-    return response.data;
+    const response = await axios.get(
+      `${API_URL}/projects/group/${projectGroupId}`,
+    );
+    return response.data.map((p: any) => ({
+      id: p.gcId,
+      name: p.gcCode,
+      projectGroupId: p.werkgrpGcId,
+    }));
   } catch (error) {
     console.error("Error fetching projects:", error);
     throw error;
@@ -57,7 +71,10 @@ export async function getProjects(projectGroupId: number): Promise<Project[]> {
 }
 
 // Maak een nieuwe project group aan
-export async function createProjectGroup(data: { name: string; companyId: number }): Promise<ProjectGroup> {
+export async function createProjectGroup(data: {
+  name: string;
+  companyId: number;
+}): Promise<ProjectGroup> {
   try {
     const response = await axios.post(`${API_URL}/project-groups`, data);
     return response.data;

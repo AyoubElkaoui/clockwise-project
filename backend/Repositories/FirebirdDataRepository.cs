@@ -13,7 +13,7 @@ namespace ClockwiseProject.Backend.Repositories
     {
         private readonly FirebirdConnectionFactory _connectionFactory;
 
-        public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory)
+        public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory, ILogger<FirebirdDataRepository> logger)
         {
             _connectionFactory = connectionFactory;
         }
@@ -28,7 +28,7 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<bool> IsMedewActiveAsync(int medewGcId)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT COUNT(*) FROM AT_MEDEW WHERE GC_ID = @MedewGcId AND GC_HISTORISCH_JN = 'N'";
+            const string sql = "SELECT COUNT(*) FROM AT_MEDEW WHERE GC_ID = @MedewGcId AND ACTIEF_JN = 'J'";
             var count = await connection.ExecuteScalarAsync<int>(sql, new { MedewGcId = medewGcId });
             return count > 0;
         }
@@ -70,61 +70,31 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<IEnumerable<Period>> GetPeriodsAsync(int count = 50)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum, BOEKDATUM AS BoekDatum FROM AT_URENPER ORDER BY BEGINDATUM DESC";
+            var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum, EINDDATUM AS EndDate FROM AT_URENPER ORDER BY BEGINDATUM DESC";
             return await connection.QueryAsync<Period>(sql);
         }
 
         public async Task<IEnumerable<TimeEntry>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
         {
-            // Dummy time entries for testing
-            var dummyEntries = new List<TimeEntry>
-            {
-                new TimeEntry
-                {
-                    GcId = 1,
-                    DocumentGcId = 1,
-                    TaakGcId = 30,
-                    WerkGcId = 1,
-                    MedewGcId = medewGcId,
-                    KostsrtGcId = 1,
-                    BestparGcId = 1,
-                    GcRegelNr = 1,
-                    GcOmschrijving = "Development work",
-                    Aantal = 8.0m,
-                    Datum = DateTime.Today.AddDays(-1)
-                },
-                new TimeEntry
-                {
-                    GcId = 2,
-                    DocumentGcId = 1,
-                    TaakGcId = 40,
-                    WerkGcId = 2,
-                    MedewGcId = medewGcId,
-                    KostsrtGcId = 1,
-                    BestparGcId = 1,
-                    GcRegelNr = 2,
-                    GcOmschrijving = "Testing",
-                    Aantal = 4.0m,
-                    Datum = DateTime.Today.AddDays(-1)
-                },
-                new TimeEntry
-                {
-                    GcId = 3,
-                    DocumentGcId = 2,
-                    TaakGcId = 30,
-                    WerkGcId = 1,
-                    MedewGcId = medewGcId,
-                    KostsrtGcId = 1,
-                    BestparGcId = 1,
-                    GcRegelNr = 1,
-                    GcOmschrijving = "Bug fixing",
-                    Aantal = 6.0m,
-                    Datum = DateTime.Today
-                }
-            };
-
-            // Filter by date range
-            return dummyEntries.Where(e => e.Datum >= from && e.Datum <= to);
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = @"
+                SELECT r.GC_ID AS GcId,
+                       r.DOCUMENT_GC_ID AS DocumentGcId,
+                       r.TAAK_GC_ID AS TaakGcId,
+                       r.WERK_GC_ID AS WerkGcId,
+                       d.EIG_MEDEW_GC_ID AS MedewGcId,
+                       NULL AS KostsrtGcId,
+                       NULL AS BestparGcId,
+                       NULL AS GcRegelNr,
+                       r.GC_OMSCHRIJVING AS GcOmschrijving,
+                       r.AANTAL AS Aantal,
+                       r.DATUM AS Datum
+                FROM AT_URENBREG r
+                INNER JOIN AT_DOCUMENT d ON r.DOCUMENT_GC_ID = d.GC_ID
+                WHERE d.EIG_MEDEW_GC_ID = @MedewGcId
+                  AND r.DATUM BETWEEN @From AND @To
+                ORDER BY r.DATUM DESC";
+            return await connection.QueryAsync<TimeEntry>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
         }
 
         public async Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId)
@@ -190,51 +160,35 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task InsertTimeEntryAsync(TimeEntry entry)
         {
             using var connection = _connectionFactory.CreateConnection();
-            try
+            // Use the schema that matches seed.sql: GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, AANTAL, DATUM, GC_OMSCHRIJVING
+            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG");
+            const string sql = "INSERT INTO AT_URENBREG (GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, AANTAL, DATUM, GC_OMSCHRIJVING) VALUES (@GcId, @DocumentGcId, @TaakGcId, @WerkGcId, @Aantal, @Datum, @GcOmschrijving)";
+            await connection.ExecuteAsync(sql, new
             {
-                const string sql = "INSERT INTO AT_URENBREG (DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, KOSTSRT_GC_ID, BESTPAR_GC_ID, GC_REGEL_NR, GC_OMSCHRIJVING, AANTAL, DATUM) VALUES (@DocumentGcId, @TaakGcId, @WerkGcId, @KostsrtGcId, @BestparGcId, @GcRegelNr, @GcOmschrijving, @Aantal, @Datum)";
-                await connection.ExecuteAsync(sql, entry);
-            }
-            catch
-            {
-                // Legacy schema without generator/extra columns
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG");
-                const string legacySql = "INSERT INTO AT_URENBREG (GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, GC_OMSCHRIJVING, AANTAL, DATUM) VALUES (@GcId, @DocumentGcId, @TaakGcId, @WerkGcId, @GcOmschrijving, @Aantal, @Datum)";
-                await connection.ExecuteAsync(legacySql, new
-                {
-                    GcId = nextId,
-                    entry.DocumentGcId,
-                    entry.TaakGcId,
-                    entry.WerkGcId,
-                    entry.GcOmschrijving,
-                    entry.Aantal,
-                    entry.Datum
-                });
-            }
+                GcId = nextId,
+                entry.DocumentGcId,
+                entry.TaakGcId,
+                entry.WerkGcId,
+                entry.Aantal,
+                entry.Datum,
+                entry.GcOmschrijving
+            });
         }
 
         public async Task InsertVacationEntryAsync(VacationEntry entry)
         {
             using var connection = _connectionFactory.CreateConnection();
-            try
+            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG");
+            const string sql = "INSERT INTO AT_URENBREG (GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, AANTAL, DATUM, GC_OMSCHRIJVING) VALUES (@GcId, @DocumentGcId, @TaakGcId, NULL, @Aantal, @Datum, @GcOmschrijving)";
+            await connection.ExecuteAsync(sql, new
             {
-                const string sql = "INSERT INTO AT_URENBREG (DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, KOSTSRT_GC_ID, BESTPAR_GC_ID, GC_REGEL_NR, GC_OMSCHRIJVING, AANTAL, DATUM) VALUES (@DocumentGcId, @TaakGcId, NULL, @KostsrtGcId, @BestparGcId, @GcRegelNr, @GcOmschrijving, @Aantal, @Datum)";
-                await connection.ExecuteAsync(sql, entry);
-            }
-            catch
-            {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG");
-                const string legacySql = "INSERT INTO AT_URENBREG (GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, GC_OMSCHRIJVING, AANTAL, DATUM) VALUES (@GcId, @DocumentGcId, @TaakGcId, NULL, @GcOmschrijving, @Aantal, @Datum)";
-                await connection.ExecuteAsync(legacySql, new
-                {
-                    GcId = nextId,
-                    entry.DocumentGcId,
-                    entry.TaakGcId,
-                    entry.GcOmschrijving,
-                    entry.Aantal,
-                    entry.Datum
-                });
-            }
+                GcId = nextId,
+                entry.DocumentGcId,
+                entry.TaakGcId,
+                entry.Aantal,
+                entry.Datum,
+                entry.GcOmschrijving
+            });
         }
 
         public async Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving)
@@ -278,15 +232,15 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<User> GetUserByIdAsync(int id)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS Id, GC_NAAM AS LoginName FROM AT_MEDEW WHERE GC_ID = @Id AND GC_HISTORISCH_JN = 'N'";
+            const string sql = "SELECT * FROM AT_MEDEW WHERE GC_ID = @Id";
             var user = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { Id = id });
             if (user == null) return null;
             return new User
             {
-                Id = user.Id,
-                LoginName = user.LoginName,
-                FirstName = user.LoginName.Split(' ').FirstOrDefault() ?? "",
-                LastName = string.Join(" ", user.LoginName.Split(' ').Skip(1)),
+                Id = (int)user.GC_ID,
+                LoginName = (string)user.GC_NAAM,
+                FirstName = ((string)user.GC_NAAM).Split(' ').FirstOrDefault() ?? "",
+                LastName = string.Join(" ", ((string)user.GC_NAAM).Split(' ').Skip(1)),
                 Email = "",
                 Address = "",
                 HouseNumber = "",
@@ -296,6 +250,20 @@ namespace ClockwiseProject.Backend.Repositories
                 Rank = "",
                 IsActive = true
             };
+        }
+
+        public async Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetAllProjectsAsync()
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Name FROM AT_WERK";
+            return await connection.QueryAsync<ClockwiseProject.Backend.Models.Project>(sql);
+        }
+
+        public async Task<DateTime?> GetPeriodBeginDateAsync(int urenperGcId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT BEGINDATUM FROM AT_URENPER WHERE GC_ID = @UrenperGcId";
+            return await connection.ExecuteScalarAsync<DateTime?>(sql, new { UrenperGcId = urenperGcId });
         }
 
         public FbConnection GetConnection() => _connectionFactory.CreateConnection();

@@ -19,7 +19,10 @@ namespace ClockwiseProject.Backend.Controllers
         public async Task<ActionResult<IEnumerable<Project>>> GetProjects([FromQuery] int? groupId)
         {
             if (!groupId.HasValue)
-                return BadRequest("groupId is required");
+            {
+                var allProjects = await _repository.GetAllProjectsAsync();
+                return Ok(allProjects);
+            }
 
             var projects = await _repository.GetProjectsByGroupAsync(groupId.Value);
             return Ok(projects);

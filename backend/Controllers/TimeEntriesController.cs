@@ -52,6 +52,32 @@ namespace ClockwiseProject.Backend.Controllers
             }
         }
 
+        [HttpGet("user/{userId}/week")]
+        public async Task<ActionResult<IEnumerable<TimeEntry>>> GetWeekEntries(int userId, [FromQuery] string startDate)
+        {
+            if (!DateTime.TryParse(startDate, out var start))
+                return BadRequest("Invalid start date");
+
+            var end = start.AddDays(6);
+
+            var medewGcId = ResolveMedewGcId(userId);
+            if (!medewGcId.HasValue)
+            {
+                return Unauthorized("Missing medewGcId");
+            }
+
+            try
+            {
+                var entries = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, start, end);
+                return Ok(entries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch week entries for user {UserId}", userId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpPost("work")]
         public async Task<IActionResult> PostWorkEntries([FromBody] BulkWorkEntryDto dto)
         {
@@ -74,6 +100,7 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error inserting work entries");
                 return StatusCode(500, "Internal server error");
             }
         }

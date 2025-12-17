@@ -5,7 +5,7 @@ import fdb
 # Connection parameters
 host = "localhost"
 port = 3050
-database = "/firebird/data/atrium_mvp.fdb"
+database = os.path.join(os.path.dirname(__file__), "atrium_mvp.fdb")
 user = "SYSDBA"
 password = "masterkey"
 

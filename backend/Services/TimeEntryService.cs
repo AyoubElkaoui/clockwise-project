@@ -61,7 +61,6 @@ namespace ClockwiseProject.Backend.Services
 
             var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
 
-            using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             try
             {
                 // Claim idempotency - temporarily disabled for Firebird-only testing
@@ -76,7 +75,8 @@ namespace ClockwiseProject.Backend.Services
                 if (!documentGcId.HasValue)
                 {
                     _logger.LogWarning("Geen document gevonden voor medew {MedewGcId}; maak nieuw document aan", medewGcId);
-                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, DateTime.Today);
+                    var boekDatum = await _repository.GetPeriodBeginDateAsync(dto.UrenperGcId) ?? DateTime.Today;
+                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, boekDatum);
                 }
 
                 await _repository.EnsureUrenstatAsync(documentGcId.Value, medewGcId, dto.UrenperGcId);
@@ -101,7 +101,6 @@ namespace ClockwiseProject.Backend.Services
                     await _repository.InsertTimeEntryAsync(entry);
                 }
 
-                transaction.Complete();
                 _logger.LogInformation("Inserted {Count} work entries", dto.Regels.Count);
             }
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
@@ -144,7 +143,6 @@ namespace ClockwiseProject.Backend.Services
 
             var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
 
-            using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             try
             {
                 // Claim idempotency - temporarily disabled for Firebird-only testing
@@ -159,7 +157,8 @@ namespace ClockwiseProject.Backend.Services
                 if (!documentGcId.HasValue)
                 {
                     _logger.LogWarning("Geen document gevonden voor medew {MedewGcId}; maak nieuw document aan", medewGcId);
-                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, DateTime.Today);
+                    var boekDatum = await _repository.GetPeriodBeginDateAsync(dto.UrenperGcId) ?? DateTime.Today;
+                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, boekDatum);
                 }
 
                 await _repository.EnsureUrenstatAsync(documentGcId.Value, medewGcId, dto.UrenperGcId);
@@ -184,7 +183,6 @@ namespace ClockwiseProject.Backend.Services
                     await _repository.InsertVacationEntryAsync(entry);
                 }
 
-                transaction.Complete();
                 _logger.LogInformation("Inserted {Count} vacation entries", dto.Regels.Count);
             }
             catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)

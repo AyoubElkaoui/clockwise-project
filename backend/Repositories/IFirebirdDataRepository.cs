@@ -12,9 +12,11 @@ namespace ClockwiseProject.Backend.Repositories
         Task<IEnumerable<ClockwiseProject.Backend.Models.ProjectGroup>> GetProjectGroupsAsync();
         Task<IEnumerable<ClockwiseProject.Backend.Models.ProjectGroup>> GetProjectGroupsByCompanyAsync(int companyId);
         Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetProjectsByGroupAsync(int groupId);
+        Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetAllProjectsAsync();
         Task<IEnumerable<TaskModel>> GetWorkTasksAsync();
         Task<IEnumerable<TaskModel>> GetVacationTasksAsync();
         Task<IEnumerable<Period>> GetPeriodsAsync(int count = 50);
+        Task<DateTime?> GetPeriodBeginDateAsync(int urenperGcId);
         Task<IEnumerable<TimeEntry>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to);
         Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId);
         Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum);
