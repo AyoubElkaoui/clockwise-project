@@ -66,6 +66,11 @@ export default function NotificatiesPage() {
           // Fallback naar eigen notificaties
           const fallbackResponse = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=50&userId=${userId}`,
+            {
+              headers: {
+                "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+              },
+            },
           );
           data = await fallbackResponse.json();
         }
@@ -74,6 +79,11 @@ export default function NotificatiesPage() {
       else if (userRank === "admin") {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=100`,
+          {
+            headers: {
+              "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            },
+          },
         );
         data = await response.json();
       }
@@ -81,6 +91,11 @@ export default function NotificatiesPage() {
       else {
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=50&userId=${userId}`,
+          {
+            headers: {
+              "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            },
+          },
         );
         data = await response.json();
       }
@@ -103,6 +118,9 @@ export default function NotificatiesPage() {
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/read-all?userId=${userId}`,
         {
           method: "PUT",
+          headers: {
+            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+          },
         },
       );
 
@@ -123,6 +141,9 @@ export default function NotificatiesPage() {
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/${id}/read`,
         {
           method: "PUT",
+          headers: {
+            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+          },
         },
       );
 

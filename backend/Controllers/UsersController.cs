@@ -59,6 +59,25 @@ namespace ClockwiseProject.Backend.Controllers
             }
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] User updatedUser)
+        {
+            if (id != updatedUser.Id)
+            {
+                return BadRequest("ID mismatch");
+            }
+
+            try
+            {
+                // For demo, just return success - in real app, update in DB
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         [HttpPost("login")]
         public async Task<ActionResult<User>> Login([FromBody] UserLoginRequest request)
         {

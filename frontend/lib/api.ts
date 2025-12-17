@@ -182,10 +182,6 @@ export async function getUsers() {
 }
 
 // Update user not implemented
-export async function updateUser(data: any) {
-  // Dummy
-  return Promise.resolve(null);
-}
 
 export async function getProjectGroups() {
   try {
@@ -505,7 +501,23 @@ export async function deleteProject(id: number) {
 
 // Get user not implemented
 export async function getUser(id: number) {
-  return Promise.resolve(null);
+  const medewGcId = localStorage.getItem("medewGcId");
+  if (!medewGcId) return null;
+  return axios
+    .get(`${API_URL}/users/${id}`, {
+      headers: { "X-MEDEW-GC-ID": medewGcId },
+    })
+    .then(safeApiResponse);
+}
+
+export async function updateUser(id: number, data: any) {
+  const medewGcId = localStorage.getItem("medewGcId");
+  if (!medewGcId) return null;
+  return axios
+    .put(`${API_URL}/users/${id}`, data, {
+      headers: { "X-MEDEW-GC-ID": medewGcId },
+    })
+    .then(safeApiResponse);
 }
 
 // Update not needed for new backend

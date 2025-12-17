@@ -73,6 +73,9 @@ namespace ClockwiseProject.Backend.Services
                 CreateActivity(100050, "reminder", "Vergeet niet je uren van gisteren bij te werken."),
                 CreateActivity(200010, "system", "Welkom! Dit is je eerste activiteit."),
                 CreateActivity(100050, "vacation", "Je vakantieaanvraag is ontvangen."),
+                CreateActivity(100001, "timesheet", "Welkom! Je urenstaat is klaar voor deze maand."),
+                CreateActivity(100001, "vacation", "Vakantie aanvraag succesvol ingediend."),
+                CreateActivity(100001, "reminder", "Vergeet niet je uren in te voeren."),
             });
         }
 
