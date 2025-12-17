@@ -135,6 +135,13 @@ public class MedewGcIdMiddleware
             return;
         }
 
+        // Skip authentication for vacation endpoints
+        if (context.Request.Path.Value?.StartsWith("/api/vacation") == true)
+        {
+            await _next(context);
+            return;
+        }
+
         if (!context.Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var medewGcIdHeader) ||
             !int.TryParse(medewGcIdHeader, out var medewGcId))
         {
