@@ -11,10 +11,12 @@ namespace ClockwiseProject.Backend.Controllers
     public class CompaniesController : ControllerBase
     {
         private readonly IFirebirdDataRepository _repository;
+        private readonly ILogger<CompaniesController> _logger;
 
-        public CompaniesController(IFirebirdDataRepository repository)
+        public CompaniesController(IFirebirdDataRepository repository, ILogger<CompaniesController> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -23,11 +25,12 @@ namespace ClockwiseProject.Backend.Controllers
             try
             {
                 var companies = await _repository.GetCompaniesAsync();
+                _logger.LogInformation("Retrieved {Count} companies", companies.Count());
                 return Ok(companies);
             }
             catch (Exception ex)
             {
-                // Log the exception
+                _logger.LogError(ex, "Error retrieving companies");
                 return StatusCode(500, "Internal server error");
             }
         }

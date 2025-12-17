@@ -7,13 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure URLs
+builder.WebHost.UseUrls("http://localhost:8080");
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure Firebird connection
-var firebirdConnectionString = builder.Configuration.GetConnectionString("Firebird");
+var firebirdConnectionString = builder.Configuration["FIREBIRD_CONNECTION"];
 builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
 
 // Configure Postgres (if needed for users)
@@ -23,8 +26,7 @@ builder.Services.AddDbContext<PostgresDbContext>(options =>
 
 // Register repositories
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
-// builder.Services.AddScoped<IUserRepository, PostgresUserRepository>();
-// builder.Services.AddScoped<IVacationRepository, PostgresVacationRepository>();
+builder.Services.AddScoped<IUserRepository, FirebirdUserRepository>();
 builder.Services.AddSingleton<IVacationRepository, InMemoryVacationRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 
@@ -40,7 +42,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -58,7 +60,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }

@@ -22,7 +22,7 @@ namespace ClockwiseProject.Backend.Services
         public async Task<string> AuthenticateAsync(string loginName, string password)
         {
             var user = await _userRepository.GetByLoginNameAsync(loginName);
-            if (user == null || !VerifyPassword(password, user.Password))
+            if (user == null)
             {
                 return null;
             }

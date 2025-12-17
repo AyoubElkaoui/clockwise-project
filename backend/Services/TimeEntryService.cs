@@ -35,53 +35,47 @@ namespace ClockwiseProject.Backend.Services
         {
             _logger.LogInformation("Inserting work entries for medew {MedewGcId}, period {UrenperGcId}", medewGcId, dto.UrenperGcId);
 
-            // Idempotency check - temporarily disabled for Firebird-only testing
-            // var existing = await _postgresContext.IdempotencyRequests
-            //     .FirstOrDefaultAsync(ir => ir.MedewGcId == medewGcId && ir.ClientRequestId == dto.ClientRequestId);
-            // if (existing != null)
-            // {
-            //     _logger.LogInformation("Request {ClientRequestId} already processed", dto.ClientRequestId);
-            //     return; // Already processed
-            // }
-
-            // Validate medew exists
+            // Hard invariants
             if (!await _repository.IsMedewActiveAsync(medewGcId))
                 throw new UnauthorizedAccessException("Invalid medewGcId");
 
-            // Validate rules
+            var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
+            if (!await IsValidUrenperAsync(dto.UrenperGcId, adminisGcId))
+                throw new ArgumentException("Invalid UrenperGcId");
+
+            // Validate regels
             foreach (var regel in dto.Regels)
             {
-                if (regel.WerkGcId == null)
-                    throw new ArgumentException("WerkGcId is required for work entries");
-                // Check taak is work (30 or 40) - lookup GC_CODE
+                if (regel.Datum == default)
+                    throw new ArgumentException("Datum is required");
+                if (regel.Aantal <= 0 || regel.Aantal >= 24)
+                    throw new ArgumentException("Aantal must be > 0 and < 24");
+                if (!await IsValidTaakAsync(regel.TaakGcId))
+                    throw new ArgumentException("Invalid TaakGcId");
                 var taakCode = await GetTaakCodeAsync(regel.TaakGcId);
                 if (taakCode != "30" && taakCode != "40")
                     throw new ArgumentException("Invalid taak for work entries");
+                if (!await IsValidWerkAsync(regel.WerkGcId))
+                    throw new ArgumentException("WerkGcId must be valid for work entries");
             }
 
-            var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
+            using var connection = _repository.GetConnection();
+            await connection.OpenAsync();
+            using var transaction = await connection.BeginTransactionAsync();
 
             try
             {
-                // Claim idempotency - temporarily disabled for Firebird-only testing
-                // await _postgresContext.IdempotencyRequests.AddAsync(new IdempotencyRequest
-                // {
-                //     MedewGcId = medewGcId,
-                //     ClientRequestId = dto.ClientRequestId
-                // });
-                // await _postgresContext.SaveChangesAsync();
-
                 var documentGcId = await _repository.GetDocumentGcIdAsync(medewGcId, dto.UrenperGcId, adminisGcId);
                 if (!documentGcId.HasValue)
                 {
                     _logger.LogWarning("Geen document gevonden voor medew {MedewGcId}; maak nieuw document aan", medewGcId);
                     var boekDatum = await _repository.GetPeriodBeginDateAsync(dto.UrenperGcId) ?? DateTime.Today;
-                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, boekDatum);
+                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, boekDatum, dto.UrenperGcId, transaction);
                 }
 
-                await _repository.EnsureUrenstatAsync(documentGcId.Value, medewGcId, dto.UrenperGcId);
+                await _repository.EnsureUrenstatAsync(documentGcId.Value, medewGcId, dto.UrenperGcId, transaction);
 
-                var nextRegelNr = await _repository.GetNextRegelNrAsync(documentGcId.Value);
+                var nextRegelNr = await _repository.GetNextRegelNrAsync(documentGcId.Value, transaction);
 
                 foreach (var regel in dto.Regels)
                 {
@@ -98,19 +92,15 @@ namespace ClockwiseProject.Backend.Services
                         Aantal = regel.Aantal,
                         Datum = regel.Datum
                     };
-                    await _repository.InsertTimeEntryAsync(entry);
+                    await _repository.InsertTimeEntryAsync(entry, transaction);
                 }
 
+                await transaction.CommitAsync();
                 _logger.LogInformation("Inserted {Count} work entries", dto.Regels.Count);
-            }
-            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
-            {
-                _logger.LogInformation("Request {ClientRequestId} already processed (duplicate)", dto.ClientRequestId);
-                return; // Already processed
             }
             catch
             {
-                _logger.LogError("Failed to insert work entries");
+                await transaction.RollbackAsync();
                 throw;
             }
         }
@@ -119,51 +109,45 @@ namespace ClockwiseProject.Backend.Services
         {
             _logger.LogInformation("Inserting vacation entries for medew {MedewGcId}, period {UrenperGcId}", medewGcId, dto.UrenperGcId);
 
-            // Idempotency check - temporarily disabled for Firebird-only testing
-            // var existing = await _postgresContext.IdempotencyRequests
-            //     .FirstOrDefaultAsync(ir => ir.MedewGcId == medewGcId && ir.ClientRequestId == dto.ClientRequestId);
-            // if (existing != null)
-            // {
-            //     _logger.LogInformation("Request {ClientRequestId} already processed", dto.ClientRequestId);
-            //     return; // Already processed
-            // }
-
-            // Validate medew exists
+            // Hard invariants
             if (!await _repository.IsMedewActiveAsync(medewGcId))
                 throw new UnauthorizedAccessException("Invalid medewGcId");
 
-            // Validate rules
+            var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
+            if (!await IsValidUrenperAsync(dto.UrenperGcId, adminisGcId))
+                throw new ArgumentException("Invalid UrenperGcId");
+
+            // Validate regels
             foreach (var regel in dto.Regels)
             {
-                // Check taak starts with Z
+                if (regel.Datum == default)
+                    throw new ArgumentException("Datum is required");
+                if (regel.Aantal <= 0 || regel.Aantal >= 24)
+                    throw new ArgumentException("Aantal must be > 0 and < 24");
+                if (!await IsValidTaakAsync(regel.TaakGcId))
+                    throw new ArgumentException("Invalid TaakGcId");
                 var taakCode = await GetTaakCodeAsync(regel.TaakGcId);
                 if (!taakCode.StartsWith("Z"))
                     throw new ArgumentException("Invalid taak for vacation entries");
             }
 
-            var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
+            using var connection = _repository.GetConnection();
+            await connection.OpenAsync();
+            using var transaction = await connection.BeginTransactionAsync();
 
             try
             {
-                // Claim idempotency - temporarily disabled for Firebird-only testing
-                // await _postgresContext.IdempotencyRequests.AddAsync(new IdempotencyRequest
-                // {
-                //     MedewGcId = medewGcId,
-                //     ClientRequestId = dto.ClientRequestId
-                // });
-                // await _postgresContext.SaveChangesAsync();
-
                 var documentGcId = await _repository.GetDocumentGcIdAsync(medewGcId, dto.UrenperGcId, adminisGcId);
                 if (!documentGcId.HasValue)
                 {
                     _logger.LogWarning("Geen document gevonden voor medew {MedewGcId}; maak nieuw document aan", medewGcId);
                     var boekDatum = await _repository.GetPeriodBeginDateAsync(dto.UrenperGcId) ?? DateTime.Today;
-                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, boekDatum);
+                    documentGcId = await _repository.CreateDocumentAsync(medewGcId, adminisGcId, boekDatum, dto.UrenperGcId, transaction);
                 }
 
-                await _repository.EnsureUrenstatAsync(documentGcId.Value, medewGcId, dto.UrenperGcId);
+                await _repository.EnsureUrenstatAsync(documentGcId.Value, medewGcId, dto.UrenperGcId, transaction);
 
-                var nextRegelNr = await _repository.GetNextRegelNrAsync(documentGcId.Value);
+                var nextRegelNr = await _repository.GetNextRegelNrAsync(documentGcId.Value, transaction);
 
                 foreach (var regel in dto.Regels)
                 {
@@ -180,21 +164,33 @@ namespace ClockwiseProject.Backend.Services
                         Aantal = regel.Aantal,
                         Datum = regel.Datum
                     };
-                    await _repository.InsertVacationEntryAsync(entry);
+                    await _repository.InsertVacationEntryAsync(entry, transaction);
                 }
 
+                await transaction.CommitAsync();
                 _logger.LogInformation("Inserted {Count} vacation entries", dto.Regels.Count);
-            }
-            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate") == true)
-            {
-                _logger.LogInformation("Request {ClientRequestId} already processed (duplicate)", dto.ClientRequestId);
-                return; // Already processed
             }
             catch
             {
-                _logger.LogError("Failed to insert vacation entries");
+                await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        private async Task<bool> IsValidUrenperAsync(int urenperGcId, int adminisGcId)
+        {
+            using var connection = _repository.GetConnection();
+            const string sql = "SELECT COUNT(*) FROM AT_URENPER WHERE GC_ID = @UrenperGcId AND ADMINIS_GC_ID = @AdminisGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { UrenperGcId = urenperGcId, AdminisGcId = adminisGcId });
+            return count > 0;
+        }
+
+        private async Task<bool> IsValidTaakAsync(int taakGcId)
+        {
+            using var connection = _repository.GetConnection();
+            const string sql = "SELECT COUNT(*) FROM AT_TAAK WHERE GC_ID = @TaakGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { TaakGcId = taakGcId });
+            return count > 0;
         }
 
         private async Task<string> GetTaakCodeAsync(int taakGcId)
@@ -202,6 +198,14 @@ namespace ClockwiseProject.Backend.Services
             using var connection = _repository.GetConnection();
             const string sql = "SELECT GC_CODE FROM AT_TAAK WHERE GC_ID = @TaakGcId";
             return await connection.ExecuteScalarAsync<string>(sql, new { TaakGcId = taakGcId });
+        }
+
+        private async Task<bool> IsValidWerkAsync(int werkGcId)
+        {
+            using var connection = _repository.GetConnection();
+            const string sql = "SELECT COUNT(*) FROM AT_WERK WHERE GC_ID = @WerkGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { WerkGcId = werkGcId });
+            return count > 0;
         }
 
         private IEnumerable<TimeEntry> BuildSyntheticEntries(int medewGcId, DateTime from, DateTime to)

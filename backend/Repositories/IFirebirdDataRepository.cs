@@ -19,11 +19,11 @@ namespace ClockwiseProject.Backend.Repositories
         Task<DateTime?> GetPeriodBeginDateAsync(int urenperGcId);
         Task<IEnumerable<TimeEntry>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to);
         Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId);
-        Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum);
-        Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId);
-        Task<int> GetNextRegelNrAsync(int documentGcId);
-        Task InsertTimeEntryAsync(TimeEntry entry);
-        Task InsertVacationEntryAsync(VacationEntry entry);
+        Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum, int urenperGcId, FbTransaction transaction = null);
+        Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId, FbTransaction transaction = null);
+        Task<int> GetNextRegelNrAsync(int documentGcId, FbTransaction transaction = null);
+        Task InsertTimeEntryAsync(TimeEntry entry, FbTransaction transaction = null);
+        Task InsertVacationEntryAsync(VacationEntry entry, FbTransaction transaction = null);
         Task<bool> IsMedewActiveAsync(int medewGcId);
         Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving);
         Task<string> GetTaakCodeAsync(int taakGcId);

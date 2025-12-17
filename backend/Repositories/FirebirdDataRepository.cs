@@ -82,7 +82,7 @@ namespace ClockwiseProject.Backend.Repositories
                        r.DOCUMENT_GC_ID AS DocumentGcId,
                        r.TAAK_GC_ID AS TaakGcId,
                        r.WERK_GC_ID AS WerkGcId,
-                       d.EIG_MEDEW_GC_ID AS MedewGcId,
+                       u.MEDEW_GC_ID AS MedewGcId,
                        NULL AS KostsrtGcId,
                        NULL AS BestparGcId,
                        NULL AS GcRegelNr,
@@ -90,8 +90,8 @@ namespace ClockwiseProject.Backend.Repositories
                        r.AANTAL AS Aantal,
                        r.DATUM AS Datum
                 FROM AT_URENBREG r
-                INNER JOIN AT_DOCUMENT d ON r.DOCUMENT_GC_ID = d.GC_ID
-                WHERE d.EIG_MEDEW_GC_ID = @MedewGcId
+                INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
+                WHERE u.MEDEW_GC_ID = @MedewGcId
                   AND r.DATUM BETWEEN @From AND @To
                 ORDER BY r.DATUM DESC";
             return await connection.QueryAsync<TimeEntry>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
@@ -100,95 +100,134 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId)
         {
             using var connection = _connectionFactory.CreateConnection();
-            // First try AT_URENSTAT
-            var sql1 = "SELECT FIRST 1 DOCUMENT_GC_ID FROM AT_URENSTAT WHERE MEDEW_GC_ID = @MedewGcId AND URENPER_GC_ID = @UrenperGcId";
-            var docId = await connection.QueryFirstOrDefaultAsync<int?>(sql1, new { MedewGcId = medewGcId, UrenperGcId = urenperGcId });
-            if (docId.HasValue) return docId;
-
-            // Fallback to AT_DOCUMENT
-            var sql2 = "SELECT FIRST 1 d.GC_ID FROM AT_DOCUMENT d JOIN AT_URENPER p ON p.GC_ID = @UrenperGcId WHERE d.EIG_MEDEW_GC_ID = @MedewGcId AND d.GC_BOEKDATUM = p.BOEKDATUM AND d.ADMINIS_GC_ID = @AdminisGcId ORDER BY d.GC_ID DESC";
-            return await connection.QueryFirstOrDefaultAsync<int?>(sql2, new { MedewGcId = medewGcId, UrenperGcId = urenperGcId, AdminisGcId = adminisGcId });
+            // Find existing URS document for medewerker and periode
+            var sql = @"
+                SELECT FIRST 1 d.GC_ID 
+                FROM AT_DOCUMENT d 
+                WHERE d.ADMINIS_GC_ID = @AdminisGcId 
+                  AND d.EIG_MEDEW_GC_ID = @MedewGcId 
+                  AND d.GC_CODE STARTING WITH 'URS'
+                  AND EXISTS (
+                      SELECT 1 FROM AT_URENSTAT u 
+                      WHERE u.DOCUMENT_GC_ID = d.GC_ID 
+                        AND u.URENPER_GC_ID = @UrenperGcId
+                  )
+                ORDER BY d.GC_ID DESC";
+            return await connection.QueryFirstOrDefaultAsync<int?>(sql, new { MedewGcId = medewGcId, UrenperGcId = urenperGcId, AdminisGcId = adminisGcId });
         }
 
-        public async Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum)
+        public async Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum, int urenperGcId, FbTransaction transaction = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_DOCUMENT");
-            const string sql = "INSERT INTO AT_DOCUMENT (GC_ID, ADMINIS_GC_ID, EIG_MEDEW_GC_ID, GC_CODE, GC_BOEKDATUM) VALUES (@GcId, @AdminisGcId, @MedewGcId, @Code, @BoekDatum)";
-            var code = $"DOC-{medewGcId}-{boekDatum:yyyyMMdd}-{nextId}";
-            await connection.ExecuteAsync(sql, new { GcId = nextId, AdminisGcId = adminisGcId, MedewGcId = medewGcId, Code = code, BoekDatum = boekDatum.Date });
+            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
+            if (transaction == null) await connection.OpenAsync();
+            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_DOCUMENT", transaction: transaction);
+            var medewName = await connection.ExecuteScalarAsync<string>("SELECT GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID = @MedewGcId", new { MedewGcId = medewGcId }, transaction: transaction);
+            var periodCode = await connection.ExecuteScalarAsync<string>("SELECT GC_CODE FROM AT_URENPER WHERE GC_ID = @UrenperGcId", new { UrenperGcId = urenperGcId }, transaction: transaction);
+            var code = $"URS{boekDatum:yy}{periodCode?.Replace("_", "") ?? "0000"}";
+            var omschrijving = $"{medewName}, {periodCode}";
+            var now = DateTime.Now;
+            const string sql = @"
+                INSERT INTO AT_DOCUMENT (
+                    GC_ID, ADMINIS_GC_ID, STENT_ST_ID, EIG_MEDEW_GC_ID, AFDELING_GC_ID, DAGBOEK_GC_ID, LAYOUT_GC_ID, VALUTA_GC_ID, BOEKJAAR_GC_ID, GEBR_GC_ID, WZG_GEBR_GC_ID,
+                    GC_DOC_STATUS, GC_HERKOMST, GC_DOORB_ONG_TOEG_JN, GC_INFORMATIE_GEV_JN, GC_NOTITIE_EXT_GEV_JN, GC_TONEN_OP_PORTAL_JN,
+                    GC_CODE, GC_OMSCHRIJVING, GC_BOEKDATUM, GC_AANMAAKDATUM, GC_WIJZIGDATUM
+                ) VALUES (
+                    @GcId, @AdminisGcId, 175, @MedewGcId, 100004, 100025, 100281, 100001, 100028, 100001, 100001,
+                    'G', 'A', 'J', 'N', 'N', 'N',
+                    @Code, @Omschrijving, @BoekDatum, @AanmaakDatum, @WijzigDatum
+                )";
+            await connection.ExecuteAsync(sql, new { 
+                GcId = nextId, 
+                AdminisGcId = adminisGcId, 
+                MedewGcId = medewGcId, 
+                Code = code, 
+                Omschrijving = omschrijving, 
+                BoekDatum = boekDatum.Date,
+                AanmaakDatum = now,
+                WijzigDatum = now
+            }, transaction: transaction);
+            if (transaction == null) connection.Close();
             return nextId;
         }
 
-        public async Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId)
+        public async Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId, FbTransaction transaction = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
+            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
+            if (transaction == null) await connection.OpenAsync();
             // Check if exists
             var sqlCheck = "SELECT COUNT(*) FROM AT_URENSTAT WHERE DOCUMENT_GC_ID = @DocumentGcId AND MEDEW_GC_ID = @MedewGcId AND URENPER_GC_ID = @UrenperGcId";
-            var count = await connection.ExecuteScalarAsync<int>(sqlCheck, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId });
+            var count = await connection.ExecuteScalarAsync<int>(sqlCheck, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId }, transaction: transaction);
             if (count == 0)
             {
-                try
-                {
-                    var sqlInsert = "INSERT INTO AT_URENSTAT (DOCUMENT_GC_ID, MEDEW_GC_ID, URENPER_GC_ID, DATUM, GEEXPORTEERD_JN, TVT_JN) VALUES (@DocumentGcId, @MedewGcId, @UrenperGcId, NULL, 'N', 'N')";
-                    await connection.ExecuteAsync(sqlInsert, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId });
-                }
-                catch
-                {
-                    // Legacy schema fallback with only mandatory columns
-                    var legacyInsert = "INSERT INTO AT_URENSTAT (DOCUMENT_GC_ID, MEDEW_GC_ID, URENPER_GC_ID) VALUES (@DocumentGcId, @MedewGcId, @UrenperGcId)";
-                    await connection.ExecuteAsync(legacyInsert, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId });
-                }
+                var sqlInsert = "INSERT INTO AT_URENSTAT (DOCUMENT_GC_ID, MEDEW_GC_ID, URENPER_GC_ID, GEEXPORTEERD_JN, TVT_JN, DATUM) VALUES (@DocumentGcId, @MedewGcId, @UrenperGcId, 'N', 'N', NULL)";
+                await connection.ExecuteAsync(sqlInsert, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId }, transaction: transaction);
             }
+            if (transaction == null) connection.Close();
         }
 
-        public async Task<int> GetNextRegelNrAsync(int documentGcId)
+        public async Task<int> GetNextRegelNrAsync(int documentGcId, FbTransaction transaction = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            try
-            {
-                const string sql = "SELECT COALESCE(MAX(GC_REGEL_NR), 0) + 1 FROM AT_URENBREG WHERE DOCUMENT_GC_ID = @DocumentGcId";
-                return await connection.ExecuteScalarAsync<int>(sql, new { DocumentGcId = documentGcId });
-            }
-            catch
-            {
-                const string legacySql = "SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG WHERE DOCUMENT_GC_ID = @DocumentGcId";
-                return await connection.ExecuteScalarAsync<int>(legacySql, new { DocumentGcId = documentGcId });
-            }
+            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
+            if (transaction == null) await connection.OpenAsync();
+            const string sql = "SELECT COALESCE(MAX(GC_REGEL_NR), 0) + 1 FROM AT_URENBREG WHERE DOCUMENT_GC_ID = @DocumentGcId";
+            var result = await connection.ExecuteScalarAsync<int>(sql, new { DocumentGcId = documentGcId }, transaction: transaction);
+            if (transaction == null) connection.Close();
+            return result;
         }
 
-        public async Task InsertTimeEntryAsync(TimeEntry entry)
+        public async Task InsertTimeEntryAsync(TimeEntry entry, FbTransaction transaction = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            // Use the schema that matches seed.sql: GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, AANTAL, DATUM, GC_OMSCHRIJVING
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG");
-            const string sql = "INSERT INTO AT_URENBREG (GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, AANTAL, DATUM, GC_OMSCHRIJVING) VALUES (@GcId, @DocumentGcId, @TaakGcId, @WerkGcId, @Aantal, @Datum, @GcOmschrijving)";
+            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
+            if (transaction == null) await connection.OpenAsync();
+            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+            const string sql = @"
+                INSERT INTO AT_URENBREG (
+                    GC_ID, DOCUMENT_GC_ID, GC_REGEL_NR, DATUM, AANTAL, TAAK_GC_ID, WERK_GC_ID, MEDEW_GC_ID, GC_OMSCHRIJVING, KOSTSRT_GC_ID, BESTPAR_GC_ID
+                ) VALUES (
+                    @GcId, @DocumentGcId, @GcRegelNr, @Datum, @Aantal, @TaakGcId, @WerkGcId, @MedewGcId, @GcOmschrijving, @KostsrtGcId, @BestparGcId
+                )";
             await connection.ExecuteAsync(sql, new
             {
                 GcId = nextId,
                 entry.DocumentGcId,
+                entry.GcRegelNr,
+                entry.Datum,
+                entry.Aantal,
                 entry.TaakGcId,
                 entry.WerkGcId,
-                entry.Aantal,
-                entry.Datum,
-                entry.GcOmschrijving
-            });
+                entry.MedewGcId,
+                entry.GcOmschrijving,
+                entry.KostsrtGcId,
+                entry.BestparGcId
+            }, transaction: transaction);
+            if (transaction == null) connection.Close();
         }
 
-        public async Task InsertVacationEntryAsync(VacationEntry entry)
+        public async Task InsertVacationEntryAsync(VacationEntry entry, FbTransaction transaction = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG");
-            const string sql = "INSERT INTO AT_URENBREG (GC_ID, DOCUMENT_GC_ID, TAAK_GC_ID, WERK_GC_ID, AANTAL, DATUM, GC_OMSCHRIJVING) VALUES (@GcId, @DocumentGcId, @TaakGcId, NULL, @Aantal, @Datum, @GcOmschrijving)";
+            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
+            if (transaction == null) await connection.OpenAsync();
+            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+            const string sql = @"
+                INSERT INTO AT_URENBREG (
+                    GC_ID, DOCUMENT_GC_ID, GC_REGEL_NR, DATUM, AANTAL, TAAK_GC_ID, WERK_GC_ID, MEDEW_GC_ID, GC_OMSCHRIJVING, KOSTSRT_GC_ID, BESTPAR_GC_ID
+                ) VALUES (
+                    @GcId, @DocumentGcId, @GcRegelNr, @Datum, @Aantal, @TaakGcId, NULL, @MedewGcId, @GcOmschrijving, @KostsrtGcId, @BestparGcId
+                )";
             await connection.ExecuteAsync(sql, new
             {
                 GcId = nextId,
                 entry.DocumentGcId,
-                entry.TaakGcId,
-                entry.Aantal,
+                entry.GcRegelNr,
                 entry.Datum,
-                entry.GcOmschrijving
-            });
+                entry.Aantal,
+                entry.TaakGcId,
+                entry.MedewGcId,
+                entry.GcOmschrijving,
+                entry.KostsrtGcId,
+                entry.BestparGcId
+            }, transaction: transaction);
+            if (transaction == null) connection.Close();
         }
 
         public async Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving)
@@ -238,9 +277,9 @@ namespace ClockwiseProject.Backend.Repositories
             return new User
             {
                 Id = (int)user.GC_ID,
-                LoginName = (string)user.GC_NAAM,
-                FirstName = ((string)user.GC_NAAM).Split(' ').FirstOrDefault() ?? "",
-                LastName = string.Join(" ", ((string)user.GC_NAAM).Split(' ').Skip(1)),
+                LoginName = (string)user.GC_OMSCHRIJVING,
+                FirstName = ((string)user.GC_OMSCHRIJVING).Split(' ').FirstOrDefault() ?? "",
+                LastName = string.Join(" ", ((string)user.GC_OMSCHRIJVING).Split(' ').Skip(1)),
                 Email = "",
                 Address = "",
                 HouseNumber = "",
@@ -255,7 +294,7 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetAllProjectsAsync()
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Name FROM AT_WERK";
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId, GC_OMSCHRIJVING AS Description FROM AT_WERK ORDER BY GC_CODE";
             return await connection.QueryAsync<ClockwiseProject.Backend.Models.Project>(sql);
         }
 

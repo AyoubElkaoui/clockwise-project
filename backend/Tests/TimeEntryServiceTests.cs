@@ -6,6 +6,7 @@ using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Backend;
+using FirebirdSql.Data.FirebirdClient;
 
 namespace ClockwiseProject.Backend.Tests
 {
@@ -51,15 +52,15 @@ namespace ClockwiseProject.Backend.Tests
             var dto = new BulkWorkEntryDto { UrenperGcId = 1, Regels = new List<WorkEntryDto> { new WorkEntryDto { TaakGcId = 1, WerkGcId = 1, Aantal = 8, Datum = DateTime.Now } } };
             _mockConfiguration.Setup(c => c.GetValue<int>("AdminisGcId", 1)).Returns(1);
             _mockRepository.Setup(r => r.GetDocumentGcIdAsync(medewGcId, dto.UrenperGcId, 1)).ReturnsAsync(1);
-            _mockRepository.Setup(r => r.EnsureUrenstatAsync(1, medewGcId, dto.UrenperGcId)).Returns(Task.CompletedTask);
-            _mockRepository.Setup(r => r.GetNextRegelNrAsync(1)).ReturnsAsync(1);
-            _mockRepository.Setup(r => r.InsertTimeEntryAsync(It.IsAny<TimeEntry>())).Returns(Task.CompletedTask);
+            _mockRepository.Setup(r => r.EnsureUrenstatAsync(1, medewGcId, dto.UrenperGcId, It.IsAny<FbTransaction>())).Returns(Task.CompletedTask);
+            _mockRepository.Setup(r => r.GetNextRegelNrAsync(1, It.IsAny<FbTransaction>())).ReturnsAsync(1);
+            _mockRepository.Setup(r => r.InsertTimeEntryAsync(It.IsAny<TimeEntry>(), It.IsAny<FbTransaction>())).Returns(Task.CompletedTask);
 
             // Act
             await _service.InsertWorkEntriesAsync(medewGcId, dto);
 
             // Assert
-            _mockRepository.Verify(r => r.InsertTimeEntryAsync(It.IsAny<TimeEntry>()), Times.Once);
+            _mockRepository.Verify(r => r.InsertTimeEntryAsync(It.IsAny<TimeEntry>(), It.IsAny<FbTransaction>()), Times.Once);
         }
 
         [Fact]

@@ -6,10 +6,7 @@ import { TimeEntry, User } from "./types";
  * - Client-side → localhost:5000
  * - Server-side (Next.js in Docker) → clockwise-backend:5000
  */
-const baseURL =
-  typeof window === "undefined"
-    ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL // server-side (Docker/SSR)
-    : process.env.NEXT_PUBLIC_API_URL || window.location.origin; // browser defaults to same-origin for Next.js rewrite
+const baseURL = "https://loath-lila-unflowing.ngrok-free.dev";
 
 // Fallback to relative /api when no base is set
 const cleanBase = baseURL ? baseURL.replace(/\/$/, "") : "";
@@ -154,7 +151,12 @@ function transformTimeEntries(raw: any[]) {
 export async function getCompanies() {
   try {
     const res = await axios.get(`${API_URL}/companies`);
-    return safeApiResponse(res) ?? [];
+    const data = safeApiResponse(res);
+    if (!Array.isArray(data)) {
+      console.error('Received non-array response from /companies:', data);
+      return [];
+    }
+    return data ?? [];
   } catch (error) {
     console.error(" Error fetching companies:", error);
     return [];
@@ -186,7 +188,12 @@ export async function getUsers() {
 export async function getProjectGroups() {
   try {
     const res = await axios.get(`${API_URL}/project-groups`);
-    return safeApiResponse(res) ?? [];
+    const data = safeApiResponse(res);
+    if (!Array.isArray(data)) {
+      console.error('Received non-array response from /project-groups:', data);
+      return [];
+    }
+    return data ?? [];
   } catch (error) {
     console.error(" Error fetching groups:", error);
     return [];
@@ -197,7 +204,12 @@ export async function getProjects(groupId?: number) {
   try {
     const params = groupId ? `?groupId=${groupId}` : "";
     const res = await axios.get(`${API_URL}/projects${params}`);
-    return safeApiResponse(res) ?? [];
+    const data = safeApiResponse(res);
+    if (!Array.isArray(data)) {
+      console.error('Received non-array response from /projects:', data);
+      return [];
+    }
+    return data ?? [];
   } catch (error) {
     console.error(" Error:", error);
     return [];

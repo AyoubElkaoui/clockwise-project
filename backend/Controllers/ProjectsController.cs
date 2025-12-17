@@ -9,23 +9,35 @@ namespace ClockwiseProject.Backend.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly IFirebirdDataRepository _repository;
+        private readonly ILogger<ProjectsController> _logger;
 
-        public ProjectsController(IFirebirdDataRepository repository)
+        public ProjectsController(IFirebirdDataRepository repository, ILogger<ProjectsController> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Project>>> GetProjects([FromQuery] int? groupId)
         {
-            if (!groupId.HasValue)
+            try
             {
-                var allProjects = await _repository.GetAllProjectsAsync();
-                return Ok(allProjects);
-            }
+                if (!groupId.HasValue)
+                {
+                    var allProjects = await _repository.GetAllProjectsAsync();
+                    _logger.LogInformation("Retrieved {Count} projects", allProjects.Count());
+                    return Ok(allProjects);
+                }
 
-            var projects = await _repository.GetProjectsByGroupAsync(groupId.Value);
-            return Ok(projects);
+                var projects = await _repository.GetProjectsByGroupAsync(groupId.Value);
+                _logger.LogInformation("Retrieved {Count} projects for group {GroupId}", projects.Count(), groupId.Value);
+                return Ok(projects);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving projects");
+                return StatusCode(500, "Internal server error");
+            }
         }
     }
 }

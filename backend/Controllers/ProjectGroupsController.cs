@@ -9,10 +9,12 @@ namespace ClockwiseProject.Backend.Controllers
     public class ProjectGroupsController : ControllerBase
     {
         private readonly IFirebirdDataRepository _repository;
+        private readonly ILogger<ProjectGroupsController> _logger;
 
-        public ProjectGroupsController(IFirebirdDataRepository repository)
+        public ProjectGroupsController(IFirebirdDataRepository repository, ILogger<ProjectGroupsController> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -21,10 +23,12 @@ namespace ClockwiseProject.Backend.Controllers
             try
             {
                 var groups = await _repository.GetProjectGroupsAsync();
+                _logger.LogInformation("Retrieved {Count} project groups", groups.Count());
                 return Ok(groups);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving project groups");
                 return StatusCode(500, ex.Message);
             }
         }
@@ -35,10 +39,12 @@ namespace ClockwiseProject.Backend.Controllers
             try
             {
                 var groups = await _repository.GetProjectGroupsByCompanyAsync(companyId);
+                _logger.LogInformation("Retrieved {Count} project groups for company {CompanyId}", groups.Count(), companyId);
                 return Ok(groups);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving project groups for company {CompanyId}", companyId);
                 return StatusCode(500, ex.Message);
             }
         }
