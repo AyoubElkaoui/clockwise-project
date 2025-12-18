@@ -36,6 +36,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Add ProblemDetails service for exception handling
+builder.Services.AddProblemDetails();
+
 // Configure Firebird connection
 var firebirdConnectionString = builder.Configuration["FIREBIRD_CONNECTION"];
 builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
