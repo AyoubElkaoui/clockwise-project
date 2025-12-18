@@ -87,15 +87,36 @@ app.MapControllers();
 // Add route for /api/projects/group/{groupId} to match frontend
 app.MapGet("/api/projects/group/{groupId}", async (string groupId, IFirebirdDataRepository repository) =>
 {
-    if (int.TryParse(groupId, out var id))
+    try
     {
-        var projects = await repository.GetProjectsByGroupAsync(id);
-        return Results.Ok(projects);
+        if (int.TryParse(groupId, out var id))
+        {
+            var projects = await repository.GetProjectsByGroupAsync(id);
+            return Results.Ok(projects);
+        }
+        else
+        {
+            var allProjects = await repository.GetAllProjectsAsync();
+            return Results.Ok(allProjects);
+        }
     }
-    else
+    catch (Exception ex)
     {
-        var allProjects = await repository.GetAllProjectsAsync();
-        return Results.Ok(allProjects);
+        return Results.Problem("Error fetching projects");
+    }
+});
+
+// Add route for /api/project-groups
+app.MapGet("/api/project-groups", async (IFirebirdDataRepository repository) =>
+{
+    try
+    {
+        var groups = await repository.GetProjectGroupsAsync();
+        return Results.Ok(groups);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem("Error fetching project groups");
     }
 });
 
@@ -143,6 +164,16 @@ public class MedewGcIdMiddleware
 
         // Skip authentication for vacation endpoints
         if (context.Request.Path.Value?.StartsWith("/api/vacation") == true)
+        {
+            await _next(context);
+            return;
+        }
+
+        // Skip authentication for public endpoints
+        if (context.Request.Path.Value?.StartsWith("/api/projects") == true ||
+            context.Request.Path.Value?.StartsWith("/api/project-groups") == true ||
+            context.Request.Path.Value?.StartsWith("/api/companies") == true ||
+            context.Request.Path.Value?.StartsWith("/api/activities") == true)
         {
             await _next(context);
             return;

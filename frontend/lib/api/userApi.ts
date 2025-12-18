@@ -82,5 +82,8 @@ export async function login(userInput: string, password: string): Promise<User> 
   localStorage.setItem("lastName", user.lastName || "");
   localStorage.setItem("userRank", user.rank || "user");
 
+  // Set X-MEDEW-GC-ID header for all subsequent requests
+  axios.defaults.headers.common['X-MEDEW-GC-ID'] = user.id;
+
   return user;
 }

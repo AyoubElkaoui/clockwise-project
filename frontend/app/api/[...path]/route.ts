@@ -7,13 +7,18 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
   const url = `${BACKEND_URL}/api/${path}?${request.nextUrl.searchParams}`;
 
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': '1',
+    };
+    const medewGcId = request.headers.get('X-MEDEW-GC-ID');
+    if (medewGcId) {
+      headers['X-MEDEW-GC-ID'] = medewGcId;
+    }
+
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '1', // Voor ngrok HTML warning
-        // Voeg andere headers toe als nodig (bijv. auth)
-      },
+      headers,
     });
 
     const data = await response.json();
@@ -29,12 +34,18 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
 
   try {
     const body = await request.json();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': '1',
+    };
+    const medewGcId = request.headers.get('X-MEDEW-GC-ID');
+    if (medewGcId) {
+      headers['X-MEDEW-GC-ID'] = medewGcId;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '1',
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
