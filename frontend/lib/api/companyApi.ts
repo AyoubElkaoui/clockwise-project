@@ -1,8 +1,8 @@
 // API calls voor bedrijven, project groepen en projecten
 import axios from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-const API_URL = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
+// Use relative URLs to ensure axios interceptors apply
+const API_URL = "/api";
 
 export interface Company {
   id: number;
