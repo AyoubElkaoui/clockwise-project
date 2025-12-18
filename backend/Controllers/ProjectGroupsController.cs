@@ -20,33 +20,17 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProjectGroup>>> GetProjectGroups()
         {
-            try
-            {
-                var groups = await _repository.GetProjectGroupsAsync();
-                _logger.LogInformation("Retrieved {Count} project groups", groups.Count());
-                return Ok(groups);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving project groups");
-                return StatusCode(500, ex.Message);
-            }
+            var groups = await _repository.GetProjectGroupsAsync();
+            _logger.LogInformation("Retrieved {Count} project groups", groups.Count());
+            return Ok(groups);
         }
 
         [HttpGet("company/{companyId}")]
         public async Task<ActionResult<IEnumerable<ProjectGroup>>> GetProjectGroupsByCompany(int companyId)
         {
-            try
-            {
-                var groups = await _repository.GetProjectGroupsByCompanyAsync(companyId);
-                _logger.LogInformation("Retrieved {Count} project groups for company {CompanyId}", groups.Count(), companyId);
-                return Ok(groups);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving project groups for company {CompanyId}", companyId);
-                return StatusCode(500, ex.Message);
-            }
+            var groups = await _repository.GetProjectGroupsByCompanyAsync(companyId);
+            _logger.LogInformation("Retrieved {Count} project groups for company {CompanyId}", groups.Count(), companyId);
+            return Ok(groups);
         }
     }
 }

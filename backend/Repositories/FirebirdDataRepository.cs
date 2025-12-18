@@ -22,17 +22,9 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<ClockwiseProject.Domain.Company>> GetCompaniesAsync()
         {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-                const string sql = "SELECT GC_ID AS Id, GC_OMSCHRIJVING AS Name FROM AT_ADMINIS ORDER BY GC_OMSCHRIJVING";
-                return await connection.QueryAsync<Company>(sql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving companies");
-                return Enumerable.Empty<ClockwiseProject.Domain.Company>();
-            }
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_ID AS Id, GC_OMSCHRIJVING AS Name FROM AT_ADMINIS ORDER BY GC_OMSCHRIJVING";
+            return await connection.QueryAsync<Company>(sql);
         }
 
         public async Task<bool> IsMedewActiveAsync(int medewGcId)
@@ -45,17 +37,9 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.ProjectGroup>> GetProjectGroupsAsync()
         {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-                const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Description FROM AT_WERKGRP ORDER BY GC_CODE";
-                return await connection.QueryAsync<BackendProjectGroup>(sql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving project groups");
-                return Enumerable.Empty<ClockwiseProject.Backend.Models.ProjectGroup>();
-            }
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Description FROM AT_WERKGRP ORDER BY GC_CODE";
+            return await connection.QueryAsync<BackendProjectGroup>(sql);
         }
 
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.ProjectGroup>> GetProjectGroupsByCompanyAsync(int companyId)
@@ -314,17 +298,9 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetAllProjectsAsync()
         {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-                const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId, GC_OMSCHRIJVING AS Description FROM AT_WERK ORDER BY GC_CODE";
-                return await connection.QueryAsync<ClockwiseProject.Backend.Models.Project>(sql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving projects");
-                return Enumerable.Empty<ClockwiseProject.Backend.Models.Project>();
-            }
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId, GC_OMSCHRIJVING AS Description FROM AT_WERK ORDER BY GC_CODE";
+            return await connection.QueryAsync<ClockwiseProject.Backend.Models.Project>(sql);
         }
 
         public async Task<DateTime?> GetPeriodBeginDateAsync(int urenperGcId)

@@ -73,6 +73,7 @@ if (app.Environment.IsDevelopment())
     // Middleware volgorde: belangrijk voor CORS
 app.UseRouting();
 app.UseCors("AllowSpecificOrigins");
+app.UseExceptionHandler();
 }
 
 // Add dummy holidays endpoint before middleware so it doesn't require auth
@@ -87,36 +88,15 @@ app.MapControllers();
 // Add route for /api/projects/group/{groupId} to match frontend
 app.MapGet("/api/projects/group/{groupId}", async (string groupId, IFirebirdDataRepository repository) =>
 {
-    try
+    if (int.TryParse(groupId, out var id))
     {
-        if (int.TryParse(groupId, out var id))
-        {
-            var projects = await repository.GetProjectsByGroupAsync(id);
-            return Results.Ok(projects);
-        }
-        else
-        {
-            var allProjects = await repository.GetAllProjectsAsync();
-            return Results.Ok(allProjects);
-        }
+        var projects = await repository.GetProjectsByGroupAsync(id);
+        return Results.Ok(projects);
     }
-    catch (Exception ex)
+    else
     {
-        return Results.Problem("Error fetching projects");
-    }
-});
-
-// Add route for /api/project-groups
-app.MapGet("/api/project-groups", async (IFirebirdDataRepository repository) =>
-{
-    try
-    {
-        var groups = await repository.GetProjectGroupsAsync();
-        return Results.Ok(groups);
-    }
-    catch (Exception ex)
-    {
-        return Results.Problem("Error fetching project groups");
+        var allProjects = await repository.GetAllProjectsAsync();
+        return Results.Ok(allProjects);
     }
 });
 
@@ -141,39 +121,8 @@ public class MedewGcIdMiddleware
             return;
         }
 
-        // Skip authentication for holidays endpoint
-        if (context.Request.Path.Value?.Contains("/api/holidays") == true)
-        {
-            await _next(context);
-            return;
-        }
-
         // Skip authentication for login endpoint
         if (context.Request.Path.Value?.EndsWith("/api/users/login") == true && context.Request.Method == "POST")
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip authentication for seed endpoint
-        if (context.Request.Path.Value?.EndsWith("/api/users/seed") == true && context.Request.Method == "POST")
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip authentication for vacation endpoints
-        if (context.Request.Path.Value?.StartsWith("/api/vacation") == true)
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip authentication for public endpoints
-        if (context.Request.Path.Value?.StartsWith("/api/projects") == true ||
-            context.Request.Path.Value?.StartsWith("/api/project-groups") == true ||
-            context.Request.Path.Value?.StartsWith("/api/companies") == true ||
-            context.Request.Path.Value?.StartsWith("/api/activities") == true)
         {
             await _next(context);
             return;

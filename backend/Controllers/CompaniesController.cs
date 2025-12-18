@@ -22,17 +22,9 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Company>>> GetCompanies()
         {
-            try
-            {
-                var companies = await _repository.GetCompaniesAsync();
-                _logger.LogInformation("Retrieved {Count} companies", companies.Count());
-                return Ok(companies);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving companies");
-                return StatusCode(500, "Internal server error");
-            }
+            var companies = await _repository.GetCompaniesAsync();
+            _logger.LogInformation("Retrieved {Count} companies", companies.Count());
+            return Ok(companies);
         }
     }
 }

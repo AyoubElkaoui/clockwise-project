@@ -20,24 +20,16 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Project>>> GetProjects([FromQuery] int? groupId)
         {
-            try
+            if (!groupId.HasValue)
             {
-                if (!groupId.HasValue)
-                {
-                    var allProjects = await _repository.GetAllProjectsAsync();
-                    _logger.LogInformation("Retrieved {Count} projects", allProjects.Count());
-                    return Ok(allProjects);
-                }
+                var allProjects = await _repository.GetAllProjectsAsync();
+                _logger.LogInformation("Retrieved {Count} projects", allProjects.Count());
+                return Ok(allProjects);
+            }
 
-                var projects = await _repository.GetProjectsByGroupAsync(groupId.Value);
-                _logger.LogInformation("Retrieved {Count} projects for group {GroupId}", projects.Count(), groupId.Value);
-                return Ok(projects);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving projects");
-                return StatusCode(500, "Internal server error");
-            }
+            var projects = await _repository.GetProjectsByGroupAsync(groupId.Value);
+            _logger.LogInformation("Retrieved {Count} projects for group {GroupId}", projects.Count(), groupId.Value);
+            return Ok(projects);
         }
     }
 }
