@@ -24,6 +24,7 @@ axios.defaults.headers.common["ngrok-skip-browser-warning"] = "1";
 axios.interceptors.request.use((config) => {
   if (config.url?.startsWith('/api') && !config.url?.includes('/api/users/login')) {
     const medewGcId = localStorage.getItem('medewGcId');
+    console.log('Interceptor: url', config.url, 'medewGcId', medewGcId);
     if (medewGcId) {
       config.headers['X-MEDEW-GC-ID'] = medewGcId;
     }
