@@ -1,5 +1,5 @@
 // app/api/[...path]/route.ts
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   headers.set("ngrok-skip-browser-warning", "1");
 
   const medew = req.headers.get("x-medew-gc-id");
-  if (medew) headers.set("x-medew-gc-id", medew);
+  if (medew) headers.set("X-MEDEW-GC-ID", medew);
 
   const auth = req.headers.get("authorization");
   if (auth) headers.set("authorization", auth);

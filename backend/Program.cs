@@ -124,10 +124,12 @@ app.Run();
 public class MedewGcIdMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<MedewGcIdMiddleware> _logger;
 
-    public MedewGcIdMiddleware(RequestDelegate next)
+    public MedewGcIdMiddleware(RequestDelegate next, ILogger<MedewGcIdMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -146,12 +148,20 @@ public class MedewGcIdMiddleware
             return;
         }
 
+        _logger.LogInformation("MedewGcIdMiddleware: Processing {Method} {Path}", context.Request.Method, context.Request.Path);
+        _logger.LogInformation("MedewGcIdMiddleware: Headers: {Headers}", string.Join(", ", context.Request.Headers.Keys));
+
         if (!context.Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var medewGcIdHeader) ||
             !int.TryParse(medewGcIdHeader, out var medewGcId))
         {
+            _logger.LogWarning("MedewGcIdMiddleware: Missing or invalid X-MEDEW-GC-ID header");
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { error = "Missing or invalid X-MEDEW-GC-ID header" });
             return;
         }
+
+        _logger.LogInformation("MedewGcIdMiddleware: Found MedewGcId={MedewGcId}", medewGcId);
+
         // Store in HttpContext for later use
         context.Items["MedewGcId"] = medewGcId;
         await _next(context);

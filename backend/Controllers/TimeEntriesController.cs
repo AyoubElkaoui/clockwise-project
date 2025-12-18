@@ -84,10 +84,22 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpPost("work")]
         public async Task<IActionResult> PostWorkEntries([FromBody] BulkWorkEntryDto dto)
         {
-            if (dto == null || dto.Regels == null || !dto.Regels.Any())
-                return BadRequest("Invalid input");
+            _logger.LogInformation("PostWorkEntries called");
 
-            var medewGcId = (int)HttpContext.Items["MedewGcId"]!;
+            if (dto == null || dto.Regels == null || !dto.Regels.Any())
+            {
+                _logger.LogWarning("Invalid input: dto={Dto}, regels={Regels}", dto, dto?.Regels);
+                return BadRequest("Invalid input");
+            }
+
+            if (!HttpContext.Items.TryGetValue("MedewGcId", out var medewObj) || medewObj is not int medewGcId)
+            {
+                _logger.LogError("MedewGcId not found in HttpContext.Items");
+                return Unauthorized("Missing or invalid MedewGcId");
+            }
+
+            _logger.LogInformation("Processing work entries for medewGcId={MedewGcId}, regels count={Count}", medewGcId, dto.Regels.Count);
+
             try
             {
                 await _timeEntryService.InsertWorkEntriesAsync(medewGcId, dto);
@@ -95,16 +107,18 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning(ex, "Invalid operation while inserting work entries for medewGcId={MedewGcId}", medewGcId);
                 return StatusCode(422, new ProblemDetails { Title = "Urenstaat ontbreekt", Detail = ex.Message });
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning(ex, "Invalid argument while inserting work entries for medewGcId={MedewGcId}", medewGcId);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error inserting work entries");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Error inserting work entries for medewGcId={MedewGcId}", medewGcId);
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message, stackTrace = ex.StackTrace?.Substring(0, Math.Min(500, ex.StackTrace?.Length ?? 0)) });
             }
         }
 
