@@ -1,93 +1,91 @@
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/[...path]/route.ts
+import { NextRequest } from "next/server";
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://loath-lila-unflowing.ngrok-free.dev';
-
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const path = params.path.join('/');
-  const url = `${BACKEND_URL}/api/${path}?${request.nextUrl.searchParams}`;
-
-  try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': '1',
-    };
-    const medewGcId = request.headers.get('X-MEDEW-GC-ID');
-    if (medewGcId) {
-      headers['X-MEDEW-GC-ID'] = medewGcId;
-    }
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-    });
-
-    const contentType = response.headers.get('content-type') || '';
-    let data: any;
-    if (contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
-    if (!response.ok) {
-      return NextResponse.json({
-        error: 'Upstream error',
-        status: response.status,
-        url,
-        bodySnippet: typeof data === 'string' ? data.substring(0, 200) : JSON.stringify(data).substring(0, 200)
-      }, { status: 500 });
-    }
-
-    return NextResponse.json(data, { status: response.status });
-  } catch (error) {
-    return NextResponse.json({ error: 'Proxy error', details: (error as Error).message }, { status: 500 });
-  }
+const RAW_BACKEND = process.env.BACKEND_URL || process.env.INTERNAL_API_URL || "";
+if (!RAW_BACKEND) {
+  console.warn("BACKEND_URL / INTERNAL_API_URL is not set");
 }
 
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const path = params.path.join('/');
-  const url = `${BACKEND_URL}/api/${path}`;
+function normalizeBase(url: string) {
+  // Remove trailing slash and optional trailing /api
+  return url.replace(/\/$/, "").replace(/\/api$/, "");
+}
 
-  try {
-    const body = await request.json();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': '1',
-    };
-    const medewGcId = request.headers.get('X-MEDEW-GC-ID');
-    if (medewGcId) {
-      headers['X-MEDEW-GC-ID'] = medewGcId;
-    }
+function filterResponseHeaders(headers: Headers) {
+  // Avoid invalid hop-by-hop headers
+  const out = new Headers(headers);
+  out.delete("content-encoding"); // Vercel may recompress
+  out.delete("content-length");
+  out.delete("transfer-encoding");
+  out.delete("connection");
+  return out;
+}
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
+async function proxy(req: NextRequest, params: { path: string[] }) {
+  const base = normalizeBase(RAW_BACKEND);
+  const path = params.path?.join("/") ?? "";
+  const search = new URL(req.url).search; // includes ?...
+  const upstreamUrl = `${base}/api/${path}${search}`;
 
-    const contentType = response.headers.get('content-type') || '';
-    let data: any;
-    if (contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
+  // Build upstream headers (forward only what you need)
+  const headers = new Headers();
+  headers.set("ngrok-skip-browser-warning", "1");
 
-    if (!response.ok) {
-      return NextResponse.json({
-        error: 'Upstream error',
-        status: response.status,
-        url,
-        bodySnippet: typeof data === 'string' ? data.substring(0, 200) : JSON.stringify(data).substring(0, 200)
-      }, { status: 500 });
-    }
+  const medew = req.headers.get("x-medew-gc-id");
+  if (medew) headers.set("x-medew-gc-id", medew);
 
-    return NextResponse.json(data, { status: response.status });
-  } catch (error) {
-    return NextResponse.json({ error: 'Proxy error', details: (error as Error).message }, { status: 500 });
-  }
+  const auth = req.headers.get("authorization");
+  if (auth) headers.set("authorization", auth);
+
+  const cookie = req.headers.get("cookie");
+  if (cookie) headers.set("cookie", cookie);
+
+  const contentType = req.headers.get("content-type");
+  if (contentType) headers.set("content-type", contentType);
+
+  console.log("[proxy]", req.method, req.nextUrl.pathname + req.nextUrl.search, "->", upstreamUrl);
+
+  const upstreamRes = await fetch(upstreamUrl, {
+    method: req.method,
+    headers,
+    body: req.method === "GET" || req.method === "HEAD" ? undefined : req.body,
+    cache: "no-store",
+    redirect: "manual",
+  });
+
+  console.log(
+    "[proxy upstream]",
+    upstreamRes.status,
+    upstreamRes.headers.get("content-type") || "(no content-type)"
+  );
+
+  // Return upstream body as-is (no .json() / .text() parsing)
+  const resHeaders = filterResponseHeaders(upstreamRes.headers);
+  resHeaders.set("cache-control", "no-store");
+
+  return new Response(upstreamRes.body, {
+    status: upstreamRes.status,
+    headers: resHeaders,
+  });
+}
+
+export async function GET(req: NextRequest, ctx: { params: { path: string[] } }) {
+  return proxy(req, ctx.params);
+}
+export async function POST(req: NextRequest, ctx: { params: { path: string[] } }) {
+  return proxy(req, ctx.params);
+}
+export async function PUT(req: NextRequest, ctx: { params: { path: string[] } }) {
+  return proxy(req, ctx.params);
+}
+export async function PATCH(req: NextRequest, ctx: { params: { path: string[] } }) {
+  return proxy(req, ctx.params);
+}
+export async function DELETE(req: NextRequest, ctx: { params: { path: string[] } }) {
+  return proxy(req, ctx.params);
 }
 
 // Herhaal voor PUT, DELETE, etc. als nodig
