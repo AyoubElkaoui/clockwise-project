@@ -5,10 +5,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const RAW_BACKEND = process.env.BACKEND_URL || process.env.INTERNAL_API_URL || "";
-if (!RAW_BACKEND) {
-  console.error("BACKEND_URL / INTERNAL_API_URL not set, cannot proxy");
-  return NextResponse.json({ error: "Configuration error" }, { status: 500 });
-}
 
 function normalizeBase(url: string) {
   // Remove trailing slash and optional trailing /api
@@ -26,6 +22,11 @@ function filterResponseHeaders(headers: Headers) {
 }
 
 async function proxy(req: NextRequest, params: { path: string[] }) {
+  if (!RAW_BACKEND) {
+    console.error("BACKEND_URL / INTERNAL_API_URL not set, cannot proxy");
+    return NextResponse.json({ error: "Configuration error" }, { status: 500 });
+  }
+
   const base = normalizeBase(RAW_BACKEND);
   console.log('RAW_BACKEND:', RAW_BACKEND);
   console.log('base:', base);
