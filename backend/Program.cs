@@ -3,6 +3,8 @@ using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend;
 using FirebirdSql.Data.FirebirdClient;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -76,7 +78,7 @@ if (app.Environment.IsDevelopment())
     // Middleware volgorde: belangrijk voor CORS
 app.UseRouting();
 app.UseCors("AllowSpecificOrigins");
-app.UseExceptionHandler();
+app.UseExceptionHandler("/error");
 }
 
 // Add dummy holidays endpoint before middleware so it doesn't require auth
@@ -85,6 +87,19 @@ app.MapGet("/api/holidays/closed", (int? year) => Results.Ok(new string[0]));
 app.UseMiddleware<MedewGcIdMiddleware>();
 
 app.MapControllers();
+
+app.Map("/error", (HttpContext context) =>
+{
+    var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+    var problemDetails = new ProblemDetails
+    {
+        Status = 500,
+        Title = "An error occurred",
+        Detail = exception?.Message ?? "Internal server error"
+    };
+    context.Response.StatusCode = 500;
+    return context.Response.WriteAsJsonAsync(problemDetails);
+});
 
 
 
