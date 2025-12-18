@@ -57,6 +57,7 @@ axios.interceptors.response.use(
       error.config?.url,
       error.message,
     );
+    console.log('Error data:', error.response?.data);
     return Promise.reject(error);
   },
 );
