@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
 const BACKEND_URL = process.env.BACKEND_URL || 'https://loath-lila-unflowing.ngrok-free.dev';
 
 export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
@@ -21,12 +23,26 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
       headers,
     });
 
-    console.log('Proxy response status:', response.status, 'content-type:', response.headers.get('content-type'));
+    const contentType = response.headers.get('content-type') || '';
+    let data: any;
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
 
-    const data = await response.json();
+    if (!response.ok) {
+      return NextResponse.json({
+        error: 'Upstream error',
+        status: response.status,
+        url,
+        bodySnippet: typeof data === 'string' ? data.substring(0, 200) : JSON.stringify(data).substring(0, 200)
+      }, { status: 500 });
+    }
+
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    return NextResponse.json({ error: 'Proxy error' }, { status: 500 });
+    return NextResponse.json({ error: 'Proxy error', details: (error as Error).message }, { status: 500 });
   }
 }
 
@@ -51,12 +67,26 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
       body: JSON.stringify(body),
     });
 
-    console.log('Proxy response status:', response.status, 'content-type:', response.headers.get('content-type'));
+    const contentType = response.headers.get('content-type') || '';
+    let data: any;
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
 
-    const data = await response.json();
+    if (!response.ok) {
+      return NextResponse.json({
+        error: 'Upstream error',
+        status: response.status,
+        url,
+        bodySnippet: typeof data === 'string' ? data.substring(0, 200) : JSON.stringify(data).substring(0, 200)
+      }, { status: 500 });
+    }
+
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    return NextResponse.json({ error: 'Proxy error' }, { status: 500 });
+    return NextResponse.json({ error: 'Proxy error', details: (error as Error).message }, { status: 500 });
   }
 }
 

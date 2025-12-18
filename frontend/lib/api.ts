@@ -162,8 +162,8 @@ export async function getCompanies() {
     }
     return data ?? [];
   } catch (error) {
-    console.error(" Error fetching companies:", error);
-    return [];
+    console.error("Error fetching companies:", error);
+    throw error; // Laat error bubbelen
   }
 }
 
@@ -215,8 +215,8 @@ export async function getProjects(groupId?: number) {
     }
     return data ?? [];
   } catch (error) {
-    console.error(" Error:", error);
-    return [];
+    console.error("Error fetching projects:", error);
+    throw error; // Laat error bubbelen in plaats van []
   }
 }
 
