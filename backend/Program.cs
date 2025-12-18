@@ -10,10 +10,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure URLs
 builder.WebHost.UseUrls("http://localhost:5000");
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+    {
+        policy.WithOrigins(
+                "https://clockwise-project.vercel.app",
+                "http://localhost:3000",
+                "http://localhost:3001"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Alleen als je cookies/auth headers nodig hebt; anders weghalen
+    });
+});
 
 // Configure Firebird connection
 var firebirdConnectionString = builder.Configuration["FIREBIRD_CONNECTION"];
@@ -62,7 +73,11 @@ if (app.Environment.IsDevelopment())
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseHttpsRedirection();
+    // Middleware volgorde: belangrijk voor CORS
+app.UseRouting();
+app.UseCors("AllowSpecificOrigins");
+app.UseAuthentication();
+app.UseAuthorization();
 }
 
 app.UseRouting();
