@@ -19,7 +19,7 @@ namespace ClockwiseProject.Backend.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TimeEntry>>> GetTimeEntries([FromQuery] string from, [FromQuery] string to, [FromQuery] int? userId = null)
+        public async Task<ActionResult<TimeEntriesResponse>> GetTimeEntries([FromQuery] string from, [FromQuery] string to, [FromQuery] int? userId = null)
         {
             if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate))
                 return BadRequest("Invalid date format");
@@ -37,8 +37,8 @@ namespace ClockwiseProject.Backend.Controllers
 
             try
             {
-                var entries = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, fromDate, toDate);
-                return Ok(entries);
+                var response = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, fromDate, toDate);
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -53,7 +53,7 @@ namespace ClockwiseProject.Backend.Controllers
         }
 
         [HttpGet("user/{userId}/week")]
-        public async Task<ActionResult<IEnumerable<TimeEntry>>> GetWeekEntries(int userId, [FromQuery] string startDate)
+        public async Task<ActionResult<TimeEntriesResponse>> GetWeekEntries(int userId, [FromQuery] string startDate)
         {
             if (!DateTime.TryParse(startDate, out var start))
                 return BadRequest("Invalid start date");
@@ -68,8 +68,8 @@ namespace ClockwiseProject.Backend.Controllers
 
             try
             {
-                var entries = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, start, end);
-                return Ok(entries);
+                var response = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, start, end);
+                return Ok(response);
             }
             catch (Exception ex)
             {

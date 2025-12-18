@@ -25,10 +25,21 @@ namespace ClockwiseProject.Backend.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<TimeEntry>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
+        public async Task<TimeEntriesResponse> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
         {
             _logger.LogInformation("Getting time entries for medew {MedewGcId} from {From} to {To}", medewGcId, from, to);
-            return await _repository.GetTimeEntriesAsync(medewGcId, from, to);
+            var entries = await _repository.GetTimeEntriesAsync(medewGcId, from, to);
+            var werkGcIds = entries.Where(e => e.WerkGcId.HasValue).Select(e => e.WerkGcId.Value).Distinct();
+            var projects = await _repository.GetProjectsByIdsAsync(werkGcIds);
+            var werkgrpGcIds = projects.Select(p => p.GroupId).Distinct();
+            var projectGroups = await _repository.GetProjectGroupsByIdsAsync(werkgrpGcIds);
+            return new TimeEntriesResponse
+            {
+                Entries = entries,
+                Projects = projects,
+                ProjectGroups = projectGroups,
+                Companies = new List<object>()
+            };
         }
 
         public async Task InsertWorkEntriesAsync(int medewGcId, BulkWorkEntryDto dto)

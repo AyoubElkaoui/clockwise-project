@@ -12,17 +12,27 @@ namespace ClockwiseProject.Backend.Repositories
     public class FirebirdDataRepository : IFirebirdDataRepository
     {
         private readonly FirebirdConnectionFactory _connectionFactory;
+        private readonly ILogger<FirebirdDataRepository> _logger;
 
         public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory, ILogger<FirebirdDataRepository> logger)
         {
             _connectionFactory = connectionFactory;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<ClockwiseProject.Domain.Company>> GetCompaniesAsync()
         {
-            using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS Id, GC_OMSCHRIJVING AS Name FROM AT_ADMINIS ORDER BY GC_OMSCHRIJVING";
-            return await connection.QueryAsync<Company>(sql);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = "SELECT GC_ID AS Id, GC_OMSCHRIJVING AS Name FROM AT_ADMINIS ORDER BY GC_OMSCHRIJVING";
+                return await connection.QueryAsync<Company>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving companies");
+                return Enumerable.Empty<ClockwiseProject.Domain.Company>();
+            }
         }
 
         public async Task<bool> IsMedewActiveAsync(int medewGcId)
@@ -35,9 +45,17 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.ProjectGroup>> GetProjectGroupsAsync()
         {
-            using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode FROM AT_WERKGRP ORDER BY GC_CODE";
-            return await connection.QueryAsync<BackendProjectGroup>(sql);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Description FROM AT_WERKGRP ORDER BY GC_CODE";
+                return await connection.QueryAsync<BackendProjectGroup>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving project groups");
+                return Enumerable.Empty<ClockwiseProject.Backend.Models.ProjectGroup>();
+            }
         }
 
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.ProjectGroup>> GetProjectGroupsByCompanyAsync(int companyId)
@@ -74,27 +92,27 @@ namespace ClockwiseProject.Backend.Repositories
             return await connection.QueryAsync<Period>(sql);
         }
 
-        public async Task<IEnumerable<TimeEntry>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
+        public async Task<IEnumerable<TimeEntryDto>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                SELECT r.GC_ID AS GcId,
-                       r.DOCUMENT_GC_ID AS DocumentGcId,
+                SELECT r.DOCUMENT_GC_ID AS DocumentGcId,
                        r.TAAK_GC_ID AS TaakGcId,
                        r.WERK_GC_ID AS WerkGcId,
-                       u.MEDEW_GC_ID AS MedewGcId,
-                       NULL AS KostsrtGcId,
-                       NULL AS BestparGcId,
-                       NULL AS GcRegelNr,
-                       r.GC_OMSCHRIJVING AS GcOmschrijving,
+                       r.DATUM AS Datum,
                        r.AANTAL AS Aantal,
-                       r.DATUM AS Datum
+                       CASE WHEN w.GC_ID IS NULL THEN 'Geen project (verlof/ziek/feestdag)' ELSE w.GC_CODE END AS ProjectCode,
+                       CASE WHEN w.GC_ID IS NULL THEN NULL ELSE w.GC_OMSCHRIJVING END AS ProjectName,
+                       t.GC_OMSCHRIJVING AS TaskName,
+                       r.GC_OMSCHRIJVING AS Description
                 FROM AT_URENBREG r
                 INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
+                LEFT JOIN AT_WERK w ON w.GC_ID = r.WERK_GC_ID
+                LEFT JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
                 WHERE u.MEDEW_GC_ID = @MedewGcId
                   AND r.DATUM BETWEEN @From AND @To
-                ORDER BY r.DATUM DESC";
-            return await connection.QueryAsync<TimeEntry>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
+                ORDER BY r.DATUM DESC, r.GC_ID DESC";
+            return await connection.QueryAsync<TimeEntryDto>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
         }
 
         public async Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId)
@@ -293,9 +311,17 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetAllProjectsAsync()
         {
-            using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId, GC_OMSCHRIJVING AS Description FROM AT_WERK ORDER BY GC_CODE";
-            return await connection.QueryAsync<ClockwiseProject.Backend.Models.Project>(sql);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId, GC_OMSCHRIJVING AS Description FROM AT_WERK ORDER BY GC_CODE";
+                return await connection.QueryAsync<ClockwiseProject.Backend.Models.Project>(sql);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving projects");
+                return Enumerable.Empty<ClockwiseProject.Backend.Models.Project>();
+            }
         }
 
         public async Task<DateTime?> GetPeriodBeginDateAsync(int urenperGcId)
@@ -303,6 +329,24 @@ namespace ClockwiseProject.Backend.Repositories
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT BEGINDATUM FROM AT_URENPER WHERE GC_ID = @UrenperGcId";
             return await connection.ExecuteScalarAsync<DateTime?>(sql, new { UrenperGcId = urenperGcId });
+        }
+
+        public async Task<IEnumerable<ProjectDto>> GetProjectsByIdsAsync(IEnumerable<int> werkGcIds)
+        {
+            if (!werkGcIds.Any()) return Enumerable.Empty<ProjectDto>();
+            using var connection = _connectionFactory.CreateConnection();
+            var ids = string.Join(",", werkGcIds);
+            var sql = $"SELECT GC_ID AS Id, GC_CODE AS Code, GC_OMSCHRIJVING AS Description, WERKGRP_GC_ID AS GroupId FROM AT_WERK WHERE GC_ID IN ({ids}) ORDER BY GC_CODE";
+            return await connection.QueryAsync<ProjectDto>(sql);
+        }
+
+        public async Task<IEnumerable<ProjectGroupDto>> GetProjectGroupsByIdsAsync(IEnumerable<int> werkgrpGcIds)
+        {
+            if (!werkgrpGcIds.Any()) return Enumerable.Empty<ProjectGroupDto>();
+            using var connection = _connectionFactory.CreateConnection();
+            var ids = string.Join(",", werkgrpGcIds);
+            var sql = $"SELECT GC_ID AS Id, GC_CODE AS Code, GC_OMSCHRIJVING AS Description FROM AT_WERKGRP WHERE GC_ID IN ({ids}) ORDER BY GC_CODE";
+            return await connection.QueryAsync<ProjectGroupDto>(sql);
         }
 
         public FbConnection GetConnection() => _connectionFactory.CreateConnection();

@@ -7,24 +7,24 @@ using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Backend;
 using FirebirdSql.Data.FirebirdClient;
+using Microsoft.Extensions.Configuration.Memory;
 
 namespace ClockwiseProject.Backend.Tests
 {
     public class TimeEntryServiceTests
     {
         private readonly Mock<IFirebirdDataRepository> _mockRepository;
-        private readonly Mock<PostgresDbContext> _mockPostgresContext;
-        private readonly Mock<IConfiguration> _mockConfiguration;
+        private readonly IConfiguration _configuration;
         private readonly Mock<ILogger<TimeEntryService>> _mockLogger;
         private readonly TimeEntryService _service;
 
         public TimeEntryServiceTests()
         {
             _mockRepository = new Mock<IFirebirdDataRepository>();
-            _mockPostgresContext = new Mock<PostgresDbContext>();
-            _mockConfiguration = new Mock<IConfiguration>();
+            var configData = new Dictionary<string, string> { { "AdminisGcId", "1" } };
+            _configuration = new ConfigurationBuilder().AddInMemoryCollection(configData).Build();
             _mockLogger = new Mock<ILogger<TimeEntryService>>();
-            _service = new TimeEntryService(_mockRepository.Object, _mockPostgresContext.Object, _mockConfiguration.Object, _mockLogger.Object);
+            _service = new TimeEntryService(_mockRepository.Object, null, _configuration, _mockLogger.Object);
         }
 
         [Fact]
@@ -34,14 +34,16 @@ namespace ClockwiseProject.Backend.Tests
             var medewGcId = 1;
             var from = DateTime.Now.AddDays(-7);
             var to = DateTime.Now;
-            var expectedEntries = new List<TimeEntry> { new TimeEntry { GcId = 1 } };
+            var expectedEntries = new List<TimeEntryDto> { new TimeEntryDto { DocumentGcId = 1, TaakGcId = 1, WerkGcId = 1, Datum = DateTime.Now, Aantal = 8, ProjectCode = "code", ProjectName = "desc", TaskName = "task", Description = "desc" } };
             _mockRepository.Setup(r => r.GetTimeEntriesAsync(medewGcId, from, to)).ReturnsAsync(expectedEntries);
+            _mockRepository.Setup(r => r.GetProjectsByIdsAsync(It.IsAny<IEnumerable<int>>())).ReturnsAsync(new List<ProjectDto>());
+            _mockRepository.Setup(r => r.GetProjectGroupsByIdsAsync(It.IsAny<IEnumerable<int>>())).ReturnsAsync(new List<ProjectGroupDto>());
 
             // Act
             var result = await _service.GetTimeEntriesAsync(medewGcId, from, to);
 
             // Assert
-            Assert.Equal(expectedEntries, result);
+            Assert.Equal(expectedEntries, result.Entries);
         }
 
         [Fact]
@@ -50,7 +52,7 @@ namespace ClockwiseProject.Backend.Tests
             // Arrange
             var medewGcId = 1;
             var dto = new BulkWorkEntryDto { UrenperGcId = 1, Regels = new List<WorkEntryDto> { new WorkEntryDto { TaakGcId = 1, WerkGcId = 1, Aantal = 8, Datum = DateTime.Now } } };
-            _mockConfiguration.Setup(c => c.GetValue<int>("AdminisGcId", 1)).Returns(1);
+            _mockRepository.Setup(r => r.IsMedewActiveAsync(medewGcId)).ReturnsAsync(true);
             _mockRepository.Setup(r => r.GetDocumentGcIdAsync(medewGcId, dto.UrenperGcId, 1)).ReturnsAsync(1);
             _mockRepository.Setup(r => r.EnsureUrenstatAsync(1, medewGcId, dto.UrenperGcId, It.IsAny<FbTransaction>())).Returns(Task.CompletedTask);
             _mockRepository.Setup(r => r.GetNextRegelNrAsync(1, It.IsAny<FbTransaction>())).ReturnsAsync(1);
@@ -69,7 +71,7 @@ namespace ClockwiseProject.Backend.Tests
             // Arrange
             var medewGcId = 1;
             var dto = new BulkWorkEntryDto { UrenperGcId = 1, Regels = new List<WorkEntryDto> { new WorkEntryDto { TaakGcId = 1, WerkGcId = 1, Aantal = 8, Datum = DateTime.Now } } };
-            _mockConfiguration.Setup(c => c.GetValue<int>("AdminisGcId", 1)).Returns(1);
+            _mockRepository.Setup(r => r.IsMedewActiveAsync(medewGcId)).ReturnsAsync(true);
             _mockRepository.Setup(r => r.GetDocumentGcIdAsync(medewGcId, dto.UrenperGcId, 1)).ReturnsAsync((int?)null);
 
             // Act & Assert
