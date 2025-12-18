@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 
 const RAW_BACKEND = process.env.BACKEND_URL || process.env.INTERNAL_API_URL || "";
 if (!RAW_BACKEND) {
-  console.warn("BACKEND_URL / INTERNAL_API_URL is not set");
+  console.error("BACKEND_URL / INTERNAL_API_URL not set, cannot proxy");
+  return NextResponse.json({ error: "Configuration error" }, { status: 500 });
 }
 
 function normalizeBase(url: string) {
@@ -26,6 +27,8 @@ function filterResponseHeaders(headers: Headers) {
 
 async function proxy(req: NextRequest, params: { path: string[] }) {
   const base = normalizeBase(RAW_BACKEND);
+  console.log('RAW_BACKEND:', RAW_BACKEND);
+  console.log('base:', base);
   const path = params.path?.join("/") ?? "";
   const search = new URL(req.url).search; // includes ?...
   const upstreamUrl = `${base}/api/${path}${search}`;
