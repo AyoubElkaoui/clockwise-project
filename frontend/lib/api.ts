@@ -326,6 +326,7 @@ export async function getTimeEntries(from?: string, to?: string) {
     let raw: any[] = [];
     if (Array.isArray(data)) raw = data;
     else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
+    else if (Array.isArray(data?.Entries)) raw = data.Entries;
     else if (Array.isArray(data?.data)) raw = data.data;
     else return [];
 
