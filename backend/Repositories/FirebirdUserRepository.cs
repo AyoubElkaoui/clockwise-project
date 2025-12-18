@@ -17,7 +17,6 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<IEnumerable<User>> GetAllAsync()
         {
             using var connection = _connectionFactory.CreateConnection();
-            // ACTIEF_JN kolom bestaat NIET in AT_MEDEW
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW";
             return await connection.QueryAsync<User>(sql);
         }
@@ -25,7 +24,6 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<User> GetByIdAsync(int id)
         {
             using var connection = _connectionFactory.CreateConnection();
-            // ACTIEF_JN kolom bestaat NIET in AT_MEDEW
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW WHERE GC_ID = @Id";
             return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
         }
@@ -33,7 +31,6 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<User> GetByLoginNameAsync(string loginName)
         {
             using var connection = _connectionFactory.CreateConnection();
-            // ACTIEF_JN kolom bestaat NIET in AT_MEDEW
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW WHERE GC_ID = @LoginName";
             return await connection.QueryFirstOrDefaultAsync<User>(sql, new { LoginName = loginName });
         }

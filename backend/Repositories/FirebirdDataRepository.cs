@@ -30,8 +30,6 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<bool> IsMedewActiveAsync(int medewGcId)
         {
             using var connection = _connectionFactory.CreateConnection();
-            // ACTIEF_JN kolom bestaat NIET in AT_MEDEW (wel in AT_WGROEP/AT_WNOTIFIC)
-            // Alle medewerkers in AT_MEDEW zijn actief
             const string sql = "SELECT COUNT(*) FROM AT_MEDEW WHERE GC_ID = @MedewGcId";
             var count = await connection.ExecuteScalarAsync<int>(sql, new { MedewGcId = medewGcId });
             _logger.LogInformation("IsMedewActiveAsync: medewGcId={MedewGcId}, exists={Exists}", medewGcId, count > 0);
@@ -99,10 +97,10 @@ namespace ClockwiseProject.Backend.Repositories
                 LEFT JOIN AT_WERK w ON w.GC_ID = r.WERK_GC_ID
                 LEFT JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
                 WHERE u.MEDEW_GC_ID = @MedewGcId
-                  AND r.DATUM BETWEEN @From AND @To
+                  AND r.DATUM >= @From AND r.DATUM < @To
                 ORDER BY r.DATUM DESC, r.GC_ID DESC";
-            var result = await connection.QueryAsync<TimeEntryDto>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
-            _logger.LogInformation("Found {Count} time entries for medew {MedewGcId}", result.Count(), medewGcId);
+            var result = await connection.QueryAsync<TimeEntryDto>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date.AddDays(1) });
+            _logger.LogInformation("Found {Count} time entries", result.Count());
             return result;
         }
 

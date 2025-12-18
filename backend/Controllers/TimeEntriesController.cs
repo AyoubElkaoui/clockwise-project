@@ -77,7 +77,7 @@ namespace ClockwiseProject.Backend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to fetch week entries for user {UserId}", userId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
@@ -117,8 +117,8 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error inserting work entries for medewGcId={MedewGcId}", medewGcId);
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message, stackTrace = ex.StackTrace?.Substring(0, Math.Min(500, ex.StackTrace?.Length ?? 0)) });
+                _logger.LogError(ex, "Error inserting work entries");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
@@ -144,7 +144,7 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
