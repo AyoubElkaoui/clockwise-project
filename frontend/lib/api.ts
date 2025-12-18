@@ -12,27 +12,18 @@ const baseURL = "https://loath-lila-unflowing.ngrok-free.dev";
 const cleanBase = baseURL ? baseURL.replace(/\/$/, "") : "";
 
 // Backend always uses /api prefix
-export const API_URL = cleanBase ? `${cleanBase}/api` : "/api";
+export const API_URL = "/api";
 
 // Set default axios headers
 axios.defaults.headers.common["Content-Type"] = "application/json";
 
+// Belangrijk voor ngrok (ERR_NGROK_6024 HTML pagina omzeilen)
+axios.defaults.headers.common["ngrok-skip-browser-warning"] = "1";
+
 // Request logging
-axios.interceptors.request.use((request) => {
-  // Attach Medew header when available so backend auth middleware passes
-  if (typeof window !== "undefined") {
-    const medewGcId = localStorage.getItem("medewGcId");
-    if (medewGcId) {
-      if (!request.headers) {
-        request.headers = {} as any;
-      }
-      if (!request.headers["X-MEDEW-GC-ID"]) {
-        request.headers["X-MEDEW-GC-ID"] = medewGcId;
-      }
-    }
-  }
-  console.log("API Request:", request.method?.toUpperCase(), request.url);
-  return request;
+axios.interceptors.request.use((config) => {
+  console.log('API Request:', config.method?.toUpperCase(), config.url, 'Headers:', config.headers);
+  return config;
 });
 
 // Response logging

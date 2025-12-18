@@ -25,7 +25,9 @@ export interface Project {
 export async function getCompanies(): Promise<Company[]> {
   try {
     console.log("Fetching companies from:", `${API_URL}/companies`);
-    const response = await axios.get(`${API_URL}/companies`);
+    const response = await axios.get(`${API_URL}/companies`, {
+      headers: { "ngrok-skip-browser-warning": "1" },
+    });
     console.log("Companies response:", response.data);
     return response.data;
   } catch (error) {
@@ -41,6 +43,7 @@ export async function getProjectGroups(
   try {
     const response = await axios.get(
       `${API_URL}/project-groups/company/${companyId}`,
+      { headers: { "ngrok-skip-browser-warning": "1" } },
     );
     return response.data.map((g: any) => ({
       id: g.gcId,
@@ -58,6 +61,7 @@ export async function getProjects(projectGroupId: number): Promise<Project[]> {
   try {
     const response = await axios.get(
       `${API_URL}/projects/group/${projectGroupId}`,
+      { headers: { "ngrok-skip-browser-warning": "1" } },
     );
     return response.data.map((p: any) => ({
       id: p.gcId,
