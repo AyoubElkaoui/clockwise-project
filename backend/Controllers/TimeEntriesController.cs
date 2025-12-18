@@ -32,8 +32,11 @@ namespace ClockwiseProject.Backend.Controllers
             var medewGcId = ResolveMedewGcId(userId);
             if (!medewGcId.HasValue)
             {
+                _logger.LogWarning("No medewGcId resolved for userId {UserId}", userId);
                 return Unauthorized("Missing medewGcId");
             }
+
+            _logger.LogInformation("Fetching time entries for medewGcId {MedewGcId}", medewGcId.Value);
 
             try
             {

@@ -94,6 +94,7 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<TimeEntryDto>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
         {
+            _logger.LogInformation("Getting time entries for medew {MedewGcId} from {From} to {To}", medewGcId, from, to);
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
                 SELECT r.DOCUMENT_GC_ID AS DocumentGcId,
@@ -112,7 +113,9 @@ namespace ClockwiseProject.Backend.Repositories
                 WHERE u.MEDEW_GC_ID = @MedewGcId
                   AND r.DATUM BETWEEN @From AND @To
                 ORDER BY r.DATUM DESC, r.GC_ID DESC";
-            return await connection.QueryAsync<TimeEntryDto>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
+            var result = await connection.QueryAsync<TimeEntryDto>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
+            _logger.LogInformation("Found {Count} time entries", result.Count());
+            return result;
         }
 
         public async Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId)

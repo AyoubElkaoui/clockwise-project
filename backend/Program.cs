@@ -7,8 +7,18 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
 // Configure URLs
 builder.WebHost.UseUrls("http://localhost:5000");
+
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -48,19 +58,6 @@ builder.Services.AddScoped<VacationService>();
 builder.Services.AddScoped<TimeEntryService>();
 builder.Services.AddScoped<ActivityService>();
 
-// Add CORS policy
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
-
-// Add middleware for X-MEDEW-GC-ID
-
 
 var app = builder.Build();
 
@@ -76,20 +73,12 @@ if (app.Environment.IsDevelopment())
     // Middleware volgorde: belangrijk voor CORS
 app.UseRouting();
 app.UseCors("AllowSpecificOrigins");
-app.UseAuthentication();
-app.UseAuthorization();
 }
-
-app.UseRouting();
-
-app.UseCors("AllowFrontend");
 
 // Add dummy holidays endpoint before middleware so it doesn't require auth
 app.MapGet("/api/holidays/closed", (int? year) => Results.Ok(new string[0]));
 
 app.UseMiddleware<MedewGcIdMiddleware>();
-
-app.UseAuthorization();
 
 app.MapControllers();
 
