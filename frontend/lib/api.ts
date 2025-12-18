@@ -130,7 +130,9 @@ function transformTimeEntries(raw: any[]) {
         entry.WerkGcId ??
         entry.WERK_GC_ID ??
         0,
-      projectName: entry.project?.name || "",
+      projectCode: entry.ProjectCode || entry.projectCode,
+      projectName: entry.ProjectName || entry.projectName || entry.project?.name || "",
+      taskName: entry.TaskName || entry.taskName,
       projectGroupId: entry.project?.projectGroupId || 0,
       projectGroupName: entry.project?.projectGroup?.name || "",
       companyId: entry.project?.projectGroup?.companyId || 0,
@@ -138,7 +140,7 @@ function transformTimeEntries(raw: any[]) {
       km: entry.distanceKm || 0,
       expenses: entry.expenses || 0,
       breakMinutes: entry.breakMinutes || 0,
-      notes: entry.notes || entry.GcOmschrijving || entry.GC_OMSCHRIJVING || "",
+      notes: entry.notes || entry.Description || entry.description || entry.GcOmschrijving || entry.GC_OMSCHRIJVING || "",
       status: entry.status || entry.Status || "opgeslagen",
     };
   });
@@ -369,7 +371,8 @@ export async function getEnrichedTimeEntries(from?: string, to?: string) {
 
     const enriched = {
       ...entry,
-      projectName: project ? project.gcCode : `Project ${entry.projectId}`,
+      projectCode: entry.projectCode || (project ? project.gcCode : `Project ${entry.projectId}`),
+      projectName: entry.projectName || (project ? project.gcCode : `Project ${entry.projectId}`),
       projectGroupName: group ? group.gcCode : "",
       companyName: company || `Bedrijf ${group?.adminisGcId || 0}`,
     };

@@ -41,7 +41,9 @@ interface TimeEntryWithDetails {
   userId: number;
   date: string;
   projectId: number;
+  projectCode?: string;
   projectName?: string;
+  taskName?: string;
   companyId: number;
   companyName?: string;
   projectGroupId: number;
@@ -649,25 +651,16 @@ export default function UrenOverzichtPage() {
                             Datum
                           </th>
                           <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            Project
-                          </th>
-                          <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            Groep
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
                             Uren
                           </th>
-                          <th className="text-center py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            KM
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            Onkosten
-                          </th>
-                          <th className="text-center py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            Status
+                          <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                            Projectcode
                           </th>
                           <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                            Opmerkingen
+                            Projectnaam
+                          </th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                            Taak
                           </th>
                         </tr>
                       </thead>
@@ -682,32 +675,17 @@ export default function UrenOverzichtPage() {
                                 "DD/MM/YYYY",
                               )}
                             </td>
+                            <td className="py-3 px-4 text-center font-semibold text-blue-600 dark:text-blue-400">
+                              {entry.hours}u
+                            </td>
+                            <td className="py-3 px-4 text-slate-900 dark:text-slate-100">
+                              {entry.projectCode}
+                            </td>
                             <td className="py-3 px-4 text-slate-900 dark:text-slate-100">
                               {entry.projectName}
                             </td>
                             <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                              {entry.projectGroupName ||
-                                `Groep ${entry.projectId}`}
-                            </td>
-                            <td className="py-3 px-4 text-center font-semibold text-blue-600 dark:text-blue-400">
-                              {entry.hours}u
-                            </td>
-                            <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-400">
-                              {entry.km || 0}
-                            </td>
-                            <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-400">
-                              €{entry.expenses?.toFixed(2) || "0.00"}
-                            </td>
-                            <td className="py-3 px-4 text-center">
-                              <Badge
-                                variant={getStatusBadgeVariant(entry.status)}
-                                size="sm"
-                              >
-                                {getStatusLabel(entry.status)}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400 truncate max-w-xs">
-                              {entry.notes || "-"}
+                              {entry.taskName}
                             </td>
                           </tr>
                         ))}
