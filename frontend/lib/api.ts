@@ -20,12 +20,6 @@ axios.defaults.headers.common["Content-Type"] = "application/json";
 // Belangrijk voor ngrok (ERR_NGROK_6024 HTML pagina omzeilen)
 axios.defaults.headers.common["ngrok-skip-browser-warning"] = "1";
 
-// Set X-MEDEW-GC-ID if user is logged in
-const userId = localStorage.getItem("userId");
-if (userId) {
-  axios.defaults.headers.common['X-MEDEW-GC-ID'] = userId;
-}
-
 // Request logging
 axios.interceptors.request.use((config) => {
   console.log('API Request:', config.method?.toUpperCase(), config.url, 'Headers:', config.headers);
