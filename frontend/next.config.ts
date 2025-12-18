@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   outputFileTracingRoot: process.cwd(),
   reactStrictMode: false,
-  output: "standalone",
+  // output: "standalone", // Verwijderd voor default Next.js build (API routes werken)
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "",
     INTERNAL_API_URL: process.env.INTERNAL_API_URL ?? "",

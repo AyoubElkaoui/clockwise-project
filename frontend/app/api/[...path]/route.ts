@@ -56,6 +56,12 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
     redirect: "manual",
   });
 
+  console.error("[proxy debug] Upstream failed?", upstreamRes.status, upstreamRes.headers.get("content-type"));
+  if (!upstreamRes.ok) {
+    const bodyText = await upstreamRes.text();
+    console.error("[proxy debug] Upstream body:", bodyText.substring(0, 500));
+  }
+
   console.log(
     "[proxy upstream]",
     upstreamRes.status,
