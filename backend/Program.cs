@@ -53,7 +53,7 @@ builder.Services.AddDbContext<PostgresDbContext>(options =>
 // Register repositories
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
 builder.Services.AddScoped<IUserRepository, FirebirdUserRepository>();
-builder.Services.AddSingleton<IVacationRepository, InMemoryVacationRepository>();
+builder.Services.AddSingleton<IVacationRepository, FirebirdVacationRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 
 // Register services

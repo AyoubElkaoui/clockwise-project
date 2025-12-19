@@ -461,7 +461,7 @@ export default function TimeRegistrationPage() {
         return;
       }
       const urenperGcId = getCurrentPeriodId();
-      await registerWorkTimeEntry(urenperGcId, toSave);
+      await registerWorkTimeEntry(urenperGcId, toSave, "concept");
       showToast("Opgeslagen!", "success");
       await loadEntries();
     } catch (error) {
@@ -505,7 +505,7 @@ export default function TimeRegistrationPage() {
         return;
       }
       const urenperGcId = getCurrentPeriodId();
-      await registerWorkTimeEntry(urenperGcId, toSave);
+      await registerWorkTimeEntry(urenperGcId, toSave, "definitief");
       showToast("Ingeleverd!", "success");
       await loadEntries();
     } catch (error) {

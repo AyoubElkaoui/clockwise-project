@@ -1,5 +1,11 @@
 // Helper functies voor veilig localStorage gebruik
 
+export function getUserId(): number | null {
+  if (typeof window === "undefined") return null;
+  const id = localStorage.getItem("userId");
+  return id ? Number(id) : null;
+}
+
 export function getMedewGcId(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("medewGcId");

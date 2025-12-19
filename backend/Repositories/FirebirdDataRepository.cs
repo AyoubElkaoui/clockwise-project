@@ -6,6 +6,7 @@ using FirebirdSql.Data.FirebirdClient;
 using BackendProject = ClockwiseProject.Backend.Models.Project;
 using BackendProjectGroup = ClockwiseProject.Backend.Models.ProjectGroup;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Repositories
 {
@@ -113,14 +114,9 @@ namespace ClockwiseProject.Backend.Repositories
                        u.MEDEW_GC_ID AS UserId,
                        'time_entry' AS Type,
                        COALESCE(t.GC_OMSCHRIJVING, 'Onbekende taak') || ': ' || COALESCE(r.GC_OMSCHRIJVING, '') AS Message,
-                       CAST(0 AS BOOLEAN) AS IsRead,
+                       FALSE AS IsRead,
                        r.DATUM AS CreatedAt,
-                       CASE 
-                         WHEN u.STATUS = 1 THEN 'concept' 
-                         WHEN u.STATUS = 2 THEN 'ingediend' 
-                         WHEN u.STATUS = 3 THEN 'goedgekeurd' 
-                         ELSE 'afgekeurd' 
-                       END AS Status
+                       'ingediend' AS Status
                 FROM AT_URENBREG r
                 INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
                 LEFT JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
@@ -363,3 +359,4 @@ namespace ClockwiseProject.Backend.Repositories
         public FbConnection GetConnection() => _connectionFactory.CreateConnection();
     }
 }
+

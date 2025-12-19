@@ -25,14 +25,26 @@ namespace ClockwiseProject.Backend.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW WHERE GC_ID = @Id";
-            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
+            var user = await connection.QueryFirstOrDefaultAsync<User>(sql, new { Id = id });
+            if (user != null)
+            {
+                // Set rank based on user ID
+                user.Rank = id == 100002 ? "manager" : "user";
+            }
+            return user;
         }
 
         public async Task<User> GetByLoginNameAsync(string loginName)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW WHERE GC_ID = @LoginName";
-            return await connection.QueryFirstOrDefaultAsync<User>(sql, new { LoginName = loginName });
+            var user = await connection.QueryFirstOrDefaultAsync<User>(sql, new { LoginName = loginName });
+            if (user != null)
+            {
+                // Set rank based on user ID
+                user.Rank = user.Id == 100002 ? "manager" : "user";
+            }
+            return user;
         }
 
         public async Task AddAsync(User user)

@@ -424,12 +424,14 @@ export async function login(medewGcId: string) {
 export async function registerWorkTimeEntry(
   urenperGcId: number,
   entries: any[],
+  status: string = "concept",
 ) {
   const clientRequestId = crypto.randomUUID();
   const data = {
     UrenperGcId: urenperGcId,
     Regels: entries,
     ClientRequestId: clientRequestId,
+    Status: status,
   };
   const medewGcId = localStorage.getItem("medewGcId");
   if (!medewGcId) throw new Error("Not logged in");
