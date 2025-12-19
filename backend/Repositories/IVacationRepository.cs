@@ -7,6 +7,7 @@ namespace ClockwiseProject.Backend.Repositories
     public interface IVacationRepository
     {
         Task<IEnumerable<VacationRequest>> GetAllAsync();
+        Task<IEnumerable<VacationRequest>> GetByUserIdAsync(int userId);
         Task<VacationRequest> GetByIdAsync(int id);
         Task AddAsync(VacationRequest vacationRequest);
         Task UpdateAsync(VacationRequest vacationRequest);

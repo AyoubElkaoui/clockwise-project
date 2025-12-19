@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { ToastContainer } from "@/components/Toast";
 import type { ToastType } from "@/components/Toast";
 import { getUser, updateUser } from "@/lib/api";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
 
 interface ToastMessage {
@@ -78,7 +78,7 @@ export default function AccountPage() {
   const loadUserData = async () => {
     setLoading(true);
     try {
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       console.log("Account page - Loading user:", userId);
       
       if (!userId) {
@@ -109,7 +109,7 @@ export default function AccountPage() {
   const handleSave = async () => {
     if (!userData) return;
     
-    const userId = getUserId();
+    const userId = authUtils.getUserId();
     if (!userId) {
       addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
       return;
@@ -149,7 +149,7 @@ export default function AccountPage() {
       return;
     }
 
-    const userId = getUserId();
+    const userId = authUtils.getUserId();
     if (!userId) {
       addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
       return;

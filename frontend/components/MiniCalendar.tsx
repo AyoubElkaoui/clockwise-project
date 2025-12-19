@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getTimeEntries } from "@/lib/api";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 
 interface DayData {
   hours: number;
@@ -14,7 +14,7 @@ export function MiniCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [dayData, setDayData] = useState<Record<string, DayData>>({});
   const [loading, setLoading] = useState(true);
-  const userId = getUserId();
+  const userId = authUtils.getUserId();
 
   useEffect(() => {
     loadMonthData();

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import { API_URL } from "@/lib/api";
 
 export default function ManagerSettingsPage() {
@@ -79,7 +79,7 @@ export default function ManagerSettingsPage() {
 
     setChangingPassword(true);
     try {
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;

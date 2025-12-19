@@ -30,7 +30,7 @@ import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
@@ -86,7 +86,7 @@ export default function UrenOverzichtPage() {
 
   const loadEntries = async (from?: string, to?: string) => {
     try {
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;

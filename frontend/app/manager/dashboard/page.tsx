@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import {
   Users,
   Clock,
@@ -62,7 +62,7 @@ export default function ManagerDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const managerId = getUserId();
+      const managerId = authUtils.getUserId();
       if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         router.push("/login");

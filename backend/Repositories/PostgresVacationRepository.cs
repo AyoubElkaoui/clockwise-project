@@ -20,6 +20,11 @@ namespace ClockwiseProject.Backend.Repositories
             return await _context.VacationRequests.ToListAsync();
         }
 
+        public async Task<IEnumerable<VacationRequest>> GetByUserIdAsync(int userId)
+        {
+            return await _context.VacationRequests.Where(r => r.UserId == userId).ToListAsync();
+        }
+
         public async Task<VacationRequest> GetByIdAsync(int id)
         {
             return await _context.VacationRequests.FindAsync(id);

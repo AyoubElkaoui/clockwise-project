@@ -42,6 +42,30 @@ namespace ClockwiseProject.Backend.Repositories
             return result;
         }
 
+        public async Task<IEnumerable<VacationRequest>> GetByUserIdAsync(int userId)
+        {
+            _logger.LogInformation("Getting vacation requests for user {UserId} from Firebird", userId);
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = @"
+                SELECT r.DOCUMENT_GC_ID AS Id,
+                       u.MEDEW_GC_ID AS UserId,
+                       r.DATUM AS StartDate,
+                       r.DATUM AS EndDate,
+                       COALESCE(r.UREN, 0) AS Hours,
+                       COALESCE(r.GC_OMSCHRIJVING, '') AS Reason,
+                       'ingediend' AS Status
+                FROM AT_URENBREG r
+                INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
+                INNER JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
+                WHERE t.GC_CODE STARTING WITH 'Z'
+                  AND r.WERK_GC_ID IS NULL
+                  AND u.MEDEW_GC_ID = @UserId
+                ORDER BY r.DATUM DESC";
+            var result = await connection.QueryAsync<VacationRequest>(sql, new { UserId = userId });
+            _logger.LogInformation("Found {Count} vacation requests for user {UserId}", result.Count(), userId);
+            return result;
+        }
+
         public async Task<VacationRequest> GetByIdAsync(int id)
         {
             _logger.LogInformation("Getting vacation request {Id} from Firebird", id);

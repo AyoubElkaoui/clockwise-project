@@ -12,7 +12,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
@@ -47,7 +47,7 @@ export default function NotificatiesPage() {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
@@ -55,24 +55,20 @@ export default function NotificatiesPage() {
 
       let data: Activity[] = [];
 
-      // Voor managers: haal team notificaties op
+      // Voor managers: haal eigen notificaties op (geen team endpoint beschikbaar)
       if (userRank === "manager") {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/team?managerId=${userId}&limit=100`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=100&userId=${userId}`,
+          {
+            headers: {
+              "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            },
+          },
         );
         if (response.ok) {
           data = await response.json();
         } else {
-          // Fallback naar eigen notificaties
-          const fallbackResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=50&userId=${userId}`,
-            {
-              headers: {
-                "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
-              },
-            },
-          );
-          data = await fallbackResponse.json();
+          showToast("Fout bij laden notificaties", "error");
         }
       }
       // Voor admins: haal alle notificaties op

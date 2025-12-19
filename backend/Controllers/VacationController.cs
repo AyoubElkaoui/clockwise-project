@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
+using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Controllers
 {
@@ -12,16 +13,25 @@ namespace ClockwiseProject.Backend.Controllers
     public class VacationController : ControllerBase
     {
         private readonly VacationService _vacationService;
+        private readonly ILogger<VacationController> _logger;
 
-        public VacationController(VacationService vacationService)
+        public VacationController(VacationService vacationService, ILogger<VacationController> logger)
         {
             _vacationService = vacationService;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<VacationRequest>>> GetVacationRequests()
         {
-            var requests = await _vacationService.GetAllVacationRequestsAsync();
+            var medewGcId = ResolveMedewGcId();
+            if (!medewGcId.HasValue)
+            {
+                _logger.LogWarning("No medewGcId resolved for vacation requests");
+                return Unauthorized("Missing medewGcId");
+            }
+
+            var requests = await _vacationService.GetVacationRequestsByUserIdAsync(medewGcId.Value);
             return Ok(requests);
         }
 
@@ -73,6 +83,20 @@ namespace ClockwiseProject.Backend.Controllers
         {
             await _vacationService.RejectVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
             return NoContent();
+        }
+
+        private int? ResolveMedewGcId()
+        {
+            if (HttpContext.Items.TryGetValue("MedewGcId", out var medewObj) && medewObj is int medewFromContext)
+                return medewFromContext;
+
+            if (Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var header) &&
+                int.TryParse(header, out var medewFromHeader))
+            {
+                return medewFromHeader;
+            }
+
+            return null;
         }
     }
 }

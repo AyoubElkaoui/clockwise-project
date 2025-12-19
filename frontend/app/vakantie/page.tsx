@@ -21,7 +21,7 @@ import { getVacationRequests, registerVacationRequest } from "@/lib/api";
 import dayjs from "dayjs";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId, getMedewGcId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
 
 interface VacationRequest {
@@ -54,8 +54,8 @@ export default function VakantiePage() {
   const loadVacationRequests = async () => {
     try {
       setLoading(true);
-      const medewGcId = getMedewGcId();
-      const userId = getUserId();
+      const medewGcId = authUtils.getMedewGcId();
+      const userId = authUtils.getUserId();
       if (!medewGcId || !userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
@@ -93,8 +93,8 @@ export default function VakantiePage() {
     e.preventDefault();
 
     try {
-      const medewGcId = getMedewGcId();
-      const userId = getUserId();
+      const medewGcId = authUtils.getMedewGcId();
+      const userId = authUtils.getUserId();
       if (!medewGcId || !userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;

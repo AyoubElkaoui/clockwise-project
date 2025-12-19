@@ -12,7 +12,7 @@ import isoWeek from "dayjs/plugin/isoWeek";
 import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
 dayjs.locale("nl");
@@ -37,7 +37,7 @@ export default function KalenderPage() {
   const loadEntries = async () => {
     setLoading(true);
     try {
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;

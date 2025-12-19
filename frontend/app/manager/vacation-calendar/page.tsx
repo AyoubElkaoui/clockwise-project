@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import {
   Calendar,
   Settings,
@@ -132,7 +132,7 @@ export default function VacationCalendarPage() {
 
   const loadData = async () => {
     try {
-      const managerId = getUserId();
+      const managerId = authUtils.getUserId();
       if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;

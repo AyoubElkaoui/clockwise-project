@@ -24,7 +24,7 @@ import isBetween from "dayjs/plugin/isBetween";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId, getUserName } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
 
 dayjs.extend(isoWeek);
@@ -51,12 +51,12 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       if (!userId) {
         router.push("/login");
         return;
       }
-      const userName = getUserName();
+      const userName = authUtils.getUserName();
       setFirstName(userName?.firstName || t("dashboard.defaultUserName"));
 
       // Load time entries

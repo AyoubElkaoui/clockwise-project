@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import authUtils from "@/lib/auth-utils";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/nl";
@@ -92,7 +92,7 @@ export default function ManagerApprovePage() {
 
   const loadEntries = async () => {
     try {
-      const managerId = getUserId();
+      const managerId = authUtils.getUserId();
       if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
