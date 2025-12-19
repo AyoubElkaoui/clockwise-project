@@ -331,9 +331,8 @@ export async function getTimeEntries(from?: string, to?: string) {
     let raw: any[] = [];
     // Backend returnt TimeEntriesResponse met Entries (hoofdletter E!)
     if (Array.isArray(data)) raw = data;
-    else if (Array.isArray(data?.Entries)) raw = data.Entries; // ← FIX: Check Entries (hoofdletter)
+    else if (Array.isArray(data?.Entries)) raw = data.Entries; // ← Backend TimeEntriesResponse.Entries
     else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
-    else if (Array.isArray(data?.Entries)) raw = data.Entries;
     else if (Array.isArray(data?.data)) raw = data.data;
     else {
       console.warn('🔍 [getTimeEntries] Unexpected response format:', typeof data, Object.keys(data || {}));
