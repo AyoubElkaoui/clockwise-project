@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
+import axios from "axios";
 import {
   ChevronLeft,
   ChevronRight,
@@ -169,16 +170,11 @@ export default function TimeRegistrationPage() {
     try {
       const year = currentWeek.getFullYear();
       console.log("Loading closed days for year:", year);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/holidays/closed?year=${year}`,
+      const response = await axios.get(
+        `/api/holidays/closed?year=${year}`,
       );
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Loaded closed days:", data);
-        setClosedDays(data);
-      } else {
-        console.error("Failed to load closed days:", response.status);
-      }
+      console.log("Loaded closed days:", response.data);
+      setClosedDays(response.data);
     } catch (error) {
       console.error("Fout bij laden gesloten dagen:", error);
     }
