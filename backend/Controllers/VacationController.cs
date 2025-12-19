@@ -31,7 +31,12 @@ namespace ClockwiseProject.Backend.Controllers
                 return Unauthorized("Missing medewGcId");
             }
 
+            // Temporarily get all requests to debug
+            var allRequests = await _vacationService.GetAllVacationRequestsAsync();
+            _logger.LogInformation("Found {Count} total vacation requests", allRequests.Count());
+
             var requests = await _vacationService.GetVacationRequestsByUserIdAsync(medewGcId.Value);
+            _logger.LogInformation("Found {Count} vacation requests for user {UserId}", requests.Count(), medewGcId.Value);
             return Ok(requests);
         }
 

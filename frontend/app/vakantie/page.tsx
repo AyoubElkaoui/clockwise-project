@@ -63,7 +63,7 @@ export default function VakantiePage() {
 
       // Use the correct API endpoint for user vacation requests
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation`,
+        `/api/vacation`,
         {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
@@ -118,7 +118,7 @@ export default function VakantiePage() {
       const totalHours = workingDays * formData.hours;
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation`,
+        `/api/vacation`,
         {
           method: "POST",
           headers: {

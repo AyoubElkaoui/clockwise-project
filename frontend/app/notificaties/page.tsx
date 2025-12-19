@@ -58,7 +58,7 @@ export default function NotificatiesPage() {
       // Voor managers: haal eigen notificaties op (geen team endpoint beschikbaar)
       if (userRank === "manager") {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=100&userId=${userId}`,
+          `/api/activities?limit=100&userId=${userId}`,
           {
             headers: {
               "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
@@ -74,7 +74,7 @@ export default function NotificatiesPage() {
       // Voor admins: haal alle notificaties op
       else if (userRank === "admin") {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=100`,
+          `/api/activities?limit=100`,
           {
             headers: {
               "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
@@ -86,7 +86,7 @@ export default function NotificatiesPage() {
       // Voor gewone users: alleen eigen notificaties
       else {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities?limit=50&userId=${userId}`,
+          `/api/activities?limit=50&userId=${userId}`,
           {
             headers: {
               "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
@@ -107,11 +107,11 @@ export default function NotificatiesPage() {
 
   const handleMarkAllRead = async () => {
     try {
-      const userId = getUserId();
+      const userId = authUtils.getUserId();
       if (!userId) return;
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/read-all?userId=${userId}`,
+        `/api/activities/read-all?userId=${userId}`,
         {
           method: "PUT",
           headers: {
@@ -134,7 +134,7 @@ export default function NotificatiesPage() {
   const handleMarkRead = async (id: number) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/activities/${id}/read`,
+        `/api/activities/${id}/read`,
         {
           method: "PUT",
           headers: {
