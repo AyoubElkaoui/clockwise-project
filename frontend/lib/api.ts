@@ -329,9 +329,10 @@ export async function getTimeEntries(from?: string, to?: string) {
     console.log('🔍 [getTimeEntries] Raw API response:', data);
 
     let raw: any[] = [];
-    // Backend returnt TimeEntriesResponse met Entries (hoofdletter E!)
+    // Backend returnt TimeEntriesResponse met entries (camelCase!)
     if (Array.isArray(data)) raw = data;
-    else if (Array.isArray(data?.Entries)) raw = data.Entries; // ← Backend TimeEntriesResponse.Entries
+    else if (Array.isArray(data?.entries)) raw = data.entries; // ← Backend TimeEntriesResponse.Entries (camelCase)
+    else if (Array.isArray(data?.Entries)) raw = data.Entries; // fallback
     else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
     else if (Array.isArray(data?.data)) raw = data.data;
     else {

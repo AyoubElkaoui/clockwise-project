@@ -63,6 +63,8 @@ interface ClosedDay {
   reason: string;
 }
 
+const MAX_HOURS_PER_DAY = 8;
+
 function formatDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -428,6 +430,20 @@ export default function TimeRegistrationPage() {
   const saveAll = async () => {
     setSaving(true);
     try {
+      // Validate total hours per day
+      const dayTotals: Record<string, number> = {};
+      Object.values(entries).forEach(e => {
+        if (e.hours > 0) {
+          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
+        }
+      });
+      const invalidDays = Object.entries(dayTotals).filter(([, total]) => total > MAX_HOURS_PER_DAY);
+      if (invalidDays.length > 0) {
+        showToast(`Te veel uren op: ${invalidDays.map(([date]) => date).join(', ')} (max ${MAX_HOURS_PER_DAY}u)`, "error");
+        setSaving(false);
+        return;
+      }
+
       const toSave = Object.values(entries)
         .filter((e) => e.hours > 0)
         .map((e) => ({
@@ -458,6 +474,20 @@ export default function TimeRegistrationPage() {
   const submitAll = async () => {
     setSaving(true);
     try {
+      // Validate total hours per day
+      const dayTotals: Record<string, number> = {};
+      Object.values(entries).forEach(e => {
+        if (e.hours > 0) {
+          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
+        }
+      });
+      const invalidDays = Object.entries(dayTotals).filter(([, total]) => total > MAX_HOURS_PER_DAY);
+      if (invalidDays.length > 0) {
+        showToast(`Te veel uren op: ${invalidDays.map(([date]) => date).join(', ')} (max ${MAX_HOURS_PER_DAY}u)`, "error");
+        setSaving(false);
+        return;
+      }
+
       const toSave = Object.values(entries)
         .filter((e) => e.hours > 0)
         .map((e) => ({
