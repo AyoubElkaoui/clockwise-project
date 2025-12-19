@@ -24,6 +24,7 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<VacationRequest>>> GetVacationRequests()
         {
+            _logger.LogInformation("GetVacationRequests called");
             var medewGcId = ResolveMedewGcId();
             if (!medewGcId.HasValue)
             {
@@ -31,13 +32,23 @@ namespace ClockwiseProject.Backend.Controllers
                 return Unauthorized("Missing medewGcId");
             }
 
-            // Temporarily get all requests to debug
-            var allRequests = await _vacationService.GetAllVacationRequestsAsync();
-            _logger.LogInformation("Found {Count} total vacation requests", allRequests.Count());
+            _logger.LogInformation("Fetching vacation requests for medewGcId: {MedewGcId}", medewGcId.Value);
 
-            var requests = await _vacationService.GetVacationRequestsByUserIdAsync(medewGcId.Value);
-            _logger.LogInformation("Found {Count} vacation requests for user {UserId}", requests.Count(), medewGcId.Value);
-            return Ok(requests);
+            try
+            {
+                // Temporarily get all requests to debug
+                var allRequests = await _vacationService.GetAllVacationRequestsAsync();
+                _logger.LogInformation("Found {Count} total vacation requests", allRequests.Count());
+
+                var requests = await _vacationService.GetVacationRequestsByUserIdAsync(medewGcId.Value);
+                _logger.LogInformation("Found {Count} vacation requests for user {UserId}", requests.Count(), medewGcId.Value);
+                return Ok(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vacation requests for user {UserId}", medewGcId.Value);
+                return StatusCode(500, new { error = "Failed to fetch vacation requests", details = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]

@@ -17,6 +17,16 @@ import authUtils from "@/lib/auth-utils";
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
 
+async function safeJsonParse(response: Response): Promise<any> {
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    const bodyText = await response.text();
+    console.error("[SAFE JSON PARSE] Expected JSON but got:", contentType, "Body snippet:", bodyText.substring(0, 200));
+    throw new Error(`Expected JSON response but got ${contentType || 'unknown'}: ${bodyText.substring(0, 100)}`);
+  }
+  return response.json();
+}
+
 interface Activity {
   id: number;
   userId: number;
@@ -57,43 +67,48 @@ export default function NotificatiesPage() {
 
       // Voor managers: haal eigen notificaties op (geen team endpoint beschikbaar)
       if (userRank === "manager") {
-        const response = await fetch(
-          `/api/activities?limit=100&userId=${userId}`,
-          {
-            headers: {
-              "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
-            },
+        const url = `/api/activities?limit=100&userId=${userId}`;
+        console.log("[NOTIFICATIONS] Fetching from:", url);
+        const response = await fetch(url, {
+          headers: {
+            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
           },
-        );
+        });
+        console.log("[NOTIFICATIONS] Response status:", response.status);
+        console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
         if (response.ok) {
-          data = await response.json();
+          data = await safeJsonParse(response);
         } else {
+          const bodyText = await response.text();
+          console.error("[NOTIFICATIONS] Error response body (first 200 chars):", bodyText.substring(0, 200));
           showToast("Fout bij laden notificaties", "error");
         }
       }
       // Voor admins: haal alle notificaties op
       else if (userRank === "admin") {
-        const response = await fetch(
-          `/api/activities?limit=100`,
-          {
-            headers: {
-              "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
-            },
+        const url = `/api/activities?limit=100`;
+        console.log("[NOTIFICATIONS] Fetching from:", url);
+        const response = await fetch(url, {
+          headers: {
+            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
           },
-        );
-        data = await response.json();
+        });
+        console.log("[NOTIFICATIONS] Response status:", response.status);
+        console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
+        data = await safeJsonParse(response);
       }
       // Voor gewone users: alleen eigen notificaties
       else {
-        const response = await fetch(
-          `/api/activities?limit=50&userId=${userId}`,
-          {
-            headers: {
-              "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
-            },
+        const url = `/api/activities?limit=50&userId=${userId}`;
+        console.log("[NOTIFICATIONS] Fetching from:", url);
+        const response = await fetch(url, {
+          headers: {
+            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
           },
-        );
-        data = await response.json();
+        });
+        console.log("[NOTIFICATIONS] Response status:", response.status);
+        console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
+        data = await safeJsonParse(response);
       }
 
       setNotifications(data);

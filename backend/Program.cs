@@ -42,7 +42,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddProblemDetails();
 
 // Configure Firebird connection
-var firebirdConnectionString = builder.Configuration["FIREBIRD_CONNECTION"];
+var firebirdConnectionString = builder.Configuration["FIREBIRD_CONNECTION"] ?? "Database=C:\\Users\\Ayoub\\Desktop\\clockwise-project\\database\\atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=0;Server=localhost;Port=3050;ClientLibrary=fbclient.dll;Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
 builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
 
 // Configure Postgres (if needed for users)
@@ -78,7 +78,37 @@ if (app.Environment.IsDevelopment())
     // Middleware volgorde: belangrijk voor CORS
 app.UseRouting();
 app.UseCors("AllowSpecificOrigins");
-app.UseExceptionHandler("/error");
+
+// Global exception handler that returns JSON for API routes
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        var problemDetails = new ProblemDetails
+        {
+            Status = 500,
+            Title = "An error occurred",
+            Detail = exception?.Message ?? "Internal server error",
+            Instance = context.Request.Path
+        };
+
+        // Always return JSON for API routes
+        if (context.Request.Path.Value?.StartsWith("/api") == true)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(problemDetails);
+        }
+        else
+        {
+            // For non-API routes, return HTML
+            context.Response.ContentType = "text/html";
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>{problemDetails.Detail}</p></body></html>");
+        }
+    });
+});
 }
 
 // Add dummy holidays endpoint before middleware so it doesn't require auth
@@ -87,19 +117,6 @@ app.MapGet("/api/holidays/closed", (int? year) => Results.Ok(new string[0]));
 app.UseMiddleware<MedewGcIdMiddleware>();
 
 app.MapControllers();
-
-app.Map("/error", (HttpContext context) =>
-{
-    var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-    var problemDetails = new ProblemDetails
-    {
-        Status = 500,
-        Title = "An error occurred",
-        Detail = exception?.Message ?? "Internal server error"
-    };
-    context.Response.StatusCode = 500;
-    return context.Response.WriteAsJsonAsync(problemDetails);
-});
 
 
 

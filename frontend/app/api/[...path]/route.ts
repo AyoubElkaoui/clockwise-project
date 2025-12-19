@@ -64,6 +64,8 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   if (!upstreamRes.ok) {
     const bodyText = await upstreamRes.text();
     console.error("[proxy debug] Upstream body:", bodyText.substring(0, 500));
+    console.error("[proxy debug] Full URL:", upstreamUrl);
+    console.error("[proxy debug] Headers sent:", Object.fromEntries(headers.entries()));
   }
 
   console.log(

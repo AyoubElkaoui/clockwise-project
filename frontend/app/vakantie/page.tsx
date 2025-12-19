@@ -24,6 +24,16 @@ import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
 
+async function safeJsonParse(response: Response): Promise<any> {
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    const bodyText = await response.text();
+    console.error("[SAFE JSON PARSE] Expected JSON but got:", contentType, "Body snippet:", bodyText.substring(0, 200));
+    throw new Error(`Expected JSON response but got ${contentType || 'unknown'}: ${bodyText.substring(0, 100)}`);
+  }
+  return response.json();
+}
+
 interface VacationRequest {
   id: number;
   userId: number;
@@ -74,7 +84,7 @@ export default function VakantiePage() {
       if (!response.ok) {
         throw new Error("Failed to load vacation requests");
       }
-      const data = await response.json();
+      const data = await safeJsonParse(response);
 
       // Filter voor huidige gebruiker
       const userRequests = data.filter(

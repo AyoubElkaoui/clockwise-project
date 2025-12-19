@@ -35,9 +35,11 @@ namespace ClockwiseProject.Backend.Repositories
                 INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
                 INNER JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
                 WHERE r.WERK_GC_ID IS NULL
+                  AND t.GC_CODE STARTING WITH 'Z'
                 ORDER BY r.DATUM DESC";
+            _logger.LogInformation("Executing SQL: {Sql}", sql);
             var result = await connection.QueryAsync<VacationRequest>(sql);
-            _logger.LogInformation("Found {Count} vacation requests (without Z filter)", result.Count());
+            _logger.LogInformation("Found {Count} vacation requests (with Z filter)", result.Count());
             return result;
         }
 
@@ -58,7 +60,9 @@ namespace ClockwiseProject.Backend.Repositories
                 INNER JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
                 WHERE r.WERK_GC_ID IS NULL
                   AND u.MEDEW_GC_ID = @UserId
+                  AND t.GC_CODE STARTING WITH 'Z'
                 ORDER BY r.DATUM DESC";
+            _logger.LogInformation("Executing SQL for user {UserId}: {Sql}", userId, sql);
             var result = await connection.QueryAsync<VacationRequest>(sql, new { UserId = userId });
             _logger.LogInformation("Found {Count} vacation requests for user {UserId}", result.Count(), userId);
             return result;
