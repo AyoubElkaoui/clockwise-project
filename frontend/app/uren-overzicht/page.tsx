@@ -230,6 +230,14 @@ export default function UrenOverzichtPage() {
     setCurrentPeriod(dayjs().year(year).startOf("year"));
   };
 
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setStartDate("");
+    setEndDate("");
+    setCurrentPage(1);
+  };
+
   const handlePrev = () => {
     setCurrentPeriod((p) =>
       p.subtract(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"),
