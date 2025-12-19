@@ -1,8 +1,7 @@
 // lib/api/userProjectApi.ts
 import axios from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
+const API_URL = "/api";
 
 export interface UserProject {
   id: number;

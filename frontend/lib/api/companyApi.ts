@@ -1,7 +1,6 @@
 // API calls voor bedrijven, project groepen en projecten
 import axios from "axios";
 
-// Use relative URLs to ensure axios interceptors apply
 const API_URL = "/api";
 
 export interface Company {

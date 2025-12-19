@@ -37,7 +37,7 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
@@ -55,7 +55,7 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
@@ -74,7 +74,7 @@ namespace ClockwiseProject.Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
@@ -96,7 +96,7 @@ namespace ClockwiseProject.Backend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during login for MedewGcId: {MedewGcId}", request.MedewGcId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 

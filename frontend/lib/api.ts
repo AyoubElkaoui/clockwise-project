@@ -57,6 +57,7 @@ axios.interceptors.response.use(
       error.config?.url,
       error.message,
     );
+    console.log('Error data:', error.response?.data);
     return Promise.reject(error);
   },
 );
@@ -278,9 +279,12 @@ export async function getTimeEntries(from?: string, to?: string) {
   const today = new Date();
   today.setHours(23, 59, 59, 999); // End of today to include full day
 
-  // Clamp to/today so the backend doesn’t 500 on future ranges
+  // Clamp to/today so the backend doesn't 500 on future ranges
   const requestedTo = to ? new Date(to) : today;
-  const safeTo = requestedTo > today ? today : requestedTo;
+  let safeTo = requestedTo > today ? today : requestedTo;
+  // Set to end of day to include entries ON that day
+  safeTo.setHours(23, 59, 59, 999);
+
   const defaultFrom = new Date(safeTo);
   // Fetch a wider window (±90 days) so October/November entries are included by default
   defaultFrom.setMonth(defaultFrom.getMonth() - 2);
@@ -325,6 +329,7 @@ export async function getTimeEntries(from?: string, to?: string) {
     let raw: any[] = [];
     if (Array.isArray(data)) raw = data;
     else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
+    else if (Array.isArray(data?.Entries)) raw = data.Entries;
     else if (Array.isArray(data?.data)) raw = data.data;
     else return [];
 

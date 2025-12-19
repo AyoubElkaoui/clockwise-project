@@ -34,12 +34,7 @@ function transformTimeEntries(raw: any[]): TimeEntryAPI[] {
 }
 
 // Align with main api.ts: prefer same-origin on the client, internal URL on server
-const runtimeBase =
-  typeof window === "undefined"
-    ? process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || ""
-    : process.env.NEXT_PUBLIC_API_URL || "";
-const cleanBase = runtimeBase.replace(/\/$/, "");
-const API_URL = `${cleanBase}/api`;
+const API_URL = "/api";
 
 axios.defaults.headers.common["Content-Type"] = "application/json";
 axios.interceptors.request.use((request) => {
