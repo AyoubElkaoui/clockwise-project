@@ -23,6 +23,7 @@ import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
+import { API_URL } from "@/lib/api";
 
 async function safeJsonParse(response: Response): Promise<any> {
   const contentType = response.headers.get("content-type");
@@ -73,7 +74,7 @@ export default function VakantiePage() {
 
       // Use the correct API endpoint for user vacation requests
       const response = await fetch(
-        `/api/vacation`,
+        `${API_URL}/vacation`,
         {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
@@ -128,7 +129,7 @@ export default function VakantiePage() {
       const totalHours = workingDays * formData.hours;
 
       const response = await fetch(
-        `/api/vacation`,
+        `${API_URL}/vacation`,
         {
           method: "POST",
           headers: {

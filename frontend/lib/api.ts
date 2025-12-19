@@ -3,16 +3,16 @@ import { TimeEntry, User } from "./types";
 
 /**
  * Dynamische API URL:
- * - Client-side → localhost:5000
- * - Server-side (Next.js in Docker) → clockwise-backend:5000
+ * - Client-side → NEXT_PUBLIC_API_URL
+ * - Fallback to relative /api for local development
  */
-const baseURL = "https://loath-lila-unflowing.ngrok-free.dev";
+const baseURL = process.env.NEXT_PUBLIC_API_URL || process.env.INTERNAL_API_URL || "";
 
 // Fallback to relative /api when no base is set
 const cleanBase = baseURL ? baseURL.replace(/\/$/, "") : "";
 
 // Backend always uses /api prefix
-export const API_URL = "/api";
+export const API_URL = cleanBase ? `${cleanBase}/api` : "/api";
 
 // Set default axios headers
 axios.defaults.headers.common["Content-Type"] = "application/json";

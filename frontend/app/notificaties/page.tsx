@@ -13,6 +13,7 @@ import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
+import { API_URL } from "@/lib/api";
 
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
@@ -67,7 +68,7 @@ export default function NotificatiesPage() {
 
       // Voor managers: haal eigen notificaties op (geen team endpoint beschikbaar)
       if (userRank === "manager") {
-        const url = `/api/activities?limit=100&userId=${userId}`;
+        const url = `${API_URL}/activities?limit=100&userId=${userId}`;
         console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
@@ -99,7 +100,7 @@ export default function NotificatiesPage() {
       }
       // Voor gewone users: alleen eigen notificaties
       else {
-        const url = `/api/activities?limit=50&userId=${userId}`;
+        const url = `${API_URL}/activities?limit=50&userId=${userId}`;
         console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
@@ -126,7 +127,7 @@ export default function NotificatiesPage() {
       if (!userId) return;
 
       const response = await fetch(
-        `/api/activities/read-all?userId=${userId}`,
+        `${API_URL}/activities/read-all?userId=${userId}`,
         {
           method: "PUT",
           headers: {
@@ -149,7 +150,7 @@ export default function NotificatiesPage() {
   const handleMarkRead = async (id: number) => {
     try {
       const response = await fetch(
-        `/api/activities/${id}/read`,
+        `${API_URL}/activities/${id}/read`,
         {
           method: "PUT",
           headers: {
