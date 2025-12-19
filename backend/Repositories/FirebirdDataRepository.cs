@@ -32,6 +32,7 @@ namespace ClockwiseProject.Backend.Repositories
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT COUNT(*) FROM AT_MEDEW WHERE GC_ID = @MedewGcId";
             var count = await connection.ExecuteScalarAsync<int>(sql, new { MedewGcId = medewGcId });
+            _logger.LogInformation("IsMedewActiveAsync: medewGcId={MedewGcId}, exists={Exists}", medewGcId, count > 0);
             return count > 0;
         }
 
@@ -84,6 +85,7 @@ namespace ClockwiseProject.Backend.Repositories
                 SELECT r.DOCUMENT_GC_ID AS DocumentGcId,
                        r.TAAK_GC_ID AS TaakGcId,
                        r.WERK_GC_ID AS WerkGcId,
+                       u.MEDEW_GC_ID AS MedewGcId,
                        r.DATUM AS Datum,
                        r.AANTAL AS Aantal,
                        CASE WHEN w.GC_ID IS NULL THEN 'Geen project (verlof/ziek/feestdag)' ELSE w.GC_CODE END AS ProjectCode,
