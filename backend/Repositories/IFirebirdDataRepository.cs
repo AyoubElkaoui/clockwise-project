@@ -18,6 +18,7 @@ namespace ClockwiseProject.Backend.Repositories
         Task<IEnumerable<Period>> GetPeriodsAsync(int count = 50);
         Task<DateTime?> GetPeriodBeginDateAsync(int urenperGcId);
         Task<IEnumerable<TimeEntryDto>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to);
+        Task<IEnumerable<Activity>> GetActivitiesAsync(int medewGcId, int limit);
         Task<IEnumerable<ProjectDto>> GetProjectsByIdsAsync(IEnumerable<int> werkGcIds);
         Task<IEnumerable<ProjectGroupDto>> GetProjectGroupsByIdsAsync(IEnumerable<int> werkgrpGcIds);
         Task<int?> GetDocumentGcIdAsync(int medewGcId, int urenperGcId, int adminisGcId);

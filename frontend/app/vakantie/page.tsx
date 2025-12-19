@@ -21,7 +21,7 @@ import { getVacationRequests, registerVacationRequest } from "@/lib/api";
 import dayjs from "dayjs";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { getUserId } from "@/lib/auth-utils";
+import { getUserId, getMedewGcId } from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
 
 interface VacationRequest {
@@ -54,8 +54,9 @@ export default function VakantiePage() {
   const loadVacationRequests = async () => {
     try {
       setLoading(true);
+      const medewGcId = getMedewGcId();
       const userId = getUserId();
-      if (!userId) {
+      if (!medewGcId || !userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
@@ -63,6 +64,12 @@ export default function VakantiePage() {
       // Use the correct API endpoint for user vacation requests
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/vacation`,
+        {
+          headers: {
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
+          },
+        },
       );
       if (!response.ok) {
         throw new Error("Failed to load vacation requests");
@@ -71,7 +78,7 @@ export default function VakantiePage() {
 
       // Filter voor huidige gebruiker
       const userRequests = data.filter(
-        (req: VacationRequest) => req.userId === parseInt(userId),
+        (req: VacationRequest) => req.userId === userId,
       );
       setRequests(userRequests);
     } catch (error) {
@@ -86,8 +93,9 @@ export default function VakantiePage() {
     e.preventDefault();
 
     try {
+      const medewGcId = getMedewGcId();
       const userId = getUserId();
-      if (!userId) {
+      if (!medewGcId || !userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
@@ -115,9 +123,11 @@ export default function VakantiePage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
           },
           body: JSON.stringify({
-            userId: parseInt(userId),
+            userId: userId,
             startDate: formData.startDate,
             endDate: formData.endDate,
             hours: totalHours,
