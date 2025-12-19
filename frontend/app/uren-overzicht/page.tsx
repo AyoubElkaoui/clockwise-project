@@ -66,26 +66,37 @@ export default function UrenOverzichtPage() {
   const [currentPeriod, setCurrentPeriod] = useState(
     dayjs().startOf("isoWeek"),
   );
-  const [viewMode, setViewMode] = useState<"week" | "month">("week");
+  const [viewMode, setViewMode] = useState<"week" | "month" | "year">("month");
   const [displayView, setDisplayView] = useState<"cards" | "table">("table");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());
 
   useEffect(() => {
     loadEntries();
   }, []);
 
-  const loadEntries = async () => {
+  useEffect(() => {
+    if (startDate && endDate) {
+      loadEntries(startDate, endDate);
+    }
+  }, [startDate, endDate]);
+
+  const loadEntries = async (from?: string, to?: string) => {
     try {
       const userId = getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
-      const data = await getEnrichedTimeEntries();
+      const fromDate = from || "2018-01-01";
+      const toDate = to || dayjs().format("YYYY-MM-DD");
+      console.log('🔍 [loadEntries] Fetching from:', fromDate, 'to:', toDate);
+      const data = await getEnrichedTimeEntries(fromDate, toDate);
       const userEntries = data.filter((entry: any) => entry.userId === userId);
+      console.log('🔍 [loadEntries] Loaded entries:', userEntries.length);
       setEntries(userEntries);
     } catch (error) {
       console.error("Error in loadEntries:", error);
@@ -103,10 +114,12 @@ export default function UrenOverzichtPage() {
     if (startDate && endDate) {
       const start = dayjs(startDate);
       const end = dayjs(endDate);
+      console.log('🔍 [filteredEntries] Custom range filter: startDate=', startDate, 'endDate=', endDate, 'entries before:', entries.length);
       filtered = filtered.filter((entry) => {
         const entryDate = dayjs(entry.date || entry.startTime);
         return entryDate.isBetween(start, end, null, "[]");
       });
+      console.log('🔍 [filteredEntries] After custom filter:', filtered.length);
     } else {
       // Period filter
       if (viewMode === "week") {
@@ -116,12 +129,19 @@ export default function UrenOverzichtPage() {
           const entryDate = dayjs(entry.date || entry.startTime);
           return entryDate.isBetween(weekStart, weekEnd, null, "[]");
         });
-      } else {
+      } else if (viewMode === "month") {
         const monthStart = currentPeriod.startOf("month");
         const monthEnd = currentPeriod.endOf("month");
         filtered = filtered.filter((entry) => {
           const entryDate = dayjs(entry.date || entry.startTime);
           return entryDate.isBetween(monthStart, monthEnd, null, "[]");
+        });
+      } else if (viewMode === "year") {
+        const yearStart = currentPeriod.startOf("year");
+        const yearEnd = currentPeriod.endOf("year");
+        filtered = filtered.filter((entry) => {
+          const entryDate = dayjs(entry.date || entry.startTime);
+          return entryDate.isBetween(yearStart, yearEnd, null, "[]");
         });
       }
     }
@@ -200,35 +220,40 @@ export default function UrenOverzichtPage() {
     setCurrentPage(page);
   };
 
-  const resetFilters = () => {
-    setSearchQuery("");
-    setStatusFilter("all");
-    setStartDate("");
-    setEndDate("");
-    setCurrentPage(1);
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    const from = `${year}-01-01`;
+    const to = `${year + 1}-01-01`;
+    setStartDate(from);
+    setEndDate(to);
+    setViewMode("year");
+    setCurrentPeriod(dayjs().year(year).startOf("year"));
   };
 
   const handlePrev = () => {
     setCurrentPeriod((p) =>
-      p.subtract(1, viewMode === "week" ? "week" : "month"),
+      p.subtract(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"),
     );
   };
 
   const handleNext = () => {
-    setCurrentPeriod((p) => p.add(1, viewMode === "week" ? "week" : "month"));
+    setCurrentPeriod((p) => p.add(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"));
   };
 
   const handleToday = () => {
     setCurrentPeriod(
-      dayjs().startOf(viewMode === "week" ? "isoWeek" : "month"),
+      dayjs().startOf(viewMode === "week" ? "isoWeek" : viewMode === "month" ? "month" : "year"),
     );
   };
 
   const toggleView = () => {
     setViewMode((prev) => {
-      const newMode = prev === "week" ? "month" : "week";
+      let newMode: "week" | "month" | "year";
+      if (prev === "week") newMode = "month";
+      else if (prev === "month") newMode = "year";
+      else newMode = "week";
       setCurrentPeriod(
-        dayjs().startOf(newMode === "week" ? "isoWeek" : "month"),
+        dayjs().startOf(newMode === "week" ? "isoWeek" : newMode === "month" ? "month" : "year"),
       );
       return newMode;
     });
@@ -318,7 +343,9 @@ export default function UrenOverzichtPage() {
   const periodLabel =
     viewMode === "week"
       ? `Week ${currentPeriod.isoWeek()} • ${currentPeriod.format("DD/MM")} - ${currentPeriod.add(6, "day").format("DD/MM/YYYY")}`
-      : currentPeriod.format("MMMM YYYY");
+      : viewMode === "month"
+      ? currentPeriod.format("MMMM YYYY")
+      : currentPeriod.format("YYYY");
 
   return (
     <ProtectedRoute>
@@ -378,8 +405,21 @@ export default function UrenOverzichtPage() {
                   className="text-slate-700 dark:text-slate-300"
                 >
                   <CalendarDays className="w-4 h-4 mr-2" />
-                  {viewMode === "week" ? "Maand" : "Week"}
+                  {viewMode === "week" ? "Maand" : viewMode === "month" ? "Jaar" : "Week"}
                 </Button>
+                {viewMode === "year" && (
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                    className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    {Array.from({ length: dayjs().year() - 2017 }, (_, i) => 2018 + i).map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <Button
