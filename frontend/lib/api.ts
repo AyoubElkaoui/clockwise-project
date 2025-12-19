@@ -326,12 +326,23 @@ export async function getTimeEntries(from?: string, to?: string) {
     });
     const data = safeApiResponse(res);
 
+    console.log('🔍 [getTimeEntries] Raw API response:', data);
+
     let raw: any[] = [];
+    // Backend returnt TimeEntriesResponse met Entries (hoofdletter E!)
     if (Array.isArray(data)) raw = data;
+    else if (Array.isArray(data?.Entries)) raw = data.Entries; // ← Backend TimeEntriesResponse.Entries
     else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
-    else if (Array.isArray(data?.Entries)) raw = data.Entries;
     else if (Array.isArray(data?.data)) raw = data.data;
-    else return [];
+    else {
+      console.warn('🔍 [getTimeEntries] Unexpected response format:', typeof data, Object.keys(data || {}));
+      return [];
+    }
+
+    console.log('🔍 [getTimeEntries] Parsed raw entries:', raw.length, 'entries');
+    if (raw.length > 0) {
+      console.log('🔍 [getTimeEntries] First entry:', raw[0]);
+    }
 
     return transformTimeEntries(raw);
   } catch (error) {
