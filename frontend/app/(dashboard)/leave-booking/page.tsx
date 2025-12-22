@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, AlertCircle, CheckCircle, Info } from "lucide-react";
 import {
   getLeaveTypes,
   bookLeave,
@@ -8,12 +11,9 @@ import {
   LeaveType,
   LeaveBooking,
 } from "@/lib/api/tasksApi";
-import {
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  InformationCircleIcon,
-} from "@heroicons/react/24/outline";
+import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
+import dayjs from "dayjs";
 
 export default function LeaveBookingPage() {
   // State
@@ -31,10 +31,6 @@ export default function LeaveBookingPage() {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Message state
-  const [message, setMessage] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
-
   // Filter state voor bookings
   const [viewFrom, setViewFrom] = useState(() => {
     const date = new Date();
@@ -47,35 +43,28 @@ export default function LeaveBookingPage() {
     return date.toISOString().split("T")[0];
   });
 
-  // Fetch leave types
   useEffect(() => {
     fetchLeaveTypes();
   }, [includeHistorical]);
 
-  // Fetch my bookings
   useEffect(() => {
     if (viewFrom && viewTo) {
       fetchMyBookings();
     }
   }, [viewFrom, viewTo]);
 
-  const showMessage = (msg: string, success: boolean) => {
-    setMessage(msg);
-    setIsSuccess(success);
-    setTimeout(() => setMessage(""), 5000);
-  };
-
   const fetchLeaveTypes = async () => {
     try {
       setLoading(true);
       const response = await getLeaveTypes(includeHistorical);
-      setLeaveTypes(response.leaveTypes);
+      if (response && response.leaveTypes) {
+        setLeaveTypes(response.leaveTypes);
+      }
     } catch (error: any) {
       console.error("Error fetching leave types:", error);
-      showMessage(
-        "Fout bij ophalen verloftypen: " +
-          (error.response?.data?.error || error.message),
-        false,
+      showToast(
+        error.response?.data?.error || "Fout bij ophalen verloftypen",
+        "error",
       );
     } finally {
       setLoading(false);
@@ -89,11 +78,7 @@ export default function LeaveBookingPage() {
       setTotalHours(response.totalHours);
     } catch (error: any) {
       console.error("Error fetching my leave bookings:", error);
-      showMessage(
-        "Fout bij ophalen boekingen: " +
-          (error.response?.data?.error || error.message),
-        false,
-      );
+      // Niet tonen als error - kan zijn dat er nog geen boekingen zijn
     }
   };
 
@@ -101,12 +86,12 @@ export default function LeaveBookingPage() {
     e.preventDefault();
 
     if (!selectedTaskId) {
-      showMessage("Selecteer een verloftype", false);
+      showToast("Selecteer een verloftype", "error");
       return;
     }
 
     if (!startDate || !endDate) {
-      showMessage("Selecteer start- en einddatum", false);
+      showToast("Selecteer start- en einddatum", "error");
       return;
     }
 
@@ -134,7 +119,7 @@ export default function LeaveBookingPage() {
       }
 
       if (entries.length === 0) {
-        showMessage("Geen werkdagen gevonden in geselecteerde periode", false);
+        showToast("Geen werkdagen gevonden in geselecteerde periode", "error");
         return;
       }
 
@@ -144,10 +129,12 @@ export default function LeaveBookingPage() {
       });
 
       if (response.success) {
-        showMessage(
-          `${response.message} (${entries.length} werkdagen geboekt)`,
-          true,
-        );
+        showToast(`${entries.length} werkdagen geboekt`, "success");
+
+        // Warnings tonen
+        if (response.warnings && response.warnings.length > 0) {
+          response.warnings.forEach((warning) => showToast(warning, "info"));
+        }
 
         // Reset form
         setSelectedTaskId(null);
@@ -158,14 +145,13 @@ export default function LeaveBookingPage() {
         // Refresh bookings
         fetchMyBookings();
       } else {
-        showMessage(response.message, false);
+        showToast(response.message, "error");
       }
     } catch (error: any) {
       console.error("Error booking leave:", error);
-      showMessage(
-        "Fout bij boeken verlof: " +
-          (error.response?.data?.error || error.message),
-        false,
+      showToast(
+        error.response?.data?.error || "Fout bij boeken verlof",
+        "error",
       );
     } finally {
       setSubmitting(false);
@@ -184,7 +170,7 @@ export default function LeaveBookingPage() {
     {} as Record<string, LeaveType[]>,
   );
 
-  // Category display names (Nederlandse namen)
+  // Category display names
   const categoryNames: Record<string, string> = {
     VACATION: "Vakantie",
     SICK_LEAVE: "Ziekteverlof",
@@ -202,69 +188,55 @@ export default function LeaveBookingPage() {
 
   const selectedTask = leaveTypes.find((lt) => lt.id === selectedTaskId);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header Section */}
-      <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-            <span className="text-2xl">📅</span>
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold">Vakantie Overzicht</h1>
-            <p className="text-blue-100 text-lg">
-              Beheer je vakantieaanvragen en bekijk je saldo
-            </p>
-          </div>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Vakantie & Verlof</h1>
+        <p className="text-muted-foreground mt-2">
+          Beheer je vakantieaanvragen en verlof
+        </p>
       </div>
-
-      {/* Message alert */}
-      {message && (
-        <div
-          className={`alert ${isSuccess ? "alert-success" : "alert-error"} shadow-lg`}
-        >
-          <div className="flex items-center gap-2">
-            {isSuccess ? (
-              <CheckCircleIcon className="w-6 h-6" />
-            ) : (
-              <InformationCircleIcon className="w-6 h-6" />
-            )}
-            <span>{message}</span>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Boekingsformulier - 2 columns */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <PlusCircleIcon className="w-6 h-6 text-blue-600" />
-              Nieuw Verlof
-            </h2>
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Nieuw Verlof
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Leave Type Selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Verloftype</label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={includeHistorical}
+                        onChange={(e) => setIncludeHistorical(e.target.checked)}
+                      />
+                      <span className="text-muted-foreground">
+                        Toon historisch
+                      </span>
+                    </label>
+                  </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Leave Type Selector */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">Verloftype</span>
-                  <label className="label cursor-pointer gap-2">
-                    <span className="label-text text-sm">Toon historisch</span>
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-sm toggle-primary"
-                      checked={includeHistorical}
-                      onChange={(e) => setIncludeHistorical(e.target.checked)}
-                    />
-                  </label>
-                </label>
-
-                {loading ? (
-                  <div className="skeleton h-14 w-full rounded-xl"></div>
-                ) : (
                   <select
-                    className="select select-bordered select-lg w-full rounded-xl"
+                    className="w-full p-2 border rounded-md bg-background"
                     value={selectedTaskId || ""}
                     onChange={(e) =>
                       setSelectedTaskId(Number(e.target.value) || null)
@@ -288,246 +260,217 @@ export default function LeaveBookingPage() {
                       ),
                     )}
                   </select>
+                </div>
+
+                {/* Waarschuwing bij historische taak */}
+                {selectedTask?.isHistorical && (
+                  <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-yellow-800 dark:text-yellow-200">
+                      Dit verloftype is gemarkeerd als historisch
+                    </span>
+                  </div>
                 )}
-              </div>
 
-              {/* Waarschuwing bij historische taak */}
-              {selectedTask?.isHistorical && (
-                <div className="alert alert-warning rounded-xl">
-                  <InformationCircleIcon className="w-6 h-6" />
-                  <span>Dit verloftype is gemarkeerd als historisch.</span>
+                {/* Datums */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Startdatum</label>
+                    <input
+                      type="date"
+                      className="w-full p-2 border rounded-md bg-background"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Einddatum</label>
+                    <input
+                      type="date"
+                      className="w-full p-2 border rounded-md bg-background"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
-              )}
 
-              {/* Datums */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-semibold">Startdatum</span>
-                  </label>
+                {/* Uren per dag */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Uren per dag</label>
                   <input
-                    type="date"
-                    className="input input-bordered input-lg rounded-xl"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    type="number"
+                    className="w-full p-2 border rounded-md bg-background"
+                    value={hoursPerDay}
+                    onChange={(e) => setHoursPerDay(Number(e.target.value))}
+                    min="0.1"
+                    max="24"
+                    step="0.5"
                     required
                   />
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-semibold">Einddatum</span>
-                  </label>
-                  <input
-                    type="date"
-                    className="input input-bordered input-lg rounded-xl"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Uren per dag */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">Uren per dag</span>
-                </label>
-                <input
-                  type="number"
-                  className="input input-bordered input-lg rounded-xl"
-                  value={hoursPerDay}
-                  onChange={(e) => setHoursPerDay(Number(e.target.value))}
-                  min="0.1"
-                  max="24"
-                  step="0.5"
-                  required
-                />
-                <label className="label">
-                  <span className="label-text-alt text-gray-500">
-                    <ClockIcon className="w-4 h-4 inline mr-1" />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
                     Alleen werkdagen (ma-vr) worden geboekt
-                  </span>
-                </label>
-              </div>
+                  </p>
+                </div>
 
-              {/* Omschrijving */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold">
+                {/* Omschrijving */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
                     Omschrijving (optioneel)
-                  </span>
-                </label>
-                <textarea
-                  className="textarea textarea-bordered textarea-lg rounded-xl"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Eventuele toelichting..."
-                />
-              </div>
+                  </label>
+                  <textarea
+                    className="w-full p-2 border rounded-md bg-background min-h-[80px]"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Eventuele toelichting..."
+                  />
+                </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                className="btn btn-primary btn-lg w-full rounded-xl text-lg"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <span className="loading loading-spinner"></span>
-                    Bezig met boeken...
-                  </>
-                ) : (
-                  <>
-                    <CalendarDaysIcon className="w-6 h-6" />
-                    Boek Verlof
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+                {/* Submit */}
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <LoadingSpinner className="mr-2" />
+                      Bezig met boeken...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Boek Verlof
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
           {/* Info sectie */}
-          <div className="bg-blue-50 rounded-2xl shadow p-6 mt-6">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-              <InformationCircleIcon className="w-6 h-6 text-blue-600" />
-              Informatie
-            </h3>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-2">
-                <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>
-                  Verlof wordt automatisch geboekt voor alle{" "}
-                  <strong>werkdagen</strong> (ma-vr)
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Weekends worden automatisch overgeslagen</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>
-                  Alle verloftypen starten met code <strong>Z</strong> (bijv.
-                  Z05 = Vakantie)
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircleIcon className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>Bij dubbele boekingen krijg je een foutmelding</span>
-              </li>
-            </ul>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Info className="w-5 h-5" />
+                Informatie
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Verlof wordt automatisch geboekt voor alle{" "}
+                    <strong>werkdagen</strong> (ma-vr)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Weekends worden automatisch overgeslagen</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Alle verloftypen starten met code <strong>Z</strong> (bijv.
+                    Z05 = Vakantie)
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Bij dubbele boekingen krijg je een foutmelding</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Mijn Boekingen - 1 column */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-6">
-            <h2 className="text-2xl font-bold mb-6">Mijn Boekingen</h2>
-
-            {/* Filter */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text text-sm font-semibold">Van</span>
-                </label>
-                <input
-                  type="date"
-                  className="input input-bordered input-sm rounded-lg"
-                  value={viewFrom}
-                  onChange={(e) => setViewFrom(e.target.value)}
-                />
+          <Card className="sticky top-6">
+            <CardHeader>
+              <CardTitle>Mijn Boekingen</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Filter */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Van
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 text-sm border rounded-md bg-background"
+                    value={viewFrom}
+                    onChange={(e) => setViewFrom(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Tot
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 text-sm border rounded-md bg-background"
+                    value={viewTo}
+                    onChange={(e) => setViewTo(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text text-sm font-semibold">Tot</span>
-                </label>
-                <input
-                  type="date"
-                  className="input input-bordered input-sm rounded-lg"
-                  value={viewTo}
-                  onChange={(e) => setViewTo(e.target.value)}
-                />
-              </div>
-            </div>
 
-            {/* Totaal */}
-            <div className="stats shadow mb-6">
-              <div className="stat">
-                <div className="stat-title">Totaal Uren</div>
-                <div className="stat-value text-primary">
+              {/* Totaal */}
+              <div className="bg-primary/10 rounded-lg p-4">
+                <div className="text-sm text-muted-foreground">Totaal Uren</div>
+                <div className="text-3xl font-bold text-primary mt-1">
                   {totalHours.toFixed(1)}
                 </div>
-                <div className="stat-desc">{myBookings.length} boekingen</div>
-              </div>
-            </div>
-
-            {/* Lijst */}
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {myBookings.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">
-                  <CalendarDaysIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>Geen boekingen gevonden</p>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {myBookings.length} boekingen
                 </div>
-              ) : (
-                myBookings.map((booking) => (
-                  <div
-                    key={booking.bookingId}
-                    className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">
-                          {new Date(booking.date).toLocaleDateString("nl-NL", {
-                            weekday: "short",
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          <span className="badge badge-sm bg-blue-100 text-blue-700 border-0">
-                            {booking.taskCode}
-                          </span>
-                        </div>
-                        {booking.description && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {booking.description}
+              </div>
+
+              {/* Lijst */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {myBookings.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Geen boekingen gevonden</p>
+                  </div>
+                ) : (
+                  myBookings.map((booking) => (
+                    <div
+                      key={booking.bookingId}
+                      className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">
+                            {dayjs(booking.date).format("ddd D MMM YYYY")}
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-blue-600">
-                          {booking.hours.toFixed(1)}u
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                              {booking.taskCode}
+                            </span>
+                          </div>
+                          {booking.description && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {booking.description}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-primary">
+                            {booking.hours.toFixed(1)}u
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
-  );
-}
-
-function PlusCircleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      {...props}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
   );
 }
