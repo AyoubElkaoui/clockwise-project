@@ -1,8 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { getLeaveTypes, bookLeave, getMyLeave, LeaveType, LeaveBooking } from '@/lib/api/tasksApi';
-import { toast } from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import {
+  getLeaveTypes,
+  bookLeave,
+  getMyLeave,
+  LeaveType,
+  LeaveBooking,
+} from "@/lib/api/tasksApi";
 
 export default function LeaveBookingPage() {
   // State
@@ -14,22 +19,26 @@ export default function LeaveBookingPage() {
 
   // Form state
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [hoursPerDay, setHoursPerDay] = useState(8);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Message state
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Filter state voor bookings
   const [viewFrom, setViewFrom] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 1);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   });
   const [viewTo, setViewTo] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() + 3);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   });
 
   // Fetch leave types
@@ -44,14 +53,24 @@ export default function LeaveBookingPage() {
     }
   }, [viewFrom, viewTo]);
 
+  const showMessage = (msg: string, success: boolean) => {
+    setMessage(msg);
+    setIsSuccess(success);
+    setTimeout(() => setMessage(""), 5000);
+  };
+
   const fetchLeaveTypes = async () => {
     try {
       setLoading(true);
       const response = await getLeaveTypes(includeHistorical);
       setLeaveTypes(response.leaveTypes);
     } catch (error: any) {
-      console.error('Error fetching leave types:', error);
-      toast.error('Fout bij ophalen verloftypen: ' + (error.response?.data?.error || error.message));
+      console.error("Error fetching leave types:", error);
+      showMessage(
+        "Fout bij ophalen verloftypen: " +
+          (error.response?.data?.error || error.message),
+        false,
+      );
     } finally {
       setLoading(false);
     }
@@ -63,8 +82,12 @@ export default function LeaveBookingPage() {
       setMyBookings(response.bookings);
       setTotalHours(response.totalHours);
     } catch (error: any) {
-      console.error('Error fetching my leave bookings:', error);
-      toast.error('Fout bij ophalen boekingen: ' + (error.response?.data?.error || error.message));
+      console.error("Error fetching my leave bookings:", error);
+      showMessage(
+        "Fout bij ophalen boekingen: " +
+          (error.response?.data?.error || error.message),
+        false,
+      );
     }
   };
 
@@ -72,12 +95,12 @@ export default function LeaveBookingPage() {
     e.preventDefault();
 
     if (!selectedTaskId) {
-      toast.error('Selecteer een verloftype');
+      showMessage("Selecteer een verloftype", false);
       return;
     }
 
     if (!startDate || !endDate) {
-      toast.error('Selecteer start- en einddatum');
+      showMessage("Selecteer start- en einddatum", false);
       return;
     }
 
@@ -98,79 +121,92 @@ export default function LeaveBookingPage() {
         }
 
         entries.push({
-          date: d.toISOString().split('T')[0],
+          date: d.toISOString().split("T")[0],
           hours: hoursPerDay,
-          description: description || undefined
+          description: description || undefined,
         });
       }
 
       if (entries.length === 0) {
-        toast.error('Geen werkdagen gevonden in geselecteerde periode');
+        showMessage("Geen werkdagen gevonden in geselecteerde periode", false);
         return;
       }
 
       const response = await bookLeave({
         taskId: selectedTaskId,
-        entries
+        entries,
       });
 
       if (response.success) {
-        toast.success(response.message);
-
-        // Toon warnings indien aanwezig
-        if (response.warnings && response.warnings.length > 0) {
-          response.warnings.forEach(warning => toast.warning(warning));
-        }
+        showMessage(response.message, true);
 
         // Reset form
         setSelectedTaskId(null);
-        setStartDate('');
-        setEndDate('');
-        setDescription('');
+        setStartDate("");
+        setEndDate("");
+        setDescription("");
 
         // Refresh bookings
         fetchMyBookings();
       } else {
-        toast.error(response.message);
+        showMessage(response.message, false);
       }
     } catch (error: any) {
-      console.error('Error booking leave:', error);
-      toast.error('Fout bij boeken verlof: ' + (error.response?.data?.error || error.message));
+      console.error("Error booking leave:", error);
+      showMessage(
+        "Fout bij boeken verlof: " +
+          (error.response?.data?.error || error.message),
+        false,
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   // Group leave types by category
-  const groupedLeaveTypes = leaveTypes.reduce((acc, lt) => {
-    if (!acc[lt.category]) {
-      acc[lt.category] = [];
-    }
-    acc[lt.category].push(lt);
-    return acc;
-  }, {} as Record<string, LeaveType[]>);
+  const groupedLeaveTypes = leaveTypes.reduce(
+    (acc, lt) => {
+      if (!acc[lt.category]) {
+        acc[lt.category] = [];
+      }
+      acc[lt.category].push(lt);
+      return acc;
+    },
+    {} as Record<string, LeaveType[]>,
+  );
 
   // Category display names (Nederlandse namen)
   const categoryNames: Record<string, string> = {
-    'VACATION': 'Vakantie',
-    'SICK_LEAVE': 'Ziekteverlof',
-    'TIME_FOR_TIME_ACCRUAL': 'T.v.T. Opbouw',
-    'TIME_FOR_TIME_USAGE': 'T.v.T. Opname',
-    'SPECIAL_LEAVE': 'Bijzonder Verlof',
-    'PUBLIC_HOLIDAY': 'Feestdag',
-    'FROST_DELAY': 'Vorstverlet',
-    'SINGLE_DAY_LEAVE': 'Snipperdag',
-    'SCHEDULED_FREE': 'Roostervrij',
-    'MEDICAL_APPOINTMENT': 'Artsbezoek',
-    'OTHER_ABSENCE': 'Overige Afwezigheid',
-    'UNKNOWN': 'Onbekend'
+    VACATION: "Vakantie",
+    SICK_LEAVE: "Ziekteverlof",
+    TIME_FOR_TIME_ACCRUAL: "T.v.T. Opbouw",
+    TIME_FOR_TIME_USAGE: "T.v.T. Opname",
+    SPECIAL_LEAVE: "Bijzonder Verlof",
+    PUBLIC_HOLIDAY: "Feestdag",
+    FROST_DELAY: "Vorstverlet",
+    SINGLE_DAY_LEAVE: "Snipperdag",
+    SCHEDULED_FREE: "Roostervrij",
+    MEDICAL_APPOINTMENT: "Artsbezoek",
+    OTHER_ABSENCE: "Overige Afwezigheid",
+    UNKNOWN: "Onbekend",
   };
 
-  const selectedTask = leaveTypes.find(lt => lt.id === selectedTaskId);
+  const selectedTask = leaveTypes.find((lt) => lt.id === selectedTaskId);
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <h1 className="text-3xl font-bold mb-6">Verlof Boeken</h1>
+
+      {/* Message alert */}
+      {message && (
+        <div
+          className={`alert ${isSuccess ? "alert-success" : "alert-error"} mb-6 shadow-lg`}
+        >
+          <div>
+            <span>{message}</span>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Boekingsformulier */}
@@ -199,21 +235,28 @@ export default function LeaveBookingPage() {
                 ) : (
                   <select
                     className="select select-bordered w-full"
-                    value={selectedTaskId || ''}
-                    onChange={(e) => setSelectedTaskId(Number(e.target.value) || null)}
+                    value={selectedTaskId || ""}
+                    onChange={(e) =>
+                      setSelectedTaskId(Number(e.target.value) || null)
+                    }
                     required
                   >
                     <option value="">Selecteer verloftype...</option>
-                    {Object.entries(groupedLeaveTypes).map(([category, types]) => (
-                      <optgroup key={category} label={categoryNames[category] || category}>
-                        {types.map((lt) => (
-                          <option key={lt.id} value={lt.id}>
-                            {lt.code} - {lt.description}
-                            {lt.isHistorical ? ' (HISTORISCH)' : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
+                    {Object.entries(groupedLeaveTypes).map(
+                      ([category, types]) => (
+                        <optgroup
+                          key={category}
+                          label={categoryNames[category] || category}
+                        >
+                          {types.map((lt) => (
+                            <option key={lt.id} value={lt.id}>
+                              {lt.code} - {lt.description}
+                              {lt.isHistorical ? " (HISTORISCH)" : ""}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ),
+                    )}
                   </select>
                 )}
               </div>
@@ -221,8 +264,18 @@ export default function LeaveBookingPage() {
               {/* Waarschuwing bij historische taak */}
               {selectedTask?.isHistorical && (
                 <div className="alert alert-warning">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
                   <span>Dit verloftype is gemarkeerd als historisch.</span>
                 </div>
@@ -273,7 +326,9 @@ export default function LeaveBookingPage() {
                   required
                 />
                 <label className="label">
-                  <span className="label-text-alt">Alleen werkdagen (ma-vr) worden geboekt</span>
+                  <span className="label-text-alt">
+                    Alleen werkdagen (ma-vr) worden geboekt
+                  </span>
                 </label>
               </div>
 
@@ -303,7 +358,7 @@ export default function LeaveBookingPage() {
                     Bezig met boeken...
                   </>
                 ) : (
-                  'Boek Verlof'
+                  "Boek Verlof"
                 )}
               </button>
             </form>
@@ -345,7 +400,9 @@ export default function LeaveBookingPage() {
             <div className="stats shadow mb-4">
               <div className="stat">
                 <div className="stat-title">Totaal Uren</div>
-                <div className="stat-value text-primary">{totalHours.toFixed(1)}</div>
+                <div className="stat-value text-primary">
+                  {totalHours.toFixed(1)}
+                </div>
                 <div className="stat-desc">{myBookings.length} boekingen</div>
               </div>
             </div>
@@ -370,13 +427,22 @@ export default function LeaveBookingPage() {
                   ) : (
                     myBookings.map((booking) => (
                       <tr key={booking.bookingId}>
-                        <td>{new Date(booking.date).toLocaleDateString('nl-NL')}</td>
                         <td>
-                          <div className="tooltip" data-tip={booking.taskDescription}>
-                            <span className="badge badge-sm">{booking.taskCode}</span>
+                          {new Date(booking.date).toLocaleDateString("nl-NL")}
+                        </td>
+                        <td>
+                          <div
+                            className="tooltip"
+                            data-tip={booking.taskDescription}
+                          >
+                            <span className="badge badge-sm">
+                              {booking.taskCode}
+                            </span>
                           </div>
                           {booking.description && (
-                            <div className="text-xs text-gray-500">{booking.description}</div>
+                            <div className="text-xs text-gray-500">
+                              {booking.description}
+                            </div>
                           )}
                         </td>
                         <td>{booking.hours.toFixed(1)}</td>
@@ -395,11 +461,20 @@ export default function LeaveBookingPage() {
         <div className="card-body">
           <h3 className="card-title text-lg">ℹ️ Informatie</h3>
           <ul className="list-disc list-inside space-y-1 text-sm">
-            <li>Verlof wordt automatisch geboekt voor alle <strong>werkdagen</strong> (ma-vr) in de geselecteerde periode</li>
+            <li>
+              Verlof wordt automatisch geboekt voor alle{" "}
+              <strong>werkdagen</strong> (ma-vr) in de geselecteerde periode
+            </li>
             <li>Weekends worden overgeslagen</li>
-            <li>Historische verloftypes zijn oude codes die niet meer actief gebruikt worden</li>
+            <li>
+              Historische verloftypes zijn oude codes die niet meer actief
+              gebruikt worden
+            </li>
             <li>Bij dubbele boekingen krijg je een foutmelding</li>
-            <li>Alle verloftypen starten met code <strong>Z</strong> (bijv. Z05 = Vakantie)</li>
+            <li>
+              Alle verloftypen starten met code <strong>Z</strong> (bijv. Z05 =
+              Vakantie)
+            </li>
           </ul>
         </div>
       </div>
