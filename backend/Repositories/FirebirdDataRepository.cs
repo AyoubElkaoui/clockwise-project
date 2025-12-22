@@ -135,14 +135,14 @@ namespace ClockwiseProject.Backend.Repositories
             using var connection = _connectionFactory.CreateConnection();
             // Find existing URS document for medewerker and periode
             var sql = @"
-                SELECT FIRST 1 d.GC_ID 
-                FROM AT_DOCUMENT d 
-                WHERE d.ADMINIS_GC_ID = @AdminisGcId 
-                  AND d.EIG_MEDEW_GC_ID = @MedewGcId 
+                SELECT FIRST 1 d.GC_ID
+                FROM AT_DOCUMENT d
+                WHERE d.ADMINIS_GC_ID = @AdminisGcId
+                  AND d.EIG_MEDEW_GC_ID = @MedewGcId
                   AND d.GC_CODE STARTING WITH 'URS'
                   AND EXISTS (
-                      SELECT 1 FROM AT_URENSTAT u 
-                      WHERE u.DOCUMENT_GC_ID = d.GC_ID 
+                      SELECT 1 FROM AT_URENSTAT u
+                      WHERE u.DOCUMENT_GC_ID = d.GC_ID
                         AND u.URENPER_GC_ID = @UrenperGcId
                   )
                 ORDER BY d.GC_ID DESC";
@@ -169,12 +169,13 @@ namespace ClockwiseProject.Backend.Repositories
                     'G', 'A', 'J', 'N', 'N', 'N',
                     @Code, @Omschrijving, @BoekDatum, @AanmaakDatum, @WijzigDatum
                 )";
-            await connection.ExecuteAsync(sql, new { 
-                GcId = nextId, 
-                AdminisGcId = adminisGcId, 
-                MedewGcId = medewGcId, 
-                Code = code, 
-                Omschrijving = omschrijving, 
+            await connection.ExecuteAsync(sql, new
+            {
+                GcId = nextId,
+                AdminisGcId = adminisGcId,
+                MedewGcId = medewGcId,
+                Code = code,
+                Omschrijving = omschrijving,
                 BoekDatum = boekDatum.Date,
                 AanmaakDatum = now,
                 WijzigDatum = now
@@ -278,6 +279,37 @@ namespace ClockwiseProject.Backend.Repositories
             return await connection.ExecuteScalarAsync<string>(sql, new { TaakGcId = taakGcId });
         }
 
+        public async Task<bool> IsValidTaakAsync(int taakGcId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT COUNT(*) FROM AT_TAAK WHERE GC_ID = @TaakGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { TaakGcId = taakGcId });
+            return count > 0;
+        }
+
+        public async Task<bool> IsValidWerkAsync(int werkGcId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT COUNT(*) FROM AT_WERK WHERE GC_ID = @WerkGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { WerkGcId = werkGcId });
+            return count > 0;
+        }
+
+        public async Task<bool> IsValidUrenperAsync(int urenperGcId, int adminisGcId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT COUNT(*) FROM AT_URENPER WHERE GC_ID = @UrenperGcId AND GC_ADMINIS_ID = @AdminisGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { UrenperGcId = urenperGcId, AdminisGcId = adminisGcId });
+            return count > 0;
+        }
+
+        public async Task<string> GetWerkCodeAsync(int werkGcId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_CODE FROM AT_WERK WHERE GC_ID = @WerkGcId";
+            return await connection.ExecuteScalarAsync<string>(sql, new { WerkGcId = werkGcId });
+        }
+
         public async Task<IEnumerable<User>> GetUsersAsync()
         {
             // Temporary hardcoded users for testing
@@ -359,4 +391,3 @@ namespace ClockwiseProject.Backend.Repositories
         public FbConnection GetConnection() => _connectionFactory.CreateConnection();
     }
 }
-

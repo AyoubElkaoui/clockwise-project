@@ -57,6 +57,7 @@ builder.Services.AddSingleton<IVacationRepository, FirebirdVacationRepository>()
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 builder.Services.AddScoped<backend.Repositories.ITaskRepository, backend.Repositories.FirebirdTaskRepository>();
 builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Repositories.FirebirdTimeEntryRepository>();
+builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
 
 // Register services
 // builder.Services.AddScoped<AuthService>();
@@ -66,6 +67,7 @@ builder.Services.AddScoped<TimeEntryService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<backend.Services.TaskService>();
 builder.Services.AddScoped<backend.Services.LeaveService>();
+builder.Services.AddScoped<backend.Services.WorkflowService>();
 
 
 var app = builder.Build();

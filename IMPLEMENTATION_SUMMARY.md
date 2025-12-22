@@ -1,350 +1,326 @@
-# Implementation Summary - Clockwise Fixes
+# Implementation Summary - Workflow System
 
-## ✅ COMPLETED FIXES
+## ✅ What's Been Completed (Backend)
 
-### 1. **TIME ENTRIES TONEN (userId missing)**
+### 1. Database Schema
+- **File**: `backend/Migrations/001_CreateWorkflowTables.sql`
+- **Table**: `time_entries_workflow`
+- **Features**:
+  - Draft/Submit/Approve/Reject workflow
+  - Duplicate prevention via unique constraint
+  - Audit trail (timestamps, reviewer tracking)
+  - Auto-update trigger for `updated_at`
 
-**Probleem:**
-- Backend logt "Found 4 time entries" maar frontend toont "0u deze week"
-- Root cause: `TimeEntryDto` bevatte geen `MedewGcId` veld
-- Frontend `transformTimeEntries()` kon userId niet mappen → altijd `userId: 0`
-- Filter `entries.filter(e => e.userId === 100050)` matcht nooit → lege lijst
+### 2. Models & DTOs
+- **File**: `backend/Models/WorkflowModels.cs`
+- **Classes**:
+  - `TimeEntryWorkflow` - Entity model
+  - `SaveDraftRequest`, `SubmitTimeEntriesRequest`, `ReviewTimeEntriesRequest`
+  - `WorkflowEntryDto`, `DraftResponse`, `WorkflowResponse`
+  - `WorkflowEntriesResponse`
 
-**Fix:**
-- ✅ `backend/Models/TimeEntryDto.cs`: Added `public int MedewGcId { get; set; }`
-- ✅ `backend/Repositories/FirebirdDataRepository.cs:87`: Added `u.MEDEW_GC_ID AS MedewGcId` to SELECT query
-- ✅ Frontend `lib/api.ts:85` nu mapt `entry.MedewGcId` correct naar `userId`
+### 3. Repository Layer
+- **Interface**: `backend/Repositories/IWorkflowRepository.cs`
+- **Implementation**: `backend/Repositories/PostgresWorkflowRepository.cs`
+- **Methods**:
+  - SaveDraftAsync (upsert logic for duplicates)
+  - GetDraftsByEmployeeAsync
+  - GetSubmittedByEmployeeAsync
+  - GetAllSubmittedAsync (for managers)
+  - GetRejectedByEmployeeAsync
+  - FindDuplicateAsync
+  - UpdateEntriesAsync
+  - DeleteAsync
 
-**Verificatie:**
+### 4. Service Layer
+- **File**: `backend/Services/WorkflowService.cs`
+- **Features**:
+  - Draft saving with validation
+  - Submit drafts for review
+  - Manager approve/reject
+  - Resubmit rejected entries
+  - Copy approved entries to Firebird
+  - Enrichment with Firebird data (task/project names)
+
+### 5. API Endpoints
+- **File**: `backend/Controllers/WorkflowController.cs`
+- **Endpoints**:
+  - `POST /api/workflow/draft` - Save draft
+  - `GET /api/workflow/drafts` - Get drafts
+  - `GET /api/workflow/submitted` - Get submitted
+  - `GET /api/workflow/rejected` - Get rejected
+  - `POST /api/workflow/submit` - Submit for review
+  - `POST /api/workflow/resubmit` - Resubmit rejected
+  - `DELETE /api/workflow/draft/{id}` - Delete draft
+  - `GET /api/workflow/review/pending` - Manager pending list
+  - `POST /api/workflow/review` - Manager approve/reject
+
+### 6. Configuration
+- **File**: `backend/appsettings.json`
+- **Added**:
+  - PostgreSQL connection string (Supabase)
+  - AdminisGcId configuration
+
+### 7. Dependency Injection
+- **File**: `backend/Program.cs`
+- **Registered**:
+  - `IWorkflowRepository` → `PostgresWorkflowRepository`
+  - `WorkflowService`
+
+### 8. Database Context
+- **File**: `backend/Infrastructure/PostgresDbContext.cs`
+- **Added**:
+  - `DbSet<TimeEntryWorkflow>`
+  - Index configuration
+
+### 9. Firebird Repository Extensions
+- **File**: `backend/Repositories/FirebirdDataRepository.cs`
+- **Added Methods**:
+  - `IsValidTaakAsync`
+  - `IsValidWerkAsync`
+  - `IsValidUrenperAsync`
+  - `GetWerkCodeAsync`
+
+### 10. Migration Scripts
+- **Bash**: `backend/run-migration.sh`
+- **C#**: `backend/MigrationRunner.cs`
+
+## 📋 How the System Works
+
+### User Flow
+```
+1. User fills time entries
+   ↓
+2. Click "Opslaan" → Saves as DRAFT in PostgreSQL
+   ↓
+3. User can edit/delete drafts multiple times
+   ↓
+4. Click "Inleveren" → Status changes to SUBMITTED
+   ↓
+5. Entries locked, awaiting manager review
+```
+
+### Manager Flow
+```
+1. Manager views pending submissions
+   ↓
+2. Reviews entries grouped by employee
+   ↓
+3. Clicks "Goedkeuren" or "Afkeuren"
+   ↓
+4a. If APPROVED → Copy to Firebird AT_URENBREG
+4b. If REJECTED → Back to user with reason
+```
+
+### Duplicate Prevention
+- **Unique constraint**: medew_gc_id + datum + taak_gc_id + werk_gc_id + urenper_gc_id
+- **Applies to**: DRAFT and SUBMITTED entries only
+- **Behavior**: If duplicate found → UPDATE existing instead of INSERT new
+
+## 🔧 Configuration Details
+
+### Supabase Connection
+```
+Host: db.ynajasnxfvgtlbjatlbw.supabase.co
+Port: 5432
+Database: postgres
+User: postgres
+Password: Kj9QIapHHgKUlguF
+```
+
+### Connection String (in appsettings.json)
+```
+Host=db.ynajasnxfvgtlbjatlbw.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=Kj9QIapHHgKUlguF;Pooling=true;SSL Mode=Require;Trust Server Certificate=true;
+```
+
+## 🚀 Next Steps (What Still Needs to Be Done)
+
+### 1. Run Migration
+On your RDP:
 ```bash
-curl -X GET "http://localhost:5000/api/time-entries?from=2024-10-01&to=2024-12-31" \
-  -H "X-MEDEW-GC-ID: 100050"
+cd C:\Users\Ayoub\Desktop\clockwise-project\backend
+dotnet run migrate
 ```
-Response bevat nu: `"MedewGcId": 100050` in elk entry ✓
 
----
+OR manually in Supabase SQL Editor:
+- Copy contents of `backend/Migrations/001_CreateWorkflowTables.sql`
+- Run in Supabase dashboard
 
-### 2. **ACTIEF_JN COLUMN BESTAAT NIET**
-
-**Probleem:**
-- POST `/time-entries/work` gaf SQL error: `Column unknown ACTIEF_JN`
-- Backend queries gebruikten `AND ACTIEF_JN = 'J'` in AT_MEDEW queries
-- **Realiteit:** ACTIEF_JN bestaat ALLEEN in `AT_WGROEP` en `AT_WNOTIFIC`, NIET in `AT_MEDEW`
-
-**Fix:**
-- ✅ `FirebirdDataRepository.cs:35`: Removed `AND ACTIEF_JN = 'J'` from `IsMedewActiveAsync()`
-- ✅ `FirebirdUserRepository.cs:21,29,37`: Removed `AND ACTIEF_JN = 'J'` from alle AT_MEDEW queries
-- ✅ Added comment: `// ACTIEF_JN kolom bestaat NIET in AT_MEDEW`
-
-**Verificatie:**
+### 2. Restart Backend
 ```bash
-curl -X POST http://localhost:5000/api/time-entries/work \
-  -H "Content-Type: application/json" \
-  -H "X-MEDEW-GC-ID: 100050" \
-  -d '{"UrenperGcId":100001,"Regels":[...]}'
-```
-Nu: HTTP 200 ✓ (was: HTTP 500 met SQL-206 error)
-
----
-
-### 3. **DATUM RANGE FIX**
-
-**Probleem:**
-- `to` parameter eindigde op `00:00:00`, waardoor entries OP die dag niet meegenomen werden
-- Example: query `?from=2024-12-01&to=2024-12-18` miste entries van 18 december
-
-**Fix:**
-- ✅ `frontend/lib/api.ts:283-285`: Added `safeTo.setHours(23, 59, 59, 999)`
-- Entries op de `to` datum worden nu wel meegenomen
-
----
-
-### 4. **COMPREHENSIVE LOGGING**
-
-**Fix:**
-- ✅ `TimeEntryService.cs`: Added detailed logging:
-  - `InsertWorkEntriesAsync START` met alle parameters
-  - Validatie stappen (medew active, UrenperGcId, TaakGcId, WerkGcId)
-  - Document creation/reuse
-  - Elke regel insertion
-  - SUCCESS/FAILED met details
-- ✅ `FirebirdDataRepository.cs:37`: Added logging bij `IsMedewActiveAsync`
-- ✅ `TimeEntriesController.cs`: Logging was al toegevoegd in eerdere commit
-
-**Voorbeeld logs:**
-```
-[INFO] InsertWorkEntriesAsync START: medewGcId=100050, UrenperGcId=100001, Regels=1
-[INFO] Validating medew 100050 is active
-[INFO] IsMedewActiveAsync: medewGcId=100050, exists=True
-[INFO] Using AdminisGcId=1, validating UrenperGcId=100001
-[INFO] Validating 1 regels
-[INFO] Created new document with GcId=12345
-[INFO] InsertWorkEntriesAsync SUCCESS: Committed 1 work entries for document 12345
+cd C:\Users\Ayoub\Desktop\clockwise-project\backend
+dotnet run
 ```
 
----
+### 3. Frontend Implementation (TODO)
 
-### 5. **CURL TEST SUITE**
+#### Update Register Time Page
+**File**: `frontend/app/(dashboard)/register-time/page.tsx`
 
-**Created:** `CURL_TESTS.md`
+**Changes Needed**:
+1. Replace current "Opslaan" button with:
+   - **Opslaan button** → Calls `POST /api/workflow/draft`
+   - **Inleveren button** → Calls `POST /api/workflow/submit`
 
-Bevat:
-- ✅ Working curl commands voor alle endpoints
-- ✅ Expected responses
-- ✅ Verificatie queries
-- ✅ Troubleshooting guide
-- ✅ Frontend verificatie steps
-- ✅ Common error messages + fixes
+2. Add draft display section:
+   - Show list of drafts for current period
+   - Edit button → loads draft into form
+   - Delete button → calls `DELETE /api/workflow/draft/{id}`
+   - Checkbox to select multiple
+   - "Alles Inleveren" button → submits all selected
 
----
+3. Add rejected section:
+   - Show rejected entries with rejection reason
+   - Edit + Resubmit functionality
 
-## 📊 VERIFICATION STATUS
+#### Create Manager Review Page
+**File**: `frontend/app/(dashboard)/review-time/page.tsx` (NEW)
 
-### Backend Tests (via curl)
+**Features**:
+1. Period selector
+2. List of submitted entries grouped by employee
+3. Checkboxes for bulk selection
+4. Employee info display
+5. Approve button (green)
+6. Reject button (red) with reason modal
+7. Total hours display per employee
 
-| Endpoint | Status | Notes |
-|----------|--------|-------|
-| GET /api/time-entries | ✅ WORKING | Returns entries with `MedewGcId` |
-| POST /api/time-entries/work | ✅ FIXED | No more ACTIEF_JN error |
-| GET /api/projects | ✅ WORKING | No changes needed |
-| GET /api/tasks/work | ✅ WORKING | No changes needed |
-| GET /api/periods | ✅ WORKING | No changes needed |
+### 4. Frontend API Client
+**File**: `frontend/lib/api/workflowApi.ts` (NEW)
 
-### Frontend Verification
-
-**Voor fix:**
-```javascript
-console.log(entries);
-// [{ userId: 0, hours: 8, ... }, { userId: 0, hours: 8, ... }]
-// Filter matcht nooit → UI toont "0u"
-```
-
-**Na fix:**
-```javascript
-console.log(entries);
-// [{ userId: 100050, hours: 8, ... }, { userId: 100050, hours: 8, ... }]
-// Filter matcht → UI toont "32u deze week"
-```
-
----
-
-## ⏳ STILL TODO (Lower Priority)
-
-### 1. Vacation Endpoints (via AT_TAAK)
-
-**Requirement:**
-- Vacation requests komen uit `AT_TAAK` (taak codes met `Z*` prefix)
-- Frontend `/vakantie` page toont momenteel geen data
-
-**Implementation needed:**
-```csharp
-// backend/Controllers/VacationController.cs
-[HttpGet]
-public async Task<IActionResult> GetVacationRequests()
-{
-    // Query AT_TAAK WHERE GC_CODE STARTING WITH 'Z'
-    // JOIN met AT_URENBREG voor datums
-    // Return vacation requests voor ingelogde medew
-}
-```
-
-**Status:** 🟡 NOT STARTED (frontend toont nu info banner "feature in ontwikkeling")
-
----
-
-### 2. Manager Approvals (user 100002)
-
-**Requirement:**
-- User `100002` is manager/admin
-- Moet pending entries van anderen kunnen goedkeuren/afkeuren
-- Auto-redirect naar manager dashboard bij login
-
-**Implementation needed:**
-```csharp
-// backend/Controllers/ApprovalsController.cs
-[HttpGet("time-entries")]
-public async Task<IActionResult> GetPendingTimeEntries([FromQuery] string status)
-{
-    // Return entries WHERE status = 'pending' AND medewGcId != currentUser
-}
-
-[HttpPost("time-entries/{id}/approve")]
-public async Task<IActionResult> ApproveTimeEntry(int id)
-{
-    // Update AT_DOCUMENT status naar 'approved'
-}
-
-[HttpPost("time-entries/{id}/reject")]
-public async Task<IActionResult> RejectTimeEntry(int id)
-{
-    // Update AT_DOCUMENT status naar 'rejected'
-}
-```
-
-**Frontend:**
+**Functions Needed**:
 ```typescript
-// Check bij login of medewGcId === 100002
-if (medewGcId === '100002') {
-  router.push('/manager/approvals');
+export async function saveDraft(data: SaveDraftRequest)
+export async function getDrafts(urenperGcId: number)
+export async function getSubmitted(urenperGcId: number)
+export async function getRejected(urenperGcId: number)
+export async function submitEntries(data: SubmitTimeEntriesRequest)
+export async function resubmitRejected(data: SubmitTimeEntriesRequest)
+export async function deleteDraft(id: number)
+export async function getPendingReview(urenperGcId: number)
+export async function reviewEntries(data: ReviewTimeEntriesRequest)
+```
+
+### 5. Navigation Update
+**File**: `frontend/components/Sidebar.tsx`
+
+**Add**:
+```typescript
+{
+  href: "/review-time",
+  label: t("nav.reviewTime"),
+  icon: CheckCircleIcon,
+  description: t("nav.reviewTimeDescription"),
+  roles: ["MANAGER"] // Only show for managers
 }
 ```
 
-**Status:** 🟡 NOT STARTED
+## 📊 Database Schema Reference
 
----
+### time_entries_workflow
 
-### 3. Draft vs Submit Flow
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL | Primary key |
+| medew_gc_id | INTEGER | Employee ID (from AT_MEDEW) |
+| urenper_gc_id | INTEGER | Period ID (from AT_URENPER) |
+| taak_gc_id | INTEGER | Task ID (from AT_TAAK) |
+| werk_gc_id | INTEGER | Project ID (from AT_WERK, nullable) |
+| datum | DATE | Entry date |
+| aantal | DECIMAL(5,2) | Hours worked (0.1-23.9) |
+| omschrijving | TEXT | Description |
+| **status** | VARCHAR(20) | DRAFT, SUBMITTED, APPROVED, REJECTED |
+| created_at | TIMESTAMP | When created |
+| updated_at | TIMESTAMP | Last updated (auto) |
+| submitted_at | TIMESTAMP | When submitted |
+| reviewed_at | TIMESTAMP | When reviewed |
+| reviewed_by | INTEGER | Manager ID |
+| rejection_reason | TEXT | Why rejected (if rejected) |
+| firebird_gc_id | INTEGER | Link to AT_URENBREG.GC_ID after approval |
 
-**Current behavior:**
-- POST `/time-entries/work` insert entries direct in DB
-- Geen explicit "draft" vs "submitted" status
-- Entries zijn meteen zichtbaar (geen approval flow)
+### Indexes
+- medew_gc_id
+- status
+- datum
+- urenper_gc_id
+- (medew_gc_id, status) WHERE status = 'SUBMITTED'
+- Unique: (medew_gc_id, datum, taak_gc_id, werk_gc_id, urenper_gc_id) WHERE status IN ('DRAFT', 'SUBMITTED')
 
-**Requirement:**
-- User moet kunnen opslaan als **concept** (draft)
-- User moet kunnen **inleveren** (submit voor approval)
-- Manager kan dan goedkeuren/afkeuren
+## ✅ Testing Checklist
 
-**Implementation needed:**
-- Add `STATUS` field to track: `draft` | `submitted` | `approved` | `rejected`
-- Add endpoint: `POST /time-entries/submit` to change status draft → submitted
-- Filter GET `/time-entries` on status
-- Manager sees only `submitted` entries
+### Backend API Tests (Using Postman/curl)
 
-**Database:**
-```sql
--- AT_DOCUMENT heeft mogelijk al een status veld
--- Verificatie nodig: welk veld tracked dit?
-SELECT GC_DOC_STATUS FROM AT_DOCUMENT WHERE GC_ID = ?
+1. **Save Draft**
+```bash
+curl -X POST http://localhost:5000/api/workflow/draft \
+  -H "Content-Type: application/json" \
+  -H "X-MEDEW-GC-ID: 1" \
+  -d '{
+    "urenperGcId": 1,
+    "taakGcId": 30,
+    "werkGcId": 1,
+    "datum": "2025-12-23",
+    "aantal": 8.0,
+    "omschrijving": "Test entry"
+  }'
 ```
 
-**Status:** 🟡 NOT STARTED (requires DB schema verification first)
-
----
-
-## 🎯 IMMEDIATE NEXT STEPS
-
-1. **Test de current fixes:**
-   ```bash
-   # 1. Test time entries ophalen
-   curl -X GET "http://localhost:5000/api/time-entries?from=2024-10-01&to=2024-12-31" \
-     -H "X-MEDEW-GC-ID: 100050"
-
-   # 2. Test uren opslaan
-   curl -X POST http://localhost:5000/api/time-entries/work \
-     -H "Content-Type: application/json" \
-     -H "X-MEDEW-GC-ID: 100050" \
-     -d @test_payload.json
-
-   # 3. Check backend logs
-   docker logs clockwise-backend -f
-
-   # 4. Open frontend /uren-overzicht
-   # Verify: UI toont "Xu deze week" (niet "0u")
-   ```
-
-2. **Als uren nu wel tonen:**
-   - ✅ Core bug is gefixed
-   - Ga door met vacation endpoints
-   - Ga door met manager approvals
-
-3. **Als uren NIET tonen:**
-   - Check browser console: `getEnrichedTimeEntries` logs
-   - Check `entries[0].userId` → moet `100050` zijn (niet `0`)
-   - Check `localStorage.getItem('medewGcId')` → moet `100050` zijn
-   - Check backend response: moet `MedewGcId` bevatten
-
----
-
-## 📁 CHANGED FILES
-
-```
-backend/Models/TimeEntryDto.cs
-├─ Added: public int MedewGcId { get; set; }
-
-backend/Repositories/FirebirdDataRepository.cs
-├─ Line 35: Removed ACTIEF_JN from IsMedewActiveAsync()
-├─ Line 37: Added logging
-├─ Line 87: Added u.MEDEW_GC_ID AS MedewGcId to SELECT
-└─ Line 102: Improved logging
-
-backend/Repositories/FirebirdUserRepository.cs
-├─ Line 21: Removed ACTIEF_JN from GetAllAsync()
-├─ Line 29: Removed ACTIEF_JN from GetByIdAsync()
-└─ Line 37: Removed ACTIEF_JN from GetByLoginNameAsync()
-
-backend/Services/TimeEntryService.cs
-└─ Lines 45-140: Added comprehensive logging throughout InsertWorkEntriesAsync()
-
-frontend/lib/api.ts
-├─ Line 283: Added safeTo.setHours(23, 59, 59, 999)
-└─ Date range now includes full day
-
-CURL_TESTS.md (NEW)
-└─ Complete test suite + troubleshooting
-
-IMPLEMENTATION_SUMMARY.md (NEW - this file)
-└─ Complete overview of changes
+2. **Get Drafts**
+```bash
+curl -X GET "http://localhost:5000/api/workflow/drafts?urenperGcId=1" \
+  -H "X-MEDEW-GC-ID: 1"
 ```
 
----
+3. **Submit Entries**
+```bash
+curl -X POST http://localhost:5000/api/workflow/submit \
+  -H "Content-Type: application/json" \
+  -H "X-MEDEW-GC-ID: 1" \
+  -d '{
+    "urenperGcId": 1,
+    "entryIds": [1, 2]
+  }'
+```
 
-## ⚠️ IMPORTANT NOTES
+4. **Manager Review**
+```bash
+curl -X POST http://localhost:5000/api/workflow/review \
+  -H "Content-Type: application/json" \
+  -H "X-MEDEW-GC-ID: 100" \
+  -d '{
+    "entryIds": [1, 2],
+    "approve": true
+  }'
+```
 
-### Database Constraints
+### Frontend Tests (Manual)
 
-1. **ACTIEF_JN:**
-   - Exists ONLY in: `AT_WGROEP.ACTIEF_JN`, `AT_WNOTIFIC.ACTIEF_JN`
-   - Does NOT exist in: `AT_MEDEW`
-   - All medewerkers in AT_MEDEW are considered active
+1. ✅ Save draft → appears in drafts list
+2. ✅ Edit draft → updates correctly
+3. ✅ Delete draft → removed from list
+4. ✅ Submit drafts → moves to submitted list
+5. ✅ Manager approves → appears in Firebird database
+6. ✅ Manager rejects → back in user's rejected list with reason
+7. ✅ User resubmits → back in submitted list
+8. ✅ Duplicate prevention → update instead of create
 
-2. **UrenperGcId:**
-   - Must exist in `AT_URENPER` table
-   - Links to period/week voor urenstaat
-   - Invalid UrenperGcId → ArgumentException
+## 📝 Notes
 
-3. **TaakGcId:**
-   - Work entries: code `30` (Montage) or `40` (Tekenkamer)
-   - Vacation entries: code starting with `Z*`
-   - Invalid code → ArgumentException
+- **NO database changes to Firebird** - All workflow in PostgreSQL
+- **Firebird is read-only until approval** - Only approved entries get inserted
+- **Supabase free tier** - 500MB database, enough for workflow data
+- **Backend runs on RDP** - Connects to both Firebird (local) and Supabase (cloud)
+- **Frontend on Vercel** - Calls backend via ngrok URL
 
-4. **WerkGcId:**
-   - Must exist in `AT_WERK` table
-   - Links to project
-   - Required for work entries (optional for vacation)
+## 🔐 Security Considerations
 
----
-
-## 📞 SUPPORT
-
-**Als er nog issues zijn:**
-
-1. **Check backend logs:**
-   ```bash
-   docker logs clockwise-backend -f
-   ```
-
-2. **Check frontend console:**
-   - Open DevTools → Console
-   - Look for `getEnrichedTimeEntries` logs
-   - Check `userId` values
-
-3. **Run curl tests:**
-   - Zie `CURL_TESTS.md` voor alle commando's
-   - Start met GET `/time-entries` om te zien of MedewGcId er is
-
-4. **Verify database:**
-   ```sql
-   -- Check if entries exist
-   SELECT r.*, u.MEDEW_GC_ID
-   FROM AT_URENBREG r
-   INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
-   WHERE u.MEDEW_GC_ID = 100050
-   AND r.DATUM >= '2024-10-01';
-   ```
+1. **Connection string** contains password → Keep secure
+2. **Add manager role check** in ReviewEntries endpoint
+3. **Consider environment variables** for production
+4. **Add `.gitignore`** for appsettings.json if public repo
 
 ---
 
-**Status:** ✅ Core bugs gefixed, tijd entries moeten nu werken!
-**Next:** Vacation endpoints + Manager approvals (lower priority)
-
+**Status**: Backend implementation complete ✅  
+**Next**: Frontend implementation + Testing  
+**Created**: 2025-12-22

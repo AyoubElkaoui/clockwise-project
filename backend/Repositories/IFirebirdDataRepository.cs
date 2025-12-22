@@ -30,6 +30,10 @@ namespace ClockwiseProject.Backend.Repositories
         Task<bool> IsMedewActiveAsync(int medewGcId);
         Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving);
         Task<string> GetTaakCodeAsync(int taakGcId);
+        Task<bool> IsValidTaakAsync(int taakGcId);
+        Task<bool> IsValidWerkAsync(int werkGcId);
+        Task<bool> IsValidUrenperAsync(int urenperGcId, int adminisGcId);
+        Task<string> GetWerkCodeAsync(int werkGcId);
         Task<IEnumerable<User>> GetUsersAsync();
         Task<User> GetUserByIdAsync(int id);
         FbConnection GetConnection();

@@ -13,6 +13,7 @@ import {
   ChartBarIcon,
   BellIcon,
   ArrowRightOnRectangleIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -72,6 +73,12 @@ export default function Sidebar({
       label: t("nav.overview"),
       icon: ChartBarIcon,
       description: t("nav.overviewDescription"),
+    },
+    {
+      href: "/review-time",
+      label: t("nav.reviewTime", "Uren Beoordelen"),
+      icon: CheckCircleIcon,
+      description: t("nav.reviewTimeDescription", "Beoordeel ingediende uren"),
     },
     {
       href: "/leave-booking",
