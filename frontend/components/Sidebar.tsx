@@ -80,6 +80,12 @@ export default function Sidebar({
       description: t("nav.vacationDescription"),
     },
     {
+      href: "/leave-booking",
+      label: "Verlof Boeken",
+      icon: CalendarDaysIcon,
+      description: "Boek vakantie en verlof",
+    },
+    {
       href: "/profile",
       label: t("nav.account"),
       icon: UserCircleIcon,

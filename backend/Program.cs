@@ -55,6 +55,8 @@ builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
 builder.Services.AddScoped<IUserRepository, FirebirdUserRepository>();
 builder.Services.AddSingleton<IVacationRepository, FirebirdVacationRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
+builder.Services.AddScoped<backend.Repositories.ITaskRepository, backend.Repositories.FirebirdTaskRepository>();
+builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Repositories.FirebirdTimeEntryRepository>();
 
 // Register services
 // builder.Services.AddScoped<AuthService>();
@@ -62,6 +64,8 @@ builder.Services.AddScoped<TimesheetService>();
 builder.Services.AddScoped<VacationService>();
 builder.Services.AddScoped<TimeEntryService>();
 builder.Services.AddScoped<ActivityService>();
+builder.Services.AddScoped<backend.Services.TaskService>();
+builder.Services.AddScoped<backend.Services.LeaveService>();
 
 
 var app = builder.Build();
@@ -76,39 +80,39 @@ if (app.Environment.IsDevelopment())
 if (app.Environment.IsDevelopment())
 {
     // Middleware volgorde: belangrijk voor CORS
-app.UseRouting();
-app.UseCors("AllowSpecificOrigins");
+    app.UseRouting();
+    app.UseCors("AllowSpecificOrigins");
 
-// Global exception handler that returns JSON for API routes
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
+    // Global exception handler that returns JSON for API routes
+    app.UseExceptionHandler(errorApp =>
     {
-        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-        var problemDetails = new ProblemDetails
+        errorApp.Run(async context =>
         {
-            Status = 500,
-            Title = "An error occurred",
-            Detail = exception?.Message ?? "Internal server error",
-            Instance = context.Request.Path
-        };
+            var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+            var problemDetails = new ProblemDetails
+            {
+                Status = 500,
+                Title = "An error occurred",
+                Detail = exception?.Message ?? "Internal server error",
+                Instance = context.Request.Path
+            };
 
-        // Always return JSON for API routes
-        if (context.Request.Path.Value?.StartsWith("/api") == true)
-        {
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = 500;
-            await context.Response.WriteAsJsonAsync(problemDetails);
-        }
-        else
-        {
-            // For non-API routes, return HTML
-            context.Response.ContentType = "text/html";
-            context.Response.StatusCode = 500;
-            await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>{problemDetails.Detail}</p></body></html>");
-        }
+            // Always return JSON for API routes
+            if (context.Request.Path.Value?.StartsWith("/api") == true)
+            {
+                context.Response.ContentType = "application/json";
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsJsonAsync(problemDetails);
+            }
+            else
+            {
+                // For non-API routes, return HTML
+                context.Response.ContentType = "text/html";
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>{problemDetails.Detail}</p></body></html>");
+            }
+        });
     });
-});
 }
 
 // Add dummy holidays endpoint before middleware so it doesn't require auth
