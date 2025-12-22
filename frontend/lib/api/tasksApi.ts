@@ -1,4 +1,4 @@
-import axios from '../api';
+import axios from "axios";
 
 // Types
 export interface Task {
@@ -67,9 +67,11 @@ export interface BookLeaveResponse {
 /**
  * Haalt alle taken op uit AT_TAAK.
  */
-export const getTasks = async (includeHistorical: boolean = false): Promise<TasksResponse> => {
-  const response = await axios.get<TasksResponse>('/api/tasks', {
-    params: { includeHistorical }
+export const getTasks = async (
+  includeHistorical: boolean = false,
+): Promise<TasksResponse> => {
+  const response = await axios.get<TasksResponse>("/api/tasks", {
+    params: { includeHistorical },
   });
   return response.data;
 };
@@ -85,9 +87,11 @@ export const getTaskById = async (id: number): Promise<Task> => {
 /**
  * Haalt alle leave/vacation types op (Z-codes).
  */
-export const getLeaveTypes = async (includeHistorical: boolean = false): Promise<LeaveTypesResponse> => {
-  const response = await axios.get<LeaveTypesResponse>('/api/leave/types', {
-    params: { includeHistorical }
+export const getLeaveTypes = async (
+  includeHistorical: boolean = false,
+): Promise<LeaveTypesResponse> => {
+  const response = await axios.get<LeaveTypesResponse>("/api/leave/types", {
+    params: { includeHistorical },
   });
   return response.data;
 };
@@ -95,9 +99,12 @@ export const getLeaveTypes = async (includeHistorical: boolean = false): Promise
 /**
  * Haalt leave bookings op voor de ingelogde medewerker.
  */
-export const getMyLeave = async (from: string, to: string): Promise<MyLeaveResponse> => {
-  const response = await axios.get<MyLeaveResponse>('/api/leave/my', {
-    params: { from, to }
+export const getMyLeave = async (
+  from: string,
+  to: string,
+): Promise<MyLeaveResponse> => {
+  const response = await axios.get<MyLeaveResponse>("/api/leave/my", {
+    params: { from, to },
   });
   return response.data;
 };
@@ -105,7 +112,12 @@ export const getMyLeave = async (from: string, to: string): Promise<MyLeaveRespo
 /**
  * Boekt verlof/vakantie.
  */
-export const bookLeave = async (request: BookLeaveRequest): Promise<BookLeaveResponse> => {
-  const response = await axios.post<BookLeaveResponse>('/api/leave/book', request);
+export const bookLeave = async (
+  request: BookLeaveRequest,
+): Promise<BookLeaveResponse> => {
+  const response = await axios.post<BookLeaveResponse>(
+    "/api/leave/book",
+    request,
+  );
   return response.data;
 };
