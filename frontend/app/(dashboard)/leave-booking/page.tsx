@@ -205,15 +205,15 @@ export default function LeaveBookingPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-8 shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-            <CalendarDaysIcon className="w-10 h-10" />
+      <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+            <span className="text-2xl">📅</span>
           </div>
           <div>
-            <h1 className="text-4xl font-bold">Verlof Boeken</h1>
+            <h1 className="text-4xl font-bold">Vakantie Overzicht</h1>
             <p className="text-blue-100 text-lg">
-              Beheer je verlof en afwezigheid
+              Beheer je vakantieaanvragen en bekijk je saldo
             </p>
           </div>
         </div>
@@ -453,13 +453,13 @@ export default function LeaveBookingPage() {
             </div>
 
             {/* Totaal */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl p-6 mb-6">
-              <div className="text-sm opacity-90 mb-1">Totaal Uren</div>
-              <div className="text-4xl font-bold mb-2">
-                {totalHours.toFixed(1)}
-              </div>
-              <div className="text-sm opacity-75">
-                {myBookings.length} boekingen
+            <div className="stats shadow mb-6">
+              <div className="stat">
+                <div className="stat-title">Totaal Uren</div>
+                <div className="stat-value text-primary">
+                  {totalHours.toFixed(1)}
+                </div>
+                <div className="stat-desc">{myBookings.length} boekingen</div>
               </div>
             </div>
 
