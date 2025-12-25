@@ -304,10 +304,13 @@ export default function LeaveBookingPage() {
                     type="number"
                     className="w-full p-2 border rounded-md bg-background"
                     value={hoursPerDay}
-                    onChange={(e) => setHoursPerDay(Number(e.target.value))}
-                    min="0.1"
-                    max="24"
-                    step="0.5"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(',', '.');
+                      setHoursPerDay(Number(value) || 0);
+                    }}
+                    min="0.25"
+                    max="8"
+                    step="0.25"
                     required
                   />
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
