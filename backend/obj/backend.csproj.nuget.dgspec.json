@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Ayoub\\Desktop\\clockwise-project\\backend\\backend.csproj": {}
+    "/home/ayoub/clockwise-project/backend/backend.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Ayoub\\Desktop\\clockwise-project\\backend\\backend.csproj": {
+    "/home/ayoub/clockwise-project/backend/backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Ayoub\\Desktop\\clockwise-project\\backend\\backend.csproj",
+        "projectUniqueName": "/home/ayoub/clockwise-project/backend/backend.csproj",
         "projectName": "backend",
-        "projectPath": "C:\\Users\\Ayoub\\Desktop\\clockwise-project\\backend\\backend.csproj",
-        "packagesPath": "C:\\Users\\Ayoub\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Ayoub\\Desktop\\clockwise-project\\backend\\obj\\",
+        "projectPath": "/home/ayoub/clockwise-project/backend/backend.csproj",
+        "packagesPath": "/home/ayoub/.nuget/packages/",
+        "outputPath": "/home/ayoub/clockwise-project/backend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Ayoub\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/ayoub/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -32,11 +32,6 @@
           "warnAsError": [
             "NU1605"
           ]
-        },
-        "restoreAuditProperties": {
-          "enableAudit": "true",
-          "auditLevel": "low",
-          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -129,7 +124,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.416/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/lib64/dotnet/sdk/8.0.122/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -25,7 +25,7 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
         const string sql = @"
             SELECT
                 u.GC_ID AS BookingId,
-                s.GC_MEDEW_ID AS MedewGcId,
+                s.MEDEW_GC_ID AS MedewGcId,
                 u.GC_TAAK_ID AS TaakGcId,
                 u.GC_WERK_ID AS WerkGcId,
                 u.GC_DATUM AS Datum,
@@ -34,10 +34,10 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
                 t.GC_CODE AS TaskCode,
                 t.GC_OMSCHRIJVING AS TaskDescription
             FROM AT_URENBREG u
-            INNER JOIN AT_URENSTAT s ON u.GC_URENSTAT_ID = s.GC_ID
+            INNER JOIN AT_URENSTAT s ON u.DOCUMENT_GC_ID = s.DOCUMENT_GC_ID
             LEFT JOIN AT_TAAK t ON u.GC_TAAK_ID = t.GC_ID
             WHERE
-                s.GC_MEDEW_ID = @medewGcId
+                s.MEDEW_GC_ID = @medewGcId
                 AND u.GC_DATUM BETWEEN @fromDate AND @toDate
             ORDER BY
                 u.GC_DATUM DESC
@@ -78,10 +78,10 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
                 t.GC_CODE AS TaskCode,
                 t.GC_OMSCHRIJVING AS TaskDescription
             FROM AT_URENBREG u
-            INNER JOIN AT_URENSTAT s ON u.GC_URENSTAT_ID = s.GC_ID
+            INNER JOIN AT_URENSTAT s ON u.DOCUMENT_GC_ID = s.DOCUMENT_GC_ID
             INNER JOIN AT_TAAK t ON u.GC_TAAK_ID = t.GC_ID
             WHERE
-                s.GC_MEDEW_ID = @medewGcId
+                s.MEDEW_GC_ID = @medewGcId
                 AND u.GC_DATUM BETWEEN @fromDate AND @toDate
                 AND t.GC_CODE STARTING WITH 'Z'
             ORDER BY
@@ -115,7 +115,7 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
         const string sql = @"
             SELECT
                 u.GC_ID AS BookingId,
-                s.GC_MEDEW_ID AS MedewGcId,
+                s.MEDEW_GC_ID AS MedewGcId,
                 u.GC_TAAK_ID AS TaakGcId,
                 u.GC_WERK_ID AS WerkGcId,
                 u.GC_DATUM AS Datum,
@@ -124,10 +124,10 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
                 t.GC_CODE AS TaskCode,
                 t.GC_OMSCHRIJVING AS TaskDescription
             FROM AT_URENBREG u
-            INNER JOIN AT_URENSTAT s ON u.GC_URENSTAT_ID = s.GC_ID
+            INNER JOIN AT_URENSTAT s ON u.DOCUMENT_GC_ID = s.DOCUMENT_GC_ID
             LEFT JOIN AT_TAAK t ON u.GC_TAAK_ID = t.GC_ID
             WHERE
-                s.GC_MEDEW_ID = @medewGcId
+                s.MEDEW_GC_ID = @medewGcId
                 AND u.GC_DATUM = @date
         ";
 
@@ -152,19 +152,19 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
 
     public async Task<int> CreateAsync(CreateTimeEntryCommand command)
     {
-        // Eerst: haal UrenStat ID op voor deze medewerker
+        // Eerst: haal UrenStat DOCUMENT_GC_ID op voor deze medewerker
         const string getUrenStatSql = @"
-            SELECT GC_ID
+            SELECT DOCUMENT_GC_ID
             FROM AT_URENSTAT
-            WHERE GC_MEDEW_ID = @medewGcId
-            ORDER BY GC_ID DESC
+            WHERE MEDEW_GC_ID = @medewGcId
+            ORDER BY DOCUMENT_GC_ID DESC
             ROWS 1
         ";
 
         const string insertSql = @"
             INSERT INTO AT_URENBREG (
                 GC_ID,
-                GC_URENSTAT_ID,
+                DOCUMENT_GC_ID,
                 GC_TAAK_ID,
                 GC_WERK_ID,
                 GC_DATUM,
@@ -172,7 +172,7 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
                 GC_OMSCHRIJVING
             ) VALUES (
                 GEN_ID(GEN_AT_URENBREG_ID, 1),
-                @urenStatId,
+                @documentGcId,
                 @taakGcId,
                 @werkGcId,
                 @datum,
@@ -186,13 +186,13 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
         {
             using var connection = _connectionFactory.CreateConnection();
 
-            // Stap 1: Haal UrenStat ID op
-            var urenStatId = await connection.ExecuteScalarAsync<int?>(getUrenStatSql, new
+            // Stap 1: Haal UrenStat DOCUMENT_GC_ID op
+            var documentGcId = await connection.ExecuteScalarAsync<int?>(getUrenStatSql, new
             {
                 medewGcId = command.MedewGcId
             });
 
-            if (urenStatId == null)
+            if (documentGcId == null)
             {
                 throw new InvalidOperationException(
                     $"No AT_URENSTAT record found for employee {command.MedewGcId}");
@@ -201,7 +201,7 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
             // Stap 2: Insert time entry
             var newGcId = await connection.ExecuteScalarAsync<int>(insertSql, new
             {
-                urenStatId,
+                documentGcId,
                 taakGcId = command.TaakGcId,
                 werkGcId = command.WerkGcId,
                 datum = command.Datum,
