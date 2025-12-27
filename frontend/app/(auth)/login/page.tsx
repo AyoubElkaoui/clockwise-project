@@ -1,7 +1,7 @@
 "use client";
 import { JSX, useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/api";
+import { login } from "@/api/auth";
 import Image from "next/image";
 import {
   EnvelopeIcon,

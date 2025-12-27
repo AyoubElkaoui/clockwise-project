@@ -404,22 +404,23 @@ export async function getEnrichedTimeEntries(from?: string, to?: string) {
   });
 }
 
-export async function login(medewGcId: string) {
-  const response = await axios.post(`${API_URL}/users/login`, {
-    medewGcId: parseInt(medewGcId),
-  });
-  const user = response.data;
-
-  // Clear and set localStorage
-  localStorage.clear();
-  localStorage.setItem("medewGcId", medewGcId);
-  localStorage.setItem("userId", user.id.toString());
-  localStorage.setItem("firstName", user.firstName);
-  localStorage.setItem("lastName", user.lastName);
-  localStorage.setItem("userRank", user.rank || "user");
-
-  return user;
-}
+// OLD LOGIN - Deprecated, use @/api/auth.ts instead
+// export async function login(medewGcId: string) {
+//   const response = await axios.post(`${API_URL}/users/login`, {
+//     medewGcId: parseInt(medewGcId),
+//   });
+//   const user = response.data;
+//
+//   // Clear and set localStorage
+//   localStorage.clear();
+//   localStorage.setItem("medewGcId", medewGcId);
+//   localStorage.setItem("userId", user.id.toString());
+//   localStorage.setItem("firstName", user.firstName);
+//   localStorage.setItem("lastName", user.lastName);
+//   localStorage.setItem("userRank", user.rank || "user");
+//
+//   return user;
+// }
 
 export async function registerWorkTimeEntry(
   urenperGcId: number,
