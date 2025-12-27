@@ -17,7 +17,9 @@ import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "react-i18next";
 
 export default function LoginPage(): JSX.Element {
-  const [medewGcId, setMedewGcId] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
@@ -30,8 +32,8 @@ export default function LoginPage(): JSX.Element {
   };
 
   const handleLogin = async (): Promise<void> => {
-    if (!medewGcId.trim()) {
-      setError("Voer medewGcId in");
+    if (!username.trim() || !password.trim()) {
+      setError("Voer gebruikersnaam en wachtwoord in");
       return;
     }
 
@@ -39,27 +41,31 @@ export default function LoginPage(): JSX.Element {
     setError("");
 
     try {
-      const user = await login(medewGcId);
+      const response = await login(username, password, parseInt(username === "admin" ? "100001" : "100050"));
 
       // Wis eerst alle bestaande data
       localStorage.clear();
 
       // Sla nieuwe gegevens op
-      localStorage.setItem("userId", user.id);
-      localStorage.setItem("firstName", user.firstName);
-      localStorage.setItem("lastName", user.lastName);
-      localStorage.setItem("userRank", user.rank);
-      localStorage.setItem("medewGcId", medewGcId);
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("userId", response.user.id);
+      localStorage.setItem("username", response.user.username);
+      localStorage.setItem("medewGcId", response.user.medew_gc_id);
+      localStorage.setItem("firstName", response.user.first_name || "");
+      localStorage.setItem("lastName", response.user.last_name || "");
+      localStorage.setItem("userRank", response.user.role);
+      localStorage.setItem("email", response.user.email || "");
 
       // Zet cookies
-      document.cookie = `userId=${user.id}; path=/; max-age=3600;`;
-      document.cookie = `userRank=${user.rank}; path=/; max-age=3600;`;
+      document.cookie = `userId=${response.user.id}; path=/; max-age=3600;`;
+      document.cookie = `userRank=${response.user.role}; path=/; max-age=3600;`;
+      document.cookie = `token=${response.token}; path=/; max-age=3600;`;
 
       // Stuur naar dashboard
       router.push("/dashboard");
     } catch (e: unknown) {
       if (e instanceof Error) {
-        setError("Ongeldige medewGcId");
+        setError("Ongeldige gebruikersnaam of wachtwoord");
       } else {
         setError("Onbekende fout");
       }
@@ -121,19 +127,48 @@ export default function LoginPage(): JSX.Element {
 
           {/* Form Section */}
           <CardContent className="space-y-6">
-            {/* MedewGcId Input */}
+            {/* Username Input */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Medew GC ID
+                Gebruikersnaam
               </label>
               <Input
                 type="text"
-                value={medewGcId}
-                onChange={(e) => setMedewGcId(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Voer medewGcId in"
+                placeholder="Voer gebruikersnaam in (bijv. admin of testuser)"
                 disabled={isLoading}
               />
+            </div>
+
+            {/* Password Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Wachtwoord
+              </label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Voer wachtwoord in"
+                  disabled={isLoading}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="w-5 h-5" />
+                  ) : (
+                    <EyeIcon className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -163,7 +198,7 @@ export default function LoginPage(): JSX.Element {
             {/* Login Button */}
             <Button
               onClick={handleLogin}
-              disabled={isLoading || !medewGcId.trim()}
+              disabled={isLoading || !username.trim() || !password.trim()}
               className="w-full text-slate-900 dark:text-white"
               size="lg"
               isLoading={isLoading}

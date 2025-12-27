@@ -26,21 +26,21 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
             SELECT
                 u.GC_ID AS BookingId,
                 s.MEDEW_GC_ID AS MedewGcId,
-                u.GC_TAAK_ID AS TaakGcId,
-                u.GC_WERK_ID AS WerkGcId,
-                u.GC_DATUM AS Datum,
-                u.GC_UREN AS Uren,
+                u.TAAK_GC_ID AS TaakGcId,
+                u.WERK_GC_ID AS WerkGcId,
+                u.DATUM AS Datum,
+                u.AANTAL AS Uren,
                 u.GC_OMSCHRIJVING AS Omschrijving,
                 t.GC_CODE AS TaskCode,
                 t.GC_OMSCHRIJVING AS TaskDescription
             FROM AT_URENBREG u
             INNER JOIN AT_URENSTAT s ON u.DOCUMENT_GC_ID = s.DOCUMENT_GC_ID
-            LEFT JOIN AT_TAAK t ON u.GC_TAAK_ID = t.GC_ID
+            LEFT JOIN AT_TAAK t ON u.TAAK_GC_ID = t.GC_ID
             WHERE
                 s.MEDEW_GC_ID = @medewGcId
-                AND u.GC_DATUM BETWEEN @fromDate AND @toDate
+                AND u.DATUM BETWEEN @fromDate AND @toDate
             ORDER BY
-                u.GC_DATUM DESC
+                u.DATUM DESC
         ";
 
         try
@@ -71,21 +71,21 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
         const string sql = @"
             SELECT
                 u.GC_ID AS BookingId,
-                u.GC_DATUM AS Date,
-                u.GC_UREN AS Hours,
+                u.DATUM AS ""Date"",
+                u.AANTAL AS Hours,
                 u.GC_OMSCHRIJVING AS BookingDescription,
-                u.GC_TAAK_ID AS TaskId,
+                u.TAAK_GC_ID AS TaskId,
                 t.GC_CODE AS TaskCode,
                 t.GC_OMSCHRIJVING AS TaskDescription
             FROM AT_URENBREG u
             INNER JOIN AT_URENSTAT s ON u.DOCUMENT_GC_ID = s.DOCUMENT_GC_ID
-            INNER JOIN AT_TAAK t ON u.GC_TAAK_ID = t.GC_ID
+            INNER JOIN AT_TAAK t ON u.TAAK_GC_ID = t.GC_ID
             WHERE
                 s.MEDEW_GC_ID = @medewGcId
-                AND u.GC_DATUM BETWEEN @fromDate AND @toDate
+                AND u.DATUM BETWEEN @fromDate AND @toDate
                 AND t.GC_CODE STARTING WITH 'Z'
             ORDER BY
-                u.GC_DATUM DESC
+                u.DATUM DESC
         ";
 
         try
@@ -116,19 +116,19 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
             SELECT
                 u.GC_ID AS BookingId,
                 s.MEDEW_GC_ID AS MedewGcId,
-                u.GC_TAAK_ID AS TaakGcId,
-                u.GC_WERK_ID AS WerkGcId,
-                u.GC_DATUM AS Datum,
-                u.GC_UREN AS Uren,
+                u.TAAK_GC_ID AS TaakGcId,
+                u.WERK_GC_ID AS WerkGcId,
+                u.DATUM AS Datum,
+                u.AANTAL AS Uren,
                 u.GC_OMSCHRIJVING AS Omschrijving,
                 t.GC_CODE AS TaskCode,
                 t.GC_OMSCHRIJVING AS TaskDescription
             FROM AT_URENBREG u
             INNER JOIN AT_URENSTAT s ON u.DOCUMENT_GC_ID = s.DOCUMENT_GC_ID
-            LEFT JOIN AT_TAAK t ON u.GC_TAAK_ID = t.GC_ID
+            LEFT JOIN AT_TAAK t ON u.TAAK_GC_ID = t.GC_ID
             WHERE
                 s.MEDEW_GC_ID = @medewGcId
-                AND u.GC_DATUM = @date
+                AND u.DATUM = @date
         ";
 
         try
@@ -165,13 +165,13 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
             INSERT INTO AT_URENBREG (
                 GC_ID,
                 DOCUMENT_GC_ID,
-                GC_TAAK_ID,
-                GC_WERK_ID,
-                GC_DATUM,
-                GC_UREN,
+                TAAK_GC_ID,
+                WERK_GC_ID,
+                DATUM,
+                AANTAL,
                 GC_OMSCHRIJVING
             ) VALUES (
-                GEN_ID(GEN_AT_URENBREG_ID, 1),
+                GEN_ID(AG_URENBREG, 1),
                 @documentGcId,
                 @taakGcId,
                 @werkGcId,

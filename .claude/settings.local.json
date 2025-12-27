@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet add:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(dotnet build:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet remove:*)"
+    ]
+  }
+}

@@ -42,13 +42,22 @@ builder.Services.AddCors(options =>
 builder.Services.AddProblemDetails();
 
 // Configure Firebird connection
-var firebirdConnectionString = builder.Configuration["FIREBIRD_CONNECTION"] ?? "Database=C:\\Users\\Ayoub\\Desktop\\clockwise-project\\database\\atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=0;Server=localhost;Port=3050;ClientLibrary=fbclient.dll;Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
+var firebirdConnectionString = builder.Configuration.GetConnectionString("Firebird") ?? "Database=C:\\Users\\Ayoub\\Desktop\\clockwise-project\\database\\atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=0;Server=localhost;Port=3050;ClientLibrary=fbclient.dll;Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
 builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
 
-// Configure Postgres (if needed for users)
-var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres");
-builder.Services.AddDbContext<PostgresDbContext>(options =>
-    options.UseNpgsql(postgresConnectionString));
+// Configure PostgreSQL (Supabase) connection
+builder.Services.AddSingleton<ClockwiseProject.Backend.Data.PostgreSQLConnectionFactory>();
+
+// Configure Postgres EF Core DbContext (needed by some repositories)
+var postgresConnectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+if (!string.IsNullOrEmpty(postgresConnectionString))
+{
+    // Use compatible version without migrations
+    builder.Services.AddDbContext<PostgresDbContext>(options =>
+    {
+        options.UseNpgsql(postgresConnectionString);
+    }, ServiceLifetime.Scoped);
+}
 
 // Register repositories
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
@@ -59,8 +68,11 @@ builder.Services.AddScoped<backend.Repositories.ITaskRepository, backend.Reposit
 builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Repositories.FirebirdTimeEntryRepository>();
 builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
 
+// PostgreSQL repositories (Supabase)
+builder.Services.AddScoped<backend.Repositories.PostgreSQLUserRepository>();
+
 // Register services
-// builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<backend.Services.AuthenticationService>();
 builder.Services.AddScoped<TimesheetService>();
 builder.Services.AddScoped<VacationService>();
 builder.Services.AddScoped<TimeEntryService>();
@@ -164,8 +176,13 @@ public class MedewGcIdMiddleware
             return;
         }
 
-        // Skip authentication for login endpoint
-        if (context.Request.Path.Value?.EndsWith("/api/users/login") == true && context.Request.Method == "POST")
+        // Skip authentication for login and auth endpoints
+        var path = context.Request.Path.Value?.ToLower();
+        if (path != null &&
+            (path.Contains("/api/users/login") ||
+             path.Contains("/api/auth/login") ||
+             path.Contains("/api/auth/hash-password")) &&
+            context.Request.Method == "POST")
         {
             await _next(context);
             return;
