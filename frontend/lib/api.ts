@@ -22,7 +22,11 @@ axios.defaults.headers.common["ngrok-skip-browser-warning"] = "1";
 
 // Add X-MEDEW-GC-ID to all /api/* requests except login
 axios.interceptors.request.use((config) => {
-  if (config.url?.startsWith('/api') && !config.url?.includes('/api/users/login')) {
+  // Check if URL contains /api/ and is not a login endpoint
+  const isApiRequest = config.url?.includes('/api/');
+  const isLoginRequest = config.url?.includes('/api/users/login') || config.url?.includes('/api/auth/login');
+
+  if (isApiRequest && !isLoginRequest) {
     const medewGcId = localStorage.getItem('medewGcId');
     if (medewGcId) {
       config.headers['X-MEDEW-GC-ID'] = medewGcId;
