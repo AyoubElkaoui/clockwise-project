@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/lib/api";
+import { getAllUsers, getAllTimeEntries } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,16 +48,12 @@ export default function ManagerTeamPage() {
         return;
       }
 
-      // Load team members
-      const usersRes = await fetch(`${API_URL}/users`);
-      const users = await usersRes.json();
+      // Load team members using manager API
+      const users = await getAllUsers();
       const team = users.filter((u: any) => u.managerId === managerId);
 
-      // Load time entries for stats
-      const entriesRes = await fetch(
-        `${API_URL}/time-entries/team?managerId=${managerId}`,
-      );
-      const entries = await entriesRes.json();
+      // Load time entries for stats using manager API
+      const entries = await getAllTimeEntries();
 
       // Calculate stats for each team member
       const teamWithStats = team.map((member) => {
