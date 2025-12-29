@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { API_URL } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { getAllTimeEntries, getAllUsers, approveTimeEntry } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,70 +62,27 @@ export default function ManagerDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const managerId = authUtils.getUserId();
-      if (!managerId) {
+      if (!authUtils.getUserId()) {
         showToast("Gebruiker niet ingelogd", "error");
         router.push("/login");
         return;
       }
 
-      // Load team time entries
-      console.log("Loading team time entries for manager:", managerId);
-      const entriesRes = await fetch(
-        `${API_URL}/time-entries/team?managerId=${managerId}`,
-      );
-      if (!entriesRes.ok) {
-        console.error(
-          "Failed to load team time entries:",
-          entriesRes.status,
-          entriesRes.statusText,
-        );
-        throw new Error(`Team entries fetch failed: ${entriesRes.status}`);
-      }
-      const entries = await entriesRes.json();
-      console.log(
-        "Team entries loaded:",
-        entries?.length || 0,
-        "entries:",
-        entries,
-      );
+      // Load all time entries (last 3 months)
+      const fromDate = dayjs().subtract(3, "month").format("YYYY-MM-DD");
+      const toDate = dayjs().format("YYYY-MM-DD");
 
-      // Load team vacation requests
-      console.log("Loading team vacation requests for manager:", managerId);
-      const vacationsRes = await fetch(
-        `${API_URL}/vacation-requests/team/pending?managerId=${managerId}`,
-      );
-      if (!vacationsRes.ok) {
-        console.error(
-          "Failed to load team vacation requests:",
-          vacationsRes.status,
-          vacationsRes.statusText,
-        );
-        throw new Error(`Team vacations fetch failed: ${vacationsRes.status}`);
-      }
-      const vacations = await vacationsRes.json();
-      console.log(
-        "Team vacations loaded:",
-        vacations?.length || 0,
-        "vacations:",
-        vacations,
-      );
+      const [entries, users] = await Promise.all([
+        getAllTimeEntries(fromDate, toDate),
+        getAllUsers()
+      ]);
 
-      // Load team members
-      console.log("Loading users");
-      const usersRes = await fetch(`${API_URL}/users`);
-      if (!usersRes.ok) {
-        console.error(
-          "Failed to load users:",
-          usersRes.status,
-          usersRes.statusText,
-        );
-        throw new Error(`Users fetch failed: ${usersRes.status}`);
-      }
-      const users = await usersRes.json();
-      console.log("All users loaded:", users?.length || 0, "users:", users);
-      const team = users.filter((u: any) => u.managerId === managerId);
-      console.log("Team members loaded:", team.length, "team:", team);
+      console.log("Time entries loaded:", entries.length);
+      console.log("Users loaded:", users.length);
+
+      // Manager can see all users (no filtering)
+      const team = users;
+      const vacations: any[] = []; // TODO: Add vacation endpoint later
 
       // Calculate comprehensive stats
       const pending = entries.filter((e: any) => e.status === "ingeleverd");
@@ -135,7 +92,7 @@ export default function ManagerDashboard() {
       const weekStart = dayjs().startOf("isoWeek");
       const weekEnd = dayjs().endOf("isoWeek");
       const weekEntries = entries.filter((e: any) => {
-        const date = dayjs(e.startTime);
+        const date = dayjs(e.date);
         return date.isAfter(weekStart) && date.isBefore(weekEnd);
       });
 
@@ -143,7 +100,7 @@ export default function ManagerDashboard() {
       const lastWeekStart = dayjs().subtract(1, "week").startOf("isoWeek");
       const lastWeekEnd = dayjs().subtract(1, "week").endOf("isoWeek");
       const lastWeekEntries = entries.filter((e: any) => {
-        const date = dayjs(e.startTime);
+        const date = dayjs(e.date);
         return date.isAfter(lastWeekStart) && date.isBefore(lastWeekEnd);
       });
 
@@ -151,7 +108,7 @@ export default function ManagerDashboard() {
       const monthStart = dayjs().startOf("month");
       const monthEnd = dayjs().endOf("month");
       const monthEntries = entries.filter((e: any) => {
-        const date = dayjs(e.startTime);
+        const date = dayjs(e.date);
         return date.isAfter(monthStart) && date.isBefore(monthEnd);
       });
 
@@ -159,18 +116,14 @@ export default function ManagerDashboard() {
       const lastMonthStart = dayjs().subtract(1, "month").startOf("month");
       const lastMonthEnd = dayjs().subtract(1, "month").endOf("month");
       const lastMonthEntries = entries.filter((e: any) => {
-        const date = dayjs(e.startTime);
+        const date = dayjs(e.date);
         return date.isAfter(lastMonthStart) && date.isBefore(lastMonthEnd);
       });
 
       try {
         const calculateHours = (entries: any[]) => {
           return entries.reduce((sum, e) => {
-            if (e.startTime && e.endTime) {
-              const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
-              return sum + (diff - (e.breakMinutes || 0)) / 60;
-            }
-            return sum;
+            return sum + (e.hours || 0);
           }, 0);
         };
 
@@ -220,20 +173,20 @@ export default function ManagerDashboard() {
         const recent = entries
           .sort(
             (a: any, b: any) =>
-              new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+              new Date(b.date).getTime() - new Date(a.date).getTime(),
           )
           .slice(0, 8);
         setTeamActivity(recent);
 
         // Calculate team performance metrics
         const teamPerf = team
-          .map((member) => {
+          .map((member: any) => {
             const memberEntries = entries.filter(
-              (e) => e.userId === member.id && e.status === "goedgekeurd",
+              (e: any) => e.userId === member.medewGcId && e.status === "goedgekeurd",
             );
             const memberWeekHours = calculateHours(
-              memberEntries.filter((e) => {
-                const date = dayjs(e.startTime);
+              memberEntries.filter((e: any) => {
+                const date = dayjs(e.date);
                 return date.isAfter(weekStart) && date.isBefore(weekEnd);
               }),
             );
@@ -241,14 +194,14 @@ export default function ManagerDashboard() {
               ...member,
               weekHours: memberWeekHours,
               monthHours: calculateHours(
-                memberEntries.filter((e) => {
-                  const date = dayjs(e.startTime);
+                memberEntries.filter((e: any) => {
+                  const date = dayjs(e.date);
                   return date.isAfter(monthStart) && date.isBefore(monthEnd);
                 }),
               ),
               lastWeekHours: calculateHours(
-                memberEntries.filter((e) => {
-                  const date = dayjs(e.startTime);
+                memberEntries.filter((e: any) => {
+                  const date = dayjs(e.date);
                   return (
                     date.isAfter(lastWeekStart) && date.isBefore(lastWeekEnd)
                   );
@@ -256,7 +209,7 @@ export default function ManagerDashboard() {
               ),
             };
           })
-          .sort((a, b) => b.weekHours - a.weekHours);
+          .sort((a: any, b: any) => b.weekHours - a.weekHours);
 
         setTeamPerformance(teamPerf);
       } catch (calcError) {
@@ -273,11 +226,7 @@ export default function ManagerDashboard() {
 
   const handleApprove = async (id: number) => {
     try {
-      await fetch(`${API_URL}/time-entries/${id}/approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved: true }),
-      });
+      await approveTimeEntry(id, true);
       loadDashboardData();
       showToast("Uren goedgekeurd", "success");
     } catch (error) {
@@ -287,11 +236,7 @@ export default function ManagerDashboard() {
 
   const handleReject = async (id: number) => {
     try {
-      await fetch(`${API_URL}/time-entries/${id}/approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved: false }),
-      });
+      await approveTimeEntry(id, false);
       loadDashboardData();
       showToast("Uren afgekeurd", "success");
     } catch (error) {
@@ -561,38 +506,31 @@ export default function ManagerDashboard() {
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                           <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                            {entry.user?.firstName?.charAt(0)}
-                            {entry.user?.lastName?.charAt(0)}
+                            {entry.userFirstName?.charAt(0)}
+                            {entry.userLastName?.charAt(0)}
                           </span>
                         </div>
                         <div>
                           <p className="font-semibold text-slate-900 dark:text-slate-100">
-                            {entry.user?.firstName} {entry.user?.lastName}
+                            {entry.userFirstName} {entry.userLastName}
                           </p>
                           <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {entry.project?.name}
+                            {entry.projectName || entry.projectCode}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
                         <span>
-                          {dayjs(entry.startTime).format("DD MMM YYYY")}
-                        </span>
-                        <span>
-                          {dayjs(entry.startTime).format("HH:mm")} -{" "}
-                          {dayjs(entry.endTime).format("HH:mm")}
+                          {dayjs(entry.date).format("DD MMM YYYY")}
                         </span>
                         <span className="font-medium">
-                          {(
-                            (dayjs(entry.endTime).diff(
-                              dayjs(entry.startTime),
-                              "minute",
-                            ) -
-                              (entry.breakMinutes || 0)) /
-                            60
-                          ).toFixed(1)}
-                          u
+                          {entry.hours?.toFixed(1)}u
                         </span>
+                        {entry.notes && (
+                          <span className="text-xs italic">
+                            {entry.notes}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2 ml-4">
@@ -701,8 +639,8 @@ export default function ManagerDashboard() {
                 <div className="flex flex-col items-center">
                   <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      {entry.user?.firstName?.charAt(0)}
-                      {entry.user?.lastName?.charAt(0)}
+                      {entry.userFirstName?.charAt(0)}
+                      {entry.userLastName?.charAt(0)}
                     </span>
                   </div>
                   {index < teamActivity.length - 1 && (
@@ -713,24 +651,16 @@ export default function ManagerDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {entry.user?.firstName} {entry.user?.lastName}
+                        {entry.userFirstName} {entry.userLastName}
                       </p>
                       <p className="text-xs text-slate-600 dark:text-slate-400">
-                        {entry.project?.name} •{" "}
-                        {dayjs(entry.startTime).fromNow()}
+                        {entry.projectName || entry.projectCode} •{" "}
+                        {dayjs(entry.date).fromNow()}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {(
-                          (dayjs(entry.endTime).diff(
-                            dayjs(entry.startTime),
-                            "minute",
-                          ) -
-                            (entry.breakMinutes || 0)) /
-                          60
-                        ).toFixed(1)}
-                        u
+                        {entry.hours?.toFixed(1)}u
                       </p>
                       {getStatusBadge(entry.status)}
                     </div>

@@ -49,15 +49,16 @@ builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionSt
 builder.Services.AddSingleton<ClockwiseProject.Backend.Data.PostgreSQLConnectionFactory>();
 
 // Configure Postgres EF Core DbContext (needed by some repositories)
-var postgresConnectionString = builder.Configuration.GetConnectionString("PostgreSQL");
-if (!string.IsNullOrEmpty(postgresConnectionString))
-{
-    // Use compatible version without migrations
-    builder.Services.AddDbContext<PostgresDbContext>(options =>
-    {
-        options.UseNpgsql(postgresConnectionString);
-    }, ServiceLifetime.Scoped);
-}
+// DISABLED: EF Core packages removed, using Dapper instead
+// var postgresConnectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+// if (!string.IsNullOrEmpty(postgresConnectionString))
+// {
+//     // Use compatible version without migrations
+//     builder.Services.AddDbContext<PostgresDbContext>(options =>
+//     {
+//         options.UseNpgsql(postgresConnectionString);
+//     }, ServiceLifetime.Scoped);
+// }
 
 // Register repositories
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
@@ -66,20 +67,26 @@ builder.Services.AddSingleton<IVacationRepository, FirebirdVacationRepository>()
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 builder.Services.AddScoped<backend.Repositories.ITaskRepository, backend.Repositories.FirebirdTaskRepository>();
 builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Repositories.FirebirdTimeEntryRepository>();
-builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
+// DISABLED: EF Core dependent repository
+// builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
 
 // PostgreSQL repositories (Supabase)
 builder.Services.AddScoped<backend.Repositories.PostgreSQLUserRepository>();
+
+// Dapper repositories
+builder.Services.AddScoped<backend.Repositories.DapperTimeEntryRepository>();
 
 // Register services
 builder.Services.AddScoped<backend.Services.AuthenticationService>();
 builder.Services.AddScoped<TimesheetService>();
 builder.Services.AddScoped<VacationService>();
-builder.Services.AddScoped<TimeEntryService>();
+// DISABLED: EF Core dependent services
+// builder.Services.AddScoped<TimeEntryService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<backend.Services.TaskService>();
 builder.Services.AddScoped<backend.Services.LeaveService>();
-builder.Services.AddScoped<backend.Services.WorkflowService>();
+// DISABLED: EF Core dependent service
+// builder.Services.AddScoped<backend.Services.WorkflowService>();
 
 
 var app = builder.Build();

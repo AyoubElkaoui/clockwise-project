@@ -41,7 +41,7 @@ export default function LoginPage(): JSX.Element {
     setError("");
 
     try {
-      const response = await login(username, password, parseInt(username === "admin" ? "100001" : "100050"));
+      const response = await login(username, password);
 
       // Wis eerst alle bestaande data
       localStorage.clear();

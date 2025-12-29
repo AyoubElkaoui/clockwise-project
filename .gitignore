@@ -9,6 +9,12 @@ build/
 dist/
 bin/
 obj/
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+*.cache
 
 # IDEs
 .vscode/
@@ -64,6 +70,8 @@ tmp/
 *.seed
 *.pid.lock
 .vercel
+nul
+*.ps1
 
 # Firebird runtime / lock / temp
 fb_guard

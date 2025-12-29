@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using ClockwiseProject.Backend.Services;
-using ClockwiseProject.Backend.Models;
+using backend.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Controllers
@@ -9,17 +8,17 @@ namespace ClockwiseProject.Backend.Controllers
     [Route("api/time-entries")]
     public class TimeEntriesController : ControllerBase
     {
-        private readonly TimeEntryService _timeEntryService;
+        private readonly DapperTimeEntryRepository _timeEntryRepository;
         private readonly ILogger<TimeEntriesController> _logger;
 
-        public TimeEntriesController(TimeEntryService timeEntryService, ILogger<TimeEntriesController> logger)
+        public TimeEntriesController(DapperTimeEntryRepository timeEntryRepository, ILogger<TimeEntriesController> logger)
         {
-            _timeEntryService = timeEntryService;
+            _timeEntryRepository = timeEntryRepository;
             _logger = logger;
         }
 
         [HttpGet]
-        public async Task<ActionResult<TimeEntriesResponse>> GetTimeEntries([FromQuery] string from, [FromQuery] string to, [FromQuery] int? userId = null)
+        public async Task<IActionResult> GetTimeEntries([FromQuery] string from, [FromQuery] string to, [FromQuery] int? userId = null)
         {
             if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate))
                 return BadRequest("Invalid date format");
@@ -36,12 +35,19 @@ namespace ClockwiseProject.Backend.Controllers
                 return Unauthorized("Missing medewGcId");
             }
 
-            _logger.LogInformation("Fetching time entries for medewGcId {MedewGcId}", medewGcId.Value);
+            _logger.LogInformation("Fetching time entries for medewGcId {MedewGcId} from {From} to {To}", medewGcId.Value, fromDate, toDate);
 
             try
             {
-                var response = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, fromDate, toDate);
-                return Ok(response);
+                var entries = await _timeEntryRepository.GetAllTimeEntriesAsync(fromDate, toDate);
+
+                // Filter by medewGcId
+                var userEntries = entries.Where(e => e.UserId == medewGcId.Value).ToList();
+
+                _logger.LogInformation("Found {Count} time entries for medewGcId {MedewGcId}", userEntries.Count, medewGcId.Value);
+
+                // Return array directly for user endpoints (frontend expects response.data to be array)
+                return Ok(userEntries);
             }
             catch (Exception ex)
             {
@@ -56,7 +62,7 @@ namespace ClockwiseProject.Backend.Controllers
         }
 
         [HttpGet("user/{userId}/week")]
-        public async Task<ActionResult<TimeEntriesResponse>> GetWeekEntries(int userId, [FromQuery] string startDate)
+        public async Task<IActionResult> GetWeekEntries(int userId, [FromQuery] string startDate)
         {
             if (!DateTime.TryParse(startDate, out var start))
                 return BadRequest("Invalid start date");
@@ -69,10 +75,20 @@ namespace ClockwiseProject.Backend.Controllers
                 return Unauthorized("Missing medewGcId");
             }
 
+            _logger.LogInformation("Fetching week entries for medewGcId {MedewGcId} from {Start} to {End}", medewGcId.Value, start, end);
+
             try
             {
-                var response = await _timeEntryService.GetTimeEntriesAsync(medewGcId.Value, start, end);
-                return Ok(response);
+                var entries = await _timeEntryRepository.GetAllTimeEntriesAsync(start, end);
+
+                // Filter by medewGcId
+                var userEntries = entries.Where(e => e.UserId == medewGcId.Value).ToList();
+
+                // Return object with entries for week endpoint
+                return Ok(new
+                {
+                    entries = userEntries
+                });
             }
             catch (Exception ex)
             {
@@ -82,70 +98,17 @@ namespace ClockwiseProject.Backend.Controllers
         }
 
         [HttpPost("work")]
-        public async Task<IActionResult> PostWorkEntries([FromBody] BulkWorkEntryDto dto)
+        public async Task<IActionResult> PostWorkEntries([FromBody] object dto)
         {
-            _logger.LogInformation("PostWorkEntries called");
-
-            if (dto == null || dto.Regels == null || !dto.Regels.Any())
-            {
-                _logger.LogWarning("Invalid input: dto={Dto}, regels={Regels}", dto, dto?.Regels);
-                return BadRequest("Invalid input");
-            }
-
-            if (!HttpContext.Items.TryGetValue("MedewGcId", out var medewObj) || medewObj is not int medewGcId)
-            {
-                _logger.LogError("MedewGcId not found in HttpContext.Items");
-                return Unauthorized("Missing or invalid MedewGcId");
-            }
-
-            _logger.LogInformation("Processing work entries for medewGcId={MedewGcId}, regels count={Count}", medewGcId, dto.Regels.Count);
-
-            try
-            {
-                await _timeEntryService.InsertWorkEntriesAsync(medewGcId, dto);
-                return Ok("Work entries inserted successfully");
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Invalid operation while inserting work entries for medewGcId={MedewGcId}", medewGcId);
-                return StatusCode(422, new ProblemDetails { Title = "Urenstaat ontbreekt", Detail = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument while inserting work entries for medewGcId={MedewGcId}", medewGcId);
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error inserting work entries");
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            _logger.LogInformation("PostWorkEntries called - not yet implemented with Dapper");
+            return StatusCode(501, new { message = "Work entry creation not yet implemented" });
         }
 
         [HttpPost("vacation")]
-        public async Task<IActionResult> PostVacationEntries([FromBody] BulkVacationEntryDto dto)
+        public async Task<IActionResult> PostVacationEntries([FromBody] object dto)
         {
-            if (dto == null || dto.Regels == null || !dto.Regels.Any())
-                return BadRequest("Invalid input");
-
-            var medewGcId = (int)HttpContext.Items["MedewGcId"]!;
-            try
-            {
-                await _timeEntryService.InsertVacationEntriesAsync(medewGcId, dto);
-                return Ok("Vacation entries inserted successfully");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return StatusCode(422, new ProblemDetails { Title = "Urenstaat ontbreekt", Detail = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
+            _logger.LogInformation("PostVacationEntries called - not yet implemented with Dapper");
+            return StatusCode(501, new { message = "Vacation entry creation not yet implemented" });
         }
 
         private int? ResolveMedewGcId(int? userId)
