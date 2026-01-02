@@ -150,6 +150,7 @@ public class WorkflowEntryDto
     public int? FirebirdGcId { get; set; }
 
     // Enriched data from Firebird
+    public string? EmployeeName { get; set; }
     public string? TaakCode { get; set; }
     public string? TaakDescription { get; set; }
     public string? WerkCode { get; set; }

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { API_URL } from "@/lib/api";
+import { getSubmittedWorkflowEntries, reviewWorkflowEntries, WorkflowEntry } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,10 +56,10 @@ dayjs.locale("nl");
 
 export default function ManagerApprovePage() {
   const [loading, setLoading] = useState(true);
-  const [entries, setEntries] = useState<any[]>([]);
-  const [filteredEntries, setFilteredEntries] = useState<any[]>([]);
+  const [entries, setEntries] = useState<WorkflowEntry[]>([]);
+  const [filteredEntries, setFilteredEntries] = useState<WorkflowEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ingeleverd");
+  const [filterStatus, setFilterStatus] = useState("SUBMITTED");
   const [selectedEntries, setSelectedEntries] = useState<Set<number>>(
     new Set(),
   );
@@ -92,17 +93,8 @@ export default function ManagerApprovePage() {
 
   const loadEntries = async () => {
     try {
-      const managerId = authUtils.getUserId();
-      if (!managerId) {
-        showToast("Gebruiker niet ingelogd", "error");
-        return;
-      }
-      const res = await fetch(
-        `${API_URL}/time-entries/team?managerId=${managerId}`,
-      );
-      if (!res.ok) throw new Error("Laden mislukt");
-      const data = await res.json();
-      setEntries(data);
+      const response = await getSubmittedWorkflowEntries(1); // urenperGcId = 1 (current period)
+      setEntries(response.entries);
       setSelectedEntries(new Set());
     } catch (error) {
       showToast("Fout bij laden van uren", "error");
@@ -188,14 +180,13 @@ export default function ManagerApprovePage() {
 
   const handleApprove = async (id: number) => {
     try {
-      const res = await fetch(`${API_URL}/time-entries/${id}/approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved: true }),
-      });
-      if (!res.ok) throw new Error("Goedkeuren mislukt");
-      showToast("Uren goedgekeurd!", "success");
-      loadEntries();
+      const result = await reviewWorkflowEntries([id], true);
+      if (result.success) {
+        showToast("Uren goedgekeurd!", "success");
+        loadEntries();
+      } else {
+        showToast(result.message || "Goedkeuren mislukt", "error");
+      }
     } catch (error) {
       showToast("Fout bij goedkeuren", "error");
     }
@@ -203,14 +194,13 @@ export default function ManagerApprovePage() {
 
   const handleReject = async (id: number, comment: string) => {
     try {
-      const res = await fetch(`${API_URL}/time-entries/${id}/approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved: false, comment }),
-      });
-      if (!res.ok) throw new Error("Afkeuren mislukt");
-      showToast("Uren afgekeurd!", "success");
-      loadEntries();
+      const result = await reviewWorkflowEntries([id], false, comment);
+      if (result.success) {
+        showToast("Uren afgekeurd!", "success");
+        loadEntries();
+      } else {
+        showToast(result.message || "Afkeuren mislukt", "error");
+      }
     } catch (error) {
       showToast("Fout bij afkeuren", "error");
     }
@@ -244,21 +234,11 @@ export default function ManagerApprovePage() {
     setBulkActionLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/time-entries/bulk-approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entryIds: Array.from(selectedEntries),
-          action: "approve",
-        }),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        showToast(result.message, "success");
+      const result = await reviewWorkflowEntries(Array.from(selectedEntries), true);
+      if (result.success) {
+        showToast(result.message || `${result.processedCount} uren goedgekeurd`, "success");
       } else {
-        const error = await res.text();
-        showToast(`Fout bij bulk goedkeuren: ${error}`, "error");
+        showToast(result.message || "Fout bij bulk goedkeuren", "error");
       }
     } catch (error) {
       showToast("Er is een fout opgetreden bij het goedkeuren", "error");
@@ -278,21 +258,11 @@ export default function ManagerApprovePage() {
     setBulkActionLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/time-entries/bulk-approve`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entryIds: Array.from(selectedEntries),
-          action: "reject",
-        }),
-      });
-
-      if (res.ok) {
-        const result = await res.json();
-        showToast(result.message, "success");
+      const result = await reviewWorkflowEntries(Array.from(selectedEntries), false, "Bulk afkeuring");
+      if (result.success) {
+        showToast(result.message || `${result.processedCount} uren afgekeurd`, "success");
       } else {
-        const error = await res.text();
-        showToast(`Fout bij bulk afkeuren: ${error}`, "error");
+        showToast(result.message || "Fout bij bulk afkeuren", "error");
       }
     } catch (error) {
       showToast("Er is een fout opgetreden bij het afkeuren", "error");
@@ -315,7 +285,7 @@ export default function ManagerApprovePage() {
 
   const toggleSelectAll = () => {
     const pendingEntries = filteredEntries.filter(
-      (e) => e.status === "ingeleverd",
+      (e) => e.status === "SUBMITTED",
     );
     if (selectedEntries.size === pendingEntries.length) {
       setSelectedEntries(new Set());

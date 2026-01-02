@@ -91,6 +91,7 @@ export interface WorkflowEntry {
   createdAt: string;
   updatedAt: string;
   // Enriched data
+  employeeName?: string;
   taakCode?: string;
   taakDescription?: string;
   werkCode?: string;
@@ -107,7 +108,7 @@ export interface WorkflowEntriesResponse {
  * Get all submitted time entries awaiting approval (for managers)
  */
 export async function getSubmittedWorkflowEntries(urenperGcId: number): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/workflow/submitted`, {
+  const response = await axios.get(`${API_URL}/workflow/review/pending`, {
     params: { urenperGcId },
     headers: getAuthHeaders(),
   });

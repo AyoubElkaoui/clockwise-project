@@ -1,6 +1,7 @@
 using backend.Models;
 using backend.Repositories;
 using ClockwiseProject.Backend.Repositories;
+using Dapper;
 
 namespace backend.Services;
 
@@ -540,9 +541,16 @@ public class WorkflowService
             FirebirdGcId = entry.FirebirdGcId
         };
 
-        // Enrich with Firebird data (task/project names)
+        // Enrich with Firebird data (employee, task, project names)
         try
         {
+            // Get employee name
+            using var connection = _firebirdRepo.GetConnection();
+            var employeeName = await connection.ExecuteScalarAsync<string>(
+                "SELECT GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID = @MedewGcId",
+                new { MedewGcId = entry.MedewGcId });
+            dto.EmployeeName = employeeName;
+
             var taakCode = await _firebirdRepo.GetTaakCodeAsync(entry.TaakGcId);
             dto.TaakCode = taakCode;
 
