@@ -6,45 +6,40 @@
 -- TIME ENTRIES WORKFLOW TABLE
 -- ============================================================================
 -- Stores time entries in different workflow states
--- Status flow: concept -> ingeleverd -> goedgekeurd (synced to Firebird) / afgekeurd
-CREATE TABLE IF NOT EXISTS time_entries (
+-- Status flow: DRAFT -> SUBMITTED -> APPROVED (synced to Firebird) / REJECTED
+CREATE TABLE IF NOT EXISTS time_entries_workflow (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,                    -- medewGcId from Firebird
-    entry_date DATE NOT NULL,
-    hours DECIMAL(5,2) NOT NULL,
-    project_id INTEGER,                          -- werkGcId from Firebird (nullable for vacation)
-    notes TEXT,
-    status VARCHAR(20) NOT NULL DEFAULT 'concept', -- concept, ingeleverd, goedgekeurd, afgekeurd
-
-    -- Additional fields for detailed time tracking
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
-    break_minutes INTEGER DEFAULT 0,
-    distance_km DECIMAL(8,2) DEFAULT 0,
-    expenses DECIMAL(10,2) DEFAULT 0,
+    medew_gc_id INTEGER NOT NULL,               -- medewGcId from Firebird
+    urenper_gc_id INTEGER NOT NULL,             -- period ID
+    taak_gc_id INTEGER NOT NULL,                -- task ID
+    werk_gc_id INTEGER,                         -- project ID (nullable)
+    datum DATE NOT NULL,
+    aantal DECIMAL(5,2) NOT NULL,               -- hours
+    omschrijving TEXT,                          -- notes
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT', -- DRAFT, SUBMITTED, APPROVED, REJECTED
 
     -- Workflow metadata
-    submitted_at TIMESTAMP,                      -- When status changed to 'ingeleverd'
+    submitted_at TIMESTAMP,                      -- When status changed to SUBMITTED
     reviewed_at TIMESTAMP,                       -- When manager approved/rejected
     reviewed_by INTEGER,                         -- Manager's medewGcId
     rejection_reason TEXT,                       -- Why it was rejected
-    firebird_id INTEGER,                         -- ID in Firebird after sync (when approved)
+    firebird_gc_id INTEGER,                      -- GC_ID in Firebird after sync (when approved)
 
     -- Audit fields
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     -- Constraints
-    CONSTRAINT valid_status CHECK (status IN ('concept', 'ingeleverd', 'goedgekeurd', 'afgekeurd')),
-    CONSTRAINT valid_hours CHECK (hours > 0 AND hours <= 24)
+    CONSTRAINT valid_status CHECK (status IN ('DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED')),
+    CONSTRAINT valid_hours CHECK (aantal > 0 AND aantal <= 24)
 );
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_time_entries_user_id ON time_entries(user_id);
-CREATE INDEX IF NOT EXISTS idx_time_entries_status ON time_entries(status);
-CREATE INDEX IF NOT EXISTS idx_time_entries_entry_date ON time_entries(entry_date);
-CREATE INDEX IF NOT EXISTS idx_time_entries_user_status ON time_entries(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_time_entries_firebird_id ON time_entries(firebird_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_workflow_medew ON time_entries_workflow(medew_gc_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_workflow_status ON time_entries_workflow(status);
+CREATE INDEX IF NOT EXISTS idx_time_entries_workflow_datum ON time_entries_workflow(datum);
+CREATE INDEX IF NOT EXISTS idx_time_entries_workflow_medew_status ON time_entries_workflow(medew_gc_id, status);
+CREATE INDEX IF NOT EXISTS idx_time_entries_workflow_firebird ON time_entries_workflow(firebird_gc_id);
 
 -- ============================================================================
 -- VACATION REQUESTS TABLE
@@ -95,7 +90,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-CREATE TRIGGER update_time_entries_updated_at BEFORE UPDATE ON time_entries
+CREATE TRIGGER update_time_entries_workflow_updated_at BEFORE UPDATE ON time_entries_workflow
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_vacation_requests_updated_at BEFORE UPDATE ON vacation_requests
@@ -106,10 +101,10 @@ CREATE TRIGGER update_vacation_requests_updated_at BEFORE UPDATE ON vacation_req
 -- ============================================================================
 -- You can uncomment this to add some test data
 /*
-INSERT INTO time_entries (user_id, entry_date, hours, project_id, notes, status, start_time, end_time)
+INSERT INTO time_entries_workflow (medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving, status)
 VALUES
-    (100002, CURRENT_DATE, 8, 100001, 'Development work', 'concept', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '8 hours'),
-    (100002, CURRENT_DATE - 1, 7.5, 100001, 'Testing', 'ingeleverd', CURRENT_TIMESTAMP - INTERVAL '1 day', CURRENT_TIMESTAMP - INTERVAL '1 day' + INTERVAL '7.5 hours');
+    (100002, 1, 1, 100001, CURRENT_DATE, 8, 'Development work', 'DRAFT'),
+    (100002, 1, 1, 100001, CURRENT_DATE - 1, 7.5, 'Testing', 'SUBMITTED');
 
 INSERT INTO vacation_requests (user_id, start_date, end_date, vacation_type, total_days, notes, status)
 VALUES
