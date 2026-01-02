@@ -67,11 +67,10 @@ builder.Services.AddSingleton<IVacationRepository, FirebirdVacationRepository>()
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 builder.Services.AddScoped<backend.Repositories.ITaskRepository, backend.Repositories.FirebirdTaskRepository>();
 builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Repositories.FirebirdTimeEntryRepository>();
-// DISABLED: EF Core dependent repository
-// builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
 
 // PostgreSQL repositories (Supabase)
 builder.Services.AddScoped<backend.Repositories.PostgreSQLUserRepository>();
+builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
 
 // Dapper repositories
 builder.Services.AddScoped<backend.Repositories.DapperTimeEntryRepository>();
@@ -80,13 +79,10 @@ builder.Services.AddScoped<backend.Repositories.DapperTimeEntryRepository>();
 builder.Services.AddScoped<backend.Services.AuthenticationService>();
 builder.Services.AddScoped<TimesheetService>();
 builder.Services.AddScoped<VacationService>();
-// DISABLED: EF Core dependent services
-// builder.Services.AddScoped<TimeEntryService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<backend.Services.TaskService>();
 builder.Services.AddScoped<backend.Services.LeaveService>();
-// DISABLED: EF Core dependent service
-// builder.Services.AddScoped<backend.Services.WorkflowService>();
+builder.Services.AddScoped<backend.Services.WorkflowService>();
 
 
 var app = builder.Build();
