@@ -94,38 +94,7 @@ export default function ManagerApprovePage() {
   const loadEntries = async () => {
     try {
       const response = await getSubmittedWorkflowEntries(1); // urenperGcId = 1 (current period)
-
-      // Adapt workflow entries to match UI expectations
-      const adaptedEntries = response.entries.map((entry: any) => {
-        // Split employee name into first/last (simple split on first space)
-        const nameParts = (entry.employeeName || "").split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
-
-        // Convert datum + aantal (hours) to startTime/endTime for display
-        const date = new Date(entry.datum);
-        const startTime = date;
-        const endTime = new Date(date.getTime() + entry.aantal * 60 * 60 * 1000);
-
-        return {
-          ...entry,
-          user: {
-            id: entry.medewGcId,
-            firstName,
-            lastName,
-          },
-          project: {
-            id: entry.werkGcId,
-            name: entry.werkCode || entry.taakCode || "Geen project",
-          },
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          breakMinutes: 0,
-          notes: entry.omschrijving,
-        };
-      });
-
-      setEntries(adaptedEntries);
+      setEntries(response.entries);
       setSelectedEntries(new Set());
     } catch (error) {
       showToast("Fout bij laden van uren", "error");
