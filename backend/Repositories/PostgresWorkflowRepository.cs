@@ -76,8 +76,23 @@ namespace backend.Repositories
                 using var connection = _connectionFactory.CreateConnection();
 
                 var sql = @"
-                    SELECT id, medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving,
-                           status, created_at, updated_at, submitted_at, reviewed_at, reviewed_by, rejection_reason, firebird_gc_id
+                    SELECT
+                        id AS Id,
+                        medew_gc_id AS MedewGcId,
+                        urenper_gc_id AS UrenperGcId,
+                        taak_gc_id AS TaakGcId,
+                        werk_gc_id AS WerkGcId,
+                        datum AS Datum,
+                        aantal AS Aantal,
+                        omschrijving AS Omschrijving,
+                        status AS Status,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt,
+                        submitted_at AS SubmittedAt,
+                        reviewed_at AS ReviewedAt,
+                        reviewed_by AS ReviewedBy,
+                        rejection_reason AS RejectionReason,
+                        firebird_gc_id AS FirebirdGcId
                     FROM time_entries_workflow
                     WHERE urenper_gc_id = @UrenperGcId
                       AND status = 'SUBMITTED'
