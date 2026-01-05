@@ -89,8 +89,8 @@ export default function LoginPage(): JSX.Element {
             <div className="flex justify-center mb-6">
               <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4">
                 <Image
-                  src={theme === "dark" ? "/white_logo.png" : "/logo.png"}
-                  alt="Elmar Services Logo"
+                  src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
+                  alt="TIMR Logo"
                   width={96}
                   height={96}
                   className="w-24 h-24 rounded-xl object-contain"

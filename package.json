@@ -1,5 +1,5 @@
 {
-  "name": "clockwise-project",
+  "name": "timr-project",
   "version": "1.0.0",
   "scripts": {
     "docker:build": "docker compose build",

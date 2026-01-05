@@ -240,8 +240,8 @@ export function ModernSidebar() {
             >
               {!collapsed ? (
                 <Image
-                  src={theme === "dark" ? "/white_logo.png" : "/logo.png"}
-                  alt="Clockwise logo"
+                  src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
+                  alt="TIMR logo"
                   width={140}
                   height={40}
                   priority
@@ -249,8 +249,8 @@ export function ModernSidebar() {
                 />
               ) : (
                 <Image
-                  src={theme === "dark" ? "/white_logo.png" : "/logo.png"}
-                  alt="Clockwise logo small"
+                  src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
+                  alt="TIMR logo"
                   width={32}
                   height={32}
                   className="h-8 w-8 object-contain"

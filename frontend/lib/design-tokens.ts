@@ -1,4 +1,4 @@
-// Design Tokens voor Clockwise - Light & Dark Theme
+// Design Tokens voor TIMR - Light & Dark Theme
 export const designTokens = {
   colors: {
     // Light Theme

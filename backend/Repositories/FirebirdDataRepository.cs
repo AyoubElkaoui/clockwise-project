@@ -298,8 +298,9 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<bool> IsValidUrenperAsync(int urenperGcId, int adminisGcId)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT COUNT(*) FROM AT_URENPER WHERE GC_ID = @UrenperGcId AND GC_ADMINIS_ID = @AdminisGcId";
-            var count = await connection.ExecuteScalarAsync<int>(sql, new { UrenperGcId = urenperGcId, AdminisGcId = adminisGcId });
+            // Note: GC_ADMINIS_ID doesn't exist in AT_URENPER, so we just check if the period exists
+            const string sql = "SELECT COUNT(*) FROM AT_URENPER WHERE GC_ID = @UrenperGcId";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { UrenperGcId = urenperGcId });
             return count > 0;
         }
 

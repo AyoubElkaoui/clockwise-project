@@ -325,7 +325,7 @@
   },
   "faq": {
     "title": "Veelgestelde vragen",
-    "subtitle": "Antwoorden op de meest gestelde vragen over Clockwise",
+    "subtitle": "Antwoorden op de meest gestelde vragen over TIMR",
     "categories": {
       "hoursRegistration": "Urenregistratie",
       "hoursApproval": "Uren aanpassen & goedkeuren",
@@ -400,7 +400,7 @@
     "passwordPlaceholder": "••••••••",
     "login": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
-    "copyright": "© 2024 Elmar Services. Alle rechten voorbehouden."
+    "copyright": "© 2024 TIMR. Alle rechten voorbehouden."
   },
   "week": {
     "title": "Urenregistraties",

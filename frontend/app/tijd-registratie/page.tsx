@@ -21,7 +21,7 @@ import {
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
-import { saveDraft, submitEntries, getDrafts } from "@/lib/api/workflowApi";
+import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -55,6 +55,7 @@ interface TimeEntry {
   expenses?: number;
   notes?: string;
   status?: string;
+  rejectionReason?: string | null;
 }
 
 interface ClosedDay {
@@ -200,10 +201,18 @@ export default function TimeRegistrationPage() {
   const loadEntries = async () => {
     try {
       const urenperGcId = getCurrentPeriodId();
-      const drafts = await getDrafts(urenperGcId);
+
+      // Load ALL statuses: DRAFT, SUBMITTED, APPROVED, REJECTED
+      const [drafts, submitted, rejected] = await Promise.all([
+        getDrafts(urenperGcId),
+        getSubmitted(urenperGcId),
+        getRejected(urenperGcId)
+      ]);
+
+      const allEntries = [...drafts, ...submitted, ...rejected];
 
       const map: Record<string, TimeEntry> = {};
-      drafts.forEach((e: any) => {
+      allEntries.forEach((e: any) => {
         const projectId = e.werkGcId || 0;
         map[`${e.datum}-${projectId}`] = {
           date: e.datum,
@@ -212,7 +221,8 @@ export default function TimeRegistrationPage() {
           km: 0,
           expenses: 0,
           notes: e.omschrijving || "",
-          status: e.status,
+          status: e.status, // DRAFT, SUBMITTED, APPROVED, REJECTED
+          rejectionReason: e.rejectionReason || null,
         };
       });
       setEntries(map);
@@ -402,6 +412,31 @@ export default function TimeRegistrationPage() {
     );
 
   const getCurrentPeriodId = () => 100426; // Hardcoded for now
+
+  // Helper functions for entry status styling and editability
+  const isEditable = (status?: string) => {
+    // DRAFT and REJECTED are editable, SUBMITTED and APPROVED are not
+    return !status || status === "DRAFT" || status === "REJECTED";
+  };
+
+  const getEntryClassName = (status?: string) => {
+    // Return CSS class based on status
+    if (status === "APPROVED") return "bg-green-50 dark:bg-green-900/20";
+    if (status === "SUBMITTED") return "bg-gray-50 dark:bg-gray-700/50";
+    if (status === "REJECTED") return "bg-red-50 dark:bg-red-900/20";
+    return ""; // DRAFT - normal styling
+  };
+
+  const getInputClassName = (baseClass: string, status?: string) => {
+    const editable = isEditable(status);
+    if (!editable) {
+      return `${baseClass} bg-gray-100 dark:bg-gray-700 cursor-not-allowed`;
+    }
+    if (status === "REJECTED") {
+      return `${baseClass} border-red-300 dark:border-red-700`;
+    }
+    return baseClass;
+  };
 
   const saveAll = async () => {
     setSaving(true);
@@ -787,18 +822,18 @@ export default function TimeRegistrationPage() {
                                   const isInCurrentMonth =
                                     day.getMonth() === currentMonth &&
                                     day.getFullYear() === currentYear;
-                                  const isSubmitted =
-                                    entry.status === "ingeleverd";
+                                  const entryEditable = isEditable(entry.status);
                                   const isClosed = isClosedDay(date);
                                   const isDisabled =
                                     !isInCurrentMonth ||
-                                    isSubmitted ||
+                                    !entryEditable ||
                                     isClosed;
                                   return (
                                     <div
                                       key={`entry-${date}-${row.projectId}`}
                                       className={
-                                        "space-y-1" +
+                                        "space-y-1 p-2 rounded " +
+                                        getEntryClassName(entry.status) +
                                         (!isInCurrentMonth ? " opacity-30" : "")
                                       }
                                     >
@@ -839,11 +874,13 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className="w-full px-3 py-2 border rounded-lg text-center font-semibold"
+                                        className={getInputClassName("w-full px-3 py-2 border rounded-lg text-center font-semibold", entry.status)}
                                         placeholder="Uren"
                                         title={
                                           isClosed
                                             ? "Gesloten dag - geen uren registratie mogelijk"
+                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
+                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
                                             : ""
                                         }
                                       />
@@ -859,14 +896,22 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-slate-700 dark:text-slate-100"
+                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
                                         placeholder="Opmerking"
                                         title={
                                           isClosed
                                             ? "Gesloten dag - geen uren registratie mogelijk"
+                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
+                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
                                             : ""
                                         }
                                       />
+                                      {entry.status === "REJECTED" && entry.rejectionReason && (
+                                        <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                          <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                          <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 })}
@@ -1005,14 +1050,15 @@ export default function TimeRegistrationPage() {
                                 notes: "",
                                 status: "opgeslagen",
                               };
-                              const isSubmitted = entry.status === "ingeleverd";
+                              const entryEditable = isEditable(entry.status);
                               const isClosed = isClosedDay(date);
+                              const isDisabled = !entryEditable || isClosed;
                               return (
                                 <div
                                   key={`week-entry-${date}-${row.projectId}`}
-                                  className="space-y-1"
+                                  className={"space-y-1 p-2 rounded " + getEntryClassName(entry.status)}
                                 >
-                                  {!isSubmitted && !isClosed && (
+                                  {!isDisabled && (
                                     <div className="flex gap-1 mb-1">
                                       <button
                                         onClick={() =>
@@ -1048,12 +1094,14 @@ export default function TimeRegistrationPage() {
                                         parseFloat(e.target.value) || 0,
                                       )
                                     }
-                                    disabled={isSubmitted}
-                                    className="w-full px-3 py-2 border rounded text-center"
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border rounded text-center", entry.status)}
                                     placeholder="Uren"
                                     title={
                                       isClosed
                                         ? "Gesloten dag - geen uren registratie mogelijk"
+                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
+                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
                                         : ""
                                     }
                                   />
@@ -1068,15 +1116,23 @@ export default function TimeRegistrationPage() {
                                         e.target.value,
                                       )
                                     }
-                                    disabled={isSubmitted}
-                                    className="w-full px-3 py-2 border rounded text-sm bg-white dark:bg-slate-700 dark:text-slate-100"
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
                                     placeholder="Opmerking"
                                     title={
                                       isClosed
                                         ? "Gesloten dag - geen uren registratie mogelijk"
+                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
+                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
                                         : ""
                                     }
                                   />
+                                  {entry.status === "REJECTED" && entry.rejectionReason && (
+                                    <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                      <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                      <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}

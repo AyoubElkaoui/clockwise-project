@@ -326,7 +326,7 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Answers to the most common questions about Clockwise",
+    "subtitle": "Answers to the most common questions about TIMR",
     "categories": {
       "hoursRegistration": "Hours Registration",
       "hoursApproval": "Hours Editing & Approval",
@@ -401,7 +401,7 @@
     "passwordPlaceholder": "••••••••",
     "login": "Login",
     "forgotPassword": "Forgot password?",
-    "copyright": "© 2024 Elmar Services. All rights reserved."
+    "copyright": "© 2024 TIMR. All rights reserved."
   },
   "week": {
     "title": "Time Registrations",
