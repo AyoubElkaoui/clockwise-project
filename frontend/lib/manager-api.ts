@@ -130,3 +130,55 @@ export async function reviewWorkflowEntries(
   );
   return response.data;
 }
+
+// ============================================================================
+// VACATION API - For vacation request management
+// ============================================================================
+
+export interface VacationRequest {
+  id: number;
+  userId: number;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  managerComment?: string;
+  createdAt?: string;
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    function?: string;
+  };
+}
+
+/**
+ * Get all vacation requests (optionally filtered by user)
+ */
+export async function getAllVacationRequests(userId?: number): Promise<VacationRequest[]> {
+  const response = await axios.get(`${API_URL}/vacation-requests`, {
+    headers: getAuthHeaders(),
+  });
+
+  let data = response.data;
+  if (userId) {
+    data = data.filter((r: VacationRequest) => r.userId === userId);
+  }
+
+  return data;
+}
+
+/**
+ * Update vacation request status (approve/reject)
+ */
+export async function updateVacationRequestStatus(
+  id: number,
+  status: 'approved' | 'rejected',
+  managerComment?: string
+): Promise<void> {
+  await axios.put(
+    `${API_URL}/vacation-requests/${id}`,
+    { status, managerComment },
+    { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+  );
+}

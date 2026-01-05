@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { API_URL } from "@/lib/api";
+import { getAllUsers, getAllVacationRequests } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,17 +139,18 @@ export default function VacationCalendarPage() {
         return;
       }
 
-      // Load team members
-      const usersRes = await fetch(`${API_URL}/users`);
-      const users = await usersRes.json();
+      // Load team members and vacation requests
+      const [users, allVacations] = await Promise.all([
+        getAllUsers(),
+        getAllVacationRequests()
+      ]);
+
       const team = users.filter((u: any) => u.managerId === managerId);
       setTeamMembers(team);
 
-      // Load vacation requests
-      const vacationsRes = await fetch(
-        `${API_URL}/vacation-requests/team?managerId=${managerId}`,
-      );
-      const vacationsData = await vacationsRes.json();
+      // Filter vacations for team members only
+      const teamIds = team.map((u: any) => u.id);
+      const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
       setVacations(vacationsData);
 
       // Load holidays

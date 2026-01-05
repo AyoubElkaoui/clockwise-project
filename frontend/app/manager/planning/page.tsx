@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { API_URL } from "@/lib/api";
+import { getAllUsers, getAllTimeEntries, getAllVacationRequests } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,24 +107,20 @@ export default function ManagerPlanningPage() {
         return;
       }
 
-      // Load team members
-      const usersRes = await fetch(`${API_URL}/users`);
-      const users = await usersRes.json();
+      // Load team members, time entries, and vacation requests
+      const [users, entries, allVacations] = await Promise.all([
+        getAllUsers(),
+        getAllTimeEntries(),
+        getAllVacationRequests()
+      ]);
+
       const team = users.filter((u: any) => u.managerId === managerId);
       setTeamMembers(team);
-
-      // Load time entries for current period
-      const entriesRes = await fetch(
-        `${API_URL}/time-entries/team?managerId=${managerId}`,
-      );
-      const entries = await entriesRes.json();
       setTimeEntries(entries);
 
-      // Load vacation requests
-      const vacationsRes = await fetch(
-        `${API_URL}/vacation-requests/team?managerId=${managerId}`,
-      );
-      const vacationsData = await vacationsRes.json();
+      // Filter vacations for team members only
+      const teamIds = team.map((u: any) => u.id);
+      const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
       setVacations(vacationsData);
 
       // Load holidays (Dutch national holidays for current year)

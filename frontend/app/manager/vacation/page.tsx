@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { API_URL } from "@/lib/api";
+import { getAllUsers, getAllVacationRequests, updateVacationRequestStatus } from "@/lib/manager-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,9 +74,13 @@ export default function ManagerVacationPage() {
       }
 
       const userId = searchParams.get("userId");
-      const usersRes = await fetch(`${API_URL}/users`);
-      const users = await usersRes.json();
+      const [users, allRequests] = await Promise.all([
+        getAllUsers(),
+        getAllVacationRequests()
+      ]);
+
       const team = users.filter((u: any) => u.managerId === managerId);
+      const teamIds = team.map((u: any) => u.id);
 
       let teamRequests;
 
@@ -85,19 +89,14 @@ export default function ManagerVacationPage() {
         const user = team.find((u: any) => u.id === Number(userId));
         if (user) {
           setFilteredUser(user);
-          const res = await fetch(`${API_URL}/vacation-requests`);
-          const data = await res.json();
-          teamRequests = data.filter((r: any) => r.userId === Number(userId));
+          teamRequests = allRequests.filter((r: any) => r.userId === Number(userId));
         } else {
           showToast("Gebruiker niet gevonden in team", "error");
           teamRequests = [];
         }
       } else {
         // Filter for all team members
-        const teamIds = team.map((u: any) => u.id);
-        const res = await fetch(`${API_URL}/vacation-requests`);
-        const data = await res.json();
-        teamRequests = data.filter((r: any) => teamIds.includes(r.userId));
+        teamRequests = allRequests.filter((r: any) => teamIds.includes(r.userId));
       }
 
       setRequests(teamRequests);
@@ -110,14 +109,7 @@ export default function ManagerVacationPage() {
 
   const handleApprove = async (id: number, comment: string) => {
     try {
-      await fetch(`${API_URL}/vacation-requests/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "approved",
-          managerComment: comment,
-        }),
-      });
+      await updateVacationRequestStatus(id, "approved", comment);
       setSuccessMessage("Vakantie goedgekeurd!");
       setSelectedRequest(null);
       setComment("");
@@ -125,19 +117,13 @@ export default function ManagerVacationPage() {
       loadRequests();
     } catch (error) {
       console.error("Failed to approve:", error);
+      showToast("Fout bij goedkeuren", "error");
     }
   };
 
   const handleReject = async (id: number, comment: string) => {
     try {
-      await fetch(`${API_URL}/vacation-requests/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "rejected",
-          managerComment: comment,
-        }),
-      });
+      await updateVacationRequestStatus(id, "rejected", comment);
       setSuccessMessage("Vakantie afgekeurd!");
       setSelectedRequest(null);
       setComment("");
@@ -145,6 +131,7 @@ export default function ManagerVacationPage() {
       loadRequests();
     } catch (error) {
       console.error("Failed to reject:", error);
+      showToast("Fout bij afkeuren", "error");
     }
   };
 

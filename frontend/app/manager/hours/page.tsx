@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { API_URL } from "@/lib/api";
+import { getAllUsers, getAllTimeEntries } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,16 +74,14 @@ export default function ManagerTeamHoursPage() {
         return;
       }
 
-      const usersRes = await fetch(`${API_URL}/users`);
-      const users = await usersRes.json();
+      const [users, allEntries] = await Promise.all([
+        getAllUsers(),
+        getAllTimeEntries()
+      ]);
+
       const team = users.filter((u: any) => u.managerId === managerId);
       setTeamMembers(team);
-
-      const res = await fetch(
-        `${API_URL}/time-entries/team?managerId=${managerId}`,
-      );
-      const data = await res.json();
-      setEntries(data);
+      setEntries(allEntries);
     } catch (error) {
       showToast("Fout bij laden uren", "error");
     } finally {
@@ -143,14 +141,14 @@ export default function ManagerTeamHoursPage() {
     }, 0);
 
     const approved = filteredEntries
-      .filter((e) => e.status === "goedgekeurd")
+      .filter((e) => e.status === "APPROVED")
       .reduce((sum, e) => {
         const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
         return sum + (diff - (e.breakMinutes || 0)) / 60;
       }, 0);
 
     const pending = filteredEntries
-      .filter((e) => e.status === "ingeleverd")
+      .filter((e) => e.status === "SUBMITTED")
       .reduce((sum, e) => {
         const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
         return sum + (diff - (e.breakMinutes || 0)) / 60;
@@ -382,11 +380,11 @@ export default function ManagerTeamHoursPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "goedgekeurd":
+      case "APPROVED":
         return <Badge className="bg-green-500">Goedgekeurd</Badge>;
-      case "ingeleverd":
+      case "SUBMITTED":
         return <Badge className="bg-yellow-500">In behandeling</Badge>;
-      case "afgekeurd":
+      case "REJECTED":
         return <Badge className="bg-red-500">Afgekeurd</Badge>;
       default:
         return <Badge variant="secondary">Concept</Badge>;
@@ -470,7 +468,7 @@ export default function ManagerTeamHoursPage() {
                     return sum + (diff - (e.breakMinutes || 0)) / 60;
                   }, 0);
                   const approvedHours = memberEntries
-                    .filter((e) => e.status === "goedgekeurd")
+                    .filter((e) => e.status === "APPROVED")
                     .reduce((sum, e) => {
                       const diff = dayjs(e.endTime).diff(
                         dayjs(e.startTime),
@@ -479,7 +477,7 @@ export default function ManagerTeamHoursPage() {
                       return sum + (diff - (e.breakMinutes || 0)) / 60;
                     }, 0);
                   const pendingHours = memberEntries
-                    .filter((e) => e.status === "ingeleverd")
+                    .filter((e) => e.status === "SUBMITTED")
                     .reduce((sum, e) => {
                       const diff = dayjs(e.endTime).diff(
                         dayjs(e.startTime),

@@ -21,7 +21,7 @@ import {
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
-import { getTimeEntries, registerWorkTimeEntry } from "@/lib/api";
+import { saveDraft, submitEntries, getDrafts } from "@/lib/api/workflowApi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -199,47 +199,23 @@ export default function TimeRegistrationPage() {
 
   const loadEntries = async () => {
     try {
-      if (viewMode === "month") {
-        // Load all weeks of the month
-        const allEntries: Record<string, TimeEntry> = {};
-        for (const weekStart of monthWeeks) {
-          const from = formatDate(weekStart);
-          const to = formatDate(
-            new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
-          );
-          const data = await getTimeEntries(from, to);
-          data.forEach((e: any) => {
-            allEntries[`${e.date}-${e.projectId}`] = {
-              date: e.date,
-              projectId: e.projectId,
-              hours: e.hours,
-              km: 0,
-              expenses: 0,
-              notes: e.notes || "",
-              status: "opgeslagen",
-            };
-          });
-        }
-        setEntries(allEntries);
-      } else {
-        // Load only current week
-        const from = formatDate(weekDays[0]);
-        const to = formatDate(weekDays[6]);
-        const data = await getTimeEntries(from, to);
-        const map: Record<string, TimeEntry> = {};
-        data.forEach((e: any) => {
-          map[`${e.date}-${e.projectId}`] = {
-            date: e.date,
-            projectId: e.projectId,
-            hours: e.hours,
-            km: 0,
-            expenses: 0,
-            notes: e.notes || "",
-            status: "opgeslagen",
-          };
-        });
-        setEntries(map);
-      }
+      const urenperGcId = getCurrentPeriodId();
+      const drafts = await getDrafts(urenperGcId);
+
+      const map: Record<string, TimeEntry> = {};
+      drafts.forEach((e: any) => {
+        const projectId = e.werkGcId || 0;
+        map[`${e.datum}-${projectId}`] = {
+          date: e.datum,
+          projectId: projectId,
+          hours: e.aantal,
+          km: 0,
+          expenses: 0,
+          notes: e.omschrijving || "",
+          status: e.status,
+        };
+      });
+      setEntries(map);
     } catch (error) {
       showToast("Kon uren niet laden", "error");
     }
@@ -445,23 +421,28 @@ export default function TimeRegistrationPage() {
       }
 
       const toSave = Object.values(entries)
-        .filter((e) => e.hours > 0)
-        .map((e) => ({
-          TaakGcId: 100256, // Assume montage task
-          WerkGcId: e.projectId,
-          Aantal: e.hours,
-          Datum: e.date,
-          GcOmschrijving: e.notes || "",
-          KostsrtGcId: null,
-          BestparGcId: null,
-        }))
-        .filter((entry) => !isClosedDay(entry.Datum)); // Filter out closed days
+        .filter((e: TimeEntry) => e.hours > 0)
+        .filter((e: TimeEntry) => !isClosedDay(e.date));
+
       if (toSave.length === 0) {
         showToast("Geen uren om op te slaan", "error");
         return;
       }
+
       const urenperGcId = getCurrentPeriodId();
-      await registerWorkTimeEntry(urenperGcId, toSave, "concept");
+
+      // Save each entry as draft using workflow API
+      for (const entry of toSave) {
+        await saveDraft({
+          urenperGcId,
+          taakGcId: 100256, // Montage task
+          werkGcId: entry.projectId || null,
+          datum: entry.date,
+          aantal: entry.hours,
+          omschrijving: entry.notes || "",
+        });
+      }
+
       showToast("Opgeslagen!", "success");
       await loadEntries();
     } catch (error) {
@@ -476,7 +457,7 @@ export default function TimeRegistrationPage() {
     try {
       // Validate total hours per day
       const dayTotals: Record<string, number> = {};
-      Object.values(entries).forEach(e => {
+      Object.values(entries).forEach((e: TimeEntry) => {
         if (e.hours > 0) {
           dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
         }
@@ -489,23 +470,36 @@ export default function TimeRegistrationPage() {
       }
 
       const toSave = Object.values(entries)
-        .filter((e) => e.hours > 0)
-        .map((e) => ({
-          TaakGcId: 100256, // Assume montage task
-          WerkGcId: e.projectId,
-          Aantal: e.hours,
-          Datum: e.date,
-          GcOmschrijving: e.notes || "",
-          KostsrtGcId: null,
-          BestparGcId: null,
-        }))
-        .filter((entry) => !isClosedDay(entry.Datum)); // Filter out closed days
+        .filter((e: TimeEntry) => e.hours > 0)
+        .filter((e: TimeEntry) => !isClosedDay(e.date));
+
       if (toSave.length === 0) {
         showToast("Geen uren om in te leveren", "error");
         return;
       }
+
       const urenperGcId = getCurrentPeriodId();
-      await registerWorkTimeEntry(urenperGcId, toSave, "definitief");
+
+      // First save all entries as drafts
+      const savedIds: number[] = [];
+      for (const entry of toSave as TimeEntry[]) {
+        const result = await saveDraft({
+          urenperGcId,
+          taakGcId: 100256, // Montage task
+          werkGcId: entry.projectId || null,
+          datum: entry.date,
+          aantal: entry.hours,
+          omschrijving: entry.notes || "",
+        });
+        savedIds.push(result.id);
+      }
+
+      // Then submit all saved drafts
+      await submitEntries({
+        urenperGcId,
+        entryIds: savedIds,
+      });
+
       showToast("Ingeleverd!", "success");
       await loadEntries();
     } catch (error) {
