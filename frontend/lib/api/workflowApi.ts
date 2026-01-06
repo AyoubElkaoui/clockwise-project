@@ -16,6 +16,7 @@ axios.interceptors.request.use((request) => {
 
 // Types
 export interface SaveDraftRequest {
+  id?: number; // Optional: if provided, updates existing draft
   urenperGcId: number;
   taakGcId: number;
   werkGcId: number | null;

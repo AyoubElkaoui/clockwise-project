@@ -56,6 +56,7 @@ interface TimeEntry {
   notes?: string;
   status?: string;
   rejectionReason?: string | null;
+  id?: number; // Workflow entry ID from database
 }
 
 interface ClosedDay {
@@ -227,6 +228,7 @@ export default function TimeRegistrationPage() {
           notes: e.omschrijving || "",
           status: e.status, // DRAFT, SUBMITTED, APPROVED, REJECTED
           rejectionReason: e.rejectionReason || null,
+          id: e.id, // Save the database ID
         };
       });
 
@@ -482,8 +484,12 @@ export default function TimeRegistrationPage() {
       const urenperGcId = getCurrentPeriodId();
 
       // Save each entry as draft using workflow API
-      for (const entry of toSave) {
-        await saveDraft({
+      // Update entries with their IDs after saving
+      const updatedEntries = { ...entries };
+
+      for (const entry of toSave as TimeEntry[]) {
+        const result = await saveDraft({
+          id: entry.id, // Include ID if it exists (for updates)
           urenperGcId,
           taakGcId: 100256, // Montage task
           werkGcId: entry.projectId || null,
@@ -491,10 +497,18 @@ export default function TimeRegistrationPage() {
           aantal: entry.hours,
           omschrijving: entry.notes || "",
         });
+
+        // Update the entry with the ID from the server
+        const key = `${entry.date}-${entry.projectId}`;
+        updatedEntries[key] = {
+          ...entry,
+          id: result.id,
+          status: result.status,
+        };
       }
 
+      setEntries(updatedEntries);
       showToast("Opgeslagen!", "success");
-      await loadEntries();
     } catch (error) {
       showToast("Opslaan mislukt", "error");
     } finally {

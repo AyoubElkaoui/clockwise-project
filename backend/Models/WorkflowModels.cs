@@ -81,6 +81,8 @@ public class TimeEntryWorkflow
 /// </summary>
 public class SaveDraftRequest
 {
+    public int? Id { get; set; } // Optional: if provided, updates existing draft instead of creating new
+
     [Required]
     public int UrenperGcId { get; set; }
 

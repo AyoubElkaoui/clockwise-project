@@ -79,22 +79,38 @@ public class WorkflowService
             };
         }
 
-        // Check for duplicate (will update if exists)
-        var duplicate = await _workflowRepo.FindDuplicateAsync(
-            medewGcId,
-            request.Datum,
-            request.TaakGcId,
-            request.WerkGcId,
-            request.UrenperGcId);
+        // Check if we're updating an existing entry (ID provided) or creating new
+        TimeEntryWorkflow? duplicate = null;
 
-        if (duplicate != null)
+        if (request.Id.HasValue && request.Id.Value > 0)
         {
-            warnings.Add($"Updated existing entry for {request.Datum:yyyy-MM-dd}");
+            // Frontend provided an ID - update that specific entry
+            duplicate = await _workflowRepo.GetByIdAsync(request.Id.Value);
+            if (duplicate != null)
+            {
+                warnings.Add($"Updated existing entry for {request.Datum:yyyy-MM-dd}");
+            }
+        }
+        else
+        {
+            // No ID provided - check for duplicate by date/project/task
+            duplicate = await _workflowRepo.FindDuplicateAsync(
+                medewGcId,
+                request.Datum,
+                request.TaakGcId,
+                request.WerkGcId,
+                request.UrenperGcId);
+
+            if (duplicate != null)
+            {
+                warnings.Add($"Updated existing entry for {request.Datum:yyyy-MM-dd}");
+            }
         }
 
-        // Save draft
+        // Save draft (update if duplicate found, create new if not)
         var entry = new TimeEntryWorkflow
         {
+            Id = duplicate?.Id ?? 0, // Use existing ID if updating
             MedewGcId = medewGcId,
             UrenperGcId = request.UrenperGcId,
             TaakGcId = request.TaakGcId,
