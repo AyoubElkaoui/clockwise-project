@@ -93,7 +93,7 @@ export default function ManagerApprovePage() {
 
   const loadEntries = async () => {
     try {
-      const response = await getSubmittedWorkflowEntries(1); // urenperGcId = 1 (current period)
+      const response = await getSubmittedWorkflowEntries(100426); // Current period ID
 
       // Adapt workflow entries to match UI expectations
       const adaptedEntries = response.entries.map((entry: any) => {

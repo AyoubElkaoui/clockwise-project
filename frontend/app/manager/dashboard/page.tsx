@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAllTimeEntries, getAllUsers, approveTimeEntry } from "@/lib/manager-api";
+import { getSubmittedWorkflowEntries, getAllUsers } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,16 +68,27 @@ export default function ManagerDashboard() {
         return;
       }
 
-      // Load all time entries (last 3 months)
-      const fromDate = dayjs().subtract(3, "month").format("YYYY-MM-DD");
-      const toDate = dayjs().format("YYYY-MM-DD");
-
-      const [entries, users] = await Promise.all([
-        getAllTimeEntries(fromDate, toDate),
+      // Load workflow entries and users
+      const [workflowResponse, users] = await Promise.all([
+        getSubmittedWorkflowEntries(100426), // Current period
         getAllUsers()
       ]);
 
-      console.log("Time entries loaded:", entries.length);
+      const entries = workflowResponse.entries.map((e: any) => ({
+        id: e.id,
+        userId: e.medewGcId,
+        date: e.datum,
+        hours: e.aantal,
+        projectId: e.werkGcId,
+        notes: e.omschrijving,
+        status: e.status, // SUBMITTED, APPROVED, REJECTED
+        userFirstName: e.employeeName?.split(' ')[0] || '',
+        userLastName: e.employeeName?.split(' ').slice(1).join(' ') || '',
+        projectCode: e.werkCode,
+        projectName: e.werkDescription,
+      }));
+
+      console.log("Workflow entries loaded:", entries.length);
       console.log("Users loaded:", users.length);
 
       // Manager can see all users (no filtering)
@@ -85,7 +96,7 @@ export default function ManagerDashboard() {
       const vacations: any[] = []; // TODO: Add vacation endpoint later
 
       // Calculate comprehensive stats
-      const pending = entries.filter((e: any) => e.status === "ingeleverd");
+      const pending = entries.filter((e: any) => e.status === "SUBMITTED");
       const pendingVac = vacations.filter((v: any) => v.status === "pending");
 
       // Current week
@@ -143,7 +154,7 @@ export default function ManagerDashboard() {
         // Get unique active projects
         const activeProjects = new Set(
           entries
-            .filter((e) => e.status === "goedgekeurd")
+            .filter((e) => e.status === "APPROVED")
             .map((e) => e.projectId),
         ).size;
 
@@ -182,7 +193,7 @@ export default function ManagerDashboard() {
         const teamPerf = team
           .map((member: any) => {
             const memberEntries = entries.filter(
-              (e: any) => e.userId === member.medewGcId && e.status === "goedgekeurd",
+              (e: any) => e.userId === member.medewGcId && e.status === "APPROVED",
             );
             const memberWeekHours = calculateHours(
               memberEntries.filter((e: any) => {
