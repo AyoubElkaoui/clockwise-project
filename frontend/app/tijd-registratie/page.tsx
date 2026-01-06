@@ -216,11 +216,16 @@ export default function TimeRegistrationPage() {
       const currentEntries = { ...entries };
 
       const map: Record<string, TimeEntry> = {};
+      const newProjectRows: ProjectRow[] = [];
+
       allEntries.forEach((e: any) => {
         const projectId = e.werkGcId || 0;
-        const key = `${e.datum}-${projectId}`;
+        // Normalize date format: API returns ISO format like "2026-01-06T00:00:00" or "2026-01-06"
+        // We need it in "YYYY-MM-DD" format to match keys created by formatDate()
+        const normalizedDate = e.datum.split('T')[0]; // Take only date part, ignore time
+        const key = `${normalizedDate}-${projectId}`;
         map[key] = {
-          date: e.datum,
+          date: normalizedDate,
           projectId: projectId,
           hours: e.aantal,
           km: 0,
@@ -230,6 +235,18 @@ export default function TimeRegistrationPage() {
           rejectionReason: e.rejectionReason || null,
           id: e.id, // Save the database ID
         };
+
+        // Auto-add project row if it doesn't exist yet and projectId is not 0
+        if (projectId > 0 && !projectRows.some(r => r.projectId === projectId) && !newProjectRows.some(r => r.projectId === projectId)) {
+          newProjectRows.push({
+            companyId: 0, // Will be populated when user expands company
+            companyName: e.werkDescription || `Project ${projectId}`,
+            projectGroupId: 0,
+            projectGroupName: "",
+            projectId: projectId,
+            projectName: e.werkCode || e.werkDescription || `Project ${projectId}`,
+          });
+        }
       });
 
       // Merge: Keep local unsaved entries (those without a saved status)
@@ -242,6 +259,11 @@ export default function TimeRegistrationPage() {
       });
 
       setEntries(map);
+
+      // Add new project rows if any
+      if (newProjectRows.length > 0) {
+        setProjectRows(prev => [...prev, ...newProjectRows]);
+      }
     } catch (error) {
       showToast("Kon uren niet laden", "error");
     }
