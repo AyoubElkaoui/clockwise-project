@@ -211,10 +211,14 @@ export default function TimeRegistrationPage() {
 
       const allEntries = [...drafts, ...submitted, ...rejected];
 
+      // Keep existing local entries that haven't been saved yet
+      const currentEntries = { ...entries };
+
       const map: Record<string, TimeEntry> = {};
       allEntries.forEach((e: any) => {
         const projectId = e.werkGcId || 0;
-        map[`${e.datum}-${projectId}`] = {
+        const key = `${e.datum}-${projectId}`;
+        map[key] = {
           date: e.datum,
           projectId: projectId,
           hours: e.aantal,
@@ -225,6 +229,16 @@ export default function TimeRegistrationPage() {
           rejectionReason: e.rejectionReason || null,
         };
       });
+
+      // Merge: Keep local unsaved entries (those without a saved status)
+      Object.keys(currentEntries).forEach(key => {
+        const localEntry = currentEntries[key];
+        // Only keep local entry if it's not in the API response (meaning it's brand new, not saved yet)
+        if (!map[key] && localEntry.hours > 0) {
+          map[key] = localEntry;
+        }
+      });
+
       setEntries(map);
     } catch (error) {
       showToast("Kon uren niet laden", "error");
