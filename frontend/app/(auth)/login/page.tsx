@@ -81,43 +81,46 @@ export default function LoginPage(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card variant="elevated" padding="lg">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400/20 dark:bg-indigo-600/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-400/10 dark:bg-purple-600/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <Card className="backdrop-blur-sm bg-white/90 dark:bg-slate-800/90 shadow-2xl border-white/20 dark:border-slate-700/50">
           {/* Header Section */}
-          <CardHeader className="text-center pb-6">
+          <CardHeader className="text-center pb-8 pt-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4">
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-3xl p-6 shadow-xl">
                 <Image
                   src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
                   alt="TIMR Logo"
-                  width={96}
-                  height={96}
-                  className="w-24 h-24 rounded-xl object-contain"
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 rounded-xl object-contain drop-shadow-lg"
                 />
               </div>
             </div>
-            <div className="flex justify-center gap-2 mb-4">
+            <div className="flex justify-center gap-2 mb-6">
               <button
                 onClick={toggleTheme}
-                className="btn btn-ghost btn-sm"
-                title={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                title={theme === "dark" ? "Licht thema" : "Donker thema"}
               >
                 {theme === "dark" ? "☀️" : "🌙"}
               </button>
               <button
                 onClick={toggleLanguage}
-                className="btn btn-ghost btn-sm"
-                title="Switch language"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-semibold text-sm"
+                title="Taal wijzigen"
               >
                 {i18n.language === "nl" ? "EN" : "NL"}
               </button>
             </div>
-            <CardTitle className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
               {t("login.welcomeBack")}
             </CardTitle>
             <p className="text-slate-600 dark:text-slate-400">
@@ -199,14 +202,14 @@ export default function LoginPage(): JSX.Element {
             <Button
               onClick={handleLogin}
               disabled={isLoading || !username.trim() || !password.trim()}
-              className="w-full text-slate-900 dark:text-white"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
               size="lg"
               isLoading={isLoading}
             >
               {!isLoading && (
                 <>
                   {t("login.login")}
-                  <ArrowRightIcon className="w-5 h-5" />
+                  <ArrowRightIcon className="w-5 h-5 ml-2" />
                 </>
               )}
             </Button>
@@ -215,7 +218,7 @@ export default function LoginPage(): JSX.Element {
             <div className="text-center">
               <a
                 href="#"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200 font-medium"
               >
                 {t("login.forgotPassword")}
               </a>
@@ -223,7 +226,7 @@ export default function LoginPage(): JSX.Element {
           </CardContent>
 
           {/* Footer */}
-          <div className="bg-slate-50 dark:bg-slate-800 px-6 py-4 text-center border-t border-slate-200 dark:border-slate-700 rounded-b-xl">
+          <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-800/50 px-6 py-4 text-center border-t border-slate-200 dark:border-slate-700 rounded-b-xl">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {t("login.copyright")}
             </p>

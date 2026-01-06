@@ -1,10 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAllUsers, getAllTimeEntries } from "@/lib/manager-api";
+import { getAllUsers, getSubmittedWorkflowEntries } from "@/lib/manager-api";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
@@ -22,6 +25,11 @@ import {
   ArrowDownRight,
   Target,
   Briefcase,
+  Edit,
+  Power,
+  PowerOff,
+  Save,
+  X,
 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -35,6 +43,9 @@ export default function ManagerTeamPage() {
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [teamStats, setTeamStats] = useState<any>({});
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadTeamData();
@@ -52,20 +63,26 @@ export default function ManagerTeamPage() {
       const users = await getAllUsers();
       const team = users.filter((u: any) => u.managerId === managerId);
 
-      // Load time entries for stats using manager API
-      const entries = await getAllTimeEntries();
+      // Load workflow entries for stats
+      const workflowResponse = await getSubmittedWorkflowEntries(100426);
+      const entries = workflowResponse.entries.map((e: any) => ({
+        userId: e.medewGcId,
+        date: e.datum,
+        hours: e.aantal,
+        status: e.status,
+      }));
 
       // Calculate stats for each team member
       const teamWithStats = team.map((member) => {
         const memberEntries = entries.filter(
-          (e: any) => e.userId === member.id,
+          (e: any) => e.userId === member.medewGcId,
         );
 
         // Current week
         const weekStart = dayjs().startOf("isoWeek");
         const weekEnd = dayjs().endOf("isoWeek");
         const weekEntries = memberEntries.filter((e: any) => {
-          const date = dayjs(e.startTime);
+          const date = dayjs(e.date);
           return date.isAfter(weekStart) && date.isBefore(weekEnd);
         });
 
@@ -73,31 +90,18 @@ export default function ManagerTeamPage() {
         const lastWeekStart = dayjs().subtract(1, "week").startOf("isoWeek");
         const lastWeekEnd = dayjs().subtract(1, "week").endOf("isoWeek");
         const lastWeekEntries = memberEntries.filter((e: any) => {
-          const date = dayjs(e.startTime);
+          const date = dayjs(e.date);
           return date.isAfter(lastWeekStart) && date.isBefore(lastWeekEnd);
         });
 
-        const weekHours = weekEntries.reduce((sum, e) => {
-          if (e.startTime && e.endTime) {
-            const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
-            return sum + (diff - (e.breakMinutes || 0)) / 60;
-          }
-          return sum;
-        }, 0);
-
-        const lastWeekHours = lastWeekEntries.reduce((sum, e) => {
-          if (e.startTime && e.endTime) {
-            const diff = dayjs(e.endTime).diff(dayjs(e.startTime), "minute");
-            return sum + (diff - (e.breakMinutes || 0)) / 60;
-          }
-          return sum;
-        }, 0);
+        const weekHours = weekEntries.reduce((sum, e) => sum + (e.hours || 0), 0);
+        const lastWeekHours = lastWeekEntries.reduce((sum, e) => sum + (e.hours || 0), 0);
 
         const approvedEntries = memberEntries.filter(
-          (e: any) => e.status === "goedgekeurd",
+          (e: any) => e.status === "APPROVED",
         ).length;
         const pendingEntries = memberEntries.filter(
-          (e: any) => e.status === "ingeleverd",
+          (e: any) => e.status === "SUBMITTED",
         ).length;
         const totalEntries = memberEntries.length;
 
@@ -212,6 +216,61 @@ export default function ManagerTeamPage() {
       color: "text-red-600",
       bg: "bg-red-100",
     };
+  };
+
+  const handleEditMember = (member: any) => {
+    setEditingMember(member);
+    setEditFormData({
+      firstName: member.firstName || "",
+      lastName: member.lastName || "",
+      email: member.email || "",
+      phone: member.phone || "",
+      rank: member.rank || "user",
+      isActive: member.rank !== "inactive",
+    });
+  };
+
+  const handleToggleActive = async (member: any) => {
+    const newStatus = member.rank === "inactive" ? "user" : "inactive";
+    try {
+      await axios.put(`/api/users/${member.medewGcId}`, {
+        ...member,
+        rank: newStatus,
+      });
+      showToast(
+        `${member.firstName} ${member.lastName} is nu ${newStatus === "inactive" ? "inactief" : "actief"}`,
+        "success"
+      );
+      loadTeamData();
+    } catch (error) {
+      showToast("Fout bij wijzigen status", "error");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMember) return;
+    
+    setSaving(true);
+    try {
+      const updatedData = {
+        ...editingMember,
+        firstName: editFormData.firstName,
+        lastName: editFormData.lastName,
+        email: editFormData.email,
+        phone: editFormData.phone,
+        rank: editFormData.isActive ? editFormData.rank : "inactive",
+      };
+
+      await axios.put(`/api/users/${editingMember.medewGcId}`, updatedData);
+      
+      showToast("Teamlid bijgewerkt", "success");
+      setEditingMember(null);
+      loadTeamData();
+    } catch (error) {
+      showToast("Fout bij opslaan", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -362,12 +421,36 @@ export default function ManagerTeamPage() {
                             {member.stats.pendingEntries} pending
                           </Badge>
                         )}
+                        {member.rank === "inactive" && (
+                          <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 text-xs">
+                            Inactief
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    <Mail className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleEditMember(member)}
+                      title="Teamlid bewerken"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleToggleActive(member)}
+                      title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}
+                    >
+                      {member.rank === "inactive" ? (
+                        <Power className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <PowerOff className="w-4 h-4 text-red-600" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -466,6 +549,81 @@ export default function ManagerTeamPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Member Dialog */}
+      <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Teamlid Bewerken</DialogTitle>
+            <DialogDescription>
+              Wijzig de gegevens van {editingMember?.firstName} {editingMember?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                  Voornaam
+                </label>
+                <Input
+                  value={editFormData.firstName || ""}
+                  onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                  Achternaam
+                </label>
+                <Input
+                  value={editFormData.lastName || ""}
+                  onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                Email
+              </label>
+              <Input
+                type="email"
+                value={editFormData.email || ""}
+                onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                Telefoon
+              </label>
+              <Input
+                value={editFormData.phone || ""}
+                onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+              />
+            </div>
+            <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={editFormData.isActive}
+                onChange={(e) => setEditFormData({...editFormData, isActive: e.target.checked})}
+                className="w-4 h-4"
+              />
+              <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Actief
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingMember(null)}>
+              <X className="w-4 h-4 mr-2" />
+              Annuleren
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? "Opslaan..." : "Opslaan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

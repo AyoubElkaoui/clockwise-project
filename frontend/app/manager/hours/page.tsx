@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { getAllUsers, getAllTimeEntries } from "@/lib/manager-api";
+import { getAllUsers, getSubmittedWorkflowEntries } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,13 +74,28 @@ export default function ManagerTeamHoursPage() {
         return;
       }
 
-      const [users, allEntries] = await Promise.all([
+      const [users, workflowResponse] = await Promise.all([
         getAllUsers(),
-        getAllTimeEntries()
+        getSubmittedWorkflowEntries(100426)
       ]);
 
       const team = users.filter((u: any) => u.managerId === managerId);
       setTeamMembers(team);
+      
+      // Convert workflow entries to format expected by UI
+      const allEntries = workflowResponse.entries.map((e: any) => ({
+        userId: e.medewGcId,
+        date: e.datum,
+        hours: e.aantal,
+        projectId: e.werkGcId,
+        projectCode: e.werkCode,
+        projectName: e.werkDescription,
+        status: e.status,
+        notes: e.omschrijving,
+        userFirstName: e.employeeName?.split(' ')[0] || '',
+        userLastName: e.employeeName?.split(' ').slice(1).join(' ') || '',
+      }));
+      
       setEntries(allEntries);
     } catch (error) {
       showToast("Fout bij laden uren", "error");
@@ -97,14 +112,14 @@ export default function ManagerTeamHoursPage() {
       const weekStart = currentPeriod.startOf("isoWeek");
       const weekEnd = currentPeriod.endOf("isoWeek");
       filtered = filtered.filter((entry) => {
-        const entryDate = dayjs(entry.startTime);
+        const entryDate = dayjs(entry.date);
         return entryDate.isBetween(weekStart, weekEnd, null, "[]");
       });
     } else {
       const monthStart = currentPeriod.startOf("month");
       const monthEnd = currentPeriod.endOf("month");
       filtered = filtered.filter((entry) => {
-        const entryDate = dayjs(entry.startTime);
+        const entryDate = dayjs(entry.date);
         return entryDate.isBetween(monthStart, monthEnd, null, "[]");
       });
     }

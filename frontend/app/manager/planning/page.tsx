@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { getAllUsers, getAllTimeEntries, getAllVacationRequests } from "@/lib/manager-api";
+import { getAllUsers, getSubmittedWorkflowEntries, getAllVacationRequests } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,15 +107,23 @@ export default function ManagerPlanningPage() {
         return;
       }
 
-      // Load team members, time entries, and vacation requests
-      const [users, entries, allVacations] = await Promise.all([
+      // Load team members, workflow entries, and vacation requests
+      const [users, workflowResponse, allVacations] = await Promise.all([
         getAllUsers(),
-        getAllTimeEntries(),
+        getSubmittedWorkflowEntries(100426),
         getAllVacationRequests()
       ]);
 
       const team = users.filter((u: any) => u.managerId === managerId);
       setTeamMembers(team);
+      
+      // Convert workflow entries
+      const entries = workflowResponse.entries.map((e: any) => ({
+        userId: e.medewGcId,
+        date: e.datum,
+        hours: e.aantal,
+        status: e.status,
+      }));
       setTimeEntries(entries);
 
       // Filter vacations for team members only
