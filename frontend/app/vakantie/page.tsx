@@ -143,7 +143,6 @@ export default function VakantiePage() {
             endDate: formData.endDate,
             hours: totalHours,
             reason: formData.reason,
-            status: "pending",
           }),
         },
       );
@@ -163,9 +162,9 @@ export default function VakantiePage() {
   };
 
   const calculateStats = () => {
-    const approved = requests.filter((r) => r.status === "approved");
-    const pending = requests.filter((r) => r.status === "pending");
-    const rejected = requests.filter((r) => r.status === "rejected");
+    const approved = requests.filter((r) => r.status === "APPROVED" || r.status === "approved");
+    const pending = requests.filter((r) => r.status === "SUBMITTED" || r.status === "pending");
+    const rejected = requests.filter((r) => r.status === "REJECTED" || r.status === "rejected");
 
     const totalDays = requests.reduce((sum, r) => sum + r.hours / 8, 0);
     const approvedDays = approved.reduce((sum, r) => sum + r.hours / 8, 0);
@@ -185,26 +184,28 @@ export default function VakantiePage() {
   const stats = calculateStats();
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
+    const upperStatus = status?.toUpperCase();
+    switch (upperStatus) {
+      case "APPROVED":
         return (
           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            {t("status.approved")}
+            Goedgekeurd
           </Badge>
         );
-      case "rejected":
+      case "REJECTED":
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
             <XCircle className="w-3 h-3 mr-1" />
-            {t("status.rejected")}
+            Afgekeurd
           </Badge>
         );
-      case "pending":
+      case "SUBMITTED":
+      case "PENDING":
         return (
           <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
             <Clock className="w-3 h-3 mr-1" />
-            {t("status.pending")}
+            In Behandeling
           </Badge>
         );
       default:

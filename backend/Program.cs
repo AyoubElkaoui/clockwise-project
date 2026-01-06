@@ -63,7 +63,7 @@ builder.Services.AddSingleton<ClockwiseProject.Backend.Data.PostgreSQLConnection
 // Register repositories
 builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
 builder.Services.AddScoped<IUserRepository, FirebirdUserRepository>();
-builder.Services.AddSingleton<IVacationRepository, FirebirdVacationRepository>();
+builder.Services.AddSingleton<IVacationRepository, PostgresLeaveRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
 builder.Services.AddScoped<backend.Repositories.ITaskRepository, backend.Repositories.FirebirdTaskRepository>();
 builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Repositories.FirebirdTimeEntryRepository>();

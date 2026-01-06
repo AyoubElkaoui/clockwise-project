@@ -26,7 +26,7 @@ export default function ManagerVacationPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("pending");
+  const [filterStatus, setFilterStatus] = useState("SUBMITTED");
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [comment, setComment] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -109,7 +109,7 @@ export default function ManagerVacationPage() {
 
   const handleApprove = async (id: number, comment: string) => {
     try {
-      await updateVacationRequestStatus(id, "approved", comment);
+      await updateVacationRequestStatus(id, "APPROVED", comment);
       setSuccessMessage("Vakantie goedgekeurd!");
       setSelectedRequest(null);
       setComment("");
@@ -123,7 +123,7 @@ export default function ManagerVacationPage() {
 
   const handleReject = async (id: number, comment: string) => {
     try {
-      await updateVacationRequestStatus(id, "rejected", comment);
+      await updateVacationRequestStatus(id, "REJECTED", comment);
       setSuccessMessage("Vakantie afgekeurd!");
       setSelectedRequest(null);
       setComment("");
@@ -140,19 +140,23 @@ export default function ManagerVacationPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
+    const upperStatus = status?.toUpperCase();
+    switch (upperStatus) {
+      case "APPROVED":
         return <Badge className="bg-green-500">Goedgekeurd</Badge>;
-      case "pending":
+      case "SUBMITTED":
+      case "PENDING":
         return <Badge className="bg-yellow-500">In afwachting</Badge>;
-      case "rejected":
+      case "REJECTED":
         return <Badge className="bg-red-500">Afgekeurd</Badge>;
       default:
-        return <Badge variant="secondary">Onbekend</Badge>;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const pendingCount = requests.filter((r) => 
+    r.status?.toUpperCase() === "SUBMITTED" || r.status === "pending"
+  ).length;
 
   if (loading) {
     return (
@@ -202,20 +206,20 @@ export default function ManagerVacationPage() {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={filterStatus === "pending" ? "default" : "outline"}
-                onClick={() => setFilterStatus("pending")}
+                variant={filterStatus === "SUBMITTED" ? "default" : "outline"}
+                onClick={() => setFilterStatus("SUBMITTED")}
               >
                 In afwachting
               </Button>
               <Button
-                variant={filterStatus === "approved" ? "default" : "outline"}
-                onClick={() => setFilterStatus("approved")}
+                variant={filterStatus === "APPROVED" ? "default" : "outline"}
+                onClick={() => setFilterStatus("APPROVED")}
               >
                 Goedgekeurd
               </Button>
               <Button
-                variant={filterStatus === "rejected" ? "default" : "outline"}
-                onClick={() => setFilterStatus("rejected")}
+                variant={filterStatus === "REJECTED" ? "default" : "outline"}
+                onClick={() => setFilterStatus("REJECTED")}
               >
                 Afgekeurd
               </Button>

@@ -189,12 +189,23 @@ export async function getAllVacationRequests(userId?: number): Promise<VacationR
  */
 export async function updateVacationRequestStatus(
   id: number,
-  status: 'approved' | 'rejected',
+  status: 'APPROVED' | 'REJECTED' | 'approved' | 'rejected',
   managerComment?: string
 ): Promise<void> {
-  await axios.put(
-    `${API_URL}/vacation-requests/${id}`,
-    { status, managerComment },
-    { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
-  );
+  const managerId = localStorage.getItem("userId");
+  const upperStatus = status.toUpperCase();
+  
+  if (upperStatus === 'APPROVED') {
+    await axios.post(
+      `${API_URL}/vacation/${id}/approve`,
+      { managerComment, reviewedBy: Number(managerId) },
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+  } else if (upperStatus === 'REJECTED') {
+    await axios.post(
+      `${API_URL}/vacation/${id}/reject`,
+      { managerComment, reviewedBy: Number(managerId) },
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+  }
 }

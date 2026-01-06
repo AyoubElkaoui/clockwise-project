@@ -18,12 +18,16 @@ namespace ClockwiseProject.Domain
         // Reden voor de vakantie (optioneel)
         public string? Reason { get; set; }
 
-        // Status: "pending", "approved", "rejected"
-        public string Status { get; set; } = "pending";
+        // Status: "DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "CANCELLED"
+        public string Status { get; set; } = "SUBMITTED";
 
         // Manager feedback bij goedkeuren/afkeuren
         public string? ManagerComment { get; set; }
         public DateTime? ReviewedAt { get; set; }
         public int? ReviewedBy { get; set; }
+        
+        // Timestamps
+        public DateTime CreatedAt { get; set; }
+        public DateTime? SubmittedAt { get; set; }
     }
 }

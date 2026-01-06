@@ -50,7 +50,7 @@ namespace ClockwiseProject.Backend.Services
             var request = await _vacationRepository.GetByIdAsync(id);
             if (request != null)
             {
-                request.Status = "approved";
+                request.Status = "APPROVED";
                 request.ManagerComment = managerComment;
                 request.ReviewedAt = DateTime.Now;
                 request.ReviewedBy = reviewedBy;
@@ -63,7 +63,7 @@ namespace ClockwiseProject.Backend.Services
             var request = await _vacationRepository.GetByIdAsync(id);
             if (request != null)
             {
-                request.Status = "rejected";
+                request.Status = "REJECTED";
                 request.ManagerComment = managerComment;
                 request.ReviewedAt = DateTime.Now;
                 request.ReviewedBy = reviewedBy;
