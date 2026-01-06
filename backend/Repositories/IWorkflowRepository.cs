@@ -28,6 +28,11 @@ public interface IWorkflowRepository
     Task<List<TimeEntryWorkflow>> GetAllSubmittedAsync(int urenperGcId);
 
     /// <summary>
+    /// Get all entries for a period with optional status filter (for manager overview)
+    /// </summary>
+    Task<List<TimeEntryWorkflow>> GetAllByPeriodAsync(int urenperGcId, string? status = null);
+
+    /// <summary>
     /// Get approved entries for an employee
     /// </summary>
     Task<List<TimeEntryWorkflow>> GetApprovedByEmployeeAsync(int medewGcId, int urenperGcId);

@@ -156,7 +156,15 @@ namespace ClockwiseProject.Backend.Repositories
             var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_DOCUMENT", transaction: transaction);
             var medewName = await connection.ExecuteScalarAsync<string>("SELECT GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID = @MedewGcId", new { MedewGcId = medewGcId }, transaction: transaction);
             var periodCode = await connection.ExecuteScalarAsync<string>("SELECT GC_CODE FROM AT_URENPER WHERE GC_ID = @UrenperGcId", new { UrenperGcId = urenperGcId }, transaction: transaction);
-            var code = $"URS{boekDatum:yy}{periodCode?.Replace("_", "") ?? "0000"}";
+            
+            // Generate unique code by finding highest sequence number for this base code
+            var baseCode = $"URS{boekDatum:yy}{periodCode?.Replace("_", "") ?? "0000"}";
+            var existingCount = await connection.ExecuteScalarAsync<int>(
+                "SELECT COUNT(*) FROM AT_DOCUMENT WHERE GC_CODE STARTING WITH @BaseCode AND STENT_ST_ID = 175 AND ADMINIS_GC_ID = @AdminisGcId",
+                new { BaseCode = baseCode, AdminisGcId = adminisGcId },
+                transaction: transaction);
+            
+            var code = existingCount > 0 ? $"{baseCode}.{existingCount + 1}" : baseCode;
             var omschrijving = $"{medewName}, {periodCode}";
             var now = DateTime.Now;
             const string sql = @"

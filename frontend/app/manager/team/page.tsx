@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAllUsers, getSubmittedWorkflowEntries } from "@/lib/manager-api";
+import { getAllUsers, getAllWorkflowEntries } from "@/lib/manager-api";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ export default function ManagerTeamPage() {
       console.log("Team members:", team);
 
       // Load workflow entries for stats
-      const workflowResponse = await getSubmittedWorkflowEntries(100426);
+      const workflowResponse = await getAllWorkflowEntries(100426);
       const entries = workflowResponse.entries.map((e: any) => ({
         userId: e.medewGcId,
         date: e.datum,

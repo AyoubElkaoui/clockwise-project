@@ -257,6 +257,22 @@ public class WorkflowService
     }
 
     /// <summary>
+    /// Get all entries for a period (manager overview, all statuses)
+    /// </summary>
+    public async Task<WorkflowEntriesResponse> GetAllEntriesByPeriodAsync(int urenperGcId, string? status = null)
+    {
+        var entries = await _workflowRepo.GetAllByPeriodAsync(urenperGcId, status);
+        var dtos = await MapToDtos(entries);
+
+        return new WorkflowEntriesResponse
+        {
+            Entries = dtos,
+            TotalCount = dtos.Count,
+            TotalHours = dtos.Sum(e => e.Aantal)
+        };
+    }
+
+    /// <summary>
     /// Manager approves/rejects time entries
     /// </summary>
     public async Task<WorkflowResponse> ReviewEntriesAsync(int reviewerMedewGcId, ReviewTimeEntriesRequest request)

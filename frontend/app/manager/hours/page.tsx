@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { getAllUsers, getSubmittedWorkflowEntries } from "@/lib/manager-api";
+import { getAllUsers, getAllWorkflowEntries } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -76,7 +76,7 @@ export default function ManagerTeamHoursPage() {
 
       const [users, workflowResponse] = await Promise.all([
         getAllUsers(),
-        getSubmittedWorkflowEntries(100426)
+        getAllWorkflowEntries(100426) // Get all entries (SUBMITTED + APPROVED)
       ]);
 
       const team = users.filter((u: any) => u.managerId === managerId);

@@ -108,6 +108,52 @@ namespace backend.Repositories
             }
         }
 
+        public async Task<List<TimeEntryWorkflow>> GetAllByPeriodAsync(int urenperGcId, string? status = null)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                var sql = @"
+                    SELECT
+                        id AS Id,
+                        medew_gc_id AS MedewGcId,
+                        urenper_gc_id AS UrenperGcId,
+                        taak_gc_id AS TaakGcId,
+                        werk_gc_id AS WerkGcId,
+                        datum AS Datum,
+                        aantal AS Aantal,
+                        omschrijving AS Omschrijving,
+                        status AS Status,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt,
+                        submitted_at AS SubmittedAt,
+                        reviewed_at AS ReviewedAt,
+                        reviewed_by AS ReviewedBy,
+                        rejection_reason AS RejectionReason,
+                        firebird_gc_id AS FirebirdGcId
+                    FROM time_entries_workflow
+                    WHERE urenper_gc_id = @UrenperGcId";
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    sql += " AND status = @Status";
+                }
+
+                sql += " ORDER BY datum DESC, created_at DESC";
+
+                var result = await connection.QueryAsync<TimeEntryWorkflow>(
+                    sql, 
+                    new { UrenperGcId = urenperGcId, Status = status });
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting entries by period");
+                throw;
+            }
+        }
+
         public async Task<List<TimeEntryWorkflow>> GetApprovedByEmployeeAsync(int medewGcId, int urenperGcId)
         {
             return await GetEntriesByStatusAsync(medewGcId, urenperGcId, "APPROVED");

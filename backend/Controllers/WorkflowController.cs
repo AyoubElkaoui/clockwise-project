@@ -285,6 +285,38 @@ public class WorkflowController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/workflow/entries
+    /// Get all entries for a period with optional status filter (for manager overview)
+    /// </summary>
+    [HttpGet("entries")]
+    public async Task<ActionResult<WorkflowEntriesResponse>> GetEntries(
+        [FromQuery] int urenperGcId, 
+        [FromQuery] string? status = null)
+    {
+        try
+        {
+            var medewGcId = ResolveMedewGcId();
+            if (medewGcId == null)
+            {
+                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
+            }
+
+            // TODO: Add manager authorization check
+            _logger.LogInformation(
+                "GET /api/workflow/entries for manager {MedewGcId}, period {UrenperGcId}, status {Status}",
+                medewGcId, urenperGcId, status ?? "ALL");
+
+            var response = await _workflowService.GetAllEntriesByPeriodAsync(urenperGcId, status);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching entries");
+            return StatusCode(500, new { error = "Failed to fetch entries", details = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// POST /api/workflow/review
     /// Approve or reject time entries (manager only)
     /// </summary>

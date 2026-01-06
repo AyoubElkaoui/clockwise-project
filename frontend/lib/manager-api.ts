@@ -116,6 +116,22 @@ export async function getSubmittedWorkflowEntries(urenperGcId: number): Promise<
 }
 
 /**
+ * Get all workflow entries for a period with optional status filter
+ * @param urenperGcId Period ID
+ * @param status Optional status filter: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' or undefined for all
+ */
+export async function getAllWorkflowEntries(
+  urenperGcId: number, 
+  status?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+): Promise<WorkflowEntriesResponse> {
+  const response = await axios.get(`${API_URL}/workflow/entries`, {
+    params: { urenperGcId, status },
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+}
+
+/**
  * Review (approve/reject) workflow entries
  */
 export async function reviewWorkflowEntries(

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { getAllUsers, getSubmittedWorkflowEntries, getAllVacationRequests } from "@/lib/manager-api";
+import { getAllUsers, getAllWorkflowEntries, getAllVacationRequests } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +110,7 @@ export default function ManagerPlanningPage() {
       // Load team members, workflow entries, and vacation requests
       const [users, workflowResponse, allVacations] = await Promise.all([
         getAllUsers(),
-        getSubmittedWorkflowEntries(100426),
+        getAllWorkflowEntries(100426),
         getAllVacationRequests()
       ]);
 
