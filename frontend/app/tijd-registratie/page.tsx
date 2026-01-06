@@ -580,6 +580,7 @@ export default function TimeRegistrationPage() {
       const savedIds: number[] = [];
       for (const entry of toSave as TimeEntry[]) {
         const result = await saveDraft({
+          id: entry.id, // Include ID if it exists (for updates)
           urenperGcId,
           taakGcId: 100256, // Montage task
           werkGcId: entry.projectId || null,
