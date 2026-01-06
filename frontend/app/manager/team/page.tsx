@@ -54,14 +54,27 @@ export default function ManagerTeamPage() {
   const loadTeamData = async () => {
     try {
       const managerId = authUtils.getUserId();
+      const userRole = authUtils.getRole();
+      
       if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
 
-      // Load team members using manager API
+      // Only managers can view team page
+      if (userRole !== 'manager') {
+        showToast("Geen toegang tot deze pagina", "error");
+        router.push('/tijd-registratie');
+        return;
+      }
+
+      // Load all users - managers see all team members
       const users = await getAllUsers();
-      const team = users.filter((u: any) => u.managerId === managerId);
+      console.log("All users loaded:", users);
+      
+      // Show all users to manager (no filtering by managerId since it doesn't exist in DB)
+      const team = users;
+      console.log("Team members:", team);
 
       // Load workflow entries for stats
       const workflowResponse = await getSubmittedWorkflowEntries(100426);

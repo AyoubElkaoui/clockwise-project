@@ -29,6 +29,11 @@ const authUtils = {
     return localStorage.getItem("userRank");
   },
 
+  getRole: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("userRank");
+  },
+
   getUserName: (): { firstName: string; lastName: string } => {
     if (typeof window === "undefined") {
       return { firstName: "", lastName: "" };
@@ -64,6 +69,7 @@ export default authUtils;
 export const getUserId = authUtils.getUserId;
 export const getMedewGcId = authUtils.getMedewGcId;
 export const getUserRank = authUtils.getUserRank;
+export const getRole = authUtils.getRole;
 export const getUserName = authUtils.getUserName;
 export const isLoggedIn = authUtils.isLoggedIn;
 export const requireAuth = authUtils.requireAuth;
