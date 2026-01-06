@@ -592,6 +592,7 @@ export default function TimeRegistrationPage() {
       }
 
       // Then submit all saved drafts
+      console.log("Submitting entries:", { urenperGcId, entryIds: savedIds });
       await submitEntries({
         urenperGcId,
         entryIds: savedIds,

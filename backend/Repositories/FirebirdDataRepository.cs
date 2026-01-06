@@ -311,6 +311,14 @@ namespace ClockwiseProject.Backend.Repositories
             return await connection.ExecuteScalarAsync<string>(sql, new { WerkGcId = werkGcId });
         }
 
+        public async Task<(string Code, string Description)> GetWerkDetailsAsync(int werkGcId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_CODE, GC_OMSCHRIJVING FROM AT_WERK WHERE GC_ID = @WerkGcId";
+            var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { WerkGcId = werkGcId });
+            return (result?.GC_CODE ?? "", result?.GC_OMSCHRIJVING ?? "");
+        }
+
         public async Task<IEnumerable<User>> GetUsersAsync()
         {
             // Temporary hardcoded users for testing

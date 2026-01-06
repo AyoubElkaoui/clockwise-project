@@ -572,8 +572,9 @@ public class WorkflowService
 
             if (entry.WerkGcId.HasValue)
             {
-                var werkCode = await _firebirdRepo.GetWerkCodeAsync(entry.WerkGcId.Value);
-                dto.WerkCode = werkCode;
+                var werkData = await _firebirdRepo.GetWerkDetailsAsync(entry.WerkGcId.Value);
+                dto.WerkCode = werkData.Code;
+                dto.WerkDescription = werkData.Description;
             }
         }
         catch (Exception ex)

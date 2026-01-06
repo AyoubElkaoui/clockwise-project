@@ -153,6 +153,11 @@ public class WorkflowController : ControllerBase
     {
         try
         {
+            _logger.LogInformation(
+                "POST /api/workflow/submit received - UrenperGcId: {UrenperGcId}, EntryIds: {EntryIds}",
+                request?.UrenperGcId ?? 0, 
+                request?.EntryIds != null ? string.Join(",", request.EntryIds) : "null");
+
             var medewGcId = ResolveMedewGcId();
             if (medewGcId == null)
             {
