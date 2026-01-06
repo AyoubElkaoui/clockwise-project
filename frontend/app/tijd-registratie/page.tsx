@@ -415,8 +415,9 @@ export default function TimeRegistrationPage() {
 
   // Helper functions for entry status styling and editability
   const isEditable = (status?: string) => {
-    // DRAFT and REJECTED are editable, SUBMITTED and APPROVED are not
-    return !status || status === "DRAFT" || status === "REJECTED";
+    // DRAFT, REJECTED, and old "opgeslagen" status are editable
+    // SUBMITTED and APPROVED are not editable
+    return !status || status === "DRAFT" || status === "REJECTED" || status === "opgeslagen";
   };
 
   const getEntryClassName = (status?: string) => {
