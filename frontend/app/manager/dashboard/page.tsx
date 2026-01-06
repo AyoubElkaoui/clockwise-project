@@ -180,8 +180,11 @@ export default function ManagerDashboard() {
         // Get latest 5 pending entries
         setPendingEntries(pending.slice(0, 5));
 
-        // Get team activity (recent entries)
-        const recent = entries
+        // Get team activity (recent entries) - only SUBMITTED and APPROVED, not DRAFT
+        const recentRelevant = entries.filter((e: any) => 
+          e.status === 'SUBMITTED' || e.status === 'APPROVED'
+        );
+        const recent = recentRelevant
           .sort(
             (a: any, b: any) =>
               new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -256,27 +259,30 @@ export default function ManagerDashboard() {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "goedgekeurd":
+    const upperStatus = status?.toUpperCase();
+    switch (upperStatus) {
+      case "APPROVED":
         return (
           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
             Goedgekeurd
           </Badge>
         );
-      case "ingeleverd":
+      case "SUBMITTED":
         return (
           <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
             In Behandeling
           </Badge>
         );
-      case "afgekeurd":
+      case "REJECTED":
         return (
           <Badge className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
             Afgekeurd
           </Badge>
         );
-      default:
+      case "DRAFT":
         return <Badge variant="secondary">Concept</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 

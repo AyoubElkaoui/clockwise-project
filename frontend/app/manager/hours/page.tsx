@@ -83,18 +83,37 @@ export default function ManagerTeamHoursPage() {
       setTeamMembers(team);
       
       // Convert workflow entries to format expected by UI
-      const allEntries = workflowResponse.entries.map((e: any) => ({
-        userId: e.medewGcId,
-        date: e.datum,
-        hours: e.aantal,
-        projectId: e.werkGcId,
-        projectCode: e.werkCode,
-        projectName: e.werkDescription,
-        status: e.status,
-        notes: e.omschrijving,
-        userFirstName: e.employeeName?.split(' ')[0] || '',
-        userLastName: e.employeeName?.split(' ').slice(1).join(' ') || '',
-      }));
+      // Note: workflow uses 'aantal' (hours) directly, but UI expects startTime/endTime
+      // We create synthetic start/end times based on the date and hours
+      const allEntries = workflowResponse.entries.map((e: any) => {
+        const date = dayjs(e.datum);
+        const startTime = date.hour(8).minute(0).second(0); // Start at 8:00
+        const endTime = startTime.add(e.aantal, 'hour'); // Add aantal hours
+        
+        return {
+          userId: e.medewGcId,
+          date: e.datum,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          hours: e.aantal,
+          breakMinutes: 0,
+          projectId: e.werkGcId,
+          projectCode: e.werkCode,
+          projectName: e.werkDescription,
+          status: e.status,
+          notes: e.omschrijving,
+          userFirstName: e.employeeName?.split(' ')[0] || '',
+          userLastName: e.employeeName?.split(' ').slice(1).join(' ') || '',
+          project: {
+            name: e.werkDescription || e.werkCode,
+            code: e.werkCode
+          },
+          user: {
+            firstName: e.employeeName?.split(' ')[0] || '',
+            lastName: e.employeeName?.split(' ').slice(1).join(' ') || ''
+          }
+        };
+      });
       
       setEntries(allEntries);
     } catch (error) {
