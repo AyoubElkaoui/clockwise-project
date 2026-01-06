@@ -534,8 +534,8 @@ export default function TimeRegistrationPage() {
         const key = `${entry.date}-${entry.projectId}`;
         updatedEntries[key] = {
           ...entry,
-          id: result.id,
-          status: result.status,
+          id: result.entry.id,
+          status: result.entry.status,
         };
       }
 
@@ -588,7 +588,7 @@ export default function TimeRegistrationPage() {
           aantal: entry.hours,
           omschrijving: entry.notes || "",
         });
-        savedIds.push(result.id);
+        savedIds.push(result.entry.id);
       }
 
       // Then submit all saved drafts
