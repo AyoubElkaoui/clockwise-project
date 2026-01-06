@@ -202,6 +202,7 @@ export default function TimeRegistrationPage() {
   const loadEntries = async () => {
     try {
       const urenperGcId = getCurrentPeriodId();
+      console.log("Loading entries for period:", urenperGcId);
 
       // Load ALL statuses: DRAFT, SUBMITTED, APPROVED, REJECTED
       const [drafts, submitted, rejected] = await Promise.all([
@@ -211,12 +212,10 @@ export default function TimeRegistrationPage() {
       ]);
 
       const allEntries = [...drafts, ...submitted, ...rejected];
-
-      // Keep existing local entries that haven't been saved yet
-      const currentEntries = { ...entries };
+      console.log("Loaded entries from API:", allEntries);
 
       const map: Record<string, TimeEntry> = {};
-      const newProjectRows: ProjectRow[] = [];
+      const projectIdsToAdd = new Set<number>();
 
       allEntries.forEach((e: any) => {
         const projectId = e.werkGcId || 0;
@@ -224,6 +223,9 @@ export default function TimeRegistrationPage() {
         // We need it in "YYYY-MM-DD" format to match keys created by formatDate()
         const normalizedDate = e.datum.split('T')[0]; // Take only date part, ignore time
         const key = `${normalizedDate}-${projectId}`;
+
+        console.log(`Entry: date=${normalizedDate}, projectId=${projectId}, hours=${e.aantal}, key=${key}`);
+
         map[key] = {
           date: normalizedDate,
           projectId: projectId,
@@ -236,35 +238,43 @@ export default function TimeRegistrationPage() {
           id: e.id, // Save the database ID
         };
 
-        // Auto-add project row if it doesn't exist yet and projectId is not 0
-        if (projectId > 0 && !projectRows.some(r => r.projectId === projectId) && !newProjectRows.some(r => r.projectId === projectId)) {
-          newProjectRows.push({
-            companyId: 0, // Will be populated when user expands company
-            companyName: e.werkDescription || `Project ${projectId}`,
-            projectGroupId: 0,
-            projectGroupName: "",
-            projectId: projectId,
-            projectName: e.werkCode || e.werkDescription || `Project ${projectId}`,
-          });
+        // Track which projects need to be added
+        if (projectId > 0) {
+          projectIdsToAdd.add(projectId);
         }
       });
 
-      // Merge: Keep local unsaved entries (those without a saved status)
-      Object.keys(currentEntries).forEach(key => {
-        const localEntry = currentEntries[key];
-        // Only keep local entry if it's not in the API response (meaning it's brand new, not saved yet)
-        if (!map[key] && localEntry.hours > 0) {
-          map[key] = localEntry;
-        }
-      });
+      console.log("Entries map created:", map);
+      console.log("Projects to add:", Array.from(projectIdsToAdd));
 
+      // Update entries first
       setEntries(map);
 
-      // Add new project rows if any
-      if (newProjectRows.length > 0) {
-        setProjectRows(prev => [...prev, ...newProjectRows]);
-      }
+      // Then add project rows for any projects that don't exist yet
+      setProjectRows(prev => {
+        const existingProjectIds = new Set(prev.map(r => r.projectId));
+        const newRows: ProjectRow[] = [];
+
+        projectIdsToAdd.forEach(projectId => {
+          if (!existingProjectIds.has(projectId)) {
+            // Find an entry with this projectId to get the description
+            const entryWithProject = allEntries.find((e: any) => e.werkGcId === projectId);
+            newRows.push({
+              companyId: 0,
+              companyName: entryWithProject?.werkDescription || `Project ${projectId}`,
+              projectGroupId: 0,
+              projectGroupName: "",
+              projectId: projectId,
+              projectName: entryWithProject?.werkCode || entryWithProject?.werkDescription || `Project ${projectId}`,
+            });
+          }
+        });
+
+        console.log("Adding new project rows:", newRows);
+        return [...prev, ...newRows];
+      });
     } catch (error) {
+      console.error("Error loading entries:", error);
       showToast("Kon uren niet laden", "error");
     }
   };
