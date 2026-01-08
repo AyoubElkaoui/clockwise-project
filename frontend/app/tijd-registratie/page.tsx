@@ -15,7 +15,6 @@ import {
   Calendar,
   Copy,
   Clipboard,
-  Plane,
   Car,
   Ticket,
   Euro,
@@ -993,9 +992,8 @@ export default function TimeRegistrationPage() {
                                       />
 
                                       {/* Snel overzicht (als er data is) */}
-                                      {(entry.travelHours || entry.distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes) && (
+                                      {(entry.distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes) && (
                                         <div className="flex flex-wrap gap-1 text-xs">
-                                          {entry.travelHours > 0 && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1"><Plane className="w-3 h-3" />{entry.travelHours}u</span>}
                                           {entry.distanceKm > 0 && <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1"><Car className="w-3 h-3" />{entry.distanceKm}km</span>}
                                           {entry.travelCosts > 0 && <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded flex items-center gap-1"><Ticket className="w-3 h-3" />€{entry.travelCosts}</span>}
                                           {entry.otherExpenses > 0 && <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded flex items-center gap-1"><Euro className="w-3 h-3" />€{entry.otherExpenses}</span>}
@@ -1020,25 +1018,6 @@ export default function TimeRegistrationPage() {
                                           <input
                                             type="number"
                                             step="0.5"
-                                            min="0"
-                                            max="24"
-                                            value={entry.travelHours || ""}
-                                            onChange={(e) =>
-                                              updateEntry(
-                                                row.projectId,
-                                                date,
-                                                "travelHours",
-                                                parseFloat(e.target.value) || 0,
-                                              )
-                                            }
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                            placeholder="Reisuren"
-                                            title="Reisuren"
-                                          />
-                                          <input
-                                            type="number"
-                                            step="0.1"
                                             min="0"
                                             value={entry.distanceKm || ""}
                                             onChange={(e) =>
@@ -1336,33 +1315,13 @@ export default function TimeRegistrationPage() {
                                       <ChevronDown className={`w-3 h-3 transition-transform ${isCellExpanded(row.projectId, date) ? 'rotate-180' : ''}`} />
                                       {isCellExpanded(row.projectId, date) ? 'Minder' : 'Details'}
                                     </button>
-                                  )}
-
-                                  {/* Uitklapbare details */}
+                                  )}distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes) && (
+                                    <div className="flex flex-wrap gap-1 text-xs">
                                   {isCellExpanded(row.projectId, date) && (
                                     <div className="space-y-1 pt-1 border-t border-slate-200 dark:border-slate-600">
                                       <input
                                         type="number"
                                         step="0.5"
-                                        min="0"
-                                        max="24"
-                                        value={entry.travelHours || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "travelHours",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                        placeholder="Reisuren"
-                                        title="Reisuren"
-                                      />
-                                      <input
-                                        type="number"
-                                        step="0.1"
                                         min="0"
                                         value={entry.distanceKm || ""}
                                         onChange={(e) =>
