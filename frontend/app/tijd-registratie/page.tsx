@@ -19,6 +19,8 @@ import {
   Ticket,
   Euro,
   FileText,
+  Wrench,
+  Ruler,
 } from "lucide-react";
 import {
   getCompanies,
@@ -1013,15 +1015,19 @@ export default function TimeRegistrationPage() {
                                           className="w-full px-2 py-1 mb-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700"
                                           title="Selecteer taaktype"
                                         >
-                                          <option value="MONTAGE">🔧 Montage</option>
+                                          <option value="MONTAGE">⚙️ Montage</option>
                                           <option value="TEKENKAMER">📐 Tekenkamer</option>
                                         </select>
                                       )}
 
                                       {/* Taaktype indicator (voor users met MONTAGE_ONLY of TEKENKAMER_ONLY) */}
                                       {!shouldShowTaskDropdown() && entry.hours > 0 && (
-                                        <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium">
-                                          {userAllowedTasks === 'MONTAGE_ONLY' ? '🔧 Montage' : '📐 Tekenkamer'}
+                                        <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium flex items-center justify-center gap-1">
+                                          {userAllowedTasks === 'MONTAGE_ONLY' ? (
+                                            <><Wrench className="w-3 h-3" />Montage</>
+                                          ) : (
+                                            <><Ruler className="w-3 h-3" />Tekenkamer</>
+                                          )}
                                         </div>
                                       )}
 
@@ -1343,15 +1349,19 @@ export default function TimeRegistrationPage() {
                                       className="w-full px-2 py-1 mb-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700"
                                       title="Selecteer taaktype"
                                     >
-                                      <option value="MONTAGE">🔧 Montage</option>
+                                      <option value="MONTAGE">⚙️ Montage</option>
                                       <option value="TEKENKAMER">📐 Tekenkamer</option>
                                     </select>
                                   )}
 
                                   {/* Taaktype indicator (voor users met MONTAGE_ONLY of TEKENKAMER_ONLY) */}
                                   {!shouldShowTaskDropdown() && entry.hours > 0 && (
-                                    <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium">
-                                      {userAllowedTasks === 'MONTAGE_ONLY' ? '🔧 Montage' : '📐 Tekenkamer'}
+                                    <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium flex items-center justify-center gap-1">
+                                      {userAllowedTasks === 'MONTAGE_ONLY' ? (
+                                        <><Wrench className="w-3 h-3" />Montage</>
+                                      ) : (
+                                        <><Ruler className="w-3 h-3" />Tekenkamer</>
+                                      )}
                                     </div>
                                   )}
 
