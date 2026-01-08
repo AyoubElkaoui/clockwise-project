@@ -1,4 +1,5 @@
 using backend.Services;
+using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
@@ -8,13 +9,16 @@ namespace backend.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthenticationService _authService;
+    private readonly PostgreSQLUserRepository _userRepository;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         AuthenticationService authService,
+        PostgreSQLUserRepository userRepository,
         ILogger<AuthController> logger)
     {
         _authService = authService;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
@@ -46,7 +50,8 @@ public class AuthController : ControllerBase
                     email = result.User.Email,
                     role = result.User.Role,
                     first_name = result.User.FirstName,
-                    last_name = result.User.LastName
+                    last_name = result.User.LastName,
+                    allowed_tasks = result.User.AllowedTasks
                 }
             });
         }
@@ -54,6 +59,42 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during login");
             return StatusCode(500, new { message = "An error occurred during login" });
+        }
+    }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        try
+        {
+            // Get medewGcId from HTTP context (set by authentication middleware)
+            if (!HttpContext.Items.TryGetValue("MedewGcId", out var medewGcIdObj) || medewGcIdObj is not int medewGcId)
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            var user = await _userRepository.GetByMedewGcIdAsync(medewGcId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            return Ok(new
+            {
+                id = user.Id,
+                username = user.Username,
+                medewGcId = user.MedewGcId,
+                email = user.Email,
+                role = user.Role,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                allowedTasks = user.AllowedTasks
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching current user");
+            return StatusCode(500, new { message = "An error occurred" });
         }
     }
 

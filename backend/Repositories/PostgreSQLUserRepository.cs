@@ -32,7 +32,8 @@ public class PostgreSQLUserRepository
                 is_active AS IsActive,
                 last_login AS LastLogin,
                 created_at AS CreatedAt,
-                updated_at AS UpdatedAt
+                updated_at AS UpdatedAt,
+                allowed_tasks AS AllowedTasks
             FROM users
             WHERE username = @username AND is_active = TRUE";
 
@@ -54,7 +55,7 @@ public class PostgreSQLUserRepository
             SELECT
                 id, medew_gc_id, username, password_hash, email,
                 role, first_name, last_name, phone, is_active,
-                last_login, created_at, updated_at
+                last_login, created_at, updated_at, allowed_tasks
             FROM users
             WHERE id = @id";
 
@@ -76,7 +77,7 @@ public class PostgreSQLUserRepository
             SELECT
                 id, medew_gc_id, username, password_hash, email,
                 role, first_name, last_name, phone, is_active,
-                last_login, created_at, updated_at
+                last_login, created_at, updated_at, allowed_tasks
             FROM users
             WHERE medew_gc_id = @medewGcId";
 
@@ -154,6 +155,7 @@ public class PostgresUser
     public DateTime? LastLogin { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public string AllowedTasks { get; set; } = "BOTH"; // BOTH, MONTAGE_ONLY, TEKENKAMER_ONLY
 }
 
 public class CreateUserCommand

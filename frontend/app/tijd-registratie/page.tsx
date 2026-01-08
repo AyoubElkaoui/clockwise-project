@@ -55,8 +55,7 @@ interface TimeEntry {
   date: string;
   projectId: number;
   hours: number;
-  eveningNightHours?: number;
-  travelHours?: number;
+  taskType?: 'MONTAGE' | 'TEKENKAMER'; // User's choice of task type
   distanceKm?: number;
   travelCosts?: number;
   otherExpenses?: number;
@@ -144,6 +143,7 @@ export default function TimeRegistrationPage() {
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
+  const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -167,6 +167,7 @@ export default function TimeRegistrationPage() {
   useEffect(() => {
     loadCompanies();
     loadEntries();
+    loadUserAllowedTasks();
   }, [currentWeek, viewMode]);
 
   useEffect(() => {
@@ -196,6 +197,26 @@ export default function TimeRegistrationPage() {
     const isClosed = closedDays.some((day) => day.date === date);
     console.log(`Checking if ${date} is closed:`, isClosed, closedDays);
     return isClosed;
+  };
+
+  const loadUserAllowedTasks = async () => {
+    try {
+      const response = await axios.get('/api/users/me');
+      setUserAllowedTasks(response.data.allowedTasks || 'BOTH');
+    } catch (error) {
+      console.error('Fout bij laden user allowed tasks:', error);
+      setUserAllowedTasks('BOTH'); // Default to both if fetch fails
+    }
+  };
+
+  const shouldShowTaskDropdown = () => {
+    return userAllowedTasks === 'BOTH';
+  };
+
+  const getDefaultTaskType = (): 'MONTAGE' | 'TEKENKAMER' => {
+    if (userAllowedTasks === 'MONTAGE_ONLY') return 'MONTAGE';
+    if (userAllowedTasks === 'TEKENKAMER_ONLY') return 'TEKENKAMER';
+    return 'MONTAGE'; // Default for users with BOTH
   };
 
   const loadCompanies = async () => {
@@ -411,7 +432,7 @@ export default function TimeRegistrationPage() {
   const updateEntry = (
     projectId: number,
     date: string,
-    field: "hours" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
+    field: "hours" | "taskType" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
     value: any,
   ) => {
     const key = `${date}-${projectId}`;
@@ -547,16 +568,23 @@ export default function TimeRegistrationPage() {
       const updatedEntries = { ...entries };
 
       for (const entry of toSave as TimeEntry[]) {
+        // Determine taakGcId based on user's taskType selection or restriction
+        let taakGcId: number;
+        const taskType = entry.taskType || getDefaultTaskType();
+        if (taskType === 'MONTAGE') {
+          taakGcId = 100256; // Montage task
+        } else {
+          taakGcId = 100032; // Tekenkamer task
+        }
+
         const result = await saveDraft({
           id: entry.id, // Include ID if it exists (for updates)
           urenperGcId,
-          taakGcId: 100256, // Montage task
+          taakGcId,
           werkGcId: entry.projectId || null,
           datum: entry.date,
           aantal: entry.hours,
           omschrijving: entry.notes || "",
-          eveningNightHours: entry.eveningNightHours || 0,
-          travelHours: entry.travelHours || 0,
           distanceKm: entry.distanceKm || 0,
           travelCosts: entry.travelCosts || 0,
           otherExpenses: entry.otherExpenses || 0,
@@ -611,16 +639,23 @@ export default function TimeRegistrationPage() {
       // First save all entries as drafts
       const savedIds: number[] = [];
       for (const entry of toSave as TimeEntry[]) {
+        // Determine taakGcId based on user's taskType selection or restriction
+        let taakGcId: number;
+        const taskType = entry.taskType || getDefaultTaskType();
+        if (taskType === 'MONTAGE') {
+          taakGcId = 100256; // Montage task
+        } else {
+          taakGcId = 100032; // Tekenkamer task
+        }
+
         const result = await saveDraft({
           id: entry.id, // Include ID if it exists (for updates)
           urenperGcId,
-          taakGcId: 100256, // Montage task
+          taakGcId,
           werkGcId: entry.projectId || null,
           datum: entry.date,
           aantal: entry.hours,
           omschrijving: entry.notes || "",
-          eveningNightHours: entry.eveningNightHours || 0,
-          travelHours: entry.travelHours || 0,
           distanceKm: entry.distanceKm || 0,
           travelCosts: entry.travelCosts || 0,
           otherExpenses: entry.otherExpenses || 0,
@@ -914,8 +949,7 @@ export default function TimeRegistrationPage() {
                                     date,
                                     projectId: row.projectId,
                                     hours: 0,
-                                    eveningNightHours: 0,
-                                    travelHours: 0,
+                                    taskType: getDefaultTaskType(),
                                     distanceKm: 0,
                                     travelCosts: 0,
                                     otherExpenses: 0,
@@ -961,6 +995,33 @@ export default function TimeRegistrationPage() {
                                           >
                                             <Clipboard className="w-3 h-3 mx-auto" />
                                           </button>
+                                        </div>
+                                      )}
+
+                                      {/* Task type selector (alleen voor users met BOTH) */}
+                                      {shouldShowTaskDropdown() && !isDisabled && (
+                                        <select
+                                          value={entry.taskType || getDefaultTaskType()}
+                                          onChange={(e) =>
+                                            updateEntry(
+                                              row.projectId,
+                                              date,
+                                              "taskType",
+                                              e.target.value as 'MONTAGE' | 'TEKENKAMER',
+                                            )
+                                          }
+                                          className="w-full px-2 py-1 mb-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700"
+                                          title="Selecteer taaktype"
+                                        >
+                                          <option value="MONTAGE">🔧 Montage</option>
+                                          <option value="TEKENKAMER">📐 Tekenkamer</option>
+                                        </select>
+                                      )}
+
+                                      {/* Taaktype indicator (voor users met MONTAGE_ONLY of TEKENKAMER_ONLY) */}
+                                      {!shouldShowTaskDropdown() && entry.hours > 0 && (
+                                        <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium">
+                                          {userAllowedTasks === 'MONTAGE_ONLY' ? '🔧 Montage' : '📐 Tekenkamer'}
                                         </div>
                                       )}
 
@@ -1228,8 +1289,7 @@ export default function TimeRegistrationPage() {
                                 date,
                                 projectId: row.projectId,
                                 hours: 0,
-                                eveningNightHours: 0,
-                                travelHours: 0,
+                                taskType: getDefaultTaskType(),
                                 distanceKm: 0,
                                 travelCosts: 0,
                                 otherExpenses: 0,
@@ -1265,6 +1325,33 @@ export default function TimeRegistrationPage() {
                                       >
                                         <Clipboard className="w-3 h-3 mx-auto" />
                                       </button>
+                                    </div>
+                                  )}
+
+                                  {/* Task type selector (alleen voor users met BOTH) */}
+                                  {shouldShowTaskDropdown() && !isDisabled && (
+                                    <select
+                                      value={entry.taskType || getDefaultTaskType()}
+                                      onChange={(e) =>
+                                        updateEntry(
+                                          row.projectId,
+                                          date,
+                                          "taskType",
+                                          e.target.value as 'MONTAGE' | 'TEKENKAMER',
+                                        )
+                                      }
+                                      className="w-full px-2 py-1 mb-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700"
+                                      title="Selecteer taaktype"
+                                    >
+                                      <option value="MONTAGE">🔧 Montage</option>
+                                      <option value="TEKENKAMER">📐 Tekenkamer</option>
+                                    </select>
+                                  )}
+
+                                  {/* Taaktype indicator (voor users met MONTAGE_ONLY of TEKENKAMER_ONLY) */}
+                                  {!shouldShowTaskDropdown() && entry.hours > 0 && (
+                                    <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium">
+                                      {userAllowedTasks === 'MONTAGE_ONLY' ? '🔧 Montage' : '📐 Tekenkamer'}
                                     </div>
                                   )}
 
