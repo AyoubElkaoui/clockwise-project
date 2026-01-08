@@ -219,29 +219,136 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task InsertTimeEntryAsync(TimeEntry entry, FbTransaction transaction = null)
         {
+            // Sync time entries with multiple lines for different cost types
+            // TAAK determines if Montage (100256) or Tekenkamer (100032)
+            // KOSTSRT varies per cost type:
+            // - Normal hours: 100268 (Montage) or 100278 (Tekenkamer)
+            // - Travel hours: 100269 (Montage) or 100279 (Tekenkamer)
+            // - Distance km: 100300 (Reiskilometers)
+            // - Travel costs: 100167 (Reis en verblijfskosten - 5569)
+            // - Other expenses: 100288 (Materiaal)
+
             var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
             if (transaction == null) await connection.OpenAsync();
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+            
+            // Determine if this is Montage or Tekenkamer based on TAAK_GC_ID
+            bool isMontage = entry.TaakGcId == 100256; // TAAK code "30" = Montage
+            bool isTekenkamer = entry.TaakGcId == 100032; // TAAK code "40" = Tekenkamer
+            
+            // Set KOSTSRT for normal hours and travel hours based on task type
+            int normalHoursKostsrt = isMontage ? 100268 : (isTekenkamer ? 100278 : entry.KostsrtGcId ?? 100268);
+            int travelHoursKostsrt = isMontage ? 100269 : 100279; // 7011.02 MON or 7011.41 TK
+            
             const string sql = @"
                 INSERT INTO AT_URENBREG (
                     GC_ID, DOCUMENT_GC_ID, GC_REGEL_NR, DATUM, AANTAL, TAAK_GC_ID, WERK_GC_ID, MEDEW_GC_ID, GC_OMSCHRIJVING, KOSTSRT_GC_ID, BESTPAR_GC_ID
                 ) VALUES (
                     @GcId, @DocumentGcId, @GcRegelNr, @Datum, @Aantal, @TaakGcId, @WerkGcId, @MedewGcId, @GcOmschrijving, @KostsrtGcId, @BestparGcId
                 )";
-            await connection.ExecuteAsync(sql, new
+
+            var regelNr = entry.GcRegelNr;
+
+            // 1. Insert normal hours + evening/night hours (combined) under correct KOSTSRT
+            var totalRegularHours = entry.Aantal + entry.EveningNightHours;
+            if (totalRegularHours > 0)
             {
-                GcId = nextId,
-                entry.DocumentGcId,
-                entry.GcRegelNr,
-                entry.Datum,
-                entry.Aantal,
-                entry.TaakGcId,
-                entry.WerkGcId,
-                entry.MedewGcId,
-                entry.GcOmschrijving,
-                entry.KostsrtGcId,
-                entry.BestparGcId
-            }, transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                await connection.ExecuteAsync(sql, new
+                {
+                    GcId = nextId,
+                    entry.DocumentGcId,
+                    GcRegelNr = regelNr++,
+                    entry.Datum,
+                    Aantal = totalRegularHours,
+                    entry.TaakGcId,
+                    entry.WerkGcId,
+                    entry.MedewGcId,
+                    entry.GcOmschrijving,
+                    KostsrtGcId = normalHoursKostsrt,
+                    entry.BestparGcId
+                }, transaction: transaction);
+            }
+
+            // 2. Insert travel hours if > 0 under correct KOSTSRT (Montage or Tekenkamer reisuren)
+            if (entry.TravelHours > 0)
+            {
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                await connection.ExecuteAsync(sql, new
+                {
+                    GcId = nextId,
+                    entry.DocumentGcId,
+                    GcRegelNr = regelNr++,
+                    entry.Datum,
+                    Aantal = entry.TravelHours,
+                    entry.TaakGcId,
+                    entry.WerkGcId,
+                    entry.MedewGcId,
+                    GcOmschrijving = "Reisuren",
+                    KostsrtGcId = travelHoursKostsrt,
+                    entry.BestparGcId
+                }, transaction: transaction);
+            }
+
+            // 3. Insert distance km if > 0 under KOSTSRT 100300 (Reiskilometers)
+            if (entry.DistanceKm > 0)
+            {
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                await connection.ExecuteAsync(sql, new
+                {
+                    GcId = nextId,
+                    entry.DocumentGcId,
+                    GcRegelNr = regelNr++,
+                    entry.Datum,
+                    Aantal = entry.DistanceKm,
+                    entry.TaakGcId,
+                    entry.WerkGcId,
+                    entry.MedewGcId,
+                    GcOmschrijving = $"{entry.DistanceKm} km",
+                    KostsrtGcId = 100300, // 7011.03 Reiskilometers
+                    entry.BestparGcId
+                }, transaction: transaction);
+            }
+
+            // 4. Insert travel costs if > 0 under KOSTSRT 100167 (5569 - Reis en verblijfskosten)
+            if (entry.TravelCosts > 0)
+            {
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                await connection.ExecuteAsync(sql, new
+                {
+                    GcId = nextId,
+                    entry.DocumentGcId,
+                    GcRegelNr = regelNr++,
+                    entry.Datum,
+                    Aantal = entry.TravelCosts,
+                    entry.TaakGcId,
+                    entry.WerkGcId,
+                    entry.MedewGcId,
+                    GcOmschrijving = $"Reiskosten €{entry.TravelCosts:F2}",
+                    KostsrtGcId = 100167, // 5569 Reis en verblijfskosten (D)
+                    entry.BestparGcId
+                }, transaction: transaction);
+            }
+
+            // 5. Insert other expenses if > 0 under KOSTSRT 100288 (Materiaal)
+            if (entry.OtherExpenses > 0)
+            {
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                await connection.ExecuteAsync(sql, new
+                {
+                    GcId = nextId,
+                    entry.DocumentGcId,
+                    GcRegelNr = regelNr++,
+                    entry.Datum,
+                    Aantal = entry.OtherExpenses,
+                    entry.TaakGcId,
+                    entry.WerkGcId,
+                    entry.MedewGcId,
+                    GcOmschrijving = $"Onkosten €{entry.OtherExpenses:F2}",
+                    KostsrtGcId = 100288, // M - Materiaal
+                    entry.BestparGcId
+                }, transaction: transaction);
+            }
+
             if (transaction == null) connection.Close();
         }
 

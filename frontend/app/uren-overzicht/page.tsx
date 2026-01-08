@@ -24,6 +24,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { getEnrichedTimeEntries } from "@/lib/api";
+import { getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
@@ -91,13 +92,42 @@ export default function UrenOverzichtPage() {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
-      const fromDate = from || "2018-01-01";
-      const toDate = to || dayjs().format("YYYY-MM-DD");
-      console.log('🔍 [loadEntries] Fetching from:', fromDate, 'to:', toDate);
-      const data = await getEnrichedTimeEntries(fromDate, toDate);
-      const userEntries = data.filter((entry: any) => entry.userId === userId);
-      console.log('🔍 [loadEntries] Loaded entries:', userEntries.length);
-      setEntries(userEntries);
+      
+      // Load ALL workflow entries (DRAFT, SUBMITTED, APPROVED, REJECTED)
+      const urenperGcId = 100426; // Current period
+      console.log('🔍 [loadEntries] Loading workflow entries for period:', urenperGcId);
+      
+      const [drafts, submitted, rejected] = await Promise.all([
+        getDrafts(urenperGcId),
+        getSubmitted(urenperGcId),
+        getRejected(urenperGcId)
+      ]);
+      
+      const allEntries = [...drafts, ...submitted, ...rejected];
+      console.log('🔍 [loadEntries] Loaded entries:', allEntries.length);
+      
+      // Transform to expected format
+      const transformed = allEntries.map((e: any) => ({
+        id: e.id,
+        userId: userId,
+        date: e.datum.split('T')[0],
+        projectId: e.werkGcId || 0,
+        projectCode: e.werkCode || '',
+        projectName: e.werkDescription || `Project ${e.werkGcId}`,
+        taskName: e.taakDescription || '',
+        hours: e.aantal,
+        km: 0,
+        expenses: 0,
+        breakMinutes: 0,
+        notes: e.omschrijving || '',
+        status: e.status,
+        startTime: e.datum,
+        endTime: e.datum,
+        companyName: '',
+        projectGroupName: '',
+      }));
+      
+      setEntries(transformed);
     } catch (error) {
       console.error("Error in loadEntries:", error);
       showToast("Fout bij laden uren", "error");

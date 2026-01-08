@@ -22,31 +22,46 @@ namespace ClockwiseProject.Backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
+                // First check if table exists
+                var tableExists = await connection.ExecuteScalarAsync<bool>(@"
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'leave_requests_workflow'
+                    )");
+
+                if (!tableExists)
+                {
+                    _logger.LogWarning("Table leave_requests_workflow does not exist, returning empty list");
+                    return new List<VacationRequest>();
+                }
+
                 var sql = @"
                     SELECT
                         id AS Id,
-                        medew_gc_id AS UserId,
+                        user_id AS UserId,
                         start_date AS StartDate,
                         end_date AS EndDate,
-                        total_hours AS Hours,
-                        description AS Reason,
-                        status AS Status,
+                        'vacation' AS VacationType,
+                        ROUND(total_hours / 8.0, 1) AS TotalDays,
+                        COALESCE(description, '') AS Notes,
+                        COALESCE(status, 'DRAFT') AS Status,
                         created_at AS CreatedAt,
                         submitted_at AS SubmittedAt,
                         reviewed_at AS ReviewedAt,
                         reviewed_by AS ReviewedBy,
-                        rejection_reason AS ManagerComment
+                        COALESCE(rejection_reason, '') AS RejectionReason,
+                        updated_at AS UpdatedAt
                     FROM leave_requests_workflow
                     ORDER BY created_at DESC";
 
                 var result = await connection.QueryAsync<VacationRequest>(sql);
-                _logger.LogInformation("Found {Count} leave requests", result.Count());
+                _logger.LogInformation("Found {Count} vacation requests", result.Count());
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting all leave requests");
-                throw;
+                _logger.LogError(ex, "Error getting all vacation requests");
+                return new List<VacationRequest>(); // Return empty list instead of throwing
             }
         }
 
@@ -56,32 +71,47 @@ namespace ClockwiseProject.Backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
+                // First check if table exists
+                var tableExists = await connection.ExecuteScalarAsync<bool>(@"
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'leave_requests_workflow'
+                    )");
+
+                if (!tableExists)
+                {
+                    _logger.LogWarning("Table leave_requests_workflow does not exist, returning empty list");
+                    return new List<VacationRequest>();
+                }
+
                 var sql = @"
                     SELECT
                         id AS Id,
-                        medew_gc_id AS UserId,
+                        user_id AS UserId,
                         start_date AS StartDate,
                         end_date AS EndDate,
-                        total_hours AS Hours,
-                        description AS Reason,
-                        status AS Status,
+                        'vacation' AS VacationType,
+                        ROUND(total_hours / 8.0, 1) AS TotalDays,
+                        COALESCE(description, '') AS Notes,
+                        COALESCE(status, 'DRAFT') AS Status,
                         created_at AS CreatedAt,
                         submitted_at AS SubmittedAt,
                         reviewed_at AS ReviewedAt,
                         reviewed_by AS ReviewedBy,
-                        rejection_reason AS ManagerComment
+                        COALESCE(rejection_reason, '') AS RejectionReason,
+                        updated_at AS UpdatedAt
                     FROM leave_requests_workflow
-                    WHERE medew_gc_id = @UserId
+                    WHERE user_id = @UserId
                     ORDER BY created_at DESC";
 
                 var result = await connection.QueryAsync<VacationRequest>(sql, new { UserId = userId });
-                _logger.LogInformation("Found {Count} leave requests for user {UserId}", result.Count(), userId);
+                _logger.LogInformation("Found {Count} vacation requests for user {UserId}", result.Count(), userId);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting leave requests for user {UserId}", userId);
-                throw;
+                _logger.LogError(ex, "Error getting vacation requests for user {UserId}", userId);
+                return new List<VacationRequest>(); // Return empty list instead of throwing
             }
         }
 
@@ -94,17 +124,19 @@ namespace ClockwiseProject.Backend.Repositories
                 var sql = @"
                     SELECT
                         id AS Id,
-                        medew_gc_id AS UserId,
+                        user_id AS UserId,
                         start_date AS StartDate,
                         end_date AS EndDate,
-                        total_hours AS Hours,
-                        description AS Reason,
-                        status AS Status,
+                        'vacation' AS VacationType,
+                        ROUND(total_hours / 8.0, 1) AS TotalDays,
+                        COALESCE(description, '') AS Notes,
+                        COALESCE(status, 'DRAFT') AS Status,
                         created_at AS CreatedAt,
                         submitted_at AS SubmittedAt,
                         reviewed_at AS ReviewedAt,
                         reviewed_by AS ReviewedBy,
-                        rejection_reason AS ManagerComment
+                        COALESCE(rejection_reason, '') AS RejectionReason,
+                        updated_at AS UpdatedAt
                     FROM leave_requests_workflow
                     WHERE id = @Id";
 
@@ -112,7 +144,7 @@ namespace ClockwiseProject.Backend.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting leave request {Id}", id);
+                _logger.LogError(ex, "Error getting vacation request {Id}", id);
                 throw;
             }
         }
@@ -126,25 +158,23 @@ namespace ClockwiseProject.Backend.Repositories
                 var sql = @"
                     INSERT INTO leave_requests_workflow (
                         medew_gc_id,
+                        user_id,
                         taak_gc_id,
                         start_date,
                         end_date,
-                        hours_per_day,
                         total_hours,
                         description,
                         status,
-                        created_at,
-                        updated_at
+                        submitted_at
                     ) VALUES (
+                        (SELECT medew_gc_id FROM users WHERE id = @UserId),
                         @UserId,
-                        100088,  -- Default leave type (Z03 - Vakantie)
+                        100256,
                         @StartDate,
                         @EndDate,
-                        8.0,
-                        @Hours,
-                        @Reason,
+                        @TotalDays * 8.0,
+                        @Notes,
                         'SUBMITTED',
-                        NOW(),
                         NOW()
                     )
                     RETURNING id";
@@ -154,15 +184,16 @@ namespace ClockwiseProject.Backend.Repositories
                     vacationRequest.UserId,
                     vacationRequest.StartDate,
                     vacationRequest.EndDate,
-                    vacationRequest.Hours,
-                    vacationRequest.Reason
+                    vacationRequest.TotalDays,
+                    vacationRequest.Notes
                 });
 
                 vacationRequest.Id = id;
                 vacationRequest.Status = "SUBMITTED";
                 vacationRequest.CreatedAt = DateTime.Now;
+                vacationRequest.SubmittedAt = DateTime.Now;
 
-                _logger.LogInformation("Created leave request {Id} for user {UserId}", id, vacationRequest.UserId);
+                _logger.LogInformation("Created vacation request {Id} for user {UserId}", id, vacationRequest.UserId);
             }
             catch (Exception ex)
             {
@@ -183,8 +214,7 @@ namespace ClockwiseProject.Backend.Repositories
                         status = @Status,
                         reviewed_at = @ReviewedAt,
                         reviewed_by = @ReviewedBy,
-                        rejection_reason = @ManagerComment,
-                        updated_at = NOW()
+                        rejection_reason = @RejectionReason
                     WHERE id = @Id";
 
                 await connection.ExecuteAsync(sql, new
@@ -193,14 +223,14 @@ namespace ClockwiseProject.Backend.Repositories
                     vacationRequest.Status,
                     vacationRequest.ReviewedAt,
                     vacationRequest.ReviewedBy,
-                    vacationRequest.ManagerComment
+                    vacationRequest.RejectionReason
                 });
 
-                _logger.LogInformation("Updated leave request {Id} to status {Status}", vacationRequest.Id, vacationRequest.Status);
+                _logger.LogInformation("Updated vacation request {Id} to status {Status}", vacationRequest.Id, vacationRequest.Status);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating leave request {Id}", vacationRequest.Id);
+                _logger.LogError(ex, "Error updating vacation request {Id}", vacationRequest.Id);
                 throw;
             }
         }
@@ -214,11 +244,11 @@ namespace ClockwiseProject.Backend.Repositories
                 var sql = "DELETE FROM leave_requests_workflow WHERE id = @Id";
                 await connection.ExecuteAsync(sql, new { Id = id });
 
-                _logger.LogInformation("Deleted leave request {Id}", id);
+                _logger.LogInformation("Deleted vacation request {Id}", id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting leave request {Id}", id);
+                _logger.LogError(ex, "Error deleting vacation request {Id}", id);
                 throw;
             }
         }

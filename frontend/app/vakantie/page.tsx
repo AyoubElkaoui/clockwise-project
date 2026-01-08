@@ -40,9 +40,13 @@ interface VacationRequest {
   userId: number;
   startDate: string;
   endDate: string;
-  hours: number;
-  reason: string;
+  vacationType: string;
+  totalDays: number;
+  notes: string;
   status: string;
+  // Backwards compatibility
+  hours?: number;
+  reason?: string;
 }
 
 export default function VakantiePage() {
@@ -54,8 +58,8 @@ export default function VakantiePage() {
   const [formData, setFormData] = useState({
     startDate: "",
     endDate: "",
-    hours: 8,
-    reason: "",
+    vacationType: "Z03", // Default vakantie type
+    notes: "",
   });
 
   useEffect(() => {
@@ -126,8 +130,6 @@ export default function VakantiePage() {
         }
       }
 
-      const totalHours = workingDays * formData.hours;
-
       const response = await fetch(
         `${API_URL}/vacation`,
         {
@@ -141,8 +143,9 @@ export default function VakantiePage() {
             userId: userId,
             startDate: formData.startDate,
             endDate: formData.endDate,
-            hours: totalHours,
-            reason: formData.reason,
+            vacationType: formData.vacationType,
+            totalDays: workingDays,
+            notes: formData.notes,
           }),
         },
       );
@@ -153,7 +156,7 @@ export default function VakantiePage() {
 
       showToast("Vakantie aanvraag ingediend!", "success");
       setShowModal(false);
-      setFormData({ startDate: "", endDate: "", hours: 8, reason: "" });
+      setFormData({ startDate: "", endDate: "", vacationType: "Z03", notes: "" });
       loadVacationRequests();
     } catch (error) {
       console.error("Error creating vacation request:", error);
@@ -166,10 +169,10 @@ export default function VakantiePage() {
     const pending = requests.filter((r) => r.status === "SUBMITTED" || r.status === "pending");
     const rejected = requests.filter((r) => r.status === "REJECTED" || r.status === "rejected");
 
-    const totalDays = requests.reduce((sum, r) => sum + r.hours / 8, 0);
-    const approvedDays = approved.reduce((sum, r) => sum + r.hours / 8, 0);
-    const pendingDays = pending.reduce((sum, r) => sum + r.hours / 8, 0);
-    const rejectedDays = rejected.reduce((sum, r) => sum + r.hours / 8, 0);
+    const totalDays = requests.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
+    const approvedDays = approved.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
+    const pendingDays = pending.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
+    const rejectedDays = rejected.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
     const availableDays = 25 - approvedDays; // Aangenomen 25 dagen per jaar
 
     return {

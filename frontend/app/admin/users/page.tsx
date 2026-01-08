@@ -519,7 +519,7 @@ export default function AdminUsersPage() {
                         />
 
                         {/* Avatar */}
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                        <div className="w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white font-semibold">
                           {user.firstName?.charAt(0)}
                           {user.lastName?.charAt(0)}
                         </div>

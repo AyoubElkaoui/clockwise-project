@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
+using ClockwiseProject.Backend.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Controllers
@@ -13,11 +14,16 @@ namespace ClockwiseProject.Backend.Controllers
     public class VacationController : ControllerBase
     {
         private readonly VacationService _vacationService;
+        private readonly IFirebirdDataRepository _firebirdRepo;
         private readonly ILogger<VacationController> _logger;
 
-        public VacationController(VacationService vacationService, ILogger<VacationController> logger)
+        public VacationController(
+            VacationService vacationService, 
+            IFirebirdDataRepository firebirdRepo,
+            ILogger<VacationController> logger)
         {
             _vacationService = vacationService;
+            _firebirdRepo = firebirdRepo;
             _logger = logger;
         }
 
@@ -48,6 +54,24 @@ namespace ClockwiseProject.Backend.Controllers
             {
                 _logger.LogError(ex, "Error fetching vacation requests for user {UserId}", medewGcId.Value);
                 return StatusCode(500, new { error = "Failed to fetch vacation requests", details = ex.Message });
+            }
+        }
+
+        [HttpGet("types")]
+        public async Task<ActionResult<IEnumerable<TaskModel>>> GetVacationTypes()
+        {
+            _logger.LogInformation("GetVacationTypes called");
+            
+            try
+            {
+                var types = await _firebirdRepo.GetVacationTasksAsync();
+                _logger.LogInformation("Found {Count} vacation types", types.Count());
+                return Ok(types);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vacation types");
+                return StatusCode(500, new { error = "Failed to fetch vacation types", details = ex.Message });
             }
         }
 

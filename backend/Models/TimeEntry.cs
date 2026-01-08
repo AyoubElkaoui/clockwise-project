@@ -13,5 +13,12 @@ namespace ClockwiseProject.Backend.Models
         public string? GcOmschrijving { get; set; }
         public decimal Aantal { get; set; }
         public DateTime Datum { get; set; }
+
+        // New fields for travel and expenses
+        public decimal EveningNightHours { get; set; } = 0;
+        public decimal TravelHours { get; set; } = 0;
+        public decimal DistanceKm { get; set; } = 0;
+        public decimal TravelCosts { get; set; } = 0;
+        public decimal OtherExpenses { get; set; } = 0;
     }
 }

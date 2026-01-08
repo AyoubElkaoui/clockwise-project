@@ -12,22 +12,31 @@ namespace ClockwiseProject.Domain
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
-        // Bereken het aantal verlofuren (bijvoorbeeld: werkuren per dag * aantal werkdagen)
-        public double Hours { get; set; }
+        // Vakantie type code (Z03, Z10, etc from AT_TAAK)
+        public string VacationType { get; set; } = "Z03"; // Default: Vakantie
+        
+        // Aantal dagen (niet uren)
+        public decimal TotalDays { get; set; }
 
-        // Reden voor de vakantie (optioneel)
-        public string? Reason { get; set; }
+        // Notities/reden voor de vakantie (optioneel)
+        public string? Notes { get; set; }
 
-        // Status: "DRAFT", "SUBMITTED", "APPROVED", "REJECTED", "CANCELLED"
-        public string Status { get; set; } = "SUBMITTED";
+        // Status: "pending", "approved", "rejected"
+        public string Status { get; set; } = "pending";
 
         // Manager feedback bij goedkeuren/afkeuren
-        public string? ManagerComment { get; set; }
+        public string? RejectionReason { get; set; }
         public DateTime? ReviewedAt { get; set; }
         public int? ReviewedBy { get; set; }
         
         // Timestamps
         public DateTime CreatedAt { get; set; }
         public DateTime? SubmittedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        
+        // Backwards compatibility
+        public double Hours => (double)TotalDays * 8; // Voor oude code die Hours verwacht
+        public string? Reason => Notes; // Voor oude code die Reason verwacht
+        public string? ManagerComment => RejectionReason;
     }
 }

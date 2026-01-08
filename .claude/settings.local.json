@@ -26,7 +26,16 @@
       "Bash(ls:*)",
       "Bash(del \"backend\\\\Repositories\\\\PostgresWorkflowRepository.cs\")",
       "Bash(python -m json.tool:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "Bash(psql:*)",
+      "Bash(dotnet script:*)",
+      "Bash(del \"c:\\\\Users\\\\Ayoub\\\\Desktop\\\\clockwise-project\\\\backend\\\\Scripts\\\\RunMigration006.cs\")",
+      "Bash(where:*)",
+      "Bash(dotnet tool list:*)",
+      "Bash(csc:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File run-migration-006.ps1:*)",
+      "Bash(del RunMigration.cs)",
+      "Bash(del ControllersMigrationController.cs)"
     ]
   }
 }

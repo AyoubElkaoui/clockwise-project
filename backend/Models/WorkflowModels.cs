@@ -50,6 +50,21 @@ public class TimeEntryWorkflow
     [Column("omschrijving")]
     public string? Omschrijving { get; set; }
 
+    [Column("evening_night_hours")]
+    public decimal EveningNightHours { get; set; } = 0;
+
+    [Column("travel_hours")]
+    public decimal TravelHours { get; set; } = 0;
+
+    [Column("distance_km")]
+    public decimal DistanceKm { get; set; } = 0;
+
+    [Column("travel_costs")]
+    public decimal TravelCosts { get; set; } = 0;
+
+    [Column("other_expenses")]
+    public decimal OtherExpenses { get; set; } = 0;
+
     [Required]
     [Column("status")]
     public string Status { get; set; } = "DRAFT";
@@ -99,6 +114,12 @@ public class SaveDraftRequest
     public decimal Aantal { get; set; }
 
     public string? Omschrijving { get; set; }
+
+    public decimal EveningNightHours { get; set; } = 0;
+    public decimal TravelHours { get; set; } = 0;
+    public decimal DistanceKm { get; set; } = 0;
+    public decimal TravelCosts { get; set; } = 0;
+    public decimal OtherExpenses { get; set; } = 0;
 }
 
 /// <summary>
@@ -142,6 +163,11 @@ public class WorkflowEntryDto
     public DateTime Datum { get; set; }
     public decimal Aantal { get; set; }
     public string? Omschrijving { get; set; }
+    public decimal EveningNightHours { get; set; } = 0;
+    public decimal TravelHours { get; set; } = 0;
+    public decimal DistanceKm { get; set; } = 0;
+    public decimal TravelCosts { get; set; } = 0;
+    public decimal OtherExpenses { get; set; } = 0;
     public string Status { get; set; } = "DRAFT";
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

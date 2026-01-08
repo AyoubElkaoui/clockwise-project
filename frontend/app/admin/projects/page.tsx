@@ -459,7 +459,7 @@ export default function AdminProjectsPage() {
                         />
 
                         {/* Project Logo/Avatar */}
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                        <div className="w-12 h-12 rounded-lg bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white font-semibold">
                           {(project.name || "P").charAt(0).toUpperCase()}
                         </div>
 

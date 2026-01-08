@@ -117,7 +117,12 @@ public class WorkflowService
             WerkGcId = request.WerkGcId,
             Datum = request.Datum,
             Aantal = request.Aantal,
-            Omschrijving = request.Omschrijving
+            Omschrijving = request.Omschrijving,
+            EveningNightHours = request.EveningNightHours,
+            TravelHours = request.TravelHours,
+            DistanceKm = request.DistanceKm,
+            TravelCosts = request.TravelCosts,
+            OtherExpenses = request.OtherExpenses
         };
 
         var saved = await _workflowRepo.SaveDraftAsync(entry);
@@ -528,7 +533,12 @@ public class WorkflowService
                 GcRegelNr = regelNr,
                 GcOmschrijving = entry.Omschrijving,
                 Aantal = entry.Aantal,
-                Datum = entry.Datum
+                Datum = entry.Datum,
+                EveningNightHours = entry.EveningNightHours,
+                TravelHours = entry.TravelHours,
+                DistanceKm = entry.DistanceKm,
+                TravelCosts = entry.TravelCosts,
+                OtherExpenses = entry.OtherExpenses
             };
 
             await _firebirdRepo.InsertTimeEntryAsync(timeEntry, transaction);
@@ -563,6 +573,11 @@ public class WorkflowService
             Datum = entry.Datum,
             Aantal = entry.Aantal,
             Omschrijving = entry.Omschrijving,
+            EveningNightHours = entry.EveningNightHours,
+            TravelHours = entry.TravelHours,
+            DistanceKm = entry.DistanceKm,
+            TravelCosts = entry.TravelCosts,
+            OtherExpenses = entry.OtherExpenses,
             Status = entry.Status,
             CreatedAt = entry.CreatedAt,
             UpdatedAt = entry.UpdatedAt,

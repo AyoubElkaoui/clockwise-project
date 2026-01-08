@@ -23,6 +23,11 @@ export interface SaveDraftRequest {
   datum: string;
   aantal: number;
   omschrijving: string;
+  eveningNightHours?: number;
+  travelHours?: number;
+  distanceKm?: number;
+  travelCosts?: number;
+  otherExpenses?: number;
 }
 
 export interface WorkflowEntry {
@@ -34,6 +39,11 @@ export interface WorkflowEntry {
   datum: string;
   aantal: number;
   omschrijving: string;
+  eveningNightHours?: number;
+  travelHours?: number;
+  distanceKm?: number;
+  travelCosts?: number;
+  otherExpenses?: number;
   status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
   createdAt: string;
   updatedAt: string;

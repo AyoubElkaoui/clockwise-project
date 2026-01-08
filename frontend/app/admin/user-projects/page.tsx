@@ -410,7 +410,7 @@ export default function AdminUserProjectsPage() {
                 {/* Tabel met alle user-project koppelingen */}
                 <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                     <div className="card-body p-0">
-                        <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
+                        <div className="bg-slate-50 dark:bg-slate-800 p-6 border-b border-slate-200 dark:border-slate-700">
                             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                                 <CheckCircleIcon className="w-6 h-6 text-elmar-primary" />
                                 Bestaande Toewijzingen

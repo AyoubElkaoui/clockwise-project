@@ -28,11 +28,7 @@ CREATE TABLE IF NOT EXISTS time_entries_workflow (
     rejection_reason TEXT,
 
     -- Link to Firebird after approval
-    firebird_gc_id INTEGER,
-
-    -- Prevent duplicates for same day/task/project in DRAFT/SUBMITTED state
-    CONSTRAINT unique_draft_entry UNIQUE (medew_gc_id, datum, taak_gc_id, werk_gc_id, urenper_gc_id)
-        WHERE (status IN ('DRAFT', 'SUBMITTED'))
+    firebird_gc_id INTEGER
 );
 
 -- Indexes for performance
@@ -42,6 +38,11 @@ CREATE INDEX IF NOT EXISTS idx_workflow_datum ON time_entries_workflow(datum);
 CREATE INDEX IF NOT EXISTS idx_workflow_urenper ON time_entries_workflow(urenper_gc_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_submitted ON time_entries_workflow(medew_gc_id, status)
     WHERE status = 'SUBMITTED';
+
+-- Partial unique index: prevent duplicates for same day/task/project in DRAFT/SUBMITTED state
+CREATE UNIQUE INDEX IF NOT EXISTS unique_draft_entry 
+    ON time_entries_workflow (medew_gc_id, datum, taak_gc_id, werk_gc_id, urenper_gc_id)
+    WHERE (status IN ('DRAFT', 'SUBMITTED'));
 
 -- Auto-update timestamp trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()

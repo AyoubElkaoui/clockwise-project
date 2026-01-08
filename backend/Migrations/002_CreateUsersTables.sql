@@ -88,15 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_manager_assignments_manager ON manager_assignment
 CREATE INDEX IF NOT EXISTS idx_manager_assignments_employee ON manager_assignments(employee_id);
 CREATE INDEX IF NOT EXISTS idx_manager_assignments_active ON manager_assignments(active_from, active_until);
 
--- Auto-update timestamp trigger
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- Auto-update timestamp triggers (function created in migration 001)
 CREATE TRIGGER update_users_updated_at
     BEFORE UPDATE ON users
     FOR EACH ROW

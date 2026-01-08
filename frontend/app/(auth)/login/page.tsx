@@ -81,26 +81,20 @@ export default function LoginPage(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400/20 dark:bg-indigo-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-400/10 dark:bg-purple-600/5 rounded-full blur-3xl"></div>
-      </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
 
-      <div className="w-full max-w-md relative z-10">
-        <Card className="backdrop-blur-sm bg-white/90 dark:bg-slate-800/90 shadow-2xl border-white/20 dark:border-slate-700/50">
+      <div className="w-full max-w-md">
+        <Card className="bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700">
           {/* Header Section */}
           <CardHeader className="text-center pb-8 pt-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-3xl p-6 shadow-xl">
+              <div className="bg-blue-600 dark:bg-blue-700 rounded-2xl p-6 shadow-lg">
                 <Image
                   src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
                   alt="TIMR Logo"
                   width={80}
                   height={80}
-                  className="w-20 h-20 rounded-xl object-contain drop-shadow-lg"
+                  className="w-20 h-20 rounded-xl object-contain"
                 />
               </div>
             </div>
@@ -110,17 +104,38 @@ export default function LoginPage(): JSX.Element {
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 title={theme === "dark" ? "Licht thema" : "Donker thema"}
               >
-                {theme === "dark" ? "☀️" : "🌙"}
+                {theme === "dark" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                  </svg>
+                )}
               </button>
               <button
-                onClick={toggleLanguage}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors font-semibold text-sm"
-                title="Taal wijzigen"
+                onClick={() => i18n.changeLanguage('en')}
+                className={`px-3 py-2 rounded-lg transition-colors font-semibold text-sm ${
+                  i18n.language === 'en' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                }`}
               >
-                {i18n.language === "nl" ? "EN" : "NL"}
+                EN
+              </button>
+              <button
+                onClick={() => i18n.changeLanguage('nl')}
+                className={`px-3 py-2 rounded-lg transition-colors font-semibold text-sm ${
+                  i18n.language === 'nl' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                NL
               </button>
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2">
+            <CardTitle className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
               {t("login.welcomeBack")}
             </CardTitle>
             <p className="text-slate-600 dark:text-slate-400">
@@ -202,7 +217,7 @@ export default function LoginPage(): JSX.Element {
             <Button
               onClick={handleLogin}
               disabled={isLoading || !username.trim() || !password.trim()}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
               size="lg"
               isLoading={isLoading}
             >
@@ -226,7 +241,7 @@ export default function LoginPage(): JSX.Element {
           </CardContent>
 
           {/* Footer */}
-          <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-800/50 px-6 py-4 text-center border-t border-slate-200 dark:border-slate-700 rounded-b-xl">
+          <div className="bg-slate-50 dark:bg-slate-800 px-6 py-4 text-center border-t border-slate-200 dark:border-slate-700 rounded-b-xl">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {t("login.copyright")}
             </p>

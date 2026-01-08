@@ -9,6 +9,30 @@ namespace backend.Repositories
         private readonly PostgreSQLConnectionFactory _connectionFactory;
         private readonly ILogger<PostgresWorkflowRepository> _logger;
 
+        // SELECT columns for all queries
+        private const string SelectColumns = @"
+            id AS Id,
+            medew_gc_id AS MedewGcId,
+            urenper_gc_id AS UrenperGcId,
+            taak_gc_id AS TaakGcId,
+            werk_gc_id AS WerkGcId,
+            datum AS Datum,
+            aantal AS Aantal,
+            omschrijving AS Omschrijving,
+            evening_night_hours AS EveningNightHours,
+            travel_hours AS TravelHours,
+            distance_km AS DistanceKm,
+            travel_costs AS TravelCosts,
+            other_expenses AS OtherExpenses,
+            status AS Status,
+            created_at AS CreatedAt,
+            updated_at AS UpdatedAt,
+            submitted_at AS SubmittedAt,
+            reviewed_at AS ReviewedAt,
+            reviewed_by AS ReviewedBy,
+            rejection_reason AS RejectionReason,
+            firebird_gc_id AS FirebirdGcId";
+
         public PostgresWorkflowRepository(
             PostgreSQLConnectionFactory connectionFactory,
             ILogger<PostgresWorkflowRepository> logger)
@@ -28,10 +52,16 @@ namespace backend.Repositories
                     // Insert new
                     var sql = @"
                         INSERT INTO time_entries_workflow
-                            (medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving, status, created_at, updated_at)
+                            (medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving,
+                             evening_night_hours, travel_hours, distance_km, travel_costs, other_expenses,
+                             status, created_at, updated_at)
                         VALUES
-                            (@MedewGcId, @UrenperGcId, @TaakGcId, @WerkGcId, @Datum, @Aantal, @Omschrijving, 'DRAFT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                        RETURNING id, medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving, status, created_at, updated_at, submitted_at, reviewed_at, reviewed_by, rejection_reason, firebird_gc_id";
+                            (@MedewGcId, @UrenperGcId, @TaakGcId, @WerkGcId, @Datum, @Aantal, @Omschrijving,
+                             @EveningNightHours, @TravelHours, @DistanceKm, @TravelCosts, @OtherExpenses,
+                             'DRAFT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                        RETURNING id, medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving,
+                                  evening_night_hours, travel_hours, distance_km, travel_costs, other_expenses,
+                                  status, created_at, updated_at, submitted_at, reviewed_at, reviewed_by, rejection_reason, firebird_gc_id";
 
                     return await connection.QuerySingleAsync<TimeEntryWorkflow>(sql, entry);
                 }
@@ -45,9 +75,16 @@ namespace backend.Repositories
                             datum = @Datum,
                             aantal = @Aantal,
                             omschrijving = @Omschrijving,
+                            evening_night_hours = @EveningNightHours,
+                            travel_hours = @TravelHours,
+                            distance_km = @DistanceKm,
+                            travel_costs = @TravelCosts,
+                            other_expenses = @OtherExpenses,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = @Id
-                        RETURNING id, medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving, status, created_at, updated_at, submitted_at, reviewed_at, reviewed_by, rejection_reason, firebird_gc_id";
+                        RETURNING id, medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving,
+                                  evening_night_hours, travel_hours, distance_km, travel_costs, other_expenses,
+                                  status, created_at, updated_at, submitted_at, reviewed_at, reviewed_by, rejection_reason, firebird_gc_id";
 
                     return await connection.QuerySingleAsync<TimeEntryWorkflow>(sql, entry);
                 }
@@ -75,24 +112,8 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = @"
-                    SELECT
-                        id AS Id,
-                        medew_gc_id AS MedewGcId,
-                        urenper_gc_id AS UrenperGcId,
-                        taak_gc_id AS TaakGcId,
-                        werk_gc_id AS WerkGcId,
-                        datum AS Datum,
-                        aantal AS Aantal,
-                        omschrijving AS Omschrijving,
-                        status AS Status,
-                        created_at AS CreatedAt,
-                        updated_at AS UpdatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        rejection_reason AS RejectionReason,
-                        firebird_gc_id AS FirebirdGcId
+                var sql = $@"
+                    SELECT {SelectColumns}
                     FROM time_entries_workflow
                     WHERE urenper_gc_id = @UrenperGcId
                       AND status = 'SUBMITTED'
@@ -114,24 +135,8 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = @"
-                    SELECT
-                        id AS Id,
-                        medew_gc_id AS MedewGcId,
-                        urenper_gc_id AS UrenperGcId,
-                        taak_gc_id AS TaakGcId,
-                        werk_gc_id AS WerkGcId,
-                        datum AS Datum,
-                        aantal AS Aantal,
-                        omschrijving AS Omschrijving,
-                        status AS Status,
-                        created_at AS CreatedAt,
-                        updated_at AS UpdatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        rejection_reason AS RejectionReason,
-                        firebird_gc_id AS FirebirdGcId
+                var sql = $@"
+                    SELECT {SelectColumns}
                     FROM time_entries_workflow
                     WHERE urenper_gc_id = @UrenperGcId";
 
@@ -143,7 +148,7 @@ namespace backend.Repositories
                 sql += " ORDER BY datum DESC, created_at DESC";
 
                 var result = await connection.QueryAsync<TimeEntryWorkflow>(
-                    sql, 
+                    sql,
                     new { UrenperGcId = urenperGcId, Status = status });
                 return result.ToList();
             }
@@ -170,24 +175,8 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = @"
-                    SELECT
-                        id AS Id,
-                        medew_gc_id AS MedewGcId,
-                        urenper_gc_id AS UrenperGcId,
-                        taak_gc_id AS TaakGcId,
-                        werk_gc_id AS WerkGcId,
-                        datum AS Datum,
-                        aantal AS Aantal,
-                        omschrijving AS Omschrijving,
-                        status AS Status,
-                        created_at AS CreatedAt,
-                        updated_at AS UpdatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        rejection_reason AS RejectionReason,
-                        firebird_gc_id AS FirebirdGcId
+                var sql = $@"
+                    SELECT {SelectColumns}
                     FROM time_entries_workflow
                     WHERE id = @Id";
 
@@ -206,24 +195,8 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = @"
-                    SELECT
-                        id AS Id,
-                        medew_gc_id AS MedewGcId,
-                        urenper_gc_id AS UrenperGcId,
-                        taak_gc_id AS TaakGcId,
-                        werk_gc_id AS WerkGcId,
-                        datum AS Datum,
-                        aantal AS Aantal,
-                        omschrijving AS Omschrijving,
-                        status AS Status,
-                        created_at AS CreatedAt,
-                        updated_at AS UpdatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        rejection_reason AS RejectionReason,
-                        firebird_gc_id AS FirebirdGcId
+                var sql = $@"
+                    SELECT {SelectColumns}
                     FROM time_entries_workflow
                     WHERE id = ANY(@Ids)";
 
@@ -243,24 +216,8 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = @"
-                    SELECT
-                        id AS Id,
-                        medew_gc_id AS MedewGcId,
-                        urenper_gc_id AS UrenperGcId,
-                        taak_gc_id AS TaakGcId,
-                        werk_gc_id AS WerkGcId,
-                        datum AS Datum,
-                        aantal AS Aantal,
-                        omschrijving AS Omschrijving,
-                        status AS Status,
-                        created_at AS CreatedAt,
-                        updated_at AS UpdatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        rejection_reason AS RejectionReason,
-                        firebird_gc_id AS FirebirdGcId
+                var sql = $@"
+                    SELECT {SelectColumns}
                     FROM time_entries_workflow
                     WHERE medew_gc_id = @MedewGcId
                       AND urenper_gc_id = @UrenperGcId
@@ -330,6 +287,11 @@ namespace backend.Repositories
                         datum = @Datum,
                         aantal = @Aantal,
                         omschrijving = @Omschrijving,
+                        evening_night_hours = @EveningNightHours,
+                        travel_hours = @TravelHours,
+                        distance_km = @DistanceKm,
+                        travel_costs = @TravelCosts,
+                        other_expenses = @OtherExpenses,
                         status = @Status,
                         submitted_at = @SubmittedAt,
                         reviewed_at = @ReviewedAt,
@@ -372,24 +334,8 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = @"
-                    SELECT
-                        id AS Id,
-                        medew_gc_id AS MedewGcId,
-                        urenper_gc_id AS UrenperGcId,
-                        taak_gc_id AS TaakGcId,
-                        werk_gc_id AS WerkGcId,
-                        datum AS Datum,
-                        aantal AS Aantal,
-                        omschrijving AS Omschrijving,
-                        status AS Status,
-                        created_at AS CreatedAt,
-                        updated_at AS UpdatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        rejection_reason AS RejectionReason,
-                        firebird_gc_id AS FirebirdGcId
+                var sql = $@"
+                    SELECT {SelectColumns}
                     FROM time_entries_workflow
                     WHERE medew_gc_id = @MedewGcId
                       AND urenper_gc_id = @UrenperGcId
