@@ -15,6 +15,11 @@ import {
   Calendar,
   Copy,
   Clipboard,
+  Plane,
+  Car,
+  Ticket,
+  Euro,
+  FileText,
 } from "lucide-react";
 import {
   getCompanies,
@@ -139,6 +144,7 @@ export default function TimeRegistrationPage() {
   } | null>(null);
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
+  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -419,6 +425,19 @@ export default function TimeRegistrationPage() {
         [field]: value,
       },
     }));
+  };
+
+  const toggleCellExpanded = (projectId: number, date: string) => {
+    const key = `${date}-${projectId}`;
+    setExpandedCells((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const isCellExpanded = (projectId: number, date: string) => {
+    const key = `${date}-${projectId}`;
+    return expandedCells[key] || false;
   };
 
   const getTotalDay = (date: string) =>
@@ -922,6 +941,7 @@ export default function TimeRegistrationPage() {
                                         (!isInCurrentMonth ? " opacity-30" : "")
                                       }
                                     >
+                                      {/* Kopie/Plak knoppen */}
                                       {!isDisabled && (
                                         <div className="flex gap-1 mb-1">
                                           <button
@@ -931,7 +951,7 @@ export default function TimeRegistrationPage() {
                                             className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                             title="Kopieer cel"
                                           >
-                                            Kopiëren
+                                            <Copy className="w-3 h-3 mx-auto" />
                                           </button>
                                           <button
                                             onClick={() =>
@@ -940,10 +960,12 @@ export default function TimeRegistrationPage() {
                                             className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                             title="Plak cel"
                                           >
-                                            Plakken
+                                            <Clipboard className="w-3 h-3 mx-auto" />
                                           </button>
                                         </div>
                                       )}
+
+                                      {/* Hoofd uren veld (altijd zichtbaar) */}
                                       <input
                                         type="number"
                                         step="0.5"
@@ -959,160 +981,135 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded-lg text-center font-semibold", entry.status)}
-                                        placeholder="Uren"
+                                        className={getInputClassName("w-full px-3 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
+                                        placeholder="0"
                                         title={
                                           isClosed
                                             ? "Gesloten dag - geen uren registratie mogelijk"
                                             : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
                                             : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : ""
+                                            : "Gewerkte uren"
                                         }
                                       />
-                                      <input
-                                        type="number"
-                                        step="0.5"
-                                        min="0"
-                                        max="24"
-                                        value={entry.eveningNightHours || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "eveningNightHours",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                        placeholder="Avond/nacht uren"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag"
-                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : "Avond/nacht uren - tellen mee voor contract uren"
-                                        }
-                                      />
-                                      <input
-                                        type="number"
-                                        step="0.5"
-                                        min="0"
-                                        max="24"
-                                        value={entry.travelHours || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "travelHours",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                        placeholder="Reisuren"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag"
-                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : "Reisuren (was W-W KM veld)"
-                                        }
-                                      />
-                                      <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        value={entry.distanceKm || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "distanceKm",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                        placeholder="Afstand (km)"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag"
-                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : "Afstand in kilometers"
-                                        }
-                                      />
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={entry.travelCosts || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "travelCosts",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                        placeholder="Reiskosten (€)"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag"
-                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : "Reiskosten (OV, taxi, parkeren, etc.)"
-                                        }
-                                      />
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={entry.otherExpenses || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "otherExpenses",
-                                            parseFloat(e.target.value) || 0,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                        placeholder="Onkosten (€)"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag"
-                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : "Onkosten (materiaal, maaltijden, overige uitgaven)"
-                                        }
-                                      />
-                                      <input
-                                        type="text"
-                                        value={entry.notes || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "notes",
-                                            e.target.value,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                        placeholder="Opmerking"
-                                        title={
-                                          isClosed
-                                            ? "Gesloten dag - geen uren registratie mogelijk"
-                                            : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                            : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                            : ""
-                                        }
-                                      />
+
+                                      {/* Snel overzicht (als er data is) */}
+                                      {(entry.travelHours || entry.distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes) && (
+                                        <div className="flex flex-wrap gap-1 text-xs">
+                                          {entry.travelHours > 0 && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1"><Plane className="w-3 h-3" />{entry.travelHours}u</span>}
+                                          {entry.distanceKm > 0 && <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1"><Car className="w-3 h-3" />{entry.distanceKm}km</span>}
+                                          {entry.travelCosts > 0 && <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded flex items-center gap-1"><Ticket className="w-3 h-3" />€{entry.travelCosts}</span>}
+                                          {entry.otherExpenses > 0 && <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded flex items-center gap-1"><Euro className="w-3 h-3" />€{entry.otherExpenses}</span>}
+                                          {entry.notes && <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded flex items-center gap-1"><FileText className="w-3 h-3" /></span>}
+                                        </div>
+                                      )}
+
+                                      {/* Details knop */}
+                                      {!isDisabled && (
+                                        <button
+                                          onClick={() => toggleCellExpanded(row.projectId, date)}
+                                          className="w-full mt-1 p-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1"
+                                        >
+                                          <ChevronDown className={`w-3 h-3 transition-transform ${isCellExpanded(row.projectId, date) ? 'rotate-180' : ''}`} />
+                                          {isCellExpanded(row.projectId, date) ? 'Minder' : 'Details'}
+                                        </button>
+                                      )}
+
+                                      {/* Uitklapbare details */}
+                                      {isCellExpanded(row.projectId, date) && (
+                                        <div className="space-y-1 pt-1 border-t border-slate-200 dark:border-slate-600">
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.travelHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "travelHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="Reisuren"
+                                            title="Reisuren"
+                                          />
+                                          <input
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            value={entry.distanceKm || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "distanceKm",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="Afstand (km)"
+                                            title="Afstand in kilometers"
+                                          />
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={entry.travelCosts || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "travelCosts",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="Reiskosten (€)"
+                                            title="Reiskosten (OV, taxi, parkeren)"
+                                          />
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={entry.otherExpenses || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "otherExpenses",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="Onkosten (€)"
+                                            title="Onkosten (materiaal, maaltijden)"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={entry.notes || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "notes",
+                                                e.target.value,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="Opmerking"
+                                            title="Notities"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Afkeur reden */}
                                       {entry.status === "REJECTED" && entry.rejectionReason && (
                                         <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
                                           <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
@@ -1268,6 +1265,7 @@ export default function TimeRegistrationPage() {
                                   key={`week-entry-${date}-${row.projectId}`}
                                   className={"space-y-1 p-2 rounded " + getEntryClassName(entry.status)}
                                 >
+                                  {/* Kopie/Plak knoppen */}
                                   {!isDisabled && (
                                     <div className="flex gap-1 mb-1">
                                       <button
@@ -1277,7 +1275,7 @@ export default function TimeRegistrationPage() {
                                         className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                         title="Kopieer cel"
                                       >
-                                        Kopiëren
+                                        <Copy className="w-3 h-3 mx-auto" />
                                       </button>
                                       <button
                                         onClick={() =>
@@ -1286,10 +1284,12 @@ export default function TimeRegistrationPage() {
                                         className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
                                         title="Plak cel"
                                       >
-                                        Plakken
+                                        <Clipboard className="w-3 h-3 mx-auto" />
                                       </button>
                                     </div>
                                   )}
+
+                                  {/* Hoofd uren veld (altijd zichtbaar) */}
                                   <input
                                     type="number"
                                     step="0.5"
@@ -1305,160 +1305,141 @@ export default function TimeRegistrationPage() {
                                       )
                                     }
                                     disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border rounded text-center", entry.status)}
-                                    placeholder="Uren"
+                                    className={getInputClassName("w-full px-3 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
+                                    placeholder="0"
                                     title={
                                       isClosed
                                         ? "Gesloten dag - geen uren registratie mogelijk"
                                         : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
                                         : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : ""
+                                        : "Gewerkte uren"
                                     }
                                   />
-                                  <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    max="24"
-                                    value={entry.eveningNightHours || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "eveningNightHours",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                    placeholder="Avond/nacht"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : "Avond/nacht uren - tellen mee voor contract uren"
-                                    }
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    max="24"
-                                    value={entry.travelHours || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "travelHours",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                    placeholder="Reisuren"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : "Reisuren (was W-W KM veld)"
-                                    }
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    value={entry.distanceKm || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "distanceKm",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                    placeholder="Afstand (km)"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : "Afstand in kilometers"
-                                    }
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={entry.travelCosts || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "travelCosts",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                    placeholder="Reiskosten (€)"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : "Reiskosten (OV, taxi, parkeren, etc.)"
-                                    }
-                                  />
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={entry.otherExpenses || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "otherExpenses",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                    placeholder="Onkosten (€)"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : "Onkosten (materiaal, maaltijden, overige uitgaven)"
-                                    }
-                                  />
-                                  <input
-                                    type="text"
-                                    value={entry.notes || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "notes",
-                                        e.target.value,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border rounded text-sm", entry.status)}
-                                    placeholder="Opmerking"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag - geen uren registratie mogelijk"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : ""
-                                    }
-                                  />
+
+                                  {/* Snel overzicht (als er data is) */}
+                                  {(entry.travelHours || entry.distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes) && (
+                                    <div className="flex flex-wrap gap-1 text-xs">
+                                      {entry.travelHours > 0 && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1"><Plane className="w-3 h-3" />{entry.travelHours}u</span>}
+                                      {entry.distanceKm > 0 && <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1"><Car className="w-3 h-3" />{entry.distanceKm}km</span>}
+                                      {entry.travelCosts > 0 && <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded flex items-center gap-1"><Ticket className="w-3 h-3" />€{entry.travelCosts}</span>}
+                                      {entry.otherExpenses > 0 && <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded flex items-center gap-1"><Euro className="w-3 h-3" />€{entry.otherExpenses}</span>}
+                                      {entry.notes && <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded flex items-center gap-1"><FileText className="w-3 h-3" /></span>}
+                                    </div>
+                                  )}
+
+                                  {/* Details knop */}
+                                  {!isDisabled && (
+                                    <button
+                                      onClick={() => toggleCellExpanded(row.projectId, date)}
+                                      className="w-full mt-1 p-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1"
+                                    >
+                                      <ChevronDown className={`w-3 h-3 transition-transform ${isCellExpanded(row.projectId, date) ? 'rotate-180' : ''}`} />
+                                      {isCellExpanded(row.projectId, date) ? 'Minder' : 'Details'}
+                                    </button>
+                                  )}
+
+                                  {/* Uitklapbare details */}
+                                  {isCellExpanded(row.projectId, date) && (
+                                    <div className="space-y-1 pt-1 border-t border-slate-200 dark:border-slate-600">
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={entry.travelHours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "travelHours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="Reisuren"
+                                        title="Reisuren"
+                                      />
+                                      <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        value={entry.distanceKm || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "distanceKm",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="Afstand (km)"
+                                        title="Afstand in kilometers"
+                                      />
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={entry.travelCosts || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "travelCosts",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="Reiskosten (€)"
+                                        title="Reiskosten (OV, taxi, parkeren)"
+                                      />
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={entry.otherExpenses || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "otherExpenses",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="Onkosten (€)"
+                                        title="Onkosten (materiaal, maaltijden)"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={entry.notes || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "notes",
+                                            e.target.value,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="Opmerking"
+                                        title="Notities"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* Afkeur reden */}
+                                  {entry.status === "REJECTED" && entry.rejectionReason && (
+                                    <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                      <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                      <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
+                                    </div>
+                                  )}
                                   {entry.status === "REJECTED" && entry.rejectionReason && (
                                     <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
                                       <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
