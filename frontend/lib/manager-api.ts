@@ -1,9 +1,14 @@
 import axios from "axios";
 import { API_URL } from "./api";
+import authUtils from "./auth-utils";
 
 const getAuthHeaders = () => {
   const medewGcId = localStorage.getItem("medewGcId");
-  return medewGcId ? { "X-MEDEW-GC-ID": medewGcId } : {};
+  const userRole = authUtils.getRole();
+  return medewGcId ? { 
+    "X-MEDEW-GC-ID": medewGcId,
+    "X-USER-ROLE": userRole || ""
+  } : {};
 };
 
 export interface TimeEntryDto {

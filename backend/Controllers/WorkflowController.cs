@@ -273,7 +273,8 @@ public class WorkflowController : ControllerBase
             var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
             if (userRole?.ToLower() != "manager")
             {
-                return Forbid("Only managers can review time entries");
+                _logger.LogWarning("Non-manager user {MedewGcId} attempted to review time entries", medewGcId);
+                return StatusCode(403, new { error = "Only managers can review time entries" });
             }
 
             _logger.LogInformation(
@@ -311,7 +312,8 @@ public class WorkflowController : ControllerBase
             var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
             if (userRole?.ToLower() != "manager")
             {
-                return Forbid("Only managers can view all entries");
+                _logger.LogWarning("Non-manager user {MedewGcId} attempted to access all entries", medewGcId);
+                return StatusCode(403, new { error = "Only managers can view all entries" });
             }
 
             _logger.LogInformation(
@@ -347,7 +349,8 @@ public class WorkflowController : ControllerBase
             var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
             if (userRole?.ToLower() != "manager")
             {
-                return Forbid("Only managers can review time entries");
+                _logger.LogWarning("Non-manager user {MedewGcId} attempted to review time entries", medewGcId);
+                return StatusCode(403, new { error = "Only managers can review time entries" });
             }
 
             _logger.LogInformation(

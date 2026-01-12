@@ -89,7 +89,18 @@ public class ManagerController : ControllerBase
     {
         try
         {
-            var users = await _timeEntryRepo.GetAllUsersAsync();
+            // Get manager's medew_gc_id from header
+            if (!Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var medewGcIdHeader))
+            {
+                return Unauthorized(new { message = "Manager ID not provided" });
+            }
+
+            if (!int.TryParse(medewGcIdHeader, out int managerMedewGcId))
+            {
+                return BadRequest(new { message = "Invalid manager ID" });
+            }
+
+            var users = await _timeEntryRepo.GetTeamMembersForManagerAsync(managerMedewGcId);
             return Ok(users);
         }
         catch (Exception ex)

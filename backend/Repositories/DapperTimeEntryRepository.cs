@@ -1,18 +1,22 @@
 using Dapper;
 using ClockwiseProject.Backend;
+using ClockwiseProject.Backend.Data;
 
 namespace backend.Repositories;
 
 public class DapperTimeEntryRepository
 {
-    private readonly FirebirdConnectionFactory _connectionFactory;
+    private readonly FirebirdConnectionFactory _firebirdConnectionFactory;
+    private readonly PostgreSQLConnectionFactory _postgresConnectionFactory;
     private readonly ILogger<DapperTimeEntryRepository> _logger;
 
     public DapperTimeEntryRepository(
-        FirebirdConnectionFactory connectionFactory,
+        FirebirdConnectionFactory firebirdConnectionFactory,
+        PostgreSQLConnectionFactory postgresConnectionFactory,
         ILogger<DapperTimeEntryRepository> logger)
     {
-        _connectionFactory = connectionFactory;
+        _firebirdConnectionFactory = firebirdConnectionFactory;
+        _postgresConnectionFactory = postgresConnectionFactory;
         _logger = logger;
     }
 
@@ -40,7 +44,7 @@ public class DapperTimeEntryRepository
 
         try
         {
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = _firebirdConnectionFactory.CreateConnection();
             var entries = await connection.QueryAsync<TimeEntryDto>(sql, new { fromDate, toDate });
             return entries;
         }
@@ -72,7 +76,7 @@ public class DapperTimeEntryRepository
 
         try
         {
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = _firebirdConnectionFactory.CreateConnection();
             var entries = await connection.QueryAsync<TimeEntryDto>(sql);
             return entries;
         }
@@ -94,7 +98,7 @@ public class DapperTimeEntryRepository
 
         try
         {
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = _firebirdConnectionFactory.CreateConnection();
             var entry = await connection.QuerySingleOrDefaultAsync<int?>(sql, new { id });
 
             _logger.LogInformation("Time entry {Id} {Action} (Firebird doesn't support status updates)", id, approved ? "approved" : "rejected");
@@ -122,7 +126,7 @@ public class DapperTimeEntryRepository
 
         try
         {
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = _firebirdConnectionFactory.CreateConnection();
             var stats = await connection.QuerySingleAsync<TimeEntryStatsDto>(sql);
             return stats;
         }
@@ -145,13 +149,49 @@ public class DapperTimeEntryRepository
 
         try
         {
-            using var connection = _connectionFactory.CreateConnection();
+            using var connection = _firebirdConnectionFactory.CreateConnection();
             var users = await connection.QueryAsync<UserDto>(sql);
             return users;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching users");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<UserDto>> GetTeamMembersForManagerAsync(int managerMedewGcId)
+    {
+        // FOR NOW: Return all users from PostgreSQL users table
+        // TODO: Later filter by manager_assignments when that data is populated
+        const string getAllUsersSql = @"
+            SELECT
+                u.id as Id,
+                u.medew_gc_id as MedewGcId,
+                COALESCE(u.first_name || ' ' || u.last_name, u.username) as FullName,
+                u.first_name as FirstName,
+                u.last_name as LastName,
+                u.username,
+                u.email,
+                u.role
+            FROM users u
+            WHERE u.role = 'user' 
+              AND u.is_active = true
+            ORDER BY u.first_name, u.last_name";
+
+        try
+        {
+            using var pgConnection = _postgresConnectionFactory.CreateConnection();
+            var users = await pgConnection.QueryAsync<UserDto>(getAllUsersSql);
+
+            _logger.LogInformation("Manager (medew_gc_id: {MedewGcId}) loaded {Count} team members from PostgreSQL", 
+                managerMedewGcId, users.Count());
+
+            return users;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching team members from PostgreSQL for manager {MedewGcId}", managerMedewGcId);
             throw;
         }
     }
