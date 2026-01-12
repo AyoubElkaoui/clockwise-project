@@ -49,12 +49,21 @@ interface VacationRequest {
   reason?: string;
 }
 
+interface VacationType {
+  gcId: number;
+  gcCode: string;
+  omschrijving: string;
+}
+
 export default function VakantiePage() {
   const router = useRouter();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<VacationRequest[]>([]);
+  const [vacationTypes, setVacationTypes] = useState<VacationType[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [validationError, setValidationError] = useState<string>("");
   const [formData, setFormData] = useState({
     startDate: "",
     endDate: "",
@@ -64,7 +73,24 @@ export default function VakantiePage() {
 
   useEffect(() => {
     loadVacationRequests();
+    loadVacationTypes();
   }, []);
+
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (showConfirmDialog) {
+          setShowConfirmDialog(false);
+        } else if (showModal) {
+          setShowModal(false);
+          setValidationError("");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showModal, showConfirmDialog]);
 
   const loadVacationRequests = async () => {
     try {
@@ -104,14 +130,85 @@ export default function VakantiePage() {
     }
   };
 
+  const loadVacationTypes = async () => {
+    try {
+      const medewGcId = authUtils.getMedewGcId();
+      if (!medewGcId) {
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/vacation/types`,
+        {
+          headers: {
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Failed to load vacation types");
+      }
+      const data = await safeJsonParse(response);
+      setVacationTypes(data);
+    } catch (error) {
+      console.error("Error loading vacation types:", error);
+      // Don't show error toast, just use default types
+    }
+  };
+
+  const validateForm = () => {
+    setValidationError("");
+
+    if (!formData.startDate || !formData.endDate) {
+      setValidationError("Vul alle verplichte velden in");
+      return false;
+    }
+
+    const startDate = dayjs(formData.startDate);
+    const endDate = dayjs(formData.endDate);
+    const today = dayjs().startOf("day");
+
+    // Check if dates are in the past
+    if (startDate.isBefore(today)) {
+      setValidationError("Startdatum kan niet in het verleden liggen");
+      return false;
+    }
+
+    // Check if end date is before start date
+    if (endDate.isBefore(startDate)) {
+      setValidationError("Einddatum moet na de startdatum liggen");
+      return false;
+    }
+
+    // Check if notes are provided
+    if (!formData.notes.trim()) {
+      setValidationError("Voeg een reden toe voor je verlofaanvraag");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     try {
+      setShowConfirmDialog(false);
       const medewGcId = authUtils.getMedewGcId();
       const userId = authUtils.getUserId();
       if (!medewGcId || !userId) {
-        showToast("Gebruiker niet ingelogd", "error");
+        showToast("Je bent niet ingelogd. Log opnieuw in.", "error");
         return;
       }
 
@@ -151,16 +248,20 @@ export default function VakantiePage() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to create vacation request");
+        const errorData = await response.text();
+        console.error("Vacation request failed:", errorData);
+        throw new Error(response.status === 409 ? "Er bestaat al een aanvraag voor deze periode" : "Kan aanvraag niet indienen");
       }
 
-      showToast("Vakantie aanvraag ingediend!", "success");
+      showToast("Vakantie aanvraag succesvol ingediend! Je manager ontvangt een notificatie.", "success");
       setShowModal(false);
+      setValidationError("");
       setFormData({ startDate: "", endDate: "", vacationType: "Z03", notes: "" });
       loadVacationRequests();
     } catch (error) {
       console.error("Error creating vacation request:", error);
-      showToast("Fout bij aanmaken vakantie aanvraag", "error");
+      const errorMessage = error instanceof Error ? error.message : "Er ging iets mis. Probeer het opnieuw.";
+      showToast(errorMessage, "error");
     }
   };
 
@@ -321,7 +422,7 @@ export default function VakantiePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-indigo-500">
+            <Card className="border-l-4 border-l-timr-blue">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -337,8 +438,8 @@ export default function VakantiePage() {
                       {t("vacation.remainingYear")}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                  <div className="w-12 h-12 rounded-lg bg-timr-blue-light dark:bg-timr-blue-light/20 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-timr-blue dark:text-timr-blue" />
                   </div>
                 </div>
               </CardContent>
@@ -353,7 +454,7 @@ export default function VakantiePage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-timr-orange" />
                   <span className="ml-2 text-slate-600">
                     {t("common.loading")}
                   </span>
@@ -479,68 +580,91 @@ export default function VakantiePage() {
 
                     <div>
                       <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                        {t("vacation.hoursPerDay")}
+                        Type Verlof
                       </label>
                       <select
-                        value={formData.hours}
+                        value={formData.vacationType}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            hours: Number(e.target.value),
+                            vacationType: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-timr-orange focus:border-transparent"
                       >
-                        <option value={4}>{t("vacation.partTime4")}</option>
-                        <option value={6}>{t("vacation.partTime6")}</option>
-                        <option value={8}>{t("vacation.fullTime8")}</option>
+                        {vacationTypes.length > 0 ? (
+                          vacationTypes.map((type) => (
+                            <option key={type.gcCode} value={type.gcCode}>
+                              {type.gcCode} - {type.omschrijving}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Z03">Z03 - Vakantie (ATV)</option>
+                            <option value="Z04">Z04 - Snipperdag</option>
+                            <option value="Z05">Z05 - Verlof eigen rekening</option>
+                            <option value="Z06">Z06 - Bijzonder verlof</option>
+                            <option value="Z08">Z08 - Opbouw tijd voor tijd</option>
+                            <option value="Z09">Z09 - Opname tijd voor tijd</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                        {t("vacation.reason")}
+                        Reden / Opmerking <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         required
-                        value={formData.reason}
+                        value={formData.notes}
                         onChange={(e) =>
-                          setFormData({ ...formData, reason: e.target.value })
+                          setFormData({ ...formData, notes: e.target.value })
                         }
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-timr-orange focus:border-transparent resize-none"
                         rows={3}
-                        placeholder={t("vacation.describeReason")}
+                        placeholder="Voeg een reden toe voor je verlofaanvraag..."
                       />
                     </div>
 
+                    {/* Validation Error */}
+                    {validationError && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <p className="text-sm text-red-700 dark:text-red-400 font-medium">
+                          ⚠️ {validationError}
+                        </p>
+                      </div>
+                    )}
+
                     {formData.startDate && formData.endDate && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200 mb-2">
+                      <div className="bg-timr-orange-light dark:bg-timr-orange/10 border border-timr-orange/30 dark:border-timr-orange/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-timr-orange dark:text-timr-orange mb-2">
                           <Calendar className="w-4 h-4" />
                           <span className="font-medium">
-                            {t("vacation.summary")}
+                            Samenvatting
                           </span>
                         </div>
-                        <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                        <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
                           <p>
-                            {t("vacation.period")}{" "}
-                            {dayjs(formData.startDate).format("DD MMM YYYY")} -{" "}
-                            {dayjs(formData.endDate).format("DD MMM YYYY")}
+                            <strong>Periode:</strong> {dayjs(formData.startDate).format("DD MMMM YYYY")} - {dayjs(formData.endDate).format("DD MMMM YYYY")}
                           </p>
                           <p>
-                            {t("vacation.hoursPerDayShort")} {formData.hours}
+                            <strong>Type:</strong> {formData.vacationType}
                           </p>
                           <p>
-                            {t("vacation.estimatedDays")}{" "}
-                            {Math.ceil(
-                              ((dayjs(formData.endDate).diff(
-                                dayjs(formData.startDate),
-                                "day",
-                              ) +
-                                1) *
-                                5) /
-                                7,
-                            )}
+                            <strong>Werkdagen:</strong> {(() => {
+                              const start = dayjs(formData.startDate);
+                              const end = dayjs(formData.endDate);
+                              const days = end.diff(start, "day") + 1;
+                              let workingDays = 0;
+                              for (let i = 0; i < days; i++) {
+                                const currentDate = start.add(i, "day");
+                                if (currentDate.day() !== 0 && currentDate.day() !== 6) {
+                                  workingDays++;
+                                }
+                              }
+                              return workingDays;
+                            })()} dagen (ma-vr)
                           </p>
                         </div>
                       </div>
@@ -549,18 +673,84 @@ export default function VakantiePage() {
                     <div className="flex gap-3 pt-2">
                       <Button type="submit" className="flex-1">
                         <Plus className="w-4 h-4 mr-2" />
-                        {t("vacation.submit")}
+                        Aanvraag Indienen
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setShowModal(false)}
+                        onClick={() => {
+                          setShowModal(false);
+                          setValidationError("");
+                        }}
                         className="flex-1"
                       >
-                        {t("common.cancel")}
+                        Annuleren
                       </Button>
                     </div>
                   </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Confirmation Dialog */}
+          {showConfirmDialog && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-md">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-timr-orange">
+                    <AlertCircle className="w-5 h-5" />
+                    Bevestig je aanvraag
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-slate-700 dark:text-slate-300">
+                      Je staat op het punt om een verlofaanvraag in te dienen voor:
+                    </p>
+                    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2">
+                      <p className="text-sm">
+                        <strong>Periode:</strong> {dayjs(formData.startDate).format("DD MMMM YYYY")} - {dayjs(formData.endDate).format("DD MMMM YYYY")}
+                      </p>
+                      <p className="text-sm">
+                        <strong>Type:</strong> {formData.vacationType}
+                      </p>
+                      <p className="text-sm">
+                        <strong>Werkdagen:</strong> {(() => {
+                          const start = dayjs(formData.startDate);
+                          const end = dayjs(formData.endDate);
+                          const days = end.diff(start, "day") + 1;
+                          let workingDays = 0;
+                          for (let i = 0; i < days; i++) {
+                            const currentDate = start.add(i, "day");
+                            if (currentDate.day() !== 0 && currentDate.day() !== 6) {
+                              workingDays++;
+                            }
+                          }
+                          return workingDays;
+                        })()} dagen
+                      </p>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      Je manager ontvangt automatisch een notificatie om je aanvraag goed te keuren.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        onClick={handleConfirmSubmit}
+                        className="flex-1"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Ja, Indienen
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowConfirmDialog(false)}
+                        className="flex-1"
+                      >
+                        Annuleren
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

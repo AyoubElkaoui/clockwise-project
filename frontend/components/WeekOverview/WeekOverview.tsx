@@ -191,7 +191,7 @@ function DayEntry({
                 {formatHours(totalHours)}
               </div>
               {totalExpenses > 0 && (
-                <div className="text-xs text-purple-600">
+                <div className="text-xs text-timr-blue">
                   €{totalExpenses.toFixed(2)}
                 </div>
               )}
@@ -964,7 +964,7 @@ export default function WeekOverview() {
               </div>
 
               <div className="bg-blue-100 rounded-xl p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-timr-blue">
                   {totalHoursThisWeek > 0
                     ? formatHours(
                         totalHoursThisWeek /

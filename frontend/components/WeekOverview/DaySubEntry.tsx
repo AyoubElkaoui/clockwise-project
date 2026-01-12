@@ -235,7 +235,7 @@ export default function DayEntry({
                 {formatHours(totalHours)}
               </div>
               {totalExpenses > 0 && (
-                <div className="text-xs text-purple-600">
+                <div className="text-xs text-timr-blue">
                   €{totalExpenses.toFixed(2)}
                 </div>
               )}

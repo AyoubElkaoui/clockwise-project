@@ -14,7 +14,7 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       warning: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
       danger: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-      secondary: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+      secondary: 'bg-timr-blue-light text-timr-blue dark:bg-timr-blue-light/20 dark:text-timr-blue',
     };
 
     const sizeClasses = {

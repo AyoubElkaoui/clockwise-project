@@ -51,6 +51,7 @@ export default function ManagerReviewTimePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
   const currentPeriod = 100426; // Current period ID
@@ -125,21 +126,27 @@ export default function ManagerReviewTimePage() {
 
   const handleApprove = async () => {
     if (selectedEntries.size === 0) {
-      showToast("Selecteer minimaal één entry", "warning");
+      showToast("⚠️ Selecteer minimaal één uurregistratie om goed te keuren", "warning");
       return;
     }
+    setShowApproveModal(true);
+  };
 
+  const handleApproveConfirm = async () => {
     try {
       setProcessing(true);
+      setShowApproveModal(false);
       await reviewEntries({
         entryIds: Array.from(selectedEntries),
         approve: true,
       });
-      showToast(`${selectedEntries.size} uren goedgekeurd`, "success");
+      const count = selectedEntries.size;
+      showToast(`✓ ${count} uurregistratie${count > 1 ? 's' : ''} succesvol goedgekeurd en verwerkt`, "success");
       setSelectedEntries(new Set());
       await loadPendingEntries();
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Fout bij goedkeuren", "error");
+      const errorMessage = error.response?.data?.error || "Kan uren niet goedkeuren. Probeer het opnieuw.";
+      showToast("✕ " + errorMessage, "error");
     } finally {
       setProcessing(false);
     }
@@ -147,7 +154,7 @@ export default function ManagerReviewTimePage() {
 
   const handleRejectClick = () => {
     if (selectedEntries.size === 0) {
-      showToast("Selecteer minimaal één entry", "warning");
+      showToast("⚠️ Selecteer minimaal één uurregistratie om af te keuren", "warning");
       return;
     }
     setShowRejectModal(true);
@@ -155,7 +162,7 @@ export default function ManagerReviewTimePage() {
 
   const handleRejectConfirm = async () => {
     if (!rejectionReason.trim()) {
-      showToast("Geef een reden voor afwijzing op", "warning");
+      showToast("⚠️ Geef een duidelijke reden voor afwijzing zodat de medewerker weet wat te verbeteren", "warning");
       return;
     }
 
@@ -166,13 +173,15 @@ export default function ManagerReviewTimePage() {
         approve: false,
         rejectionReason: rejectionReason.trim(),
       });
-      showToast(`${selectedEntries.size} uren afgekeurd`, "success");
+      const count = selectedEntries.size;
+      showToast(`✓ ${count} uurregistratie${count > 1 ? 's' : ''} afgekeurd. Medewerker krijgt feedback.`, "success");
       setSelectedEntries(new Set());
       setShowRejectModal(false);
       setRejectionReason("");
       await loadPendingEntries();
     } catch (error: any) {
-      showToast(error.response?.data?.error || "Fout bij afkeuren", "error");
+      const errorMessage = error.response?.data?.error || "Kan uren niet afkeuren. Probeer het opnieuw.";
+      showToast("✕ " + errorMessage, "error");
     } finally {
       setProcessing(false);
     }
@@ -460,6 +469,46 @@ export default function ManagerReviewTimePage() {
             >
               <XCircle className="w-4 h-4 mr-2" />
               Afkeuren
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Confirmation Modal */}
+      <Dialog open={showApproveModal} onOpenChange={setShowApproveModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+              Uren Goedkeuren
+            </DialogTitle>
+            <DialogDescription>
+              Je staat op het punt om {selectedEntries.size} urenregistratie(s) goed te keuren en definitief te verwerken.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+              <p className="text-sm text-emerald-800 dark:text-emerald-200 space-y-2">
+                <strong>Let op:</strong> Goedgekeurde uren worden:
+                <ul className="list-disc list-inside mt-2 space-y-1 ml-2">
+                  <li>Definitief verwerkt in het systeem</li>
+                  <li>Zichtbaar in rapportages</li>
+                  <li>Niet meer te wijzigen door de medewerker</li>
+                </ul>
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApproveModal(false)}>
+              Annuleren
+            </Button>
+            <Button
+              onClick={handleApproveConfirm}
+              disabled={processing}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Ja, Goedkeuren
             </Button>
           </DialogFooter>
         </DialogContent>

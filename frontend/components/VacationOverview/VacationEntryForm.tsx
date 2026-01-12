@@ -521,7 +521,7 @@ export default function VacationEntryForm() {
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl">
+                  <div className="flex justify-between items-center p-3 bg-timr-blue-light rounded-xl">
                     <span className="text-sm font-medium text-gray-700">
                       {t("vacation.weekendDaysLabel")}
                     </span>

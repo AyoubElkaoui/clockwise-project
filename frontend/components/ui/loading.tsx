@@ -14,7 +14,7 @@ export function LoadingSpinner({
   return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div
-        className={`animate-spin rounded-full border-b-2 border-blue-600 ${sizeClasses[size]} ${className || ""}`}
+        className={`animate-spin rounded-full border-b-2 border-timr-orange ${sizeClasses[size]} ${className || ""}`}
       ></div>
     </div>
   );

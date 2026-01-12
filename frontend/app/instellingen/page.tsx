@@ -36,8 +36,8 @@ export default function InstellingenPage() {
       <ModernLayout>
         <div className="p-6 max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <Settings className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <Settings className="h-8 w-8 text-timr-orange dark:text-timr-orange" />
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
               {t("settings.title")}
             </h1>
           </div>
@@ -52,6 +52,9 @@ export default function InstellingenPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Kies de taal van de applicatie. Deze instelling wordt direct toegepast.
+                </p>
                 <div className="flex gap-3">
                   <Button
                     variant={i18n.language === "nl" ? "default" : "outline"}
@@ -84,6 +87,9 @@ export default function InstellingenPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Wissel tussen lichte en donkere modus. Je voorkeur wordt automatisch opgeslagen.
+                </p>
                 <div className="flex gap-3">
                   <Button
                     variant={theme === "light" ? "default" : "outline"}
@@ -114,7 +120,7 @@ export default function InstellingenPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                   {t("settings.clearBadge")}
                 </p>
                 <Button

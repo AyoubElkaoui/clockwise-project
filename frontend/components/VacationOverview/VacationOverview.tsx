@@ -617,7 +617,7 @@ export default function VacationOverview(): React.JSX.Element {
                             <div className="flex justify-between text-xs mt-1">
                                 <span className="text-green-600">Opgenomen</span>
                                 <span className="text-yellow-600">In behandeling</span>
-                                <span className="text-purple-600">Beschikbaar</span>
+                                <span className="text-timr-blue">Beschikbaar</span>
                             </div>
                         </div>
                     </div>
@@ -678,7 +678,7 @@ export default function VacationOverview(): React.JSX.Element {
                                 </div>
                                 <div>
                                     <span className="text-gray-600">Resterende weken:</span>
-                                    <div className="font-bold text-purple-600">{(balance.remainingHours / 40).toFixed(1)} weken</div>
+                                    <div className="font-bold text-timr-blue">{(balance.remainingHours / 40).toFixed(1)} weken</div>
                                 </div>
                             </div>
                         </div>

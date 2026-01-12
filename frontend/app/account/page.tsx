@@ -78,8 +78,9 @@ export default function AccountPage() {
   const loadUserData = async () => {
     setLoading(true);
     try {
-      const userId = authUtils.getUserId();
-      console.log("Account page - Loading user:", userId);
+      const medewGcId = authUtils.getMedewGcId();
+      const userId = medewGcId ? Number(medewGcId) : null;
+      console.log("Account page - Loading user with medewGcId:", userId);
       
       if (!userId) {
         addToast("Niet ingelogd. Ga naar login pagina.", "error");
@@ -109,7 +110,8 @@ export default function AccountPage() {
   const handleSave = async () => {
     if (!userData) return;
     
-    const userId = authUtils.getUserId();
+    const medewGcId = authUtils.getMedewGcId();
+    const userId = medewGcId ? Number(medewGcId) : null;
     if (!userId) {
       addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
       return;
@@ -149,7 +151,8 @@ export default function AccountPage() {
       return;
     }
 
-    const userId = authUtils.getUserId();
+    const medewGcId = authUtils.getMedewGcId();
+    const userId = medewGcId ? Number(medewGcId) : null;
     if (!userId) {
       addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
       return;
@@ -186,7 +189,7 @@ export default function AccountPage() {
       <ProtectedRoute>
         <ModernLayout>
           <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
+            <Loader2 className="w-12 h-12 animate-spin text-timr-orange" />
           </div>
         </ModernLayout>
       </ProtectedRoute>
@@ -198,10 +201,27 @@ export default function AccountPage() {
     return (
       <ProtectedRoute>
         <ModernLayout>
-          <div className="text-center py-12">
-            <p className="text-slate-600 dark:text-slate-400">
-              Gebruikersgegevens niet gevonden
-            </p>
+          <div className="flex flex-col items-center justify-center py-20 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+              <User className="w-10 h-10 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                Gebruikersgegevens niet gevonden
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 max-w-md">
+                We kunnen je profielgegevens niet laden. Dit kan komen doordat je niet correct bent ingelogd.
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                authUtils.clearAuth();
+                window.location.href = "/login";
+              }}
+              variant="outline"
+            >
+              Opnieuw inloggen
+            </Button>
           </div>
         </ModernLayout>
       </ProtectedRoute>

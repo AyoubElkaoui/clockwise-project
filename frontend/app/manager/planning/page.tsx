@@ -858,8 +858,8 @@ export default function ManagerPlanningPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="w-12 h-12 rounded-lg bg-timr-orange-light dark:bg-timr-orange-light/20 flex items-center justify-center">
+                <UserCheck className="w-6 h-6 text-timr-orange dark:text-timr-orange" />
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300">

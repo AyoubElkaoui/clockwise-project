@@ -251,8 +251,8 @@ export default function ManagerVacationPage() {
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                        <User className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                      <div className="w-12 h-12 rounded-full bg-timr-orange-light dark:bg-timr-orange-light/20 flex items-center justify-center">
+                        <User className="w-6 h-6 text-timr-orange dark:text-timr-orange" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -291,7 +291,7 @@ export default function ManagerVacationPage() {
                       <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
                         Aantal Dagen
                       </p>
-                      <p className="font-medium text-purple-600 dark:text-purple-400">
+                      <p className="font-medium text-timr-orange dark:text-timr-orange">
                         {calculateDays(request.startDate, request.endDate)}{" "}
                         dagen
                       </p>

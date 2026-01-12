@@ -52,6 +52,7 @@ export default function ManagerVacationReviewPage() {
   const [statusFilter, setStatusFilter] = useState<string>("SUBMITTED");
   const [selectedRequest, setSelectedRequest] = useState<VacationRequest | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   const [rejectionComment, setRejectionComment] = useState("");
   const [processing, setProcessing] = useState(false);
 
@@ -124,11 +125,19 @@ export default function ManagerVacationReviewPage() {
   };
 
   const handleApprove = async (request: VacationRequest) => {
+    setSelectedRequest(request);
+    setShowApproveModal(true);
+  };
+
+  const handleApproveConfirm = async () => {
+    if (!selectedRequest) return;
+
     try {
       setProcessing(true);
+      setShowApproveModal(false);
       const managerId = authUtils.getUserId();
 
-      const response = await fetch(`${API_URL}/api/vacation/${request.id}/approve`, {
+      const response = await fetch(`${API_URL}/api/vacation/${selectedRequest.id}/approve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -142,13 +151,16 @@ export default function ManagerVacationReviewPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to approve vacation request");
+        throw new Error("Kan vakantie aanvraag niet goedkeuren");
       }
 
-      showToast("Vakantie aanvraag goedgekeurd", "success");
+      const userName = selectedRequest.user ? `${selectedRequest.user.firstName} ${selectedRequest.user.lastName}` : "Medewerker";
+      showToast(`✓ Vakantie aanvraag van ${userName} goedgekeurd en verwerkt in Firebird`, "success");
+      setSelectedRequest(null);
       await loadVacationRequests();
     } catch (error: any) {
-      showToast(error.message || "Fout bij goedkeuren", "error");
+      const errorMessage = error.message || "Er ging iets mis. Probeer het opnieuw.";
+      showToast("✕ " + errorMessage, "error");
     } finally {
       setProcessing(false);
     }
@@ -163,7 +175,7 @@ export default function ManagerVacationReviewPage() {
     if (!selectedRequest) return;
     
     if (!rejectionComment.trim()) {
-      showToast("Geef een reden voor afwijzing op", "warning");
+      showToast("⚠️ Geef een duidelijke reden waarom de vakantie wordt afgekeurd", "warning");
       return;
     }
 
@@ -185,16 +197,18 @@ export default function ManagerVacationReviewPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to reject vacation request");
+        throw new Error("Kan vakantie aanvraag niet afkeuren");
       }
 
-      showToast("Vakantie aanvraag afgekeurd", "success");
+      const userName = selectedRequest.user ? `${selectedRequest.user.firstName} ${selectedRequest.user.lastName}` : "Medewerker";
+      showToast(`✓ Vakantie aanvraag van ${userName} afgekeurd. ${userName} krijgt een notificatie.`, "success");
       setShowRejectModal(false);
       setRejectionComment("");
       setSelectedRequest(null);
       await loadVacationRequests();
     } catch (error: any) {
-      showToast(error.message || "Fout bij afkeuren", "error");
+      const errorMessage = error.message || "Er ging iets mis. Probeer het opnieuw.";
+      showToast("✕ " + errorMessage, "error");
     } finally {
       setProcessing(false);
     }
@@ -520,6 +534,62 @@ export default function ManagerVacationReviewPage() {
             >
               <XCircle className="w-4 h-4 mr-2" />
               Afkeuren
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Confirmation Modal */}
+      <Dialog open={showApproveModal} onOpenChange={setShowApproveModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+              Vakantie Goedkeuren
+            </DialogTitle>
+            <DialogDescription>
+              Je staat op het punt om deze vakantie aanvraag goed te keuren en te verwerken.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="py-4 space-y-4">
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2 text-sm">
+                <p>
+                  <strong>Medewerker:</strong> {selectedRequest.user?.firstName} {selectedRequest.user?.lastName}
+                </p>
+                <p>
+                  <strong>Periode:</strong> {dayjs(selectedRequest.startDate).format("DD MMMM YYYY")} - {dayjs(selectedRequest.endDate).format("DD MMMM YYYY")}
+                </p>
+                <p>
+                  <strong>Type:</strong> {selectedRequest.vacationType}
+                </p>
+                <p>
+                  <strong>Werkdagen:</strong> {selectedRequest.totalDays} dagen
+                </p>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                <p className="text-sm text-emerald-800 dark:text-emerald-200">
+                  <strong>Let op:</strong> Goedgekeurde vakantie wordt:
+                  <ul className="list-disc list-inside mt-2 space-y-1 ml-2">
+                    <li>Automatisch verwerkt in Firebird</li>
+                    <li>Zichtbaar in de planning</li>
+                    <li>Afgetrokken van het saldo</li>
+                  </ul>
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApproveModal(false)}>
+              Annuleren
+            </Button>
+            <Button
+              onClick={handleApproveConfirm}
+              disabled={processing}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Ja, Goedkeuren
             </Button>
           </DialogFooter>
         </DialogContent>

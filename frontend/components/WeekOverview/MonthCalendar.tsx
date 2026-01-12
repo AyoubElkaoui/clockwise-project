@@ -195,7 +195,7 @@ export default function MonthCalendar({
 
   const totalRow = (
     <tr className="text-center font-bold bg-blue-100">
-      <td className="border-2 w-10 h-10 text-xs text-indigo-800">
+      <td className="border-2 w-10 h-10 text-xs text-timr-blue">
         <div className="flex items-center justify-center h-full">
           {t("week.total")}
         </div>

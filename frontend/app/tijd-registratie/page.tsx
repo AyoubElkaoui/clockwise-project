@@ -602,9 +602,11 @@ export default function TimeRegistrationPage() {
       }
 
       setEntries(updatedEntries);
-      showToast("Opgeslagen!", "success");
+      showToast("✓ Uren succesvol opgeslagen als concept", "success");
     } catch (error) {
-      showToast("Opslaan mislukt", "error");
+      console.error("Save error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Kan uren niet opslaan. Controleer je internetverbinding.";
+      showToast(errorMessage, "error");
     } finally {
       setSaving(false);
     }
@@ -622,7 +624,8 @@ export default function TimeRegistrationPage() {
       });
       const invalidDays = Object.entries(dayTotals).filter(([, total]) => total > MAX_HOURS_PER_DAY);
       if (invalidDays.length > 0) {
-        showToast(`Te veel uren op: ${invalidDays.map(([date]) => date).join(', ')} (max ${MAX_HOURS_PER_DAY}u)`, "error");
+        const datesFormatted = invalidDays.map(([date]) => dayjs(date).format("DD MMMM")).join(", ");
+        showToast(`❌ Te veel uren op ${datesFormatted}. Maximaal ${MAX_HOURS_PER_DAY} uur per dag toegestaan.`, "error");
         setSaving(false);
         return;
       }
@@ -632,7 +635,7 @@ export default function TimeRegistrationPage() {
         .filter((e: TimeEntry) => !isClosedDay(e.date));
 
       if (toSave.length === 0) {
-        showToast("Geen uren om in te leveren", "error");
+        showToast("❌ Geen uren ingevuld. Voeg eerst uren toe voordat je indient.", "error");
         return;
       }
 
@@ -672,10 +675,14 @@ export default function TimeRegistrationPage() {
         entryIds: savedIds,
       });
 
-      showToast("Ingeleverd!", "success");
+      showToast(`✓ ${savedIds.length} uur${savedIds.length > 1 ? 'registraties' : 'registratie'} succesvol ingediend voor goedkeuring!`, "success");
       await loadEntries();
     } catch (error) {
-      showToast("Inleveren mislukt", "error");
+      console.error("Submit error:", error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Kan uren niet indienen. Controleer of alle velden correct zijn ingevuld.";
+      showToast("❌ " + errorMessage, "error");
     } finally {
       setSaving(false);
     }
@@ -807,12 +814,12 @@ export default function TimeRegistrationPage() {
                           <div key={group.id || `group-${index}`}>
                             <div
                               onClick={() => toggleGroup(group.id)}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-purple-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-timr-orange-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
                             >
                               <ChevronDown
-                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-purple-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-timr-orange ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
                               />
-                              <span className="text-sm group-hover:text-purple-600">
+                              <span className="text-sm group-hover:text-timr-orange">
                                 {group.name}
                               </span>
                             </div>

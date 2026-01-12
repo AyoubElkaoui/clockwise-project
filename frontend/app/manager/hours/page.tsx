@@ -589,7 +589,7 @@ export default function ManagerTeamHoursPage() {
                   Over {analytics.periodDays} dagen
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-timr-blue-light dark:bg-timr-blue-light/20 flex items-center justify-center">
                 <Timer className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
               </div>
             </div>

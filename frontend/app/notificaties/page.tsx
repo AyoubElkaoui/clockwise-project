@@ -59,7 +59,11 @@ export default function NotificatiesPage() {
     try {
       setLoading(true);
       const userId = authUtils.getUserId();
-      if (!userId) {
+      const medewGcId = authUtils.getMedewGcId();
+      
+      console.log("[NOTIFICATIONS] Loading with userId:", userId, "medewGcId:", medewGcId, "rank:", userRank);
+      
+      if (!userId || !medewGcId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
@@ -72,13 +76,15 @@ export default function NotificatiesPage() {
         console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
-            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
           },
         });
         console.log("[NOTIFICATIONS] Response status:", response.status);
         console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
         if (response.ok) {
           data = await safeJsonParse(response);
+          console.log("[NOTIFICATIONS] Loaded", data.length, "notifications");
         } else {
           const bodyText = await response.text();
           console.error("[NOTIFICATIONS] Error response body (first 200 chars):", bodyText.substring(0, 200));
@@ -87,16 +93,24 @@ export default function NotificatiesPage() {
       }
       // Voor admins: haal alle notificaties op
       else if (userRank === "admin") {
-        const url = `/api/activities?limit=100`;
+        const url = `${API_URL}/activities?limit=100`;
         console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
-            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
           },
         });
         console.log("[NOTIFICATIONS] Response status:", response.status);
         console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
-        data = await safeJsonParse(response);
+        if (response.ok) {
+          data = await safeJsonParse(response);
+          console.log("[NOTIFICATIONS] Loaded", data.length, "notifications");
+        } else {
+          const bodyText = await response.text();
+          console.error("[NOTIFICATIONS] Error response body (first 200 chars):", bodyText.substring(0, 200));
+          showToast("Fout bij laden notificaties", "error");
+        }
       }
       // Voor gewone users: alleen eigen notificaties
       else {
@@ -104,18 +118,27 @@ export default function NotificatiesPage() {
         console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
-            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
           },
         });
         console.log("[NOTIFICATIONS] Response status:", response.status);
         console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
-        data = await safeJsonParse(response);
+        if (response.ok) {
+          data = await safeJsonParse(response);
+          console.log("[NOTIFICATIONS] Loaded", data.length, "notifications");
+        } else {
+          const bodyText = await response.text();
+          console.error("[NOTIFICATIONS] Error response:", bodyText.substring(0, 200));
+          showToast("Fout bij laden notificaties: " + response.status, "error");
+        }
       }
 
       setNotifications(data);
+      console.log("[NOTIFICATIONS] Set", data.length, "notifications in state");
     } catch (error) {
       console.error("Error loading notifications:", error);
-      showToast("Fout bij laden notificaties", "error");
+      showToast("Fout bij laden notificaties: " + (error instanceof Error ? error.message : "Onbekende fout"), "error");
     } finally {
       setLoading(false);
     }
@@ -124,14 +147,16 @@ export default function NotificatiesPage() {
   const handleMarkAllRead = async () => {
     try {
       const userId = authUtils.getUserId();
-      if (!userId) return;
+      const medewGcId = authUtils.getMedewGcId();
+      if (!userId || !medewGcId) return;
 
       const response = await fetch(
         `${API_URL}/activities/read-all?userId=${userId}`,
         {
           method: "PUT",
           headers: {
-            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            "X-MEDEW-GC-ID": medewGcId,
+            "ngrok-skip-browser-warning": "1",
           },
         },
       );
@@ -188,11 +213,11 @@ export default function NotificatiesPage() {
   const getNotificationColor = (type: string) => {
     switch (type) {
       case "time_entry":
-        return "text-blue-600 dark:text-blue-400";
+        return "text-timr-orange dark:text-timr-orange";
       case "vacation":
         return "text-green-600 dark:text-green-400";
       case "project":
-        return "text-purple-600 dark:text-purple-400";
+        return "text-timr-blue dark:text-timr-blue";
       default:
         return "text-slate-600 dark:text-slate-400";
     }
@@ -240,7 +265,7 @@ export default function NotificatiesPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-l-4 border-l-blue-500">
+            <Card className="border-l-4 border-l-timr-orange">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -251,12 +276,12 @@ export default function NotificatiesPage() {
                       {loading ? "..." : notifications.length}
                     </p>
                   </div>
-                  <Bell className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  <Bell className="w-8 h-8 text-timr-orange dark:text-timr-orange" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-orange-500">
+            <Card className="border-l-4 border-l-timr-orange">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -267,7 +292,7 @@ export default function NotificatiesPage() {
                       {loading ? "..." : unreadCount}
                     </p>
                   </div>
-                  <Bell className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  <Bell className="w-8 h-8 text-timr-orange dark:text-timr-orange" />
                 </div>
               </CardContent>
             </Card>
@@ -302,8 +327,8 @@ export default function NotificatiesPage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                  <span className="ml-2 text-slate-600">
+                  <Loader2 className="w-8 h-8 animate-spin text-timr-orange" />
+                  <span className="ml-2 text-slate-600 dark:text-slate-400">
                     Notificaties laden...
                   </span>
                 </div>
@@ -329,7 +354,7 @@ export default function NotificatiesPage() {
                       key={notification.id}
                       className={`transition-all duration-200 hover:shadow-md ${
                         !notification.read
-                          ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                          ? "bg-timr-orange-light/30 dark:bg-timr-orange-light/10 border-timr-orange dark:border-timr-orange"
                           : "bg-slate-50/50 dark:bg-slate-800/50"
                       }`}
                     >

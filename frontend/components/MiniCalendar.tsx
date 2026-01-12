@@ -106,7 +106,7 @@ export function MiniCalendar() {
         return "bg-emerald-500";
       case "opgeslagen":
       case "ingeleverd":
-        return "bg-orange-500";
+        return "bg-timr-orange";
       case "afgekeurd":
         return "bg-red-500";
       default:
@@ -212,7 +212,7 @@ export function MiniCalendar() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded bg-orange-500" />
+          <div className="w-2 h-2 rounded bg-timr-orange" />
           <span className="text-[10px] text-slate-600 dark:text-slate-400">
             Opgeslagen/Ingeleverd
           </span>
