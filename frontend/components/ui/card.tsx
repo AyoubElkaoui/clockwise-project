@@ -9,7 +9,7 @@ const cardVariants = cva(
       variant: {
         default: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
         elevated: "bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl",
-        gradient: "bg-blue-600 text-white",
+        primary: "bg-blue-600 text-white",
         ghost: "bg-transparent",
       },
       padding: {

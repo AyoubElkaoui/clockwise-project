@@ -228,9 +228,9 @@ export default function Navbar(): JSX.Element {
           >
             <div
               className="
-                bg-gradient-to-br from-blue-500 to-blue-600
+                bg-timr-orange dark:bg-timr-orange
                 text-white
-                rounded-full w-10 h-10 flex items-center justify-center shadow-md
+                rounded-full w-10 h-10 flex items-center justify-center
               "
             >
               <span className="text-sm font-bold">{getUserInitials()}</span>

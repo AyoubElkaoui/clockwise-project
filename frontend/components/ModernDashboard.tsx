@@ -124,7 +124,7 @@ export default function ModernDashboard() {
           value={`${stats.weekHours}u`}
           subtitle="van 40u deze week"
           icon={<Clock className="w-6 h-6" />}
-          iconBgColor="bg-blue-600"
+          iconBgColor="bg-timr-orange"
           trend={{ value: "+2.5u", isPositive: true }}
         />
         <StatCard
@@ -139,7 +139,7 @@ export default function ModernDashboard() {
           value={`${stats.vacationDays} dagen`}
           subtitle="Over van 25 dagen"
           icon={<Plane className="w-6 h-6" />}
-          iconBgColor="bg-purple-600"
+          iconBgColor="bg-timr-blue"
         />
       </div>
 

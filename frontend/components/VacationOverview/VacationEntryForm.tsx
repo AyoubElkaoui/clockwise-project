@@ -256,7 +256,7 @@ export default function VacationEntryForm() {
 
       <div className="relative max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg mb-8">
+        <div className="bg-timr-orange text-white rounded-2xl p-8 shadow-lg mb-8">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-4">

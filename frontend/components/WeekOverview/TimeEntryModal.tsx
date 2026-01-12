@@ -37,7 +37,7 @@ export default function TimeEntryModal({
         <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-md-lg border border-white/50 w-full max-w-2xl max-h-[90vh] overflow-hidden">
           {/* Header */}
           <div className="bg-blue-600 text-white p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+            <div className="absolute inset-0 bg-white/5"></div>
             <div className="absolute -top-4 -right-4 w-16 h-16 bg-white/10 rounded-full blur-lg"></div>
 
             <div className="relative flex items-center justify-between">

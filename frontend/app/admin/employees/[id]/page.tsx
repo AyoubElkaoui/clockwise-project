@@ -129,7 +129,7 @@ export default function EmployeeDetailPage() {
 
   if (loading || !employee) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
           <p className="text-slate-600 dark:text-slate-400">

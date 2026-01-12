@@ -269,7 +269,13 @@ public class WorkflowController : ControllerBase
                 return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
             }
 
-            // TODO: Add manager authorization check
+            // Manager authorization check
+            var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
+            if (userRole?.ToLower() != "manager")
+            {
+                return Forbid("Only managers can review time entries");
+            }
+
             _logger.LogInformation(
                 "GET /api/workflow/review/pending for manager {MedewGcId}, period {UrenperGcId}",
                 medewGcId, urenperGcId);
@@ -301,7 +307,13 @@ public class WorkflowController : ControllerBase
                 return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
             }
 
-            // TODO: Add manager authorization check
+            // Manager authorization check
+            var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
+            if (userRole?.ToLower() != "manager")
+            {
+                return Forbid("Only managers can view all entries");
+            }
+
             _logger.LogInformation(
                 "GET /api/workflow/entries for manager {MedewGcId}, period {UrenperGcId}, status {Status}",
                 medewGcId, urenperGcId, status ?? "ALL");
@@ -331,7 +343,13 @@ public class WorkflowController : ControllerBase
                 return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
             }
 
-            // TODO: Add manager authorization check
+            // Manager authorization check
+            var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
+            if (userRole?.ToLower() != "manager")
+            {
+                return Forbid("Only managers can review time entries");
+            }
+
             _logger.LogInformation(
                 "POST /api/workflow/review by manager {MedewGcId}, {Count} entries, approve={Approve}",
                 medewGcId, request.EntryIds.Count, request.Approve);

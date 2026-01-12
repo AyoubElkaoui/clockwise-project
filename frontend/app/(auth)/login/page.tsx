@@ -88,10 +88,10 @@ export default function LoginPage(): JSX.Element {
           {/* Header Section */}
           <CardHeader className="text-center pb-8 pt-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-blue-600 dark:bg-blue-700 rounded-2xl p-6 shadow-lg">
+              <div className="bg-timr-orange dark:bg-timr-orange rounded-2xl p-6 shadow-lg">
                 <Image
                   src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
-                  alt="TIMR Logo"
+                  alt="timr. Logo"
                   width={80}
                   height={80}
                   className="w-20 h-20 rounded-xl object-contain"
@@ -118,7 +118,7 @@ export default function LoginPage(): JSX.Element {
                 onClick={() => i18n.changeLanguage('en')}
                 className={`px-3 py-2 rounded-lg transition-colors font-semibold text-sm ${
                   i18n.language === 'en' 
-                    ? 'bg-blue-600 text-white' 
+                    ? 'bg-timr-orange text-white' 
                     : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                 }`}
               >
@@ -128,7 +128,7 @@ export default function LoginPage(): JSX.Element {
                 onClick={() => i18n.changeLanguage('nl')}
                 className={`px-3 py-2 rounded-lg transition-colors font-semibold text-sm ${
                   i18n.language === 'nl' 
-                    ? 'bg-blue-600 text-white' 
+                    ? 'bg-timr-orange text-white' 
                     : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                 }`}
               >
@@ -138,6 +138,9 @@ export default function LoginPage(): JSX.Element {
             <CardTitle className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
               {t("login.welcomeBack")}
             </CardTitle>
+            <p className="text-timr-orange font-bold text-xl mb-1">
+              timr.
+            </p>
             <p className="text-slate-600 dark:text-slate-400">
               {t("login.loginToContinue")}
             </p>
@@ -217,7 +220,7 @@ export default function LoginPage(): JSX.Element {
             <Button
               onClick={handleLogin}
               disabled={isLoading || !username.trim() || !password.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full bg-timr-orange hover:bg-timr-orange-hover text-white shadow-md hover:shadow-lg transition-all duration-200"
               size="lg"
               isLoading={isLoading}
             >

@@ -95,14 +95,26 @@ const managerMenuItems: MenuItem[] = [
   { icon: Users, label: "Team Beheren", href: "/admin/users", rank: "manager" },
   {
     icon: CheckCircle2,
-    label: "Team Goedkeuringen",
-    href: "/manager/approve",
+    label: "Uren Beoordelen",
+    href: "/manager/review-time",
     badgeKey: "pendingApprovals",
     rank: "manager",
   },
   {
     icon: Plane,
-    label: "Vakantie Aanvragen",
+    label: "Vakantie Beoordelen",
+    href: "/manager/vacation-review",
+    rank: "manager",
+  },
+  {
+    icon: CheckCircle2,
+    label: "Team Goedkeuringen",
+    href: "/manager/approve",
+    rank: "manager",
+  },
+  {
+    icon: Plane,
+    label: "Vakantie Kalender",
     href: "/manager/vacation",
     rank: "manager",
   },
@@ -326,7 +338,7 @@ export function ModernSidebar() {
           {!collapsed && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 bg-timr-orange rounded-full flex items-center justify-center text-white font-semibold">
                   {firstName.charAt(0)}
                   {lastName.charAt(0)}
                 </div>

@@ -441,57 +441,6 @@ export default function ManagerDashboard() {
         </Card>
       </div>
 
-      {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Gemiddeld per Dag
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.avgHoursPerDay.toFixed(1)}u
-                </p>
-              </div>
-              <Timer className="w-8 h-8 text-slate-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Actieve Projecten
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.activeProjects}
-                </p>
-              </div>
-              <Activity className="w-8 h-8 text-slate-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Vakantie Aanvragen
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.pendingVacations}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-slate-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Pending Approvals */}
         {stats.pendingApprovals > 0 && (

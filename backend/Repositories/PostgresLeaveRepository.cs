@@ -50,7 +50,8 @@ namespace ClockwiseProject.Backend.Repositories
                         reviewed_at AS ReviewedAt,
                         reviewed_by AS ReviewedBy,
                         COALESCE(rejection_reason, '') AS RejectionReason,
-                        updated_at AS UpdatedAt
+                        updated_at AS UpdatedAt,
+                        firebird_gc_ids AS FirebirdGcIds
                     FROM leave_requests_workflow
                     ORDER BY created_at DESC";
 
@@ -99,7 +100,8 @@ namespace ClockwiseProject.Backend.Repositories
                         reviewed_at AS ReviewedAt,
                         reviewed_by AS ReviewedBy,
                         COALESCE(rejection_reason, '') AS RejectionReason,
-                        updated_at AS UpdatedAt
+                        updated_at AS UpdatedAt,
+                        firebird_gc_ids AS FirebirdGcIds
                     FROM leave_requests_workflow
                     WHERE user_id = @UserId
                     ORDER BY created_at DESC";
@@ -136,7 +138,8 @@ namespace ClockwiseProject.Backend.Repositories
                         reviewed_at AS ReviewedAt,
                         reviewed_by AS ReviewedBy,
                         COALESCE(rejection_reason, '') AS RejectionReason,
-                        updated_at AS UpdatedAt
+                        updated_at AS UpdatedAt,
+                        firebird_gc_ids AS FirebirdGcIds
                     FROM leave_requests_workflow
                     WHERE id = @Id";
 
@@ -214,7 +217,8 @@ namespace ClockwiseProject.Backend.Repositories
                         status = @Status,
                         reviewed_at = @ReviewedAt,
                         reviewed_by = @ReviewedBy,
-                        rejection_reason = @RejectionReason
+                        rejection_reason = @RejectionReason,
+                        firebird_gc_ids = @FirebirdGcIds
                     WHERE id = @Id";
 
                 await connection.ExecuteAsync(sql, new
@@ -223,7 +227,8 @@ namespace ClockwiseProject.Backend.Repositories
                     vacationRequest.Status,
                     vacationRequest.ReviewedAt,
                     vacationRequest.ReviewedBy,
-                    vacationRequest.RejectionReason
+                    vacationRequest.RejectionReason,
+                    vacationRequest.FirebirdGcIds
                 });
 
                 _logger.LogInformation("Updated vacation request {Id} to status {Status}", vacationRequest.Id, vacationRequest.Status);

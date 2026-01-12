@@ -770,7 +770,7 @@ export default function TimeRegistrationPage() {
                 <button
                   onClick={saveAll}
                   disabled={saving}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                  className="px-5 py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
                 >
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>

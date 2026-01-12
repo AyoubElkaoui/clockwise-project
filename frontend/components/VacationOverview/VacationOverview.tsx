@@ -337,7 +337,7 @@ export default function VacationOverview(): React.JSX.Element {
 
             {/* Vacation Balance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                <div className="bg-timr-orange text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-blue-100 text-sm font-medium">{t("vacation.totalVacationHours")}</p>
@@ -348,7 +348,7 @@ export default function VacationOverview(): React.JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-success text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                <div className="bg-emerald-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm font-medium">{t("vacation.usedHours")}</p>
@@ -359,7 +359,7 @@ export default function VacationOverview(): React.JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                <div className="bg-amber-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-yellow-100 text-sm font-medium">{t("vacation.pending")}</p>
@@ -370,7 +370,7 @@ export default function VacationOverview(): React.JSX.Element {
                     </div>
                 </div>
 
-                <div className="bg-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+                <div className="bg-timr-blue text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-purple-100 text-sm font-medium">{t("vacation.available")}</p>
@@ -494,10 +494,10 @@ export default function VacationOverview(): React.JSX.Element {
             {/* Requests Table */}
             <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
                 <div className="card-body p-0">
-                    <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
+                    <div className="bg-slate-50 p-6 border-b border-slate-200">
                         <div className="flex items-center gap-3">
-                            <CalendarDaysIcon className="w-6 h-6 text-elmar-primary" />
-                            <h2 className="text-2xl font-bold text-gray-800">{t("vacation.myRequests")}</h2>
+                            <CalendarDaysIcon className="w-6 h-6 text-blue-600" />
+                            <h2 className="text-2xl font-bold text-slate-900">{t("vacation.myRequests")}</h2>
                         </div>
                     </div>
 
@@ -688,7 +688,7 @@ export default function VacationOverview(): React.JSX.Element {
 
             {/* Quick Actions */}
             {balance.remainingHours > 0 && (
-                <div className="bg-blue-600 text-white rounded-2xl p-6 text-center">
+                <div className="bg-timr-orange text-white rounded-2xl p-6 text-center">
                     <h3 className="text-2xl font-bold mb-2">{t("vacation.planVacation")}</h3>
                     <p className="mb-4">Je hebt nog <strong>{balance.remainingHours} uur</strong> ({balance.remainingHours / 8} dagen) vakantie over dit jaar.</p>
                     <button

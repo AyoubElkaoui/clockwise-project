@@ -29,6 +29,9 @@ namespace ClockwiseProject.Domain
         public DateTime? ReviewedAt { get; set; }
         public int? ReviewedBy { get; set; }
         
+        // Firebird integration - GC_IDs created in AT_URENBREG after approval
+        public int[]? FirebirdGcIds { get; set; }
+        
         // Timestamps
         public DateTime CreatedAt { get; set; }
         public DateTime? SubmittedAt { get; set; }

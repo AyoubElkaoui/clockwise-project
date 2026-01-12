@@ -425,7 +425,7 @@ export default function AdminCompaniesPage() {
                         />
 
                         {/* Company Logo/Avatar */}
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                        <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-semibold">
                           {(company.name || "C").charAt(0).toUpperCase()}
                         </div>
 

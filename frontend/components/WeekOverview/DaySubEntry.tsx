@@ -173,7 +173,7 @@ export default function DayEntry({
 
   const getStatusColor = (): string => {
     if (totalHours === 0)
-      return "border-gray-200 bg-gradient-to-r from-gray-50 to-white";
+      return "border-slate-200 bg-slate-50";
     if (totalHours >= 8) return "border-green-200 bg-blue-100";
     if (totalHours >= 4) return "border-yellow-200 bg-blue-100";
     return "border-orange-200 bg-blue-100";

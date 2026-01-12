@@ -69,7 +69,7 @@ export default function EmployeesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
           <p className="text-slate-600 dark:text-slate-400">
@@ -81,13 +81,13 @@ export default function EmployeesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                 Medewerkers
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -106,7 +106,7 @@ export default function EmployeesPage() {
               </Button>
               <Button
                 onClick={() => router.push("/admin")}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Terug naar Dashboard

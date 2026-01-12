@@ -129,7 +129,7 @@ function DayEntry({
 
   const getStatusColor = (): string => {
     if (totalHours === 0)
-      return "border-gray-200 bg-gradient-to-r from-gray-50 to-white";
+      return "border-slate-200 bg-slate-50";
     if (totalHours >= 8) return "border-green-200 bg-blue-100";
     if (totalHours >= 4) return "border-yellow-200 bg-blue-100";
     return "border-orange-200 bg-blue-100";
@@ -393,7 +393,7 @@ function DayEntry({
           {canEdit && (
             <button
               onClick={handleAddEntry}
-              className="btn btn-sm bg-blue-600 border-0 text-white w-full rounded-lg mt-3"
+              className="btn btn-sm bg-timr-orange border-0 text-white w-full rounded-lg mt-3"
             >
               <PlusIcon className="w-4 h-4 mr-1" />
               {entries.length === 0 ? t("week.addHours") : t("week.newEntry")}
@@ -760,7 +760,7 @@ export default function WeekOverview() {
   return (
     <div className="space-y-6">
       {/* Week Header */}
-      <div className="bg-blue-600 text-white rounded-2xl p-6 shadow-lg">
+      <div className="bg-timr-orange text-white rounded-2xl p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">

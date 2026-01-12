@@ -1,6 +1,15 @@
-// Design Tokens voor TIMR - Light & Dark Theme
+// Design Tokens voor timr. - Light & Dark Theme
+// Based on timr. logo colors
 export const designTokens = {
   colors: {
+    // Timr brand colors (from logo)
+    brand: {
+      primary: '#FF6B35',      // Oranje (main brand color)
+      secondary: '#00A8E8',    // Blauw 
+      accent: '#FFC857',       // Geel
+      success: '#10B981',      // Groen
+      dark: '#1A1A2E',         // Donkerblauw/zwart
+    },
     // Light Theme
     light: {
       background: {
@@ -20,19 +29,19 @@ export const designTokens = {
         secondary: '#cbd5e1',
       },
       brand: {
-        primary: '#3b82f6',
-        hover: '#2563eb',
-        light: '#dbeafe',
+        primary: '#FF6B35',      // Timr oranje
+        hover: '#E55A28',
+        light: '#FFE5DD',
       },
       status: {
         success: '#10b981',
         successLight: '#d1fae5',
-        warning: '#f59e0b',
-        warningLight: '#fef3c7',
+        warning: '#FFC857',      // Timr geel
+        warningLight: '#FFF4D6',
         error: '#ef4444',
         errorLight: '#fee2e2',
-        info: '#3b82f6',
-        infoLight: '#dbeafe',
+        info: '#00A8E8',         // Timr blauw
+        infoLight: '#CCF0FF',
       },
     },
     // Dark Theme
@@ -54,19 +63,19 @@ export const designTokens = {
         secondary: '#475569',
       },
       brand: {
-        primary: '#3b82f6',
-        hover: '#60a5fa',
-        light: '#1e3a8a',
+        primary: '#FF6B35',      // Timr oranje
+        hover: '#FF8A5B',
+        light: '#4A2617',
       },
       status: {
         success: '#10b981',
         successLight: '#064e3b',
-        warning: '#f59e0b',
-        warningLight: '#78350f',
+        warning: '#FFC857',      // Timr geel
+        warningLight: '#4A3A17',
         error: '#ef4444',
         errorLight: '#7f1d1d',
-        info: '#3b82f6',
-        infoLight: '#1e3a8a',
+        info: '#00A8E8',         // Timr blauw
+        infoLight: '#0A3A4A',
       },
     },
   },

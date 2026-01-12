@@ -1904,7 +1904,7 @@ function TimeEntryCard({
           )}
 
           {/* User Avatar */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-xs">
             {entry.user?.firstName?.charAt(0)}
             {entry.user?.lastName?.charAt(0)}
           </div>
