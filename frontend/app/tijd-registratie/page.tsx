@@ -205,8 +205,14 @@ export default function TimeRegistrationPage() {
 
   const loadUserAllowedTasks = async () => {
     try {
-      const response = await axios.get('/api/users/me');
-      setUserAllowedTasks(response.data.allowedTasks || 'BOTH');
+      // Get from localStorage (already set during login)
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setUserAllowedTasks(user.allowed_tasks || 'BOTH');
+      } else {
+        setUserAllowedTasks('BOTH'); // Default to both if not found
+      }
     } catch (error) {
       console.error('Fout bij laden user allowed tasks:', error);
       setUserAllowedTasks('BOTH'); // Default to both if fetch fails
