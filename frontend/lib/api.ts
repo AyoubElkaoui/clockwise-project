@@ -3,16 +3,12 @@ import { TimeEntry, User } from "./types";
 
 /**
  * Dynamische API URL:
- * - Client-side → NEXT_PUBLIC_API_URL
- * - Fallback to relative /api for local development
+ * - Client-side → NEXT_PUBLIC_API_URL (direct, zonder /api suffix)
  */
-const baseURL = process.env.NEXT_PUBLIC_API_URL || process.env.INTERNAL_API_URL || "";
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-// Fallback to relative /api when no base is set
-const cleanBase = baseURL ? baseURL.replace(/\/$/, "") : "";
-
-// Backend always uses /api prefix
-export const API_URL = cleanBase ? `${cleanBase}/api` : "/api";
+// Remove trailing slash
+export const API_URL = baseURL.replace(/\/$/, "");
 
 // Set default axios headers
 axios.defaults.headers.common["Content-Type"] = "application/json";

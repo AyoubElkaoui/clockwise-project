@@ -17,7 +17,8 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import { getVacationRequests, registerVacationRequest } from "@/lib/api";
+import { getVacationRequests } from "@/lib/api";
+import { registerVacationRequest } from "@/lib/api/vacationApi";
 import dayjs from "dayjs";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";

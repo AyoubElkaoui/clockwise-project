@@ -14,10 +14,10 @@ import {
   Award,
 } from "lucide-react";
 import {
-  getEnrichedTimeEntries,
   getVacationRequests,
   getActivities,
 } from "@/lib/api";
+import { getDrafts, getSubmitted } from "@/lib/api/workflowApi";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
@@ -49,6 +49,13 @@ export default function Dashboard() {
     loadDashboardData();
   }, []);
 
+  const getCurrentPeriodId = () => {
+    const now = dayjs();
+    const year = now.year();
+    const month = now.month() + 1;
+    return year * 100 + month;
+  };
+
   const loadDashboardData = async () => {
     try {
       const userId = authUtils.getUserId();
@@ -59,54 +66,42 @@ export default function Dashboard() {
       const userName = authUtils.getUserName();
       setFirstName(userName?.firstName || t("dashboard.defaultUserName"));
 
-      // Load time entries
-      const entries = await getEnrichedTimeEntries();
-      const userEntries = entries.filter((e: any) => e.userId === userId);
+      // Load time entries from workflow API
+      const urenperGcId = getCurrentPeriodId();
+      const [drafts, submitted] = await Promise.all([
+        getDrafts(urenperGcId),
+        getSubmitted(urenperGcId),
+      ]);
+      const allEntries = [...drafts, ...submitted];
 
       // Calculate week hours
       const weekStart = dayjs().startOf("isoWeek");
       const weekEnd = dayjs().endOf("isoWeek");
-      const weekEntries = userEntries.filter((e: any) => {
-        const date = dayjs(e.startTime || e.date);
+      const weekEntries = allEntries.filter((e: any) => {
+        const date = dayjs(e.datum);
         return date.isBetween(weekStart, weekEnd, null, "[]");
       });
-      const weekHours = weekEntries.reduce((sum: number, e: any) => {
-        if (e.startTime && e.endTime) {
-          const diff =
-            dayjs(e.endTime).diff(dayjs(e.startTime), "minute") -
-            (e.breakMinutes || 0);
-          return sum + diff / 60;
-        }
-        return sum + (e.hours || 0);
-      }, 0);
+      const weekHours = weekEntries.reduce((sum: number, e: any) => sum + (e.aantal || 0), 0);
 
       // Calculate month hours
       const monthStart = dayjs().startOf("month");
       const monthEnd = dayjs().endOf("month");
-      const monthEntries = userEntries.filter((e: any) => {
-        const date = dayjs(e.startTime || e.date);
+      const monthEntries = allEntries.filter((e: any) => {
+        const date = dayjs(e.datum);
         return date.isBetween(monthStart, monthEnd, null, "[]");
       });
-      const monthHours = monthEntries.reduce((sum: number, e: any) => {
-        if (e.startTime && e.endTime) {
-          const diff =
-            dayjs(e.endTime).diff(dayjs(e.startTime), "minute") -
-            (e.breakMinutes || 0);
-          return sum + diff / 60;
-        }
-        return sum + (e.hours || 0);
-      }, 0);
+      const monthHours = monthEntries.reduce((sum: number, e: any) => sum + (e.aantal || 0), 0);
 
-      // Pending approvals
-      const pending = userEntries.filter(
-        (e: any) => e.status === "ingeleverd",
+      // Pending approvals - check SUBMITTED status
+      const pending = allEntries.filter(
+        (e: any) => e.status === "SUBMITTED",
       ).length;
 
       // Recent entries (last 5)
-      const recent = userEntries
+      const recent = allEntries
         .sort((a: any, b: any) => {
-          const dateA = dayjs(a.startTime || a.date);
-          const dateB = dayjs(b.startTime || b.date);
+          const dateA = dayjs(a.datum);
+          const dateB = dayjs(b.datum);
           return dateB.diff(dateA);
         })
         .slice(0, 5);

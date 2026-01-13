@@ -154,14 +154,33 @@ const adminMenuItems: MenuItem[] = [
 /* ======================
    Component
 ====================== */
-export function ModernSidebar() {
+export function ModernSidebar({ 
+  collapsed: externalCollapsed, 
+  onToggle 
+}: { 
+  collapsed?: boolean; 
+  onToggle?: (collapsed: boolean) => void;
+}) {
   const pathname = usePathname();
   const { t } = useTranslation();
   const router = useRouter();
   const { theme } = useTheme();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(externalCollapsed || false);
   const [mounted, setMounted] = useState(false);
+
+  // Sync with external collapsed state
+  useEffect(() => {
+    if (externalCollapsed !== undefined) {
+      setCollapsed(externalCollapsed);
+    }
+  }, [externalCollapsed]);
+
+  const toggleCollapsed = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    onToggle?.(newState);
+  };
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -272,7 +291,7 @@ export function ModernSidebar() {
 
             {/* Collapse button */}
             <button
-              onClick={() => setCollapsed((v) => !v)}
+              onClick={toggleCollapsed}
               className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               aria-label="Toggle sidebar"
             >

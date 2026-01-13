@@ -1,7 +1,7 @@
 // API calls voor workflow (draft/submit/approve/reject)
 import axios from "axios";
 
-const API_URL = "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // Ensure X-MEDEW-GC-ID header is set
 axios.interceptors.request.use((request) => {
@@ -70,8 +70,15 @@ export interface ReviewTimeEntriesRequest {
   rejectionReason?: string;
 }
 
+export interface DraftResponse {
+  success: boolean;
+  message: string;
+  entry: WorkflowEntry;
+  warnings?: string[];
+}
+
 // Save or update a draft
-export async function saveDraft(data: SaveDraftRequest): Promise<WorkflowEntry> {
+export async function saveDraft(data: SaveDraftRequest): Promise<DraftResponse> {
   const response = await axios.post(`${API_URL}/workflow/draft`, data);
   return response.data;
 }

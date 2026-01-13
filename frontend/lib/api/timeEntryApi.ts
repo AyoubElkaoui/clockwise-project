@@ -33,8 +33,7 @@ function transformTimeEntries(raw: any[]): TimeEntryAPI[] {
   });
 }
 
-// Align with main api.ts: prefer same-origin on the client, internal URL on server
-const API_URL = "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 axios.defaults.headers.common["Content-Type"] = "application/json";
 axios.interceptors.request.use((request) => {

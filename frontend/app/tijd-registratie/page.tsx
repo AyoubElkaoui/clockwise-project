@@ -58,6 +58,8 @@ interface TimeEntry {
   projectId: number;
   hours: number;
   taskType?: 'MONTAGE' | 'TEKENKAMER'; // User's choice of task type
+  eveningNightHours?: number;
+  travelHours?: number;
   distanceKm?: number;
   travelCosts?: number;
   otherExpenses?: number;
@@ -295,9 +297,9 @@ export default function TimeRegistrationPage() {
             const entryWithProject = allEntries.find((e: any) => e.werkGcId === projectId);
             newRows.push({
               companyId: 0,
-              companyName: entryWithProject?.companyName || "Altum Projects B.V.",
+              companyName: "Altum Projects B.V.",
               projectGroupId: 0,
-              projectGroupName: entryWithProject?.projectGroupName || "",
+              projectGroupName: "",
               projectId: projectId,
               projectName: entryWithProject?.werkDescription || entryWithProject?.werkCode || `Project ${projectId}`,
             });
@@ -469,7 +471,7 @@ export default function TimeRegistrationPage() {
   };
 
   const getTotalDay = (date: string) =>
-    Object.values(entries)
+    (Object.values(entries) as TimeEntry[])
       .filter((e) => e.date === date)
       .reduce((sum, e) => sum + (e.hours || 0), 0);
 
@@ -484,14 +486,14 @@ export default function TimeRegistrationPage() {
 
   // KM totals
   const getTotalKmDay = (date: string) =>
-    Object.values(entries)
+    (Object.values(entries) as TimeEntry[])
       .filter((e) => e.date === date)
-      .reduce((sum, e) => sum + (e.km || 0), 0);
+      .reduce((sum, e) => sum + (e.distanceKm || 0), 0);
 
   const getTotalKmProject = (projectId: number) =>
     weekDays.reduce((sum, day) => {
       const key = `${formatDate(day)}-${projectId}`;
-      return sum + (entries[key]?.km || 0);
+      return sum + (entries[key]?.distanceKm || 0);
     }, 0);
 
   const getTotalKmWeek = () =>
@@ -499,14 +501,15 @@ export default function TimeRegistrationPage() {
 
   // Expenses totals
   const getTotalExpensesDay = (date: string) =>
-    Object.values(entries)
+    (Object.values(entries) as TimeEntry[])
       .filter((e) => e.date === date)
-      .reduce((sum, e) => sum + (e.expenses || 0), 0);
+      .reduce((sum, e) => sum + ((e.travelCosts || 0) + (e.otherExpenses || 0)), 0);
 
   const getTotalExpensesProject = (projectId: number) =>
     weekDays.reduce((sum, day) => {
       const key = `${formatDate(day)}-${projectId}`;
-      return sum + (entries[key]?.expenses || 0);
+      const entry = entries[key];
+      return sum + ((entry?.travelCosts || 0) + (entry?.otherExpenses || 0));
     }, 0);
 
   const getTotalExpensesWeek = () =>
@@ -548,7 +551,7 @@ export default function TimeRegistrationPage() {
     try {
       // Validate total hours per day
       const dayTotals: Record<string, number> = {};
-      Object.values(entries).forEach(e => {
+      (Object.values(entries) as TimeEntry[]).forEach(e => {
         if (e.hours > 0) {
           dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
         }
@@ -560,7 +563,7 @@ export default function TimeRegistrationPage() {
         return;
       }
 
-      const toSave = Object.values(entries)
+      const toSave = (Object.values(entries) as TimeEntry[])
         .filter((e: TimeEntry) => e.hours > 0)
         .filter((e: TimeEntry) => !isClosedDay(e.date));
 
@@ -623,7 +626,7 @@ export default function TimeRegistrationPage() {
     try {
       // Validate total hours per day
       const dayTotals: Record<string, number> = {};
-      Object.values(entries).forEach((e: TimeEntry) => {
+      (Object.values(entries) as TimeEntry[]).forEach((e: TimeEntry) => {
         if (e.hours > 0) {
           dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
         }
@@ -636,7 +639,7 @@ export default function TimeRegistrationPage() {
         return;
       }
 
-      const toSave = Object.values(entries)
+      const toSave = (Object.values(entries) as TimeEntry[])
         .filter((e: TimeEntry) => e.hours > 0)
         .filter((e: TimeEntry) => !isClosedDay(e.date));
 
