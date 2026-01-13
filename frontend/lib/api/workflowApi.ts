@@ -1,7 +1,6 @@
 // API calls voor workflow (draft/submit/approve/reject)
 import axios from "axios";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { API_URL } from "../api";
 
 // Ensure X-MEDEW-GC-ID header is set
 axios.interceptors.request.use((request) => {
