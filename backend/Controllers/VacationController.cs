@@ -42,12 +42,9 @@ namespace ClockwiseProject.Backend.Controllers
 
             try
             {
-                // Temporarily get all requests to debug
-                var allRequests = await _vacationService.GetAllVacationRequestsAsync();
-                _logger.LogInformation("Found {Count} total vacation requests", allRequests.Count());
-
-                var requests = await _vacationService.GetVacationRequestsByUserIdAsync(medewGcId.Value);
-                _logger.LogInformation("Found {Count} vacation requests for user {UserId}", requests.Count(), medewGcId.Value);
+                // Get ALL vacation requests (no filtering needed, backend returns user's requests)
+                var requests = await _vacationService.GetVacationRequestsByMedewGcIdAsync(medewGcId.Value);
+                _logger.LogInformation("Found {Count} vacation requests for medewGcId {MedewGcId}", requests.Count(), medewGcId.Value);
                 return Ok(requests);
             }
             catch (Exception ex)

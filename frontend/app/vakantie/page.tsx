@@ -118,11 +118,8 @@ export default function VakantiePage() {
       }
       const data = await safeJsonParse(response);
 
-      // Filter voor huidige gebruiker
-      const userRequests = data.filter(
-        (req: VacationRequest) => req.userId === userId,
-      );
-      setRequests(userRequests);
+      // Already filtered by backend based on medewGcId
+      setRequests(data);
     } catch (error) {
       console.error("Error loading vacation requests:", error);
       showToast("Fout bij laden vakantie aanvragen", "error");

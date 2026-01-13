@@ -117,6 +117,59 @@ namespace ClockwiseProject.Backend.Repositories
             }
         }
 
+        public async Task<IEnumerable<VacationRequest>> GetByMedewGcIdAsync(int medewGcId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                // First check if table exists
+                var tableExists = await connection.ExecuteScalarAsync<bool>(@"
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'leave_requests_workflow'
+                    )");
+
+                if (!tableExists)
+                {
+                    _logger.LogWarning("Table leave_requests_workflow does not exist, returning empty list");
+                    return new List<VacationRequest>();
+                }
+
+                var sql = @"
+                    SELECT
+                        id AS Id,
+                        medew_gc_id AS UserId,
+                        start_date AS StartDate,
+                        end_date AS EndDate,
+                        'vacation' AS VacationType,
+                        ROUND(total_hours / 8.0, 1) AS TotalDays,
+                        COALESCE(total_hours, 0) AS Hours,
+                        COALESCE(description, '') AS Reason,
+                        COALESCE(description, '') AS Notes,
+                        COALESCE(status, 'DRAFT') AS Status,
+                        created_at AS CreatedAt,
+                        submitted_at AS SubmittedAt,
+                        reviewed_at AS ReviewedAt,
+                        reviewed_by AS ReviewedBy,
+                        COALESCE(rejection_reason, '') AS RejectionReason,
+                        updated_at AS UpdatedAt,
+                        firebird_gc_ids AS FirebirdGcIds
+                    FROM leave_requests_workflow
+                    WHERE medew_gc_id = @MedewGcId
+                    ORDER BY created_at DESC";
+
+                var result = await connection.QueryAsync<VacationRequest>(sql, new { MedewGcId = medewGcId });
+                _logger.LogInformation("Found {Count} vacation requests for medewGcId {MedewGcId}", result.Count(), medewGcId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting vacation requests for medewGcId {MedewGcId}", medewGcId);
+                return new List<VacationRequest>(); // Return empty list instead of throwing
+            }
+        }
+
         public async Task<VacationRequest> GetByIdAsync(int id)
         {
             try
