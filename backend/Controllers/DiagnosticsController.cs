@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using ClockwiseProject.Backend;
+using ClockwiseProject.Backend.Data;
 using backend.Repositories;
 
 namespace backend.Controllers;

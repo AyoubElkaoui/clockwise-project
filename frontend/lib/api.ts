@@ -3,12 +3,12 @@ import { TimeEntry, User } from "./types";
 
 /**
  * Dynamische API URL:
- * - Client-side → NEXT_PUBLIC_API_URL (direct, zonder /api suffix)
+ * - Client-side → NEXT_PUBLIC_API_URL/api (ngrok heeft /api routes)
  */
 const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-// Remove trailing slash
-export const API_URL = baseURL.replace(/\/$/, "");
+// Add /api suffix for backend routes
+export const API_URL = `${baseURL.replace(/\/$/, "")}/api`;
 
 // Set default axios headers
 axios.defaults.headers.common["Content-Type"] = "application/json";
