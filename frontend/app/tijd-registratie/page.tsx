@@ -1269,10 +1269,11 @@ export default function TimeRegistrationPage() {
                           <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
                             <div />
                             <div>
-                              <div className="text-xs text-slate-500">
-                                {row.companyName} › {row.projectGroupName}
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5 font-medium">
+                                {row.companyName}
+                                {row.projectGroupName && ` › ${row.projectGroupName}`}
                               </div>
-                              <div className="font-medium mb-2">
+                              <div className="font-semibold text-base text-slate-800 dark:text-slate-100 mb-2">
                                 {row.projectName}
                               </div>
                               <div className="flex gap-2">
@@ -1307,30 +1308,6 @@ export default function TimeRegistrationPage() {
                                   key={`week-entry-${date}-${row.projectId}`}
                                   className={"space-y-1 p-2 rounded " + getEntryClassName(entry.status)}
                                 >
-                                  {/* Kopie/Plak knoppen */}
-                                  {!isDisabled && (
-                                    <div className="flex gap-1 mb-1">
-                                      <button
-                                        onClick={() =>
-                                          copyCell(row.projectId, date)
-                                        }
-                                        className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
-                                        title="Kopieer cel"
-                                      >
-                                        <Copy className="w-3 h-3 mx-auto" />
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          pasteCell(row.projectId, date)
-                                        }
-                                        className="flex-1 p-0.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded border border-slate-300 dark:border-slate-700"
-                                        title="Plak cel"
-                                      >
-                                        <Clipboard className="w-3 h-3 mx-auto" />
-                                      </button>
-                                    </div>
-                                  )}
-
                                   {/* Task type selector (alleen voor users met BOTH) */}
                                   {shouldShowTaskDropdown() && !isDisabled && (
                                     <select
@@ -1343,7 +1320,7 @@ export default function TimeRegistrationPage() {
                                           e.target.value as 'MONTAGE' | 'TEKENKAMER',
                                         )
                                       }
-                                      className="w-full px-2 py-1 mb-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700"
+                                      className="w-full px-2 py-1.5 mb-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
                                       title="Selecteer taaktype"
                                     >
                                       <option value="MONTAGE">⚙️ Montage</option>
@@ -1351,68 +1328,40 @@ export default function TimeRegistrationPage() {
                                     </select>
                                   )}
 
-                                  {/* Taaktype indicator (voor users met MONTAGE_ONLY of TEKENKAMER_ONLY) */}
-                                  {!shouldShowTaskDropdown() && entry.hours > 0 && (
-                                    <div className="mb-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs text-center font-medium flex items-center justify-center gap-1">
-                                      {userAllowedTasks === 'MONTAGE_ONLY' ? (
-                                        <><Wrench className="w-3 h-3" />Montage</>
-                                      ) : (
-                                        <><Ruler className="w-3 h-3" />Tekenkamer</>
-                                      )}
-                                    </div>
-                                  )}
+                                  {/* Uren input (groot en prominent) */}
+                                  <div className="mb-2">
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
+                                    <input
+                                      type="number"
+                                      step="0.5"
+                                      min="0"
+                                      max="24"
+                                      value={entry.hours || ""}
+                                      onChange={(e) =>
+                                        updateEntry(
+                                          row.projectId,
+                                          date,
+                                          "hours",
+                                          parseFloat(e.target.value) || 0,
+                                        )
+                                      }
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2.5 border rounded-lg text-center text-xl font-bold", entry.status)}
+                                      placeholder="0"
+                                      title={
+                                        isClosed
+                                          ? "Gesloten dag - geen uren registratie mogelijk"
+                                          : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
+                                          : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
+                                          : "Gewerkte uren"
+                                      }
+                                    />
+                                  </div>
 
-                                  {/* Hoofd uren veld (altijd zichtbaar) */}
-                                  <input
-                                    type="number"
-                                    step="0.5"
-                                    min="0"
-                                    max="24"
-                                    value={entry.hours || ""}
-                                    onChange={(e) =>
-                                      updateEntry(
-                                        row.projectId,
-                                        date,
-                                        "hours",
-                                        parseFloat(e.target.value) || 0,
-                                      )
-                                    }
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
-                                    placeholder="0"
-                                    title={
-                                      isClosed
-                                        ? "Gesloten dag - geen uren registratie mogelijk"
-                                        : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                        : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                        : "Gewerkte uren"
-                                    }
-                                  />
-
-                                  {/* Snel overzicht (als er data is) */}
-                                  {(entry.distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes) && (
-                                    <div className="flex flex-wrap gap-1 text-xs">
-                                      {entry.distanceKm > 0 && <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded flex items-center gap-1"><Car className="w-3 h-3" />{entry.distanceKm}km</span>}
-                                      {entry.travelCosts > 0 && <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded flex items-center gap-1"><Ticket className="w-3 h-3" />€{entry.travelCosts}</span>}
-                                      {entry.otherExpenses > 0 && <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded flex items-center gap-1"><Euro className="w-3 h-3" />€{entry.otherExpenses}</span>}
-                                      {entry.notes && <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded flex items-center gap-1"><FileText className="w-3 h-3" /></span>}
-                                    </div>
-                                  )}
-
-                                  {/* Details knop */}
-                                  {!isDisabled && (
-                                    <button
-                                      onClick={() => toggleCellExpanded(row.projectId, date)}
-                                      className="w-full mt-1 p-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1"
-                                    >
-                                      <ChevronDown className={`w-3 h-3 transition-transform ${isCellExpanded(row.projectId, date) ? 'rotate-180' : ''}`} />
-                                      {isCellExpanded(row.projectId, date) ? 'Minder' : 'Details'}
-                                    </button>
-                                  )}
-
-                                  {/* Uitklapbare details */}
-                                  {isCellExpanded(row.projectId, date) && (
-                                    <div className="space-y-1 pt-1 border-t border-slate-200 dark:border-slate-600">
+                                  {/* Kilometers (altijd zichtbaar, compact) */}
+                                  <div className="mb-1">
+                                    <div className="flex items-center gap-2">
+                                      <Car className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="1"
@@ -1427,10 +1376,17 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                        placeholder="Afstand (km)"
+                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                        placeholder="km"
                                         title="Afstand in kilometers"
                                       />
+                                    </div>
+                                  </div>
+
+                                  {/* Reiskosten (altijd zichtbaar, compact) */}
+                                  <div className="mb-1">
+                                    <div className="flex items-center gap-2">
+                                      <Ticket className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1445,10 +1401,17 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                        placeholder="Reiskosten (€)"
+                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                        placeholder="€ reis"
                                         title="Reiskosten (OV, taxi, parkeren)"
                                       />
+                                    </div>
+                                  </div>
+
+                                  {/* Onkosten (altijd zichtbaar, compact) */}
+                                  <div className="mb-1">
+                                    <div className="flex items-center gap-2">
+                                      <Euro className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1463,12 +1426,32 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                        placeholder="Onkosten (€)"
+                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                        placeholder="€ onkosten"
                                         title="Onkosten (materiaal, maaltijden)"
                                       />
-                                      <input
-                                        type="text"
+                                    </div>
+                                  </div>
+
+                                  {/* Notities (klikbaar veld) */}
+                                  {!isDisabled && (
+                                    <button
+                                      onClick={() => toggleCellExpanded(row.projectId, date)}
+                                      className="w-full mt-1 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-colors"
+                                    >
+                                      <FileText className="w-3.5 h-3.5" />
+                                      {entry.notes ? (
+                                        <span className="font-medium">Notitie</span>
+                                      ) : (
+                                        <span>+ Notitie</span>
+                                      )}
+                                    </button>
+                                  )}
+
+                                  {/* Uitklapbare notities sectie */}
+                                  {isCellExpanded(row.projectId, date) && (
+                                    <div className="mt-2 p-2 border-t border-slate-200 dark:border-slate-600">
+                                      <textarea
                                         value={entry.notes || ""}
                                         onChange={(e) =>
                                           updateEntry(
@@ -1479,8 +1462,9 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1 border rounded text-xs", entry.status)}
-                                        placeholder="Opmerking"
+                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-xs resize-none", entry.status)}
+                                        placeholder="Notities..."
+                                        rows={3}
                                         title="Notities"
                                       />
                                     </div>
