@@ -33,7 +33,7 @@ function transformTimeEntries(raw: any[]): TimeEntryAPI[] {
   });
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { API_URL } from "../api";
 
 axios.defaults.headers.common["Content-Type"] = "application/json";
 axios.interceptors.request.use((request) => {
