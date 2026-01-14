@@ -278,9 +278,6 @@ export default function Navbar(): JSX.Element {
             "
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-
-      {/* Mobile Navigation Drawer */}
-      <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
             {mobileMenuOpen ? (
               <XMarkIcon className="w-6 h-6" />
             ) : (
@@ -289,6 +286,9 @@ export default function Navbar(): JSX.Element {
           </button>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </nav>
   );
 }

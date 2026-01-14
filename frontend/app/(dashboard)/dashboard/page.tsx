@@ -201,7 +201,7 @@ export default function Dashboard() {
     stats.weekHours >= (stats.weekTarget / 7) * dayjs().isoWeekday();
 
   return (
-    <div className="space-y-4 md:space-y-6 w-full max-w-7xl mx-auto pb-32 md:pb-20">
+    <div className="space-y-4 md:space-y-6 pb-24">
       {/* Welcome Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
@@ -504,29 +504,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Altum Logo - Rechts onderaan */}
-      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-10">
-        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl p-3 md:p-6 border border-slate-200 dark:border-slate-700">
-          <div className="text-center space-y-1 md:space-y-2">
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Powered by</p>
-            <Image
-              src="/altum-logo.png"
-              alt="Altum Logo"
-              width={160}
-              height={60}
-              className="w-24 md:w-40 h-auto dark:hidden"
-              priority
-            />
-            <Image
-              src="/altum-logo-white.png"
-              alt="Altum Logo"
-              width={160}
-              height={60}
-              className="w-24 md:w-40 h-auto hidden dark:block"
-              priority
-            />
-          </div>
-        </div>
+      {/* Altum Logo - Klein rechts onderaan */}
+      <div className="fixed bottom-4 right-4 z-10">
+        <Image
+          src="/altum-logo.png"
+          alt="Altum Logo"
+          width={80}
+          height={30}
+          className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity dark:hidden"
+          priority
+        />
+        <Image
+          src="/altum-logo-white.png"
+          alt="Altum Logo"
+          width={80}
+          height={30}
+          className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity hidden dark:block"
+          priority
+        />
       </div>
     </div>
   );
