@@ -148,7 +148,7 @@ export function ManagerSidebar({
       className={cn(
         "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50 transition-all duration-300",
         "hidden md:block",
-        collapsed ? "w-20" : "w-72",
+        collapsed ? "w-20" : "w-64",
       )}
     >
       <div className="flex flex-col h-full">

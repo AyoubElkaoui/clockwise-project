@@ -48,6 +48,13 @@ builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionSt
 // Configure PostgreSQL (Supabase) connection
 builder.Services.AddSingleton<ClockwiseProject.Backend.Data.PostgreSQLConnectionFactory>();
 
+// Register IDbConnection for Dapper (PostgreSQL)
+builder.Services.AddScoped<System.Data.IDbConnection>(sp =>
+{
+    var factory = sp.GetRequiredService<ClockwiseProject.Backend.Data.PostgreSQLConnectionFactory>();
+    return factory.CreateConnection();
+});
+
 // Configure Postgres EF Core DbContext (needed by some repositories)
 // DISABLED: EF Core packages removed, using Dapper instead
 // var postgresConnectionString = builder.Configuration.GetConnectionString("PostgreSQL");
