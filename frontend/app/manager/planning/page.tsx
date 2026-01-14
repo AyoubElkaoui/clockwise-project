@@ -102,49 +102,54 @@ export default function ManagerPlanningPage() {
 
   const loadPlanningData = async () => {
     try {
+      setLoading(true);
       const managerId = authUtils.getUserId();
       if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
 
-      // Get current period
-      const periods = await getPeriods();
-      const now = dayjs();
-      const period = periods.find((p: any) => {
-        const start = dayjs(p.startDate);
-        const end = dayjs(p.endDate);
-        return now.isSameOrAfter(start) && now.isSameOrBefore(end);
-      });
+      console.log("Loading planning data for manager:", managerId);
 
-      if (!period) {
-        showToast("Geen actieve periode gevonden", "error");
-        setLoading(false);
-        return;
-      }
+      // Get current period
+      const currentPeriodId = await getCurrentPeriodId();
+      console.log("Current period ID:", currentPeriodId);
 
       // Load team members, workflow entries, and vacation requests
       const [users, workflowResponse, allVacations] = await Promise.all([
         getAllUsers(),
-        getAllWorkflowEntries(period.gcId),
+        getAllWorkflowEntries(currentPeriodId),
         getAllVacationRequests()
       ]);
 
+      console.log("Loaded users:", users.length);
+      console.log("Loaded workflow entries:", workflowResponse.entries?.length || 0);
+      console.log("Loaded vacations:", allVacations.length);
+
+      // Filter team members by managerId
       const team = users.filter((u: any) => u.managerId === managerId);
+      console.log("Team members filtered:", team.length, team);
       setTeamMembers(team);
       
       // Convert workflow entries
-      const entries = workflowResponse.entries.map((e: any) => ({
+      const entries = (workflowResponse.entries || []).map((e: any) => ({
+        id: e.id,
         userId: e.medewGcId,
-        date: e.datum,
-        hours: e.aantal,
+        user: users.find((u: any) => u.id === e.medewGcId || u.medewGcId === e.medewGcId),
+        projectId: e.werkGcId,
+        project: { name: e.werkDescription },
+        startTime: e.datum,
+        endTime: e.datum,
+        breakMinutes: 0,
         status: e.status,
       }));
+      console.log("Converted entries:", entries.length);
       setTimeEntries(entries);
 
       // Filter vacations for team members only
       const teamIds = team.map((u: any) => u.id || u.medewGcId);
       const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
+      console.log("Team vacations:", vacationsData.length);
       setVacations(vacationsData);
 
       // Load holidays (Dutch national holidays for current year)
@@ -154,9 +159,13 @@ export default function ManagerPlanningPage() {
 
       // Load closed days (placeholder - would come from API)
       setClosedDays([]);
+      
+      if (team.length === 0) {
+        showToast("Geen teamleden gevonden. Controleer manager_assignments tabel.", "error");
+      }
     } catch (error) {
       console.error("Planning load error:", error);
-      showToast("Fout bij laden planning", "error");
+      showToast("Fout bij laden planning: " + (error instanceof Error ? error.message : "Onbekende fout"), "error");
     } finally {
       setLoading(false);
     }
@@ -728,7 +737,44 @@ export default function ManagerPlanningPage() {
   })();
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex items-center justify-center h-96">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!loading && teamMembers.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Team Planning
+          </h1>
+          <p className="text-slate-700 dark:text-slate-300 mt-1">
+            Overzicht van team uren en beschikbaarheid
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="w-16 h-16 text-slate-400 mb-4" />
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                Geen Teamleden Gevonden
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 text-center max-w-md">
+                Er zijn nog geen teamleden aan jou toegewezen. Neem contact op met een administrator om teamleden toe te voegen aan de manager_assignments tabel.
+              </p>
+              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Tip:</strong> Teamleden worden toegewezen via de manager_assignments tabel in de database.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -737,10 +783,10 @@ export default function ManagerPlanningPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Team Workload
+            Team Planning
           </h1>
           <p className="text-slate-700 dark:text-slate-300 mt-1">
-            Overzicht van team uren en beschikbaarheid
+            {teamMembers.length} teamleden • Overzicht van uren en beschikbaarheid
           </p>
         </div>
         <div className="flex gap-3">
