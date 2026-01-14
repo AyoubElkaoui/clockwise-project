@@ -715,11 +715,11 @@ export default function TimeRegistrationPage() {
               {toast.type === "success" ? "✓" : "✕"}
             </span>
             <span className="font-medium">{toast.message}</span>
-              </div>
-            </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
+      <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
             <div className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
