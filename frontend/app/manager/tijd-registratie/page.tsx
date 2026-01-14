@@ -703,7 +703,7 @@ export default function TimeRegistrationPage() {
   };
 
   return (
-    <div className="bg-light-bg dark:bg-dark-bg">
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
       {toast && (
         <div
           className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
@@ -804,8 +804,8 @@ export default function TimeRegistrationPage() {
             </div>
           </div>
 
-          <div className="flex">
-            <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg max-h-[calc(100vh-10rem)]">
+          <div className="flex h-[calc(100vh-5rem)]">
+            <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
               <div className="p-4 space-y-1">
                 {companies.map((company) => (
                   <div key={company.id}>
