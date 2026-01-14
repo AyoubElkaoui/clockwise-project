@@ -1,4 +1,4 @@
-import { API_URL } from "./index";
+import { API_URL } from "../api";
 import authUtils from "../auth-utils";
 
 export interface Holiday {

@@ -201,14 +201,14 @@ export default function ManagerTeamPage() {
   };
 
   const getActivityStatus = (lastActivity: any) => {
-    if (!lastActivity)
+    if (!lastActivity || !dayjs(lastActivity).isValid())
       return {
         status: "Inactief",
         color: "text-slate-500",
         bg: "bg-slate-100",
       };
 
-    const daysSince = dayjs().diff(lastActivity, "day");
+    const daysSince = dayjs().diff(dayjs(lastActivity), "day");
     if (daysSince === 0)
       return {
         status: "Actief vandaag",

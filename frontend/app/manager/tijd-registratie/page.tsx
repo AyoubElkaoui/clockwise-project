@@ -28,8 +28,7 @@ import {
   getProjects,
 } from "@/lib/api/companyApi";
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ModernLayout from "@/components/ModernLayout";
+import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 
 interface Company {
   id: number;
@@ -704,20 +703,18 @@ export default function TimeRegistrationPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <ModernLayout>
-        <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
-          {toast && (
-            <div
-              className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
-                toast.type === "success" ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">
-                  {toast.type === "success" ? "✓" : "✕"}
-                </span>
-                <span className="font-medium">{toast.message}</span>
+    <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
+            toast.type === "success" ? "bg-green-500" : "bg-red-500"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">
+              {toast.type === "success" ? "✓" : "✕"}
+            </span>
+            <span className="font-medium">{toast.message}</span>
               </div>
             </div>
           )}
@@ -1528,7 +1525,6 @@ export default function TimeRegistrationPage() {
             </div>
           </div>
         </div>
-      </ModernLayout>
-    </ProtectedRoute>
+    </div>
   );
 }

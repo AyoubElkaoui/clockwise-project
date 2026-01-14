@@ -74,7 +74,7 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<IEnumerable<Period>> GetPeriodsAsync(int count = 50)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum, EINDDATUM AS EndDate FROM AT_URENPER ORDER BY BEGINDATUM DESC";
+            var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum, EINDDATUM AS EndDatum FROM AT_URENPER ORDER BY BEGINDATUM DESC";
             return await connection.QueryAsync<Period>(sql);
         }
 

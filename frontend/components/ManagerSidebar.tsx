@@ -59,7 +59,7 @@ const managerMenuItems = [
   {
     icon: Bell,
     label: "Notificaties",
-    href: "/notificaties",
+    href: "/manager/notificaties",
     badgeKey: "unreadNotifications",
   },
   {
