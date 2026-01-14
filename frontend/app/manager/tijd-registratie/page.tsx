@@ -1525,6 +1525,7 @@ export default function TimeRegistrationPage() {
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
 }
