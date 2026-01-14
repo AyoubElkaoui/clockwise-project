@@ -28,7 +28,6 @@ import {
   getProjects,
 } from "@/lib/api/companyApi";
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
-import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -147,7 +146,6 @@ export default function TimeRegistrationPage() {
   } | null>(null);
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
 
@@ -174,7 +172,6 @@ export default function TimeRegistrationPage() {
     loadCompanies();
     loadEntries();
     loadUserAllowedTasks();
-    loadHolidays();
   }, [currentWeek, viewMode]);
 
   useEffect(() => {
@@ -201,29 +198,9 @@ export default function TimeRegistrationPage() {
   };
 
   const isClosedDay = (date: string) => {
-    // Check holidays first
-    const holiday = holidays.find(h => h.holidayDate === date);
-    if (holiday && !holiday.isWorkAllowed) {
-      console.log(`${date} is a holiday (${holiday.name}) - work not allowed`);
-      return true;
-    }
-    
-    // Check closed days
     const isClosed = closedDays.some((day) => day.date === date);
     console.log(`Checking if ${date} is closed:`, isClosed, closedDays);
     return isClosed;
-  };
-
-  const loadHolidays = async () => {
-    try {
-      const year = currentWeek.getFullYear();
-      const data = await getHolidays(year);
-      setHolidays(data);
-      console.log("Loaded holidays:", data);
-    } catch (error) {
-      console.error("Error loading holidays:", error);
-      // Don't show error toast, just log - holidays are optional
-    }
   };
 
   const loadUserAllowedTasks = async () => {

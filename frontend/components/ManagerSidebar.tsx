@@ -36,6 +36,7 @@ const managerMenuItems = [
     href: "/manager/approve",
     badgeKey: "pendingApprovals",
   },
+  { icon: Clock, label: "Uren Registreren", href: "/manager/tijd-registratie", badgeKey: null },
   { icon: Clock, label: "Team Uren", href: "/manager/hours", badgeKey: null },
   {
     icon: Plane,
@@ -51,8 +52,8 @@ const managerMenuItems = [
   },
   {
     icon: Calendar,
-    label: "Vakantie Kalender",
-    href: "/manager/vacation-calendar",
+    label: "Jaarkalender",
+    href: "/manager/jaarkalender",
     badgeKey: null,
   },
   {

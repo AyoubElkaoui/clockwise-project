@@ -678,12 +678,12 @@ export default function ManagerTeamHoursPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-3 overflow-x-auto max-w-full">
                 {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(
                   (day, index) => (
                     <div
                       key={day}
-                      className="flex items-center justify-between"
+                      className="flex items-center justify-between min-w-[300px]"
                     >
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-8">
                         {day}
