@@ -694,7 +694,7 @@ export default function ManagerTeamHoursPage() {
                           <div
                             className="bg-indigo-600 h-3 rounded-full"
                             style={{
-                              width: `${Math.max(analytics.dailyStats[index] * 10, 5)}%`,
+                              width: `${Math.min(Math.max((analytics.dailyStats[index] / 16) * 100, 5), 100)}%`,
                             }}
                           />
                         </div>

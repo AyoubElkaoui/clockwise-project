@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { API_URL } from "@/lib/api";
-import { getSubmittedWorkflowEntries, reviewWorkflowEntries, WorkflowEntry } from "@/lib/manager-api";
+import { getSubmittedWorkflowEntries, reviewWorkflowEntries, WorkflowEntry, getCurrentPeriodId } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
