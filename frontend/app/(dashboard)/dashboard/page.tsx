@@ -18,6 +18,7 @@ import {
   getActivities,
 } from "@/lib/api";
 import { getDrafts, getSubmitted } from "@/lib/api/workflowApi";
+import { getCurrentPeriodId } from "@/lib/manager-api";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
@@ -49,13 +50,6 @@ export default function Dashboard() {
     loadDashboardData();
   }, []);
 
-  const getCurrentPeriodId = () => {
-    const now = dayjs();
-    const year = now.year();
-    const month = now.month() + 1;
-    return year * 100 + month;
-  };
-
   const loadDashboardData = async () => {
     try {
       const userId = authUtils.getUserId();
@@ -67,7 +61,7 @@ export default function Dashboard() {
       setFirstName(userName?.firstName || t("dashboard.defaultUserName"));
 
       // Load time entries from workflow API
-      const urenperGcId = getCurrentPeriodId();
+      const urenperGcId = await getCurrentPeriodId();
       const [drafts, submitted] = await Promise.all([
         getDrafts(urenperGcId),
         getSubmitted(urenperGcId),

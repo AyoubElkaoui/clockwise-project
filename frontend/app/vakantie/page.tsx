@@ -500,7 +500,7 @@ export default function VakantiePage() {
                                       {period}
                                     </p>
                                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                                      {days}{" "}
+                                      {getVacationTypeLabel(request.vacationType || 'Z03')} • {days}{" "}
                                       {days > 1
                                         ? t("vacation.workingDaysPlural")
                                         : t("vacation.workingDays")}{" "}
@@ -593,17 +593,17 @@ export default function VakantiePage() {
                         {vacationTypes.length > 0 ? (
                           vacationTypes.map((type) => (
                             <option key={type.gcCode} value={type.gcCode}>
-                              {type.gcCode} - {type.omschrijving}
+                              {type.omschrijving}
                             </option>
                           ))
                         ) : (
                           <>
-                            <option value="Z03">Z03 - Vakantie (ATV)</option>
-                            <option value="Z04">Z04 - Snipperdag</option>
-                            <option value="Z05">Z05 - Verlof eigen rekening</option>
-                            <option value="Z06">Z06 - Bijzonder verlof</option>
-                            <option value="Z08">Z08 - Opbouw tijd voor tijd</option>
-                            <option value="Z09">Z09 - Opname tijd voor tijd</option>
+                            <option value="Z03">Vakantie (ATV)</option>
+                            <option value="Z04">Snipperdag</option>
+                            <option value="Z05">Verlof eigen rekening</option>
+                            <option value="Z06">Bijzonder verlof</option>
+                            <option value="Z08">Opbouw tijd voor tijd</option>
+                            <option value="Z09">Opname tijd voor tijd</option>
                           </>
                         )}
                       </select>
@@ -647,7 +647,7 @@ export default function VakantiePage() {
                             <strong>Periode:</strong> {dayjs(formData.startDate).format("DD MMMM YYYY")} - {dayjs(formData.endDate).format("DD MMMM YYYY")}
                           </p>
                           <p>
-                            <strong>Type:</strong> {formData.vacationType}
+                            <strong>Type:</strong> {getVacationTypeLabel(formData.vacationType)}
                           </p>
                           <p>
                             <strong>Werkdagen:</strong> {(() => {

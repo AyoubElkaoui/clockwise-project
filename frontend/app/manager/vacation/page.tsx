@@ -29,7 +29,6 @@ export default function ManagerVacationPage() {
   const [filterStatus, setFilterStatus] = useState("pending");
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [comment, setComment] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [filteredUser, setFilteredUser] = useState<any>(null);
 
   const filterRequests = () => {
@@ -110,10 +109,9 @@ export default function ManagerVacationPage() {
   const handleApprove = async (id: number, comment: string) => {
     try {
       await updateVacationRequestStatus(id, "approved", comment);
-      setSuccessMessage("Vakantie goedgekeurd!");
+      showToast("✅ Vakantie succesvol goedgekeurd! Werknemer ontvangt een notificatie.", "success");
       setSelectedRequest(null);
       setComment("");
-      setTimeout(() => setSuccessMessage(""), 3000);
       loadRequests();
     } catch (error) {
       console.error("Failed to approve:", error);
@@ -124,10 +122,9 @@ export default function ManagerVacationPage() {
   const handleReject = async (id: number, comment: string) => {
     try {
       await updateVacationRequestStatus(id, "rejected", comment);
-      setSuccessMessage("Vakantie afgekeurd!");
+      showToast("❌ Vakantie afgekeurd. Werknemer ontvangt een notificatie.", "success");
       setSelectedRequest(null);
       setComment("");
-      setTimeout(() => setSuccessMessage(""), 3000);
       loadRequests();
     } catch (error) {
       console.error("Failed to reject:", error);

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getTimeEntries } from "@/lib/api";
+import { getDrafts, getSubmitted } from "@/lib/api/workflowApi";
+import { getCurrentPeriodId } from "@/lib/manager-api";
 import authUtils from "@/lib/auth-utils";
+import dayjs from "dayjs";
 
 interface DayData {
   hours: number;
@@ -23,16 +25,23 @@ export function MiniCalendar() {
   const loadMonthData = async () => {
     setLoading(true);
     try {
-      const entries = await getTimeEntries();
-      const userEntries = entries.filter((e: any) => e.userId === userId);
+      // Get current period
+      const periodId = await getCurrentPeriodId();
+      
+      // Load entries from workflow API
+      const [drafts, submitted] = await Promise.all([
+        getDrafts(periodId),
+        getSubmitted(periodId),
+      ]);
+      const allEntries = [...drafts, ...submitted];
 
       // Group entries by date
       const grouped: Record<string, DayData> = {};
-      userEntries.forEach((entry: any) => {
-        const date = new Date(entry.date);
-        const day = date.getDate();
-        const month = date.getMonth();
-        const year = date.getFullYear();
+      allEntries.forEach((entry: any) => {
+        const date = dayjs(entry.datum);
+        const day = date.date();
+        const month = date.month();
+        const year = date.year();
 
         // Only include entries from current viewing month
         if (
@@ -41,23 +50,23 @@ export function MiniCalendar() {
         ) {
           const key = day.toString();
           if (!grouped[key]) {
-            grouped[key] = { hours: 0, status: entry.status || "opgeslagen" };
+            grouped[key] = { hours: 0, status: entry.status || "DRAFT" };
           }
-          grouped[key].hours += entry.hours || 0;
+          grouped[key].hours += entry.aantal || 0;
 
-          // Priority: afgekeurd > ingeleverd > goedgekeurd > opgeslagen
-          if (entry.status === "afgekeurd") grouped[key].status = "afgekeurd";
+          // Priority: REJECTED > SUBMITTED > APPROVED > DRAFT
+          if (entry.status === "REJECTED") grouped[key].status = "REJECTED";
           else if (
-            entry.status === "goedgekeurd" &&
-            grouped[key].status !== "afgekeurd"
+            entry.status === "APPROVED" &&
+            grouped[key].status !== "REJECTED"
           ) {
-            grouped[key].status = "goedgekeurd";
+            grouped[key].status = "APPROVED";
           } else if (
-            entry.status === "ingeleverd" &&
-            grouped[key].status !== "afgekeurd" &&
-            grouped[key].status !== "goedgekeurd"
+            entry.status === "SUBMITTED" &&
+            grouped[key].status !== "REJECTED" &&
+            grouped[key].status !== "APPROVED"
           ) {
-            grouped[key].status = "ingeleverd";
+            grouped[key].status = "SUBMITTED";
           }
         }
       });
@@ -102,12 +111,12 @@ export function MiniCalendar() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "goedgekeurd":
+      case "APPROVED":
         return "bg-emerald-500";
-      case "opgeslagen":
-      case "ingeleverd":
+      case "DRAFT":
+      case "SUBMITTED":
         return "bg-timr-orange";
-      case "afgekeurd":
+      case "REJECTED":
         return "bg-red-500";
       default:
         return "bg-slate-300";

@@ -33,6 +33,7 @@ import {
   PaperAirplaneIcon,
   BookmarkIcon,
 } from "@heroicons/react/24/outline";
+import { showToast } from "@/components/ui/toast";
 
 interface TimeEntryFormProps {
   day: Dayjs;
@@ -454,16 +455,28 @@ export default function TimeEntryForm({
       if (existingEntry && existingEntry.id) {
         console.log("✏️ Updating existing entry:", existingEntry.id);
         await updateTimeEntry(existingEntry.id, data);
+        if (saveType === "submit") {
+          showToast("✅ Uren succesvol bijgewerkt en ingediend voor goedkeuring!", "success");
+        } else {
+          showToast("💾 Uren succesvol opgeslagen als concept", "success");
+        }
       } else {
         console.log("➕ Creating new entry");
         await registerTimeEntry(data);
+        if (saveType === "submit") {
+          showToast("✅ Uren succesvol geregistreerd en ingediend voor goedkeuring!", "success");
+        } else {
+          showToast("💾 Uren succesvol opgeslagen als concept", "success");
+        }
       }
       // Close modal IMMEDIATELY after successful save
       onEntrySaved();
       // Keep ref flag set permanently to prevent any further saves
     } catch (err) {
       console.error("❌ Save error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Onbekende fout";
       setError(t("register.saveError"));
+      showToast(`❌ Fout bij opslaan: ${errorMessage}`, "error");
       // Only reset on error so user can retry
       saveInProgressRef.current = false;
       setIsSubmitting(false);
