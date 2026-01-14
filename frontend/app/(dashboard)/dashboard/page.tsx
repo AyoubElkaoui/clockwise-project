@@ -511,7 +511,7 @@ export default function Dashboard() {
           alt="Altum Logo"
           width={500}
           height={300}
-          className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity dark:hidden"
+          className="h-50 w-auto opacity-50 hover:opacity-100 transition-opacity dark:hidden"
           priority
         />
         <Image
@@ -519,7 +519,7 @@ export default function Dashboard() {
           alt="Altum Logo"
           width={500}
           height={300}
-          className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity hidden dark:block"
+          className="h-50 w-auto opacity-50 hover:opacity-100 transition-opacity hidden dark:block"
           priority
         />
       </div>
