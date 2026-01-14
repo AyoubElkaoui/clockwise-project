@@ -509,16 +509,16 @@ export default function Dashboard() {
         <Image
           src="/altum-logo.png"
           alt="Altum Logo"
-          width={80}
-          height={30}
+          width={500}
+          height={300}
           className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity dark:hidden"
           priority
         />
         <Image
           src="/altum-logo-white.png"
           alt="Altum Logo"
-          width={80}
-          height={30}
+          width={500}
+          height={300}
           className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity hidden dark:block"
           priority
         />
