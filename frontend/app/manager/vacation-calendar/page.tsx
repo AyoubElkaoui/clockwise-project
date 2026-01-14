@@ -84,6 +84,12 @@ export default function VacationCalendarPage() {
       showToast("Start datum moet voor eind datum liggen", "error");
       return;
     }
+    
+    // Temporarily disabled - backend endpoint not yet implemented
+    showToast("Deze functie is nog niet beschikbaar", "error");
+    return;
+    
+    /* TODO: Implement when backend endpoint is ready
     fetch(`${API_URL}/holidays/closed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -109,6 +115,7 @@ export default function VacationCalendarPage() {
       .catch((error) => {
         showToast("Fout bij toevoegen gesloten dagen", "error");
       });
+    */
   };
 
   useEffect(() => {
@@ -157,17 +164,28 @@ export default function VacationCalendarPage() {
       const dutchHolidays = getDutchHolidays(currentYear);
       setHolidays(dutchHolidays);
 
-      // Load closed days (national holidays + custom from backend)
+      // Load closed days (national holidays + custom from backend if available)
       const nationalClosedDays = dutchHolidays.map((h) => ({
         id: h.date,
         date: h.date,
         reason: h.name,
         type: "national" as const,
       }));
-      const closedRes = await fetch(
-        `${API_URL}/holidays/closed?year=${currentYear}`,
-      );
-      const customClosedDays = await closedRes.json();
+      
+      // Try to load custom closed days, but don't fail if endpoint doesn't exist
+      let customClosedDays: any[] = [];
+      try {
+        const closedRes = await fetch(
+          `${API_URL}/holidays/closed?year=${currentYear}`,
+        );
+        if (closedRes.ok) {
+          customClosedDays = await closedRes.json();
+        }
+      } catch (error) {
+        // Endpoint doesn't exist yet, use only national holidays
+        console.log("Custom holidays endpoint not available");
+      }
+      
       const allClosedDays = [
         ...nationalClosedDays,
         ...customClosedDays.map((c: any) => ({

@@ -21,7 +21,7 @@ namespace ClockwiseProject.Backend.Repositories
             return await connection.QueryAsync<User>(sql);
         }
 
-        public async Task<User> GetByIdAsync(int id)
+        public async Task<User?> GetByIdAsync(int id)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW WHERE GC_ID = @Id";
@@ -34,7 +34,7 @@ namespace ClockwiseProject.Backend.Repositories
             return user;
         }
 
-        public async Task<User> GetByLoginNameAsync(string loginName)
+        public async Task<User?> GetByLoginNameAsync(string loginName)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT GC_ID AS Id, '' AS FirstName, '' AS LastName, '' AS Email, '' AS Address, '' AS HouseNumber, '' AS PostalCode, '' AS City, '' AS LoginName, '' AS Password, '' AS Rank FROM AT_MEDEW WHERE GC_ID = @LoginName";

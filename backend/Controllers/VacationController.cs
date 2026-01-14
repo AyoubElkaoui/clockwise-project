@@ -54,6 +54,24 @@ namespace ClockwiseProject.Backend.Controllers
             }
         }
 
+        [HttpGet("all")]
+        public async Task<ActionResult<IEnumerable<VacationRequest>>> GetAllVacationRequests()
+        {
+            _logger.LogInformation("GetAllVacationRequests called - returning ALL vacation requests for managers");
+            
+            try
+            {
+                var requests = await _vacationService.GetAllVacationRequestsAsync();
+                _logger.LogInformation("Found {Count} total vacation requests", requests.Count());
+                return Ok(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching all vacation requests");
+                return StatusCode(500, new { error = "Failed to fetch vacation requests", details = ex.Message });
+            }
+        }
+
         [HttpGet("types")]
         public async Task<ActionResult<IEnumerable<TaskModel>>> GetVacationTypes()
         {

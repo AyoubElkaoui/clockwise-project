@@ -60,7 +60,7 @@ export async function getAdminTimeEntries(): Promise<TimeEntryWithDetails[]> {
 
 export async function getAdminVacationRequests(): Promise<VacationRequestWithUser[]> {
   try {
-    const res = await axios.get(`${API_URL}/admin/vacation-requests`);
+    const res = await axios.get(`${API_URL}/vacation/all`);
     return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
     console.error("Error fetching admin vacation requests:", error);
@@ -69,7 +69,11 @@ export async function getAdminVacationRequests(): Promise<VacationRequestWithUse
 }
 
 export async function processVacationRequest(id: number, status: "approved" | "rejected"): Promise<void> {
-  await axios.put(`${API_URL}/admin/vacation-requests/${id}`, { status });
+  if (status === "approved") {
+    await axios.post(`${API_URL}/vacation/${id}/approve`, {});
+  } else {
+    await axios.post(`${API_URL}/vacation/${id}/reject`, {});
+  }
 }
 
 export async function createProject(projectData: { name: string, projectGroupId: number }): Promise<any> {

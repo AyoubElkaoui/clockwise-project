@@ -289,7 +289,7 @@ namespace ClockwiseProject.Backend.Repositories
                 }, transaction: transaction);
             }
 
-            // 3. Insert distance km if > 0 under KOSTSRT 100300 (Reiskilometers)
+            // 3. Insert distance km if > 0 under KOSTSRT 100167 (5569 - Reis en verblijfskosten)
             if (entry.DistanceKm > 0)
             {
                 var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
@@ -304,7 +304,7 @@ namespace ClockwiseProject.Backend.Repositories
                     entry.WerkGcId,
                     entry.MedewGcId,
                     GcOmschrijving = $"{entry.DistanceKm} km",
-                    KostsrtGcId = 100300, // 7011.03 Reiskilometers
+                    KostsrtGcId = 100167, // 5569 Reis en verblijfskosten (D)
                     entry.BestparGcId
                 }, transaction: transaction);
             }

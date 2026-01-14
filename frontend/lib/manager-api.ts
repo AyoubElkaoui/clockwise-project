@@ -177,7 +177,7 @@ export interface VacationRequest {
  * Get all vacation requests (optionally filtered by user)
  */
 export async function getAllVacationRequests(userId?: number): Promise<VacationRequest[]> {
-  const response = await axios.get(`${API_URL}/vacation-requests`, {
+  const response = await axios.get(`${API_URL}/vacation/all`, {
     headers: getAuthHeaders(),
   });
 

@@ -170,7 +170,7 @@ namespace ClockwiseProject.Backend.Repositories
             }
         }
 
-        public async Task<VacationRequest> GetByIdAsync(int id)
+        public async Task<VacationRequest?> GetByIdAsync(int id)
         {
             try
             {

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { getAllUsers, getAllWorkflowEntries, getAllVacationRequests } from "@/lib/manager-api";
+import { getPeriods } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,10 +108,25 @@ export default function ManagerPlanningPage() {
         return;
       }
 
+      // Get current period
+      const periods = await getPeriods();
+      const now = dayjs();
+      const period = periods.find((p: any) => {
+        const start = dayjs(p.startDate);
+        const end = dayjs(p.endDate);
+        return now.isSameOrAfter(start) && now.isSameOrBefore(end);
+      });
+
+      if (!period) {
+        showToast("Geen actieve periode gevonden", "error");
+        setLoading(false);
+        return;
+      }
+
       // Load team members, workflow entries, and vacation requests
       const [users, workflowResponse, allVacations] = await Promise.all([
         getAllUsers(),
-        getAllWorkflowEntries(100426),
+        getAllWorkflowEntries(period.gcId),
         getAllVacationRequests()
       ]);
 
@@ -139,6 +155,7 @@ export default function ManagerPlanningPage() {
       // Load closed days (placeholder - would come from API)
       setClosedDays([]);
     } catch (error) {
+      console.error("Planning load error:", error);
       showToast("Fout bij laden planning", "error");
     } finally {
       setLoading(false);
