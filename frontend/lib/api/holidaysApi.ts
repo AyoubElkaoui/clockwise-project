@@ -13,21 +13,35 @@ export interface Holiday {
 }
 
 export async function getHolidays(year?: number): Promise<Holiday[]> {
-  const userId = authUtils.getUserId();
-  const targetYear = year || new Date().getFullYear();
-  
-  const response = await fetch(`${API_URL}/holidays?year=${targetYear}`, {
-    headers: {
-      "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
-    },
-  });
+  try {
+    const userId = authUtils.getUserId();
+    const targetYear = year || new Date().getFullYear();
+    
+    console.log("Fetching holidays for year:", targetYear, "userId:", userId);
+    
+    const response = await fetch(`${API_URL}/holidays?year=${targetYear}`, {
+      headers: {
+        "X-User-ID": userId?.toString() || "",
+        "ngrok-skip-browser-warning": "1",
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch holidays");
+    console.log("Holidays response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to fetch holidays:", response.status, errorText);
+      // Return empty array instead of throwing error
+      return [];
+    }
+
+    const data = await response.json();
+    console.log("Loaded holidays:", data);
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Error in getHolidays:", error);
+    return [];
   }
-
-  return response.json();
 }
 
 export async function getHolidayByDate(date: string): Promise<Holiday | null> {

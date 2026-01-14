@@ -74,9 +74,10 @@ export default function ManagerTeamHoursPage() {
         return;
       }
 
+      const currentPeriodId = await getCurrentPeriodId();
       const [users, workflowResponse] = await Promise.all([
         getAllUsers(),
-        getAllWorkflowEntries(100426) // Get all entries (SUBMITTED + APPROVED)
+        getAllWorkflowEntries(currentPeriodId) // Get all entries (SUBMITTED + APPROVED)
       ]);
 
       const team = users.filter((u: any) => u.managerId === managerId);
@@ -678,7 +679,7 @@ export default function ManagerTeamHoursPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 overflow-x-auto max-w-full">
+              <div className="space-y-3 overflow-x-auto">
                 {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(
                   (day, index) => (
                     <div

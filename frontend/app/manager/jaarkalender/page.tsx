@@ -53,10 +53,14 @@ export default function JaarkalenderPage() {
     try {
       setLoading(true);
       const data = await getHolidays(currentYear);
-      setHolidays(data);
+      setHolidays(Array.isArray(data) ? data : []);
+      if (data.length === 0) {
+        showToast("Geen feestdagen gevonden - migration 012 uitgevoerd?", "info");
+      }
     } catch (error) {
-      console.error("Error loading holidays:", error);
-      showToast("Fout bij laden feestdagen", "error");
+      console.error("Jaarkalender: Error loading holidays:", error);
+      showToast("Kon feestdagen niet laden", "error");
+      setHolidays([]);
     } finally {
       setLoading(false);
     }

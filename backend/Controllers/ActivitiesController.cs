@@ -25,6 +25,22 @@ namespace ClockwiseProject.Backend.Controllers
             return Ok(activities);
         }
 
+        // GET: api/activities/{userId}
+        [HttpGet("{userId}")]
+        public async Task<ActionResult<IEnumerable<Activity>>> GetActivitiesByUserId(int userId, [FromQuery] int limit = 100)
+        {
+            var activities = await _activityService.GetActivitiesAsync(userId, limit);
+            return Ok(activities);
+        }
+
+        // POST: api/activities/{activityId}/read
+        [HttpPost("{activityId}/read")]
+        public async Task<IActionResult> MarkAsReadPost(int activityId)
+        {
+            await _activityService.MarkAsReadAsync(activityId);
+            return Ok(new { success = true });
+        }
+
         [HttpPut("{activityId}/read")]
         public async Task<IActionResult> MarkAsRead(int activityId)
         {

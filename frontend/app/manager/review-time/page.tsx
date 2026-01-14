@@ -54,26 +54,42 @@ export default function ManagerReviewTimePage() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
-  const currentPeriod = 100426; // Current period ID
+  const [currentPeriod, setCurrentPeriod] = useState<number | null>(null);
 
   useEffect(() => {
-    const userRole = authUtils.getRole();
-    if (userRole !== "manager") {
-      showToast("Alleen managers kunnen uren beoordelen", "error");
-      router.push("/tijd-registratie");
-      return;
-    }
-    loadPendingEntries();
+    const initializePage = async () => {
+      const userRole = authUtils.getRole();
+      if (userRole !== "manager") {
+        showToast("Alleen managers kunnen uren beoordelen", "error");
+        router.push("/tijd-registratie");
+        return;
+      }
+      
+      try {
+        const periodId = await getCurrentPeriodId();
+        setCurrentPeriod(periodId);
+        await loadPendingEntries(periodId);
+      } catch (error) {
+        console.error("Failed to load period:", error);
+        showToast("Kon periode niet laden", "error");
+      }
+    };
+    initializePage();
   }, []);
 
   useEffect(() => {
     applyFilters();
   }, [entries, searchQuery, selectedEmployee]);
 
-  const loadPendingEntries = async () => {
+  const loadPendingEntries = async (periodId?: number) => {
     try {
       setLoading(true);
-      const response = await getPendingReview(currentPeriod);
+      const period = periodId || currentPeriod;
+      if (!period) {
+        showToast("Geen periode beschikbaar", "error");
+        return;
+      }
+      const response = await getPendingReview(period);
       setEntries(response.entries);
     } catch (error) {
       console.error("Error loading pending entries:", error);

@@ -59,6 +59,7 @@ export default function ManagerNotificatiesPage() {
       const userId = authUtils.getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
+        setLoading(false);
         return;
       }
 
@@ -70,26 +71,16 @@ export default function ManagerNotificatiesPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to load notifications");
+        console.error("Failed to load notifications:", response.status, response.statusText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await safeJsonParse(response);
-      setNotifications(data);
-
-      // Get user rank
-      const rankResponse = await fetch(`${API_URL}/users/${userId}`, {
-        headers: {
-          "X-User-ID": userId.toString(),
-          "ngrok-skip-browser-warning": "1",
-        },
-      });
-      if (rankResponse.ok) {
-        const userData = await rankResponse.json();
-        setUserRank(userData.rank || "manager");
-      }
+      const data = await response.json();
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading notifications:", error);
-      showToast("Fout bij laden notificaties", "error");
+      showToast("Kon notificaties niet laden", "error");
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

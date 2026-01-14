@@ -34,7 +34,15 @@ export default function ManagerVacationPage() {
   const filterRequests = () => {
     let filtered = requests;
     if (filterStatus !== "all") {
-      filtered = filtered.filter((r) => r.status === filterStatus);
+      // Match both "pending" and "submitted" for pending filter
+      if (filterStatus === "pending") {
+        filtered = filtered.filter((r) => 
+          r.status?.toLowerCase() === "pending" || 
+          r.status?.toLowerCase() === "submitted"
+        );
+      } else {
+        filtered = filtered.filter((r) => r.status?.toLowerCase() === filterStatus.toLowerCase());
+      }
     }
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();

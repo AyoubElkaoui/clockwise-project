@@ -74,14 +74,14 @@ export default function ManagerTeamPage() {
 
       // Load all users - managers see all team members
       const users = await getAllUsers();
-      console.log("All users loaded:", users);
       
       // Show all users to manager (no filtering by managerId since it doesn't exist in DB)
       const team = users;
       console.log("Team members:", team);
 
       // Load workflow entries for stats
-      const workflowResponse = await getAllWorkflowEntries(100426);
+      const currentPeriodId = await getCurrentPeriodId();
+      const workflowResponse = await getAllWorkflowEntries(currentPeriodId);
       const entries = workflowResponse.entries.map((e: any) => ({
         userId: e.medewGcId,
         date: e.datum,
