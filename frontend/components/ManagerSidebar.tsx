@@ -69,15 +69,33 @@ const managerMenuItems = [
   },
 ];
 
-export function ManagerSidebar() {
+export function ManagerSidebar({ 
+  collapsed: externalCollapsed, 
+  onToggle 
+}: { 
+  collapsed?: boolean; 
+  onToggle?: (collapsed: boolean) => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(externalCollapsed || false);
   const [mounted, setMounted] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [badges, setBadges] = useState<Record<string, number>>({});
   const [userId] = useState(1);
+
+  useEffect(() => {
+    if (externalCollapsed !== undefined) {
+      setCollapsed(externalCollapsed);
+    }
+  }, [externalCollapsed]);
+
+  const toggleCollapsed = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    onToggle?.(newState);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -127,7 +145,8 @@ export function ManagerSidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50",
+        "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50 transition-all duration-300",
+        "hidden md:block",
         collapsed ? "w-20" : "w-72",
       )}
     >
@@ -149,13 +168,13 @@ export function ManagerSidebar() {
               </div>
             )}
             <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              onClick={toggleCollapsed}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               {collapsed ? (
-                <ChevronRight className="w-5 h-5 text-white" />
+                <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               ) : (
-                <ChevronLeft className="w-5 h-5 text-white" />
+                <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
               )}
             </button>
           </div>

@@ -285,6 +285,26 @@ export default function VakantiePage() {
 
   const stats = calculateStats();
 
+  const getVacationTypeLabel = (code: string) => {
+    // First check if we have the type in vacationTypes array
+    const type = vacationTypes.find(t => t.gcCode === code);
+    if (type) {
+      return type.omschrijving;
+    }
+    
+    // Fallback mapping
+    const mapping: Record<string, string> = {
+      'Z03': 'Vakantie (ATV)',
+      'Z04': 'Snipperdag',
+      'Z05': 'Verlof eigen rekening',
+      'Z06': 'Bijzonder verlof',
+      'Z08': 'Opbouw tijd voor tijd',
+      'Z09': 'Opname tijd voor tijd'
+    };
+    
+    return mapping[code] || code;
+  };
+
   const getStatusBadge = (status: string) => {
     const upperStatus = status?.toUpperCase();
     switch (upperStatus) {
@@ -318,24 +338,24 @@ export default function VakantiePage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-4 md:space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
                 {t("vacation.title")}
               </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
                 {t("vacation.subtitle")}
               </p>
             </div>
-            <Button onClick={() => setShowModal(true)}>
+            <Button onClick={() => setShowModal(true)} size="sm" className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               {t("vacation.request")}
             </Button>
           </div>
 
           {/* Balance Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
             <Card className="border-l-4 border-l-blue-500">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">

@@ -27,7 +27,7 @@ export default function ModernLayout({ children }: { children: ReactNode }) {
       <ModernSidebar collapsed={isCollapsed} onToggle={handleSidebarToggle} />
 
       {/* Content */}
-      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'} md:${isCollapsed ? 'ml-20' : 'ml-64'} ml-0`}>
+      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
         
         {/* Navbar bovenaan */}
         <Navbar /> 

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -202,13 +203,32 @@ export default function Dashboard() {
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Welcome Header */}
-      <div className="px-1">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-          {getGreeting()}, {firstName}! 👋
-        </h1>
-        <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-          {t("dashboard.subtitle")}, {dayjs().format("dddd D MMMM YYYY")}
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="px-1 flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {getGreeting()}, {firstName}! 👋
+          </h1>
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
+            {t("dashboard.subtitle")}, {dayjs().format("dddd D MMMM YYYY")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">Powered by</span>
+          <Image
+            src="/altum-logo.png"
+            alt="Altum Logo"
+            width={80}
+            height={30}
+            className="h-6 w-auto dark:hidden"
+          />
+          <Image
+            src="/altum-logo-white.png"
+            alt="Altum Logo"
+            width={80}
+            height={30}
+            className="h-6 w-auto hidden dark:block"
+          />
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -406,7 +426,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <Button
                   className="w-full justify-start"
-                  onClick={() => router.push("/uren-registreren")}
+                  onClick={() => router.push("/tijd-registratie")}
                 >
                   <Clock className="w-4 h-4 mr-2" />
                   {t("dashboard.registerHours")}

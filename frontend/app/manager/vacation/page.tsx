@@ -164,15 +164,15 @@ export default function ManagerVacationPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             {filteredUser
-              ? `Vakantie Verzoeken - ${filteredUser.firstName} ${filteredUser.lastName}`
+              ? `Vakantie - ${filteredUser.firstName} ${filteredUser.lastName}`
               : "Vakantie Verzoeken"}
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             {filteredUser
               ? `${pendingCount} verzoeken wachten op goedkeuring`
               : `${pendingCount} verzoeken wachten op goedkeuring`}
@@ -190,8 +190,8 @@ export default function ManagerVacationPage() {
       )}
 
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
+        <CardContent className="pt-4 md:pt-6">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
@@ -201,26 +201,33 @@ export default function ManagerVacationPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
+                size="sm"
                 variant={filterStatus === "pending" ? "default" : "outline"}
                 onClick={() => setFilterStatus("pending")}
               >
-                In afwachting
+                <span className="hidden sm:inline">In afwachting</span>
+                <span className="sm:hidden">Wacht</span>
               </Button>
               <Button
+                size="sm"
                 variant={filterStatus === "approved" ? "default" : "outline"}
                 onClick={() => setFilterStatus("approved")}
               >
-                Goedgekeurd
+                <span className="hidden sm:inline">Goedgekeurd</span>
+                <span className="sm:hidden">✓</span>
               </Button>
               <Button
+                size="sm"
                 variant={filterStatus === "rejected" ? "default" : "outline"}
                 onClick={() => setFilterStatus("rejected")}
               >
-                Afgekeurd
+                <span className="hidden sm:inline">Afgekeurd</span>
+                <span className="sm:hidden">✗</span>
               </Button>
               <Button
+                size="sm"
                 variant={filterStatus === "all" ? "default" : "outline"}
                 onClick={() => setFilterStatus("all")}
               >
@@ -241,31 +248,31 @@ export default function ManagerVacationPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {filteredRequests.map((request) => (
-            <Card key={request.id} className="hover:shadow-md transition">
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-timr-orange-light dark:bg-timr-orange-light/20 flex items-center justify-center">
-                        <User className="w-6 h-6 text-timr-orange dark:text-timr-orange" />
+            <Card key={request.id} className="hover:shadow-md transition overflow-hidden">
+              <CardContent className="pt-4 md:pt-6">
+                <div className="space-y-3 md:space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-timr-orange-light dark:bg-timr-orange-light/20 flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 md:w-6 md:h-6 text-timr-orange dark:text-timr-orange" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100">
                             {request.userFirstName} {request.userLastName}
                           </h3>
                           {getStatusBadge(request.status)}
                         </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400">
                           {request.user?.function || "Medewerker"}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 bg-slate-50 dark:bg-slate-800 rounded-lg p-3 md:p-4">
                     <div>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />

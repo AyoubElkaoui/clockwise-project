@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { 
   getAllWorkflowEntries, 
   getAllUsers, 
@@ -342,38 +343,56 @@ export default function ManagerDashboard() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-6 lg:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Team Dashboard
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
+              Team Dashboard
+            </h1>
+            <Image
+              src="/altum-logo.png"
+              alt="Altum Logo"
+              width={70}
+              height={25}
+              className="h-5 w-auto dark:hidden"
+            />
+            <Image
+              src="/altum-logo-white.png"
+              alt="Altum Logo"
+              width={70}
+              height={25}
+              className="h-5 w-auto hidden dark:block"
+            />
+          </div>
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Overzicht van team prestaties en goedkeuringen
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => loadDashboardData()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Vernieuwen
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => loadDashboardData()}>
+            <RefreshCw className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Vernieuwen</span>
           </Button>
           <Button
+            size="sm"
             variant="outline"
             onClick={() => router.push("/manager/hours")}
           >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Gedetailleerd Rapport
+            <BarChart3 className="w-4 h-4 md:mr-2" />
+            <span className="hidden lg:inline">Gedetailleerd Rapport</span>
+            <span className="lg:hidden hidden md:inline">Rapport</span>
           </Button>
-          <Button onClick={() => router.push("/manager/approve")}>
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Goedkeuringen
+          <Button size="sm" onClick={() => router.push("/manager/approve")}>
+            <CheckCircle className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Goedkeuringen</span>
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
         {/* Team Size */}
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
@@ -468,12 +487,12 @@ export default function ManagerDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
         {/* Pending Approvals */}
         {stats.pendingApprovals > 0 && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <CardTitle className="flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-amber-600" />
                   Wachtend op Goedkeuring
@@ -489,30 +508,30 @@ export default function ManagerDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {pendingEntries.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 gap-3"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                    <div className="flex-1 w-full sm:w-auto">
+                      <div className="flex items-center gap-2 md:gap-3 mb-2">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-300">
                             {entry.userFirstName?.charAt(0)}
                             {entry.userLastName?.charAt(0)}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">
+                        <div className="min-w-0">
+                          <p className="text-sm md:text-base font-semibold text-slate-900 dark:text-slate-100 truncate">
                             {entry.userFirstName} {entry.userLastName}
                           </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">
                             {entry.projectName || entry.projectCode}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                      <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-slate-600 dark:text-slate-400">
                         <span>
                           {dayjs(entry.date).format("DD MMM YYYY")}
                         </span>
@@ -526,24 +545,24 @@ export default function ManagerDashboard() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex gap-2 w-full sm:w-auto sm:ml-4">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                        className="flex-1 sm:flex-none border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
                         onClick={() => handleApprove(entry.id)}
                       >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Goedkeuren
+                        <CheckCircle className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Goedkeuren</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                        className="flex-1 sm:flex-none border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
                         onClick={() => handleReject(entry.id)}
                       >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Afkeuren
+                        <XCircle className="w-4 h-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Afkeuren</span>
                       </Button>
                     </div>
                   </div>
@@ -556,7 +575,7 @@ export default function ManagerDashboard() {
         {/* Team Performance */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-indigo-600" />
                 Team Prestaties
@@ -572,7 +591,7 @@ export default function ManagerDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {teamPerformance.slice(0, 5).map((member) => {
                 const memberTrend = getTrendIndicator(
                   member.weekHours,
@@ -581,9 +600,9 @@ export default function ManagerDashboard() {
                 return (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition"
+                    className="flex items-center justify-between p-2 md:p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                       <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
                         <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                           {member.firstName?.charAt(0)}
