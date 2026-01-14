@@ -53,9 +53,13 @@ export default function JaarkalenderPage() {
     try {
       setLoading(true);
       const data = await getHolidays(currentYear);
+      console.log("Jaarkalender: Loaded holidays data:", data);
+      console.log("Jaarkalender: First holiday:", data[0]);
       setHolidays(Array.isArray(data) ? data : []);
       if (data.length === 0) {
         showToast("Geen feestdagen gevonden - migration 012 uitgevoerd?", "info");
+      } else {
+        console.log(`Jaarkalender: ${data.length} feestdagen geladen voor ${currentYear}`);
       }
     } catch (error) {
       console.error("Jaarkalender: Error loading holidays:", error);
@@ -168,6 +172,15 @@ export default function JaarkalenderPage() {
         const holiday = holidays.find(h => h.holidayDate === dateStr);
         const isWeekend = date.day() === 0 || date.day() === 6;
         const isToday = date.isSame(dayjs(), "day");
+
+        // Debug log for first day of January
+        if (month === 0 && day === 1) {
+          console.log("Jan 1 check:", {
+            dateStr,
+            holiday,
+            allHolidayDates: holidays.map(h => h.holidayDate)
+          });
+        }
 
         days.push(
           <div
