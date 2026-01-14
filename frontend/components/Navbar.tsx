@@ -109,19 +109,19 @@ export default function Navbar(): JSX.Element {
   return (
     <nav
       className="
-        sticky top-0 z-40 px-6 py-3 shadow-md backdrop-blur-lg transition-colors
+        sticky top-0 z-40 px-3 md:px-6 py-2 md:py-3 shadow-md backdrop-blur-lg transition-colors
         bg-white/80 dark:bg-slate-900/80
         border-b border-slate-200 dark:border-slate-700
         text-slate-900 dark:text-slate-100
       "
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
         {/* === LEFT: Search === */}
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative w-64">
+        <div className="flex items-center gap-3 flex-1 max-w-xs lg:max-w-md">
+          <div className="relative w-full">
             <MagnifyingGlassIcon
               className="
-                absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5
+                absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5
                 text-slate-400 dark:text-slate-500
               "
             />
@@ -136,7 +136,7 @@ export default function Navbar(): JSX.Element {
                 }
               }}
               className="
-                w-full pl-10 pr-4 py-2 rounded-xl
+                w-full pl-8 md:pl-10 pr-3 md:pr-4 py-1.5 md:py-2 rounded-lg md:rounded-xl text-sm
                 bg-slate-100 dark:bg-slate-800
                 text-slate-800 dark:text-slate-100
                 border border-slate-300 dark:border-slate-700

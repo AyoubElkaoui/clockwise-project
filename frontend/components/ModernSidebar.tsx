@@ -255,7 +255,8 @@ export function ModernSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50",
+        "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transition-all duration-300",
+        "hidden md:block", // Hide on mobile, show on tablet+
         collapsed ? "w-20" : "w-64",
       )}
     >

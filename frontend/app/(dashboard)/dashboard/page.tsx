@@ -200,19 +200,19 @@ export default function Dashboard() {
     stats.weekHours >= (stats.weekTarget / 7) * dayjs().isoWeekday();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+      <div className="px-1">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
           {getGreeting()}, {firstName}! 👋
         </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
+        <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
           {t("dashboard.subtitle")}, {dayjs().format("dddd D MMMM YYYY")}
         </p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
         <Card
           variant="elevated"
           padding="md"
@@ -327,9 +327,9 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Recent Entries */}
-        <Card variant="elevated" padding="lg" className="lg:col-span-2">
+        <Card variant="elevated" padding="lg" className="lg:col-span-2 overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>{t("dashboard.recentEntries")}</CardTitle>
@@ -361,30 +361,30 @@ export default function Dashboard() {
                 {recentEntries.map((entry: any) => (
                   <div
                     key={entry.id}
-                    className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                    className="flex items-center gap-2 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
                     onClick={() => router.push("/uren-overzicht")}
                   >
-                    <div className="w-16 text-center">
+                    <div className="w-12 md:w-16 text-center flex-shrink-0">
                       <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">
                         {dayjs(entry.datum || entry.startTime || entry.date).format("ddd")}
                       </p>
-                      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                      <p className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100">
                         {dayjs(entry.datum || entry.startTime || entry.date).format("D")}
                       </p>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate">
                           {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || '?'}`}
                         </p>
                         {getStatusBadge(entry.status)}
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                      <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">
                         {entry.omschrijving || entry.notes || t("dashboard.noDescription")}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-lg md:text-xl font-bold text-blue-600 dark:text-blue-400">
                         {entry.aantal || entry.hours || 0}u
                       </p>
                     </div>
@@ -396,9 +396,9 @@ export default function Dashboard() {
         </Card>
 
         {/* Quick Actions & Info */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {/* Quick Actions */}
-          <Card variant="elevated" padding="lg">
+          <Card variant="elevated" padding="lg" className="overflow-hidden">
             <CardHeader>
               <CardTitle>{t("dashboard.quickActions")}</CardTitle>
             </CardHeader>
