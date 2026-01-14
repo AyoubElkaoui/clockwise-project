@@ -181,7 +181,7 @@ export default function JaarkalenderPage() {
                   ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300"
                   : holiday.isWorkAllowed
                   ? "bg-green-100 dark:bg-green-900/30 border-green-300"
-                  : "bg-red-100 dark:bg-red-900/30 border-red-300"
+                  : "bg-pink-100 dark:bg-pink-900/30 border-pink-300"
                 : isWeekend
                 ? "bg-slate-100 dark:bg-slate-800"
                 : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -193,11 +193,10 @@ export default function JaarkalenderPage() {
             {holiday && (
               <div className="flex items-center justify-center gap-1 mt-1">
                 {holiday.isWorkAllowed ? (
-                  <Unlock className="w-3 h-3 text-green-600" />
+                  <Unlock className="w-3 h-3 text-green-600 dark:text-green-400" />
                 ) : (
-                  <Lock className="w-3 h-3 text-red-600" />
+                  <Lock className="w-3 h-3 text-red-600 dark:text-red-400" />
                 )}
-                <span className="text-xs truncate">{holiday.name.substring(0, 8)}</span>
               </div>
             )}
           </div>
@@ -276,13 +275,13 @@ export default function JaarkalenderPage() {
       {/* Legend */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 rounded"></div>
               <span className="text-sm">Nationale feestdag</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border border-red-300 rounded"></div>
+              <div className="w-6 h-6 bg-pink-100 dark:bg-pink-900/30 border border-pink-300 rounded"></div>
               <span className="text-sm">Gesloten (geen uren)</span>
             </div>
             <div className="flex items-center gap-2">
@@ -290,11 +289,15 @@ export default function JaarkalenderPage() {
               <span className="text-sm">Feestdag (uren toegestaan)</span>
             </div>
             <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-red-600" />
+              <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border border-red-300 rounded flex items-center justify-center">
+                <Lock className="w-3 h-3 text-red-600" />
+              </div>
               <span className="text-sm">Uren geblokkeerd</span>
             </div>
             <div className="flex items-center gap-2">
-              <Unlock className="w-4 h-4 text-green-600" />
+              <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border border-green-300 rounded flex items-center justify-center">
+                <Unlock className="w-3 h-3 text-green-600" />
+              </div>
               <span className="text-sm">Uren toegestaan</span>
             </div>
           </div>

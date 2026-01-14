@@ -26,14 +26,14 @@ public class HolidaysController : ControllerBase
             var targetYear = year ?? DateTime.Now.Year;
             
             var sql = @"
-                SELECT 
+                SELECT
                     id,
-                    holiday_date AS holidayDate,
+                    holiday_date as ""holidayDate"",
                     name,
                     type,
-                    is_work_allowed AS isWorkAllowed,
-                    created_by AS createdBy,
-                    created_at AS createdAt,
+                    is_work_allowed as ""isWorkAllowed"",
+                    created_by as ""createdBy"",
+                    created_at as ""createdAt"",
                     notes
                 FROM holidays
                 WHERE EXTRACT(YEAR FROM holiday_date) = @Year
@@ -58,14 +58,14 @@ public class HolidaysController : ControllerBase
         try
         {
             var sql = @"
-                SELECT 
+                SELECT
                     id,
-                    holiday_date AS holidayDate,
+                    holiday_date as ""holidayDate"",
                     name,
                     type,
-                    is_work_allowed AS isWorkAllowed,
-                    created_by AS createdBy,
-                    created_at AS createdAt,
+                    is_work_allowed as ""isWorkAllowed"",
+                    created_by as ""createdBy"",
+                    created_at as ""createdAt"",
                     notes
                 FROM holidays
                 WHERE holiday_date = @Date";

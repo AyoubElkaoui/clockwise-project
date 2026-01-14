@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(Get-Process -Name dotnet -ErrorAction SilentlyContinue)",
+      "Bash(Where-Object { $_Path -like \"*clockwise-project*\" })",
+      "Bash(Stop-Process -Force)",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"Backend processes stopped \\(if any were running\\)\")",
+      "Bash(pkill:*)"
     ]
   }
 }
