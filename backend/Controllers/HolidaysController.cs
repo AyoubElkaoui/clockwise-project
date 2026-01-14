@@ -28,18 +28,32 @@ public class HolidaysController : ControllerBase
             var sql = @"
                 SELECT
                     id,
-                    holiday_date as ""holidayDate"",
+                    holiday_date,
                     name,
                     type,
-                    is_work_allowed as ""isWorkAllowed"",
-                    created_by as ""createdBy"",
-                    created_at as ""createdAt"",
+                    is_work_allowed,
+                    created_by,
+                    created_at,
                     notes
                 FROM holidays
                 WHERE EXTRACT(YEAR FROM holiday_date) = @Year
                 ORDER BY holiday_date";
 
-            var holidays = await _db.QueryAsync(sql, new { Year = targetYear });
+            var result = await _db.QueryAsync(sql, new { Year = targetYear });
+
+            // Map to camelCase for frontend
+            var holidays = result.Select(h => new
+            {
+                id = (int)h.id,
+                holidayDate = ((DateTime)h.holiday_date).ToString("yyyy-MM-dd"),
+                name = (string)h.name,
+                type = (string)h.type,
+                isWorkAllowed = (bool)h.is_work_allowed,
+                createdBy = h.created_by as int?,
+                createdAt = h.created_at as DateTime?,
+                notes = h.notes as string
+            });
+
             return Ok(holidays);
         }
         catch (Exception ex)
@@ -60,21 +74,34 @@ public class HolidaysController : ControllerBase
             var sql = @"
                 SELECT
                     id,
-                    holiday_date as ""holidayDate"",
+                    holiday_date,
                     name,
                     type,
-                    is_work_allowed as ""isWorkAllowed"",
-                    created_by as ""createdBy"",
-                    created_at as ""createdAt"",
+                    is_work_allowed,
+                    created_by,
+                    created_at,
                     notes
                 FROM holidays
                 WHERE holiday_date = @Date";
 
-            var holiday = await _db.QueryFirstOrDefaultAsync(sql, new { Date = date });
-            
-            if (holiday == null)
+            var h = await _db.QueryFirstOrDefaultAsync(sql, new { Date = date });
+
+            if (h == null)
                 return NotFound();
-                
+
+            // Map to camelCase for frontend
+            var holiday = new
+            {
+                id = (int)h.id,
+                holidayDate = ((DateTime)h.holiday_date).ToString("yyyy-MM-dd"),
+                name = (string)h.name,
+                type = (string)h.type,
+                isWorkAllowed = (bool)h.is_work_allowed,
+                createdBy = h.created_by as int?,
+                createdAt = h.created_at as DateTime?,
+                notes = h.notes as string
+            };
+
             return Ok(holiday);
         }
         catch (Exception ex)
