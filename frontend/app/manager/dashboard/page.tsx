@@ -343,7 +343,8 @@ export default function ManagerDashboard() {
   );
 
   return (
-    <div className="space-y-4 md:space-y-6 lg:space-y-8 pb-24">
+    <div className="min-h-screen w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex-1">
@@ -675,7 +676,7 @@ export default function ManagerDashboard() {
           alt="Altum Logo"
           width={80}
           height={30}
-          className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity dark:hidden"
+          className="h-6 w-auto opacity-40 hover:opacity-80 transition-opacity dark:hidden"
           priority
         />
         <Image
@@ -683,9 +684,10 @@ export default function ManagerDashboard() {
           alt="Altum Logo"
           width={80}
           height={30}
-          className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity hidden dark:block"
+          className="h-6 w-auto opacity-40 hover:opacity-80 transition-opacity hidden dark:block"
           priority
         />
+      </div>
       </div>
     </div>
   );

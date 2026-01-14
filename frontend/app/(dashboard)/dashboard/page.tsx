@@ -201,7 +201,8 @@ export default function Dashboard() {
     stats.weekHours >= (stats.weekTarget / 7) * dayjs().isoWeekday();
 
   return (
-    <div className="space-y-4 md:space-y-6 pb-24">
+    <div className="min-h-screen w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
       {/* Welcome Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
@@ -509,19 +510,20 @@ export default function Dashboard() {
         <Image
           src="/altum-logo.png"
           alt="Altum Logo"
-          width={500}
-          height={300}
-          className="h-50 w-auto opacity-50 hover:opacity-100 transition-opacity dark:hidden"
+          width={80}
+          height={30}
+          className="h-6 w-auto opacity-40 hover:opacity-80 transition-opacity dark:hidden"
           priority
         />
         <Image
           src="/altum-logo-white.png"
           alt="Altum Logo"
-          width={500}
-          height={300}
-          className="h-50 w-auto opacity-50 hover:opacity-100 transition-opacity hidden dark:block"
+          width={80}
+          height={30}
+          className="h-6 w-auto opacity-40 hover:opacity-80 transition-opacity hidden dark:block"
           priority
         />
+      </div>
       </div>
     </div>
   );
