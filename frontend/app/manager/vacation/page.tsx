@@ -40,8 +40,8 @@ export default function ManagerVacationPage() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (r) =>
-          r.user?.firstName?.toLowerCase().includes(query) ||
-          r.user?.lastName?.toLowerCase().includes(query),
+          r.userFirstName?.toLowerCase().includes(query) ||
+          r.userLastName?.toLowerCase().includes(query),
       );
     }
     filtered.sort(
@@ -254,7 +254,7 @@ export default function ManagerVacationPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {request.user?.firstName} {request.user?.lastName}
+                            {request.userFirstName} {request.userLastName}
                           </h3>
                           {getStatusBadge(request.status)}
                         </div>

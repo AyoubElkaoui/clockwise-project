@@ -37,23 +37,27 @@ namespace ClockwiseProject.Backend.Repositories
 
                 var sql = @"
                     SELECT
-                        id AS Id,
-                        medew_gc_id AS UserId,
-                        start_date AS StartDate,
-                        end_date AS EndDate,
+                        l.id AS Id,
+                        l.medew_gc_id AS UserId,
+                        l.start_date AS StartDate,
+                        l.end_date AS EndDate,
                         'vacation' AS VacationType,
-                        ROUND(total_hours / 8.0, 1) AS TotalDays,
-                        COALESCE(description, '') AS Notes,
-                        COALESCE(status, 'DRAFT') AS Status,
-                        created_at AS CreatedAt,
-                        submitted_at AS SubmittedAt,
-                        reviewed_at AS ReviewedAt,
-                        reviewed_by AS ReviewedBy,
-                        COALESCE(rejection_reason, '') AS RejectionReason,
-                        updated_at AS UpdatedAt,
-                        firebird_gc_ids AS FirebirdGcIds
-                    FROM leave_requests_workflow
-                    ORDER BY created_at DESC";
+                        ROUND(l.total_hours / 8.0, 1) AS TotalDays,
+                        COALESCE(l.description, '') AS Notes,
+                        COALESCE(l.status, 'DRAFT') AS Status,
+                        l.created_at AS CreatedAt,
+                        l.submitted_at AS SubmittedAt,
+                        l.reviewed_at AS ReviewedAt,
+                        l.reviewed_by AS ReviewedBy,
+                        COALESCE(l.rejection_reason, '') AS RejectionReason,
+                        l.updated_at AS UpdatedAt,
+                        l.firebird_gc_ids AS FirebirdGcIds,
+                        u.first_name AS UserFirstName,
+                        u.last_name AS UserLastName,
+                        u.email AS UserEmail
+                    FROM leave_requests_workflow l
+                    LEFT JOIN users u ON l.medew_gc_id = u.medew_gc_id
+                    ORDER BY l.created_at DESC";
 
                 var result = await connection.QueryAsync<VacationRequest>(sql);
                 _logger.LogInformation("Found {Count} vacation requests", result.Count());

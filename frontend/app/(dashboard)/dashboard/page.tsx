@@ -366,37 +366,26 @@ export default function Dashboard() {
                   >
                     <div className="w-16 text-center">
                       <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">
-                        {dayjs(entry.startTime || entry.date).format("ddd")}
+                        {dayjs(entry.datum || entry.startTime || entry.date).format("ddd")}
                       </p>
                       <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                        {dayjs(entry.startTime || entry.date).format("D")}
+                        {dayjs(entry.datum || entry.startTime || entry.date).format("D")}
                       </p>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-                          {entry.projectName || `Project ${entry.projectId}`}
+                          {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || '?'}`}
                         </p>
                         {getStatusBadge(entry.status)}
                       </div>
                       <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                        {entry.notes || t("dashboard.noDescription")}
+                        {entry.omschrijving || entry.notes || t("dashboard.noDescription")}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                        {entry.startTime && entry.endTime
-                          ? Math.round(
-                              ((dayjs(entry.endTime).diff(
-                                dayjs(entry.startTime),
-                                "minute",
-                              ) -
-                                (entry.breakMinutes || 0)) /
-                                60) *
-                                10,
-                            ) / 10
-                          : entry.hours || 0}
-                        u
+                        {entry.aantal || entry.hours || 0}u
                       </p>
                     </div>
                   </div>

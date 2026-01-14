@@ -37,6 +37,11 @@ namespace ClockwiseProject.Domain
         public DateTime? SubmittedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         
+        // Flattened user properties (for API responses without navigation)
+        public string? UserFirstName { get; set; }
+        public string? UserLastName { get; set; }
+        public string? UserEmail { get; set; }
+        
         // Backwards compatibility
         public double Hours => (double)TotalDays * 8; // Voor oude code die Hours verwacht
         public string? Reason => Notes; // Voor oude code die Reason verwacht
