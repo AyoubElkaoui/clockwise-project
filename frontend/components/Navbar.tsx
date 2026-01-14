@@ -2,6 +2,7 @@
 
 import { useState, useEffect, JSX } from "react";
 import NotificationBell from "./NotificationBell";
+import { MobileNav } from "./MobileNav";
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
@@ -116,9 +117,17 @@ export default function Navbar(): JSX.Element {
       "
     >
       <div className="flex items-center justify-between gap-2 md:gap-4">
-        {/* === LEFT: Search === */}
-        <div className="flex items-center gap-3 flex-1 max-w-xs lg:max-w-md">
-          <div className="relative w-full">
+        {/* === LEFT: Hamburger + Search === */}
+        <div className="flex items-center gap-2 flex-1 max-w-xs lg:max-w-md">
+          {/* Hamburger menu for mobile */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <Bars3Icon className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+          </button>
+
+          <div className="relative flex-1">
             <MagnifyingGlassIcon
               className="
                 absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5
@@ -269,6 +278,9 @@ export default function Navbar(): JSX.Element {
             "
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
+
+      {/* Mobile Navigation Drawer */}
+      <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
             {mobileMenuOpen ? (
               <XMarkIcon className="w-6 h-6" />
             ) : (

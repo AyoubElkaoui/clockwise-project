@@ -343,29 +343,13 @@ export default function ManagerDashboard() {
   );
 
   return (
-    <div className="space-y-4 md:space-y-6 lg:space-y-8">
+    <div className="space-y-4 md:space-y-6 lg:space-y-8 w-full max-w-7xl mx-auto pb-32 md:pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-              Team Dashboard
-            </h1>
-            <Image
-              src="/altum-logo.png"
-              alt="Altum Logo"
-              width={70}
-              height={25}
-              className="h-5 w-auto dark:hidden"
-            />
-            <Image
-              src="/altum-logo-white.png"
-              alt="Altum Logo"
-              width={70}
-              height={25}
-              className="h-5 w-auto hidden dark:block"
-            />
-          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Team Dashboard
+          </h1>
           <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Overzicht van team prestaties en goedkeuringen
           </p>
@@ -392,7 +376,7 @@ export default function ManagerDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Team Size */}
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
@@ -487,7 +471,7 @@ export default function ManagerDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 w-full">
         {/* Pending Approvals */}
         {stats.pendingApprovals > 0 && (
           <Card>
@@ -683,6 +667,31 @@ export default function ManagerDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Altum Logo - Rechts onderaan */}
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-10">
+        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl p-3 md:p-6 border border-slate-200 dark:border-slate-700">
+          <div className="text-center space-y-1 md:space-y-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Powered by</p>
+            <Image
+              src="/altum-logo.png"
+              alt="Altum Logo"
+              width={160}
+              height={60}
+              className="w-24 md:w-40 h-auto dark:hidden"
+              priority
+            />
+            <Image
+              src="/altum-logo-white.png"
+              alt="Altum Logo"
+              width={160}
+              height={60}
+              className="w-24 md:w-40 h-auto hidden dark:block"
+              priority
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
