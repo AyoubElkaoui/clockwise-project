@@ -80,13 +80,13 @@ export default function ManagerVacationPage() {
       ]);
 
       const team = users.filter((u: any) => u.managerId === managerId);
-      const teamIds = team.map((u: any) => u.id);
+      const teamIds = team.map((u: any) => u.id || u.medewGcId);
 
       let teamRequests;
 
       if (userId) {
         // Filter for specific user
-        const user = team.find((u: any) => u.id === Number(userId));
+        const user = team.find((u: any) => u.id === Number(userId) || u.medewGcId === Number(userId));
         if (user) {
           setFilteredUser(user);
           teamRequests = allRequests.filter((r: any) => r.userId === Number(userId));

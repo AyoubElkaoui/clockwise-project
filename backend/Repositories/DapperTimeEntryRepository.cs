@@ -162,9 +162,12 @@ public class DapperTimeEntryRepository
 
     public async Task<IEnumerable<UserDto>> GetTeamMembersForManagerAsync(int managerMedewGcId)
     {
-        // FOR NOW: Return all users from PostgreSQL users table
-        // TODO: Later filter by manager_assignments when that data is populated
-        const string getAllUsersSql = @"
+        // First, find the manager's user ID from their medew_gc_id
+        const string getManagerIdSql = @"
+            SELECT id FROM users WHERE medew_gc_id = @MedewGcId";
+        
+        // Get team members assigned to this manager
+        const string getTeamSql = @"
             SELECT
                 u.id as Id,
                 u.medew_gc_id as MedewGcId,
@@ -173,19 +176,37 @@ public class DapperTimeEntryRepository
                 u.last_name as LastName,
                 u.username,
                 u.email,
-                u.role
+                u.role,
+                ma.manager_id as ManagerId
             FROM users u
-            WHERE u.role = 'user' 
+            INNER JOIN manager_assignments ma ON ma.employee_id = u.id
+            WHERE ma.manager_id = @ManagerId
               AND u.is_active = true
+              AND (ma.active_from IS NULL OR ma.active_from <= CURRENT_DATE)
+              AND (ma.active_until IS NULL OR ma.active_until >= CURRENT_DATE)
             ORDER BY u.first_name, u.last_name";
 
         try
         {
             using var pgConnection = _postgresConnectionFactory.CreateConnection();
-            var users = await pgConnection.QueryAsync<UserDto>(getAllUsersSql);
+            
+            // Get manager's ID
+            var managerId = await pgConnection.QueryFirstOrDefaultAsync<int?>(
+                getManagerIdSql, 
+                new { MedewGcId = managerMedewGcId }
+            );
 
-            _logger.LogInformation("Manager (medew_gc_id: {MedewGcId}) loaded {Count} team members from PostgreSQL", 
-                managerMedewGcId, users.Count());
+            if (!managerId.HasValue)
+            {
+                _logger.LogWarning("Manager with medew_gc_id {MedewGcId} not found in users table", managerMedewGcId);
+                return Enumerable.Empty<UserDto>();
+            }
+
+            // Get team members
+            var users = await pgConnection.QueryAsync<UserDto>(getTeamSql, new { ManagerId = managerId.Value });
+
+            _logger.LogInformation("Manager (medew_gc_id: {MedewGcId}, id: {ManagerId}) loaded {Count} team members from manager_assignments", 
+                managerMedewGcId, managerId.Value, users.Count());
 
             return users;
         }
@@ -246,6 +267,7 @@ public class UserDto
     public string FullName { get; set; } = string.Empty;
     public string Naam => FullName?.Split(' ').FirstOrDefault() ?? "";
     public string Voornaam => string.Join(" ", FullName?.Split(' ').Skip(1) ?? new string[0]);
+    public int? ManagerId { get; set; } // Manager user ID from manager_assignments
 
     // Frontend compatibility - split FullName into FirstName and LastName
     public string FirstName => FullName?.Split(' ').FirstOrDefault() ?? "";

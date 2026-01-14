@@ -38,7 +38,7 @@ namespace ClockwiseProject.Backend.Repositories
                 var sql = @"
                     SELECT
                         id AS Id,
-                        user_id AS UserId,
+                        medew_gc_id AS UserId,
                         start_date AS StartDate,
                         end_date AS EndDate,
                         'vacation' AS VacationType,
@@ -88,7 +88,7 @@ namespace ClockwiseProject.Backend.Repositories
                 var sql = @"
                     SELECT
                         id AS Id,
-                        user_id AS UserId,
+                        medew_gc_id AS UserId,
                         start_date AS StartDate,
                         end_date AS EndDate,
                         'vacation' AS VacationType,
@@ -103,7 +103,7 @@ namespace ClockwiseProject.Backend.Repositories
                         updated_at AS UpdatedAt,
                         firebird_gc_ids AS FirebirdGcIds
                     FROM leave_requests_workflow
-                    WHERE user_id = @UserId
+                    WHERE medew_gc_id = @UserId
                     ORDER BY created_at DESC";
 
                 var result = await connection.QueryAsync<VacationRequest>(sql, new { UserId = userId });

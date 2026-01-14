@@ -54,6 +54,14 @@ namespace ClockwiseProject.Backend.Services
         public async Task AddVacationRequestAsync(VacationRequest vacationRequest)
         {
             await _vacationRepository.AddAsync(vacationRequest);
+            
+            // If status is SUBMITTED, update vacation balance (add to pending)
+            if (vacationRequest.Status?.ToUpper() == "SUBMITTED")
+            {
+                await UpdateVacationBalanceAsync(vacationRequest.UserId, vacationRequest.StartDate.Year, 
+                    pendingDelta: vacationRequest.TotalDays * 8, // Add to pending
+                    usedDelta: 0);
+            }
         }
 
         public async Task UpdateVacationRequestAsync(VacationRequest vacationRequest)
@@ -84,6 +92,11 @@ namespace ClockwiseProject.Backend.Services
             request.ReviewedAt = DateTime.Now;
             request.ReviewedBy = reviewedBy;
 
+            // Update vacation balance - move from pending to used
+            await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year, 
+                pendingDelta: -request.TotalDays * 8, // Remove from pending
+                usedDelta: request.TotalDays * 8);     // Add to used
+
             // Write to Firebird: Create AT_URENBREG records for each working day
             try
             {
@@ -113,6 +126,12 @@ namespace ClockwiseProject.Backend.Services
                 request.RejectionReason = managerComment;
                 request.ReviewedAt = DateTime.Now;
                 request.ReviewedBy = reviewedBy;
+                
+                // Update vacation balance - remove from pending (give hours back)
+                await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year, 
+                    pendingDelta: -request.TotalDays * 8, // Remove from pending
+                    usedDelta: 0);                          // No change to used
+                
                 await _vacationRepository.UpdateAsync(request);
             }
         }
@@ -266,6 +285,42 @@ namespace ClockwiseProject.Backend.Services
         {
             var sql = "SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG";
             return await connection.ExecuteScalarAsync<int>(sql, transaction: transaction);
+        }
+
+        /// <summary>
+        /// Update vacation balance in PostgreSQL - called when vacation is submitted/approved/rejected
+        /// </summary>
+        private async Task UpdateVacationBalanceAsync(int medewGcId, int year, decimal pendingDelta, decimal usedDelta)
+        {
+            try
+            {
+                using var connection = _postgresConnectionFactory.CreateConnection();
+                
+                var sql = @"
+                    INSERT INTO vacation_balance (medew_gc_id, year, total_hours, used_hours, pending_hours)
+                    VALUES (@MedewGcId, @Year, 0, @UsedHours, @PendingHours)
+                    ON CONFLICT (medew_gc_id, year) 
+                    DO UPDATE SET
+                        used_hours = vacation_balance.used_hours + @UsedHours,
+                        pending_hours = vacation_balance.pending_hours + @PendingHours,
+                        updated_at = CURRENT_TIMESTAMP";
+                
+                await connection.ExecuteAsync(sql, new
+                {
+                    MedewGcId = medewGcId,
+                    Year = year,
+                    UsedHours = usedDelta,
+                    PendingHours = pendingDelta
+                });
+                
+                _logger.LogInformation("Updated vacation balance for medew_gc_id {MedewGcId}: pending {PendingDelta}, used {UsedDelta}", 
+                    medewGcId, pendingDelta, usedDelta);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating vacation balance for medew_gc_id {MedewGcId}", medewGcId);
+                // Don't throw - balance update failure shouldn't stop the vacation approval
+            }
         }
     }
 }

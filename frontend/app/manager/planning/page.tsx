@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { getAllUsers, getAllWorkflowEntries, getAllVacationRequests } from "@/lib/manager-api";
+import { getAllUsers, getAllWorkflowEntries, getAllVacationRequests, getCurrentPeriodId } from "@/lib/manager-api";
 import { getPeriods } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -143,7 +143,7 @@ export default function ManagerPlanningPage() {
       setTimeEntries(entries);
 
       // Filter vacations for team members only
-      const teamIds = team.map((u: any) => u.id);
+      const teamIds = team.map((u: any) => u.id || u.medewGcId);
       const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
       setVacations(vacationsData);
 

@@ -1,7 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAllWorkflowEntries, getAllUsers } from "@/lib/manager-api";
+import { 
+  getAllWorkflowEntries, 
+  getAllUsers, 
+  approveTimeEntry,
+  reviewWorkflowEntries,
+  getCurrentPeriodId,
+  getAllVacationRequests
+} from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,19 +69,38 @@ export default function ManagerDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      if (!authUtils.getUserId()) {
+      const managerId = authUtils.getUserId();
+      if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         router.push("/login");
         return;
       }
 
-      // Load workflow entries and users
-      const [workflowResponse, users] = await Promise.all([
-        getAllWorkflowEntries(100426), // Current period - all statuses
-        getAllUsers()
+      // Get current period ID dynamically
+      const currentPeriodId = await getCurrentPeriodId();
+      console.log("Using period ID:", currentPeriodId);
+
+      // Load workflow entries, users, and vacations
+      const [workflowResponse, allUsers, allVacations] = await Promise.all([
+        getAllWorkflowEntries(currentPeriodId), // Current period - all statuses
+        getAllUsers(),
+        getAllVacationRequests()
       ]);
 
-      const entries = workflowResponse.entries.map((e: any) => ({
+      // Filter for only this manager's team
+      const managersTeam = allUsers.filter((u: any) => u.managerId === managerId);
+      const teamMemberIds = managersTeam.map((u: any) => u.medewGcId || u.id);
+      
+      console.log("Manager ID:", managerId);
+      console.log("Team members:", managersTeam.length);
+      console.log("Team IDs:", teamMemberIds);
+
+      // Filter entries for this manager's team only
+      const teamEntries = workflowResponse.entries.filter((e: any) => 
+        teamMemberIds.includes(e.medewGcId)
+      );
+
+      const entries = teamEntries.map((e: any) => ({
         id: e.id,
         userId: e.medewGcId,
         date: e.datum,
@@ -88,16 +114,17 @@ export default function ManagerDashboard() {
         projectName: e.werkDescription,
       }));
 
-      console.log("Workflow entries loaded:", entries.length);
-      console.log("Users loaded:", users.length);
+      console.log("Workflow entries loaded (team only):", entries.length);
+      console.log("Users loaded:", managersTeam.length);
 
-      // Manager can see all users (no filtering)
-      const team = users;
-      const vacations: any[] = []; // TODO: Add vacation endpoint later
+      // Filter vacations for this manager's team
+      const teamVacations = allVacations.filter((v: any) => 
+        teamMemberIds.includes(v.userId)
+      );
 
       // Calculate comprehensive stats
       const pending = entries.filter((e: any) => e.status === "SUBMITTED");
-      const pendingVac = vacations.filter((v: any) => v.status === "pending");
+      const pendingVac = teamVacations.filter((v: any) => v.status === "pending" || v.status === "submitted");
 
       // Current week
       const weekStart = dayjs().startOf("isoWeek");
@@ -145,7 +172,7 @@ export default function ManagerDashboard() {
 
         // Calculate utilization rate (assuming 8 hours per day, 5 days per week)
         const workingDaysThisWeek = Math.min(dayjs().isoWeekday(), 5);
-        const expectedHoursThisWeek = team.length * workingDaysThisWeek * 8;
+        const expectedHoursThisWeek = managersTeam.length * workingDaysThisWeek * 8;
         const utilizationRate =
           expectedHoursThisWeek > 0
             ? (thisWeekHours / expectedHoursThisWeek) * 100
@@ -161,11 +188,11 @@ export default function ManagerDashboard() {
         // Calculate average hours per day
         const avgHoursPerDay =
           workingDaysThisWeek > 0
-            ? thisWeekHours / (team.length * workingDaysThisWeek)
+            ? thisWeekHours / (managersTeam.length * workingDaysThisWeek)
             : 0;
 
         setStats({
-          teamSize: team.length,
+          teamSize: managersTeam.length,
           pendingApprovals: pending.length,
           pendingVacations: pendingVac.length,
           thisWeekHours,
@@ -193,7 +220,7 @@ export default function ManagerDashboard() {
         setTeamActivity(recent);
 
         // Calculate team performance metrics
-        const teamPerf = team
+        const teamPerf = managersTeam
           .map((member: any) => {
             const memberEntries = entries.filter(
               (e: any) => e.userId === member.medewGcId && e.status === "APPROVED",

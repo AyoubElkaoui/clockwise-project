@@ -156,7 +156,7 @@ export default function VacationCalendarPage() {
       setTeamMembers(team);
 
       // Filter vacations for team members only
-      const teamIds = team.map((u: any) => u.id);
+      const teamIds = team.map((u: any) => u.id || u.medewGcId);
       const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
       setVacations(vacationsData);
 

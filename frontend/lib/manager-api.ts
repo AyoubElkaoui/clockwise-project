@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_URL } from "./api";
 import authUtils from "./auth-utils";
+import dayjs from "dayjs";
 
 const getAuthHeaders = () => {
   const medewGcId = localStorage.getItem("medewGcId");
@@ -10,6 +11,43 @@ const getAuthHeaders = () => {
     "X-USER-ROLE": userRole || ""
   } : {};
 };
+
+// Helper function to get current period ID
+export async function getCurrentPeriodId(): Promise<number> {
+  try {
+    const response = await axios.get(`${API_URL}/periods?count=50`);
+    const periods = response.data;
+    
+    if (!Array.isArray(periods) || periods.length === 0) {
+      throw new Error("No periods found");
+    }
+    
+    // Find period that contains today's date
+    const today = dayjs();
+    const currentPeriod = periods.find((p: any) => {
+      const startDate = dayjs(p.startDate || p.gcVanDatum);
+      const endDate = dayjs(p.endDate || p.gcTotDatum);
+      return today.isAfter(startDate) && today.isBefore(endDate);
+    });
+    
+    if (currentPeriod) {
+      return currentPeriod.gcId || currentPeriod.id;
+    }
+    
+    // If no matching period, return the most recent one
+    const sorted = periods.sort((a: any, b: any) => {
+      const dateA = new Date(a.startDate || a.gcVanDatum);
+      const dateB = new Date(b.startDate || b.gcVanDatum);
+      return dateB.getTime() - dateA.getTime();
+    });
+    
+    return sorted[0].gcId || sorted[0].id;
+  } catch (error) {
+    console.error("Error getting current period:", error);
+    // Fallback to a default period ID
+    return 100426;
+  }
+}
 
 export interface TimeEntryDto {
   id: number;
