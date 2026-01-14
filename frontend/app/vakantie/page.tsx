@@ -774,8 +774,7 @@ export default function VakantiePage() {
               </Card>
             </div>
           )}
-        </div>
-        </div>
+          </div>
         </div>
       </ModernLayout>
     </ProtectedRoute>
