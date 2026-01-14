@@ -32,8 +32,8 @@ export default function ModernLayout({ children }: { children: ReactNode }) {
         {/* Navbar bovenaan */}
         <Navbar /> 
         
-        {/* Pagina inhoud - geen extra padding, pagina's regelen dit zelf */}
-        <div>
+        {/* Pagina inhoud */}
+        <div className="p-6">
           {children}
         </div>
 

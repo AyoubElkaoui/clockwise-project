@@ -25,7 +25,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         <ManagerSidebar collapsed={isCollapsed} onToggle={handleSidebarToggle} />
         <main className={`flex-1 transition-all duration-300 ${isCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
           <Navbar />
-          <div>{children}</div>
+          <div className="p-6">{children}</div>
         </main>
       </div>
     </ManagerRoute>

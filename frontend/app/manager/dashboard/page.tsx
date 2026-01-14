@@ -343,8 +343,7 @@ export default function ManagerDashboard() {
   );
 
   return (
-    <div className="min-h-screen w-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex-1">
@@ -669,25 +668,25 @@ export default function ManagerDashboard() {
         </CardContent>
       </Card>
 
-      {/* Altum Logo - Klein rechts onderaan */}
-      <div className="fixed bottom-4 right-4 z-10">
+      {/* Altum Logo - Groot rechts onderaan */}
+      <div className="fixed bottom-6 right-6 z-10 flex items-center gap-3">
+        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Powered by</p>
         <Image
           src="/altum-logo.png"
           alt="Altum Logo"
-          width={80}
-          height={30}
-          className="h-6 w-auto opacity-40 hover:opacity-80 transition-opacity dark:hidden"
+          width={200}
+          height={75}
+          className="w-48 h-auto dark:hidden"
           priority
         />
         <Image
           src="/altum-logo-white.png"
           alt="Altum Logo"
-          width={80}
-          height={30}
-          className="h-6 w-auto opacity-40 hover:opacity-80 transition-opacity hidden dark:block"
+          width={200}
+          height={75}
+          className="w-48 h-auto hidden dark:block"
           priority
         />
-      </div>
       </div>
     </div>
   );
