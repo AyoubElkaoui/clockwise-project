@@ -191,6 +191,16 @@ public class MedewGcIdMiddleware
             return;
         }
 
+        // Skip authentication for GET requests to public endpoints
+        if (context.Request.Method == "GET" && path != null &&
+            (path.Contains("/api/holidays") ||
+             path.Contains("/api/periods") ||
+             path.Contains("/api/health")))
+        {
+            await _next(context);
+            return;
+        }
+
         _logger.LogInformation("MedewGcIdMiddleware: Processing {Method} {Path}", context.Request.Method, context.Request.Path);
         _logger.LogInformation("MedewGcIdMiddleware: Headers: {Headers}", string.Join(", ", context.Request.Headers.Keys));
 

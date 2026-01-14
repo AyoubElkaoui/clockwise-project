@@ -323,7 +323,7 @@ export default function ManagerVacationPage() {
                     </div>
                   )}
 
-                  {request.status === "pending" &&
+                  {(request.status?.toLowerCase() === "pending" || request.status?.toLowerCase() === "submitted") &&
                     (selectedRequest?.id === request.id ? (
                       <div className="space-y-3 bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
                         <Textarea

@@ -65,7 +65,7 @@ export default function ManagerNotificatiesPage() {
 
       const response = await fetch(`${API_URL}/activities/${userId}`, {
         headers: {
-          "X-User-ID": userId.toString(),
+          "X-MEDEW-GC-ID": userId.toString(),
           "ngrok-skip-browser-warning": "1",
         },
       });
@@ -93,7 +93,7 @@ export default function ManagerNotificatiesPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-User-ID": userId?.toString() || "",
+          "X-MEDEW-GC-ID": userId?.toString() || "",
           "ngrok-skip-browser-warning": "1",
         },
       });
@@ -123,7 +123,7 @@ export default function ManagerNotificatiesPage() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-User-ID": userId?.toString() || "",
+              "X-MEDEW-GC-ID": userId?.toString() || "",
               "ngrok-skip-browser-warning": "1",
             },
           })
