@@ -22,6 +22,7 @@ export default function LoginPage(): JSX.Element {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState<boolean>(false);
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -234,14 +235,55 @@ export default function LoginPage(): JSX.Element {
 
             {/* Additional Options */}
             <div className="text-center">
-              <a
-                href="#"
+              <button
+                type="button"
+                onClick={() => setShowForgotPasswordModal(true)}
                 className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200 font-medium"
               >
                 {t("login.forgotPassword")}
-              </a>
+              </button>
             </div>
           </CardContent>
+
+          {/* Forgot Password Modal */}
+          {showForgotPasswordModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6">
+                <div className="text-center mb-6">
+                  <div className="mx-auto w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-4">
+                    <LockClosedIcon className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    Wachtwoord Vergeten?
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Op dit moment is het niet mogelijk om zelf je wachtwoord te resetten.
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <EnvelopeIcon className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                        Neem contact op met de beheerder
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Stuur een e-mail naar je manager of IT-beheerder om je wachtwoord te laten resetten.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setShowForgotPasswordModal(false)}
+                  className="w-full bg-timr-orange hover:bg-timr-orange-hover text-white"
+                >
+                  Begrepen
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="bg-slate-50 dark:bg-slate-800 px-6 py-4 text-center border-t border-slate-200 dark:border-slate-700 rounded-b-xl">

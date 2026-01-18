@@ -208,6 +208,13 @@ public class MedewGcIdMiddleware
             return;
         }
 
+        // Skip X-MEDEW-GC-ID for vacation management (uses X-User-ID instead)
+        if (path != null && path.Contains("/api/vacation"))
+        {
+            await _next(context);
+            return;
+        }
+
         _logger.LogInformation("MedewGcIdMiddleware: Processing {Method} {Path}", context.Request.Method, context.Request.Path);
         _logger.LogInformation("MedewGcIdMiddleware: Headers: {Headers}", string.Join(", ", context.Request.Headers.Keys));
 

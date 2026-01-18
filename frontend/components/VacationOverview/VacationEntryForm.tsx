@@ -50,7 +50,6 @@ const registerVacationRequest = async (vacationData: any) => {
       throw new Error("API call failed");
     }
   } catch (error) {
-    console.warn("Real API not available, simulating success:", error);
     // Simulate success for demo purposes
     return {
       success: true,
@@ -72,9 +71,11 @@ export default function VacationEntryForm() {
   const [vacationBalance, setVacationBalance] =
     useState<VacationBalance | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
+  const [customHours, setCustomHours] = useState<number>(8); // Voor deeltijd vakantie
   const router = useRouter();
 
   const dailyHours = 8; // standaard werkuren per dag
+  const isSameDay = startDate === endDate;
 
   useEffect(() => {
     // Haal vakantie balans op
@@ -100,10 +101,6 @@ export default function VacationEntryForm() {
             throw new Error("API not available");
           }
         } catch (apiError) {
-          console.warn(
-            "Real API not available, using fallback balance:",
-            apiError,
-          );
           // Fallback balans
           setVacationBalance({
             totalHours: 200,
@@ -113,7 +110,6 @@ export default function VacationEntryForm() {
           });
         }
       } catch (error) {
-        console.error("Error fetching vacation balance:", error);
         // Default fallback balans
         setVacationBalance({
           totalHours: 200,
@@ -164,10 +160,13 @@ export default function VacationEntryForm() {
 
   const workDays = calculateWorkdays();
   const totalDays = calculateTotalDays();
-  const requestedHours = workDays * dailyHours;
+  // Als het dezelfde dag is, gebruik customHours, anders workDays * dailyHours
+  const requestedHours = isSameDay ? customHours : workDays * dailyHours;
   const canSubmit = vacationBalance
     ? requestedHours <= vacationBalance.remainingHours
     : false;
+  // Auto-accept als minder dan 8 uur wordt aangevraagd
+  const willAutoAccept = requestedHours < 8;
 
   const handleSubmit = async () => {
     if (!startDate || !endDate || !reason.trim()) {
@@ -195,13 +194,17 @@ export default function VacationEntryForm() {
       return;
     }
 
+    // Auto-accept als minder dan 8 uur
+    const autoAccepted = requestedHours < 8;
+
     const vacationData = {
       userId: Number(localStorage.getItem("userId")) || 0,
       startDate,
       endDate,
       hours: requestedHours,
       reason,
-      status: "pending",
+      status: autoAccepted ? "approved" : "pending",
+      autoAccepted,
     };
 
     setIsSubmitting(true);
@@ -209,20 +212,20 @@ export default function VacationEntryForm() {
 
     try {
       const result = await registerVacationRequest(vacationData);
-      console.log("Vacation request result:", result);
 
       // Show success message and redirect
-      alert(
-        t("vacation.success.submitted", {
-          start: dayjs(startDate).format("DD-MM-YYYY"),
-          end: dayjs(endDate).format("DD-MM-YYYY"),
-          days: workDays,
-          hours: requestedHours,
-        }),
-      );
+      const successMessage = autoAccepted
+        ? `Vakantie-aanvraag automatisch goedgekeurd! (${requestedHours} uur op ${dayjs(startDate).format("DD-MM-YYYY")})`
+        : t("vacation.success.submitted", {
+            start: dayjs(startDate).format("DD-MM-YYYY"),
+            end: dayjs(endDate).format("DD-MM-YYYY"),
+            days: workDays,
+            hours: requestedHours,
+          });
+
+      alert(successMessage);
       router.push("/vacation");
     } catch (err: any) {
-      console.error("Vacation request error:", err);
       if (err.response?.data) {
         setError(err.response.data);
       } else {
@@ -396,6 +399,38 @@ export default function VacationEntryForm() {
                       />
                     </div>
                   </div>
+
+                  {/* Uren selectie bij dezelfde dag */}
+                  {isSameDay && (
+                    <div className="form-control mt-6">
+                      <label className="label">
+                        <span className="label-text font-semibold text-gray-700">
+                          Aantal uren vakantie
+                        </span>
+                        <span className="label-text-alt text-gray-500">
+                          (1-8 uur)
+                        </span>
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="1"
+                          max="8"
+                          value={customHours}
+                          onChange={(e) => setCustomHours(Number(e.target.value))}
+                          className="range range-primary flex-1"
+                        />
+                        <div className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl min-w-[80px] text-center">
+                          {customHours} uur
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 px-2 mt-1">
+                        <span>1 uur</span>
+                        <span>4 uur</span>
+                        <span>8 uur</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Reason */}
@@ -451,6 +486,19 @@ export default function VacationEntryForm() {
                   <div className="alert alert-success rounded-xl mb-6">
                     <CheckCircleIcon className="w-6 h-6" />
                     <span>{t("vacation.success.canRequest")}</span>
+                  </div>
+                )}
+
+                {/* Auto-accept indicator */}
+                {willAutoAccept && canSubmit && requestedHours > 0 && (
+                  <div className="alert alert-info rounded-xl mb-6 bg-green-100 border-green-300">
+                    <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                    <div>
+                      <span className="font-semibold text-green-800">Automatisch goedgekeurd!</span>
+                      <p className="text-sm text-green-700">
+                        Aanvragen onder de 8 uur worden automatisch geaccepteerd.
+                      </p>
+                    </div>
                   </div>
                 )}
 

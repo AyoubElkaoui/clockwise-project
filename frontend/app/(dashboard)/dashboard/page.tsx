@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -504,26 +503,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Altum Logo - Groot rechts onderaan */}
-      <div className="fixed bottom-6 right-6 z-10 flex items-center gap-3">
-        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Powered by</p>
-        <Image
-          src="/altum-logo.png"
-          alt="Altum Logo"
-          width={200}
-          height={75}
-          className="w-48 h-auto dark:hidden"
-          priority
-        />
-        <Image
-          src="/altum-logo-white.png"
-          alt="Altum Logo"
-          width={200}
-          height={75}
-          className="w-48 h-auto hidden dark:block"
-          priority
-        />
-      </div>
     </div>
   );
 }

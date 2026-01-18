@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { 
   getAllWorkflowEntries, 
   getAllUsers, 
@@ -79,7 +78,6 @@ export default function ManagerDashboard() {
 
       // Get current period ID dynamically
       const currentPeriodId = await getCurrentPeriodId();
-      console.log("Using period ID:", currentPeriodId);
 
       // Load workflow entries, users, and vacations
       const [workflowResponse, allUsers, allVacations] = await Promise.all([
@@ -91,10 +89,6 @@ export default function ManagerDashboard() {
       // Filter for only this manager's team
       const managersTeam = allUsers.filter((u: any) => u.managerId === managerId);
       const teamMemberIds = managersTeam.map((u: any) => u.medewGcId || u.id);
-      
-      console.log("Manager ID:", managerId);
-      console.log("Team members:", managersTeam.length);
-      console.log("Team IDs:", teamMemberIds);
 
       // Filter entries for this manager's team only
       const teamEntries = workflowResponse.entries.filter((e: any) => 
@@ -114,9 +108,6 @@ export default function ManagerDashboard() {
         projectCode: e.werkCode,
         projectName: e.werkDescription,
       }));
-
-      console.log("Workflow entries loaded (team only):", entries.length);
-      console.log("Users loaded:", managersTeam.length);
 
       // Filter vacations for this manager's team
       const teamVacations = allVacations.filter((v: any) => 
@@ -668,26 +659,6 @@ export default function ManagerDashboard() {
         </CardContent>
       </Card>
 
-      {/* Altum Logo - Groot rechts onderaan */}
-      <div className="fixed bottom-6 right-6 z-10 flex items-center gap-3">
-        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Powered by</p>
-        <Image
-          src="/altum-logo.png"
-          alt="Altum Logo"
-          width={200}
-          height={75}
-          className="w-48 h-auto dark:hidden"
-          priority
-        />
-        <Image
-          src="/altum-logo-white.png"
-          alt="Altum Logo"
-          width={200}
-          height={75}
-          className="w-48 h-auto hidden dark:block"
-          priority
-        />
-      </div>
     </div>
   );
 }

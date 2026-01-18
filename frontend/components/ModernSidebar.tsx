@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Building2,
+  Calendar,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -68,6 +69,12 @@ const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
     rank: "all",
   },
   { icon: Plane, label: t("nav.vacation"), href: "/vakantie", rank: "all" },
+  {
+    icon: Calendar,
+    label: "Aanwezigheid",
+    href: "/aanwezigheidskalender",
+    rank: "all",
+  },
   {
     icon: Bell,
     label: t("nav.notifications"),

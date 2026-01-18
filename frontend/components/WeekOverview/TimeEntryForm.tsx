@@ -12,6 +12,7 @@ import {
   getUserProjects,
   getTimeEntries,
 } from "@/lib/api";
+import { deleteEntry } from "@/lib/api/timeEntryApi";
 import dayjs from "dayjs";
 import {
   Company,
@@ -163,7 +164,6 @@ export default function TimeEntryForm({
 
       setExistingDayHours(totalHours);
     } catch (error) {
-      console.error("Error fetching existing day hours:", error);
       setExistingDayHours(0);
     }
   };
@@ -177,16 +177,12 @@ export default function TimeEntryForm({
           return;
         }
 
-        console.log("Vernieuwen Fetching initial data...");
-
         // Fetch companies
         const companiesData = await getCompanies();
-        console.log("Companies loaded:", companiesData.length);
         setCompanies(companiesData);
 
         // Fetch user's assigned projects
         const userProjectsData = await getUserProjects(userId);
-        console.log("🔗 User projects loaded:", userProjectsData.length);
         setAssignedProjects(userProjectsData);
 
         // NEW: Fetch existing hours for the day
@@ -204,23 +200,15 @@ export default function TimeEntryForm({
 
         // FIX: If editing existing entry, set the correct selections
         if (existingEntry && existingEntry.project) {
-          console.log(" Setting values for existing entry:", existingEntry);
-
           const companyId = existingEntry.project.projectGroup?.company?.id;
           const projectGroupId = existingEntry.project.projectGroup?.id;
           const projectId = existingEntry.projectId;
-
-          console.log("Setting IDs:", { companyId, projectGroupId, projectId });
 
           if (companyId) {
             setSelectedCompany(companyId);
 
             // Load project groups for this company
             const projectGroupsData = await getProjectGroups(companyId);
-            console.log(
-              "📂 Project groups loaded for company:",
-              projectGroupsData.length,
-            );
             setProjectGroups(projectGroupsData);
 
             if (projectGroupId) {
@@ -228,21 +216,15 @@ export default function TimeEntryForm({
 
               // Load projects for this project group
               const projectsData = await getProjects(projectGroupId);
-              console.log(
-                "Kopieer Projects loaded for group:",
-                projectsData.length,
-              );
               setProjects(projectsData);
 
               if (projectId) {
-                console.log("Setting selected project:", projectId);
                 setSelectedProject(projectId);
               }
             }
           }
         }
       } catch (error) {
-        console.error("Error fetching initial data:", error);
         setError(t("common.errorLoading"));
       } finally {
         setLoading(false);
@@ -258,10 +240,6 @@ export default function TimeEntryForm({
       // Don't trigger for existing entries
       const fetchProjectGroups = async () => {
         try {
-          console.log(
-            "🏢 Loading project groups for company:",
-            selectedCompany,
-          );
           const data = await getProjectGroups(selectedCompany);
 
           const userRank = localStorage.getItem("userRank");
@@ -269,7 +247,6 @@ export default function TimeEntryForm({
             userRank === "admin" || userRank === "manager";
 
           if (isAdminOrManager) {
-            console.log("👑 Admin/Manager: showing all project groups");
             setProjectGroups(data);
           } else {
             // Filter to only show project groups the user has access to
@@ -283,10 +260,6 @@ export default function TimeEntryForm({
             const filteredGroups = data.filter((group: ProjectGroup) =>
               assignedProjectGroupIds.includes(group.id),
             );
-            console.log(
-              "👤 User: filtered project groups:",
-              filteredGroups.length,
-            );
             setProjectGroups(filteredGroups);
           }
 
@@ -295,7 +268,7 @@ export default function TimeEntryForm({
           setSelectedProject(null);
           setProjects([]);
         } catch (error) {
-          console.error("Error fetching project groups:", error);
+          // Handle error silently
         }
       };
       fetchProjectGroups();
@@ -314,10 +287,6 @@ export default function TimeEntryForm({
       // Don't trigger for existing entries
       const fetchProjects = async () => {
         try {
-          console.log(
-            "📂 Loading projects for project group:",
-            selectedProjectGroup,
-          );
           const data = await getProjects(selectedProjectGroup);
 
           const userRank = localStorage.getItem("userRank");
@@ -325,7 +294,6 @@ export default function TimeEntryForm({
             userRank === "admin" || userRank === "manager";
 
           if (isAdminOrManager) {
-            console.log("👑 Admin/Manager: showing all projects");
             setProjects(data);
           } else {
             // Filter to only show projects the user has access to
@@ -335,14 +303,13 @@ export default function TimeEntryForm({
             const filteredProjects = data.filter((project: Project) =>
               assignedProjectIds.includes(project.id),
             );
-            console.log("👤 User: filtered projects:", filteredProjects.length);
             setProjects(filteredProjects);
           }
 
           // Reset project selection when project group changes
           setSelectedProject(null);
         } catch (error) {
-          console.error("Error fetching projects:", error);
+          // Handle error silently
         }
       };
       fetchProjects();
@@ -381,7 +348,6 @@ export default function TimeEntryForm({
   const handleSave = async (saveType: "draft" | "submit") => {
     // Prevent multiple simultaneous save operations using ref
     if (saveInProgressRef.current || isSubmitting) {
-      console.log("⏸️ Save already in progress, ignoring click");
       return;
     }
 
@@ -453,30 +419,27 @@ export default function TimeEntryForm({
 
     try {
       if (existingEntry && existingEntry.id) {
-        console.log("✏️ Updating existing entry:", existingEntry.id);
         await updateTimeEntry(existingEntry.id, data);
         if (saveType === "submit") {
-          showToast("✅ Uren succesvol bijgewerkt en ingediend voor goedkeuring!", "success");
+          showToast("Uren succesvol bijgewerkt en ingediend voor goedkeuring!", "success");
         } else {
-          showToast("💾 Uren succesvol opgeslagen als concept", "success");
+          showToast("Uren succesvol opgeslagen als concept", "success");
         }
       } else {
-        console.log("➕ Creating new entry");
         await registerTimeEntry(data);
         if (saveType === "submit") {
-          showToast("✅ Uren succesvol geregistreerd en ingediend voor goedkeuring!", "success");
+          showToast("Uren succesvol geregistreerd en ingediend voor goedkeuring!", "success");
         } else {
-          showToast("💾 Uren succesvol opgeslagen als concept", "success");
+          showToast("Uren succesvol opgeslagen als concept", "success");
         }
       }
       // Close modal IMMEDIATELY after successful save
       onEntrySaved();
       // Keep ref flag set permanently to prevent any further saves
     } catch (err) {
-      console.error("❌ Save error:", err);
       const errorMessage = err instanceof Error ? err.message : "Onbekende fout";
       setError(t("register.saveError"));
-      showToast(`❌ Fout bij opslaan: ${errorMessage}`, "error");
+      showToast(`Fout bij opslaan: ${errorMessage}`, "error");
       // Only reset on error so user can retry
       saveInProgressRef.current = false;
       setIsSubmitting(false);
@@ -485,7 +448,6 @@ export default function TimeEntryForm({
 
   // Handle company change
   const handleCompanyChange = (companyId: string) => {
-    console.log("🏢 Company changed to:", companyId);
     const id = companyId ? Number(companyId) : null;
     setSelectedCompany(id);
     // Reset dependent selections
@@ -497,7 +459,6 @@ export default function TimeEntryForm({
 
   // Handle project group change
   const handleProjectGroupChange = (projectGroupId: string) => {
-    console.log("📂 Project group changed to:", projectGroupId);
     const id = projectGroupId ? Number(projectGroupId) : null;
     setSelectedProjectGroup(id);
     // Reset dependent selection
@@ -507,7 +468,6 @@ export default function TimeEntryForm({
 
   // Handle project change
   const handleProjectChange = (projectId: string) => {
-    console.log("Kopieer Project changed to:", projectId);
     const id = projectId ? Number(projectId) : null;
     setSelectedProject(id);
   };
@@ -985,13 +945,19 @@ export default function TimeEntryForm({
           {t("common.cancel")}
         </button>
 
-        {existingEntry && (
+        {existingEntry && existingEntry.id && (
           <button
             className="btn btn-error rounded-xl"
-            onClick={() => {
+            onClick={async () => {
               if (confirm(t("register.confirmDelete"))) {
-                // Handle delete - you'll need to implement this
-                onClose();
+                try {
+                  await deleteEntry(existingEntry.id);
+                  showToast("Uren succesvol verwijderd", "success");
+                  onEntrySaved();
+                  onClose();
+                } catch (error) {
+                  showToast("Fout bij verwijderen van uren", "error");
+                }
               }
             }}
             disabled={isSubmitting}

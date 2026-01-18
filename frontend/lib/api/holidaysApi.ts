@@ -16,9 +16,7 @@ export async function getHolidays(year?: number): Promise<Holiday[]> {
   try {
     const userId = authUtils.getUserId();
     const targetYear = year || new Date().getFullYear();
-    
-    console.log("Fetching holidays for year:", targetYear, "userId:", userId);
-    
+
     const response = await fetch(`${API_URL}/holidays?year=${targetYear}`, {
       headers: {
         "X-User-ID": userId?.toString() || "",
@@ -26,20 +24,14 @@ export async function getHolidays(year?: number): Promise<Holiday[]> {
       },
     });
 
-    console.log("Holidays response status:", response.status);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Failed to fetch holidays:", response.status, errorText);
       // Return empty array instead of throwing error
       return [];
     }
 
     const data = await response.json();
-    console.log("Loaded holidays:", data);
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error in getHolidays:", error);
     return [];
   }
 }
@@ -161,7 +153,25 @@ export async function isWorkingDay(date: string): Promise<boolean> {
     }
     return holiday.isWorkAllowed;
   } catch (error) {
-    console.error("Error checking working day:", error);
     return true; // Default to allowing work if check fails
   }
+}
+
+export async function generateHolidaysForYear(year: number): Promise<{ message: string; count: number }> {
+  const userId = authUtils.getUserId();
+
+  const response = await fetch(`${API_URL}/holidays/generate/${year}`, {
+    method: "POST",
+    headers: {
+      "X-User-ID": userId?.toString() || "",
+      "ngrok-skip-browser-warning": "1",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to generate holidays");
+  }
+
+  return response.json();
 }

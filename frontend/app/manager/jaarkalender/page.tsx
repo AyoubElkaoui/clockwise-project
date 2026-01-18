@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
-  getHolidays, 
-  createHoliday, 
-  updateHoliday, 
-  deleteHoliday, 
+import {
+  getHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
   toggleWorkAllowed,
-  Holiday 
+  generateHolidaysForYear,
+  Holiday
 } from "@/lib/api/holidaysApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,13 +54,9 @@ export default function JaarkalenderPage() {
     try {
       setLoading(true);
       const data = await getHolidays(currentYear);
-      console.log("Jaarkalender: Loaded holidays data:", data);
-      console.log("Jaarkalender: First holiday:", data[0]);
       setHolidays(Array.isArray(data) ? data : []);
       if (data.length === 0) {
         showToast("Geen feestdagen gevonden - migration 012 uitgevoerd?", "info");
-      } else {
-        console.log(`Jaarkalender: ${data.length} feestdagen geladen voor ${currentYear}`);
       }
     } catch (error) {
       console.error("Jaarkalender: Error loading holidays:", error);
@@ -151,6 +148,18 @@ export default function JaarkalenderPage() {
     }
   };
 
+  const handleGenerateHolidays = async () => {
+    if (!confirm(`Wil je de Nederlandse feestdagen genereren voor ${currentYear}?`)) return;
+
+    try {
+      const result = await generateHolidaysForYear(currentYear);
+      showToast(result.message, "success");
+      loadHolidays();
+    } catch (error: any) {
+      showToast(error.message || "Fout bij genereren", "error");
+    }
+  };
+
   const renderCalendar = () => {
     const months = [];
     
@@ -172,15 +181,6 @@ export default function JaarkalenderPage() {
         const holiday = holidays.find(h => h.holidayDate === dateStr);
         const isWeekend = date.day() === 0 || date.day() === 6;
         const isToday = date.isSame(dayjs(), "day");
-
-        // Debug log for first day of January
-        if (month === 0 && day === 1) {
-          console.log("Jan 1 check:", {
-            dateStr,
-            holiday,
-            allHolidayDates: holidays.map(h => h.holidayDate)
-          });
-        }
 
         days.push(
           <div
@@ -281,6 +281,15 @@ export default function JaarkalenderPage() {
             onClick={() => setCurrentYear(currentYear + 1)}
           >
             <ChevronRight className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleGenerateHolidays}
+            className="ml-4"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Feestdagen Genereren
           </Button>
         </div>
       </div>

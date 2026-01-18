@@ -519,10 +519,12 @@ export default function WeekOverview() {
       if (weekEntries.length === 0) {
         setWeekStatus("concept");
       } else {
-        const statuses = weekEntries.map((e) => e.status);
+        const statuses = weekEntries.map((e) => e.status?.toLowerCase());
+        // Week is geblokkeerd zodra er één entry is ingeleverd of goedgekeurd
         if (statuses.every((s) => s === "goedgekeurd")) {
           setWeekStatus("goedgekeurd");
-        } else if (statuses.some((s) => s === "ingeleverd")) {
+        } else if (statuses.some((s) => s === "goedgekeurd" || s === "ingeleverd" || s === "ingediend")) {
+          // Als er minimaal één entry is ingeleverd/goedgekeurd, blokkeer de hele week
           setWeekStatus("ingeleverd");
         } else if (statuses.some((s) => s === "afgekeurd")) {
           setWeekStatus("afgekeurd");

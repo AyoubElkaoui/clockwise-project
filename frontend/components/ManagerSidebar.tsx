@@ -17,6 +17,7 @@ import {
   Shield,
   UserCheck,
   Calendar,
+  FolderPlus,
 } from "lucide-react";
 import { ThemeToggle } from "./ui/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,12 @@ const managerMenuItems = [
     icon: Calendar,
     label: "Jaarkalender",
     href: "/manager/jaarkalender",
+    badgeKey: null,
+  },
+  {
+    icon: FolderPlus,
+    label: "Project Toewijzing",
+    href: "/manager/project-toewijzing",
     badgeKey: null,
   },
   {
