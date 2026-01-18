@@ -8,7 +8,8 @@
       "Bash(Out-Null)",
       "Bash(Write-Host \"Backend processes stopped \\(if any were running\\)\")",
       "Bash(pkill:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

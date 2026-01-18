@@ -1,8 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import dayjs from "dayjs";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import {
   getCompanies,
   getProjectGroups,
@@ -13,7 +12,6 @@ import {
   getTimeEntries,
 } from "@/lib/api";
 import { deleteEntry } from "@/lib/api/timeEntryApi";
-import dayjs from "dayjs";
 import {
   Company,
   ProjectGroup,

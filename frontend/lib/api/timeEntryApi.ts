@@ -91,16 +91,6 @@ export async function saveBulkEntries(
     throw new Error("Montage task not found");
   }
 
-  console.log(
-    "Using TaakGcId:",
-    montageTask.gcId,
-    "for task:",
-    montageTask.description,
-  );
-  console.log(
-    "MedewGcId from localStorage:",
-    localStorage.getItem("medewGcId"),
-  );
 
   // Fetch periods to find the correct UrenperGcId
   const periods = await getPeriods();
@@ -114,13 +104,6 @@ export async function saveBulkEntries(
   if (!period) {
     throw new Error("No matching period found for the entries");
   }
-
-  console.log(
-    "Using UrenperGcId:",
-    period.gcId,
-    "for period:",
-    period.description,
-  );
 
   const regels = entries.map((entry) => ({
     TaakGcId: montageTask.gcId,
@@ -137,8 +120,6 @@ export async function saveBulkEntries(
     Regels: regels,
     ClientRequestId: crypto.randomUUID(),
   };
-
-  console.log("Sending DTO:", dto);
 
   const medewGcId = localStorage.getItem("medewGcId");
   if (!medewGcId) {
@@ -183,18 +164,13 @@ export async function getAllTimeEntries(): Promise<any[]> {
   const toDate = new Date();
   const from = fromDate.toISOString().split("T")[0];
   const to = toDate.toISOString().split("T")[0];
-  console.log(
-    "🔧 [API] Fetching time entries from:",
-    `${API_URL}/time-entries?from=${from}&to=${to}`,
-  );
+
   const response = await axios.get(
     `${API_URL}/time-entries?from=${from}&to=${to}`,
   );
-  console.log("🔧 [API] Raw response:", response.data.length, "entries");
-  console.log("🔧 [API] First raw entry:", response.data[0]);
 
   // Transform API data to frontend format
-  const transformed = response.data.map((entry: any) => {
+  return response.data.map((entry: any) => {
     // Calculate hours from startTime and endTime
     let hours = 0;
     if (entry.startTime && entry.endTime) {
@@ -209,7 +185,7 @@ export async function getAllTimeEntries(): Promise<any[]> {
     // Extract date from startTime
     const date = entry.startTime ? entry.startTime.split("T")[0] : "";
 
-    const result = {
+    return {
       id: entry.id,
       userId: entry.userId,
       date: date,
@@ -228,18 +204,7 @@ export async function getAllTimeEntries(): Promise<any[]> {
       startTime: entry.startTime,
       endTime: entry.endTime,
     };
-
-    if (response.data.indexOf(entry) === 0) {
-      console.log("🔧 [API] First transformed entry:", result);
-      console.log("🔧 [API] Has hours?", result.hours);
-      console.log("🔧 [API] Has date?", result.date);
-    }
-
-    return result;
   });
-
-  console.log("🔧 [API] Returning", transformed.length, "transformed entries");
-  return transformed;
 }
 
 // Create/Register a new time entry

@@ -31,35 +31,10 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-// Request logging
-axios.interceptors.request.use((config) => {
-  console.log('API Request:', config.method?.toUpperCase(), config.url, 'Headers:', config.headers);
-  return config;
-});
-
-// Response logging
+// Response error handling
 axios.interceptors.response.use(
-  (response) => {
-    console.log("API Response:", response.status, response.config.url);
-    return response;
-  },
-  (error) => {
-    // Silence logging for 404s on activities endpoint as it's not implemented in backend v1
-    if (
-      error.response?.status === 404 &&
-      error.config?.url?.includes("/api/activities")
-    ) {
-      return Promise.reject(error);
-    }
-    console.error(
-      "API Error:",
-      error.response?.status,
-      error.config?.url,
-      error.message,
-    );
-    console.log('Error data:', error.response?.data);
-    return Promise.reject(error);
-  },
+  (response) => response,
+  (error) => Promise.reject(error),
 );
 
 // Helper: clean response
@@ -326,24 +301,14 @@ export async function getTimeEntries(from?: string, to?: string) {
     });
     const data = safeApiResponse(res);
 
-    console.log('🔍 [getTimeEntries] Raw API response:', data);
-
     let raw: any[] = [];
     // Backend returnt TimeEntriesResponse met entries (camelCase!)
     if (Array.isArray(data)) raw = data;
-    else if (Array.isArray(data?.entries)) raw = data.entries; // ← Backend TimeEntriesResponse.Entries (camelCase)
-    else if (Array.isArray(data?.Entries)) raw = data.Entries; // fallback
+    else if (Array.isArray(data?.entries)) raw = data.entries;
+    else if (Array.isArray(data?.Entries)) raw = data.Entries;
     else if (Array.isArray(data?.timeEntries)) raw = data.timeEntries;
     else if (Array.isArray(data?.data)) raw = data.data;
-    else {
-      console.warn('🔍 [getTimeEntries] Unexpected response format:', typeof data, Object.keys(data || {}));
-      return [];
-    }
-
-    console.log('🔍 [getTimeEntries] Parsed raw entries:', raw.length, 'entries');
-    if (raw.length > 0) {
-      console.log('🔍 [getTimeEntries] First entry:', raw[0]);
-    }
+    else return [];
 
     return transformTimeEntries(raw);
   } catch (error) {
@@ -360,11 +325,6 @@ export async function getEnrichedTimeEntries(from?: string, to?: string) {
     getCompanies().catch(() => []),
   ]);
 
-  console.log("getEnrichedTimeEntries - entries:", entries);
-  console.log("getEnrichedTimeEntries - projects:", projects);
-  console.log("getEnrichedTimeEntries - projectGroups:", projectGroups);
-  console.log("getEnrichedTimeEntries - companies:", companies);
-
   const projectMap = new Map(
     projects.map((p: any) => [
       p.gcId,
@@ -379,28 +339,18 @@ export async function getEnrichedTimeEntries(from?: string, to?: string) {
   );
   const companyMap = new Map(companies.map((c: any) => [c.id, c.name]));
 
-  console.log("getEnrichedTimeEntries - projectMap:", projectMap);
-  console.log("getEnrichedTimeEntries - groupMap:", groupMap);
-  console.log("getEnrichedTimeEntries - companyMap:", companyMap);
-
   return entries.map((entry: any) => {
     const project = projectMap.get(entry.projectId);
     const group = project ? groupMap.get(project.werkgrpGcId) : null;
     const company = group ? companyMap.get(group.adminisGcId) : null;
 
-    const enriched = {
+    return {
       ...entry,
       projectCode: entry.projectCode || (project ? project.gcCode : `Project ${entry.projectId}`),
       projectName: entry.projectName || (project ? project.gcCode : `Project ${entry.projectId}`),
       projectGroupName: group ? group.gcCode : "",
       companyName: company || `Bedrijf ${group?.adminisGcId || 0}`,
     };
-
-    console.log(
-      `Enriching entry ${entry.id}: projectId=${entry.projectId}, project=${project}, projectName=${enriched.projectName}`,
-    );
-
-    return enriched;
   });
 }
 
@@ -630,25 +580,26 @@ export async function markActivityAsRead(activityId: number) {
     .then(safeApiResponse);
 }
 
-function safeApiCall<T>(fn: () => Promise<any>): Promise<T | null> {
+function safeApiCall<T>(fn: () => Promise<any>, defaultValue: T | null = null): Promise<T | null> {
   return fn()
     .then(safeApiResponse)
-    .catch((err) => {
-      console.error(" safeApiCall error:", err);
-      return null;
-    });
+    .catch(() => defaultValue);
 }
 
-export async function getUserProjects(userId: number) {
-  return safeApiCall(() =>
+export async function getUserProjects(userId: number): Promise<any[]> {
+  const result = await safeApiCall<any[]>(() =>
     axios.get(`${API_URL}/user-projects/users/${userId}`),
+    []
   );
+  return Array.isArray(result) ? result : [];
 }
 
-export async function getProjectUsers(projectId: number) {
-  return safeApiCall(() =>
+export async function getProjectUsers(projectId: number): Promise<any[]> {
+  const result = await safeApiCall<any[]>(() =>
     axios.get(`${API_URL}/user-projects/projects/${projectId}`),
+    []
   );
+  return Array.isArray(result) ? result : [];
 }
 
 export async function assignUserToProject(

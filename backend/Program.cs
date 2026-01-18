@@ -208,6 +208,20 @@ public class MedewGcIdMiddleware
             return;
         }
 
+        // Skip X-MEDEW-GC-ID for holidays management (uses X-User-ID instead)
+        if (path != null && path.Contains("/api/holidays"))
+        {
+            await _next(context);
+            return;
+        }
+
+        // Skip X-MEDEW-GC-ID for user-projects management
+        if (path != null && path.Contains("/api/user-projects"))
+        {
+            await _next(context);
+            return;
+        }
+
         // Skip X-MEDEW-GC-ID for vacation management (uses X-User-ID instead)
         if (path != null && path.Contains("/api/vacation"))
         {

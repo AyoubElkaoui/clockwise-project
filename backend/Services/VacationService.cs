@@ -166,15 +166,16 @@ namespace ClockwiseProject.Backend.Services
             try
             {
                 // Get active period (URENPER_GC_ID) - use the most recent period that covers the vacation dates
+                // Note: Firebird columns are BEGINDATUM and EINDDATUM, parameters must match or be prefixed
                 var getPeriodSql = @"
-                    SELECT FIRST 1 GC_ID 
-                    FROM AT_URENPER 
-                    WHERE BEGINDATUM <= @StartDate AND EINDDATUM >= @EndDate
+                    SELECT FIRST 1 GC_ID
+                    FROM AT_URENPER
+                    WHERE BEGINDATUM <= @VacStart AND EINDDATUM >= @VacEnd
                     ORDER BY BEGINDATUM DESC";
-                
+
                 var urenperGcId = await connection.ExecuteScalarAsync<int?>(
-                    getPeriodSql, 
-                    new { StartDate = request.StartDate, EndDate = request.EndDate }, 
+                    getPeriodSql,
+                    new { VacStart = request.StartDate, VacEnd = request.EndDate },
                     transaction);
 
                 if (!urenperGcId.HasValue)
