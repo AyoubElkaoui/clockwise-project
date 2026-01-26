@@ -129,9 +129,18 @@ export default function VakantiePage() {
   };
 
   const loadVacationTypes = async () => {
+    // Default vacation types (fallback)
+    const defaultTypes: VacationType[] = [
+      { gcId: 1, gcCode: "Z01", omschrijving: "Vakantie" },
+      { gcId: 2, gcCode: "Z02", omschrijving: "Ziekteverlof" },
+      { gcId: 3, gcCode: "Z03", omschrijving: "Bijzonder verlof" },
+      { gcId: 4, gcCode: "Z04", omschrijving: "Onbetaald verlof" },
+    ];
+
     try {
       const medewGcId = authUtils.getMedewGcId();
       if (!medewGcId) {
+        setVacationTypes(defaultTypes);
         return;
       }
 
@@ -148,10 +157,11 @@ export default function VakantiePage() {
         throw new Error("Failed to load vacation types");
       }
       const data = await safeJsonParse(response);
-      setVacationTypes(data);
+      // Use fetched data if not empty, otherwise use defaults
+      setVacationTypes(data && data.length > 0 ? data : defaultTypes);
     } catch (error) {
-      console.error("Error loading vacation types:", error);
-      // Don't show error toast, just use default types
+      // Use default types on error
+      setVacationTypes(defaultTypes);
     }
   };
 

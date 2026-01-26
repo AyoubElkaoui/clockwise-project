@@ -132,14 +132,9 @@ export async function getCompanies() {
   try {
     const res = await axios.get(`${API_URL}/companies`);
     const data = safeApiResponse(res);
-    if (!Array.isArray(data)) {
-      console.error('Received non-array response from /companies:', data);
-      return [];
-    }
-    return data ?? [];
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error fetching companies:", error);
-    throw error; // Laat error bubbelen
+    return [];
   }
 }
 
@@ -157,25 +152,25 @@ export async function getUsers() {
     if (Array.isArray(data?.users)) return data.users;
     if (Array.isArray(data?.data)) return data.data;
     return [];
-  } catch (error) {
-    console.error(" Error fetching users:", error);
+  } catch {
     return [];
   }
 }
 
 // Update user not implemented
 
-export async function getProjectGroups() {
+export async function getProjectGroups(companyId?: number) {
   try {
-    const res = await axios.get(`${API_URL}/project-groups`);
+    const url = companyId
+      ? `${API_URL}/project-groups/company/${companyId}`
+      : `${API_URL}/project-groups`;
+    const res = await axios.get(url);
     const data = safeApiResponse(res);
     if (!Array.isArray(data)) {
-      console.error('Received non-array response from /project-groups:', data);
       return [];
     }
     return data ?? [];
   } catch (error) {
-    console.error(" Error fetching groups:", error);
     return [];
   }
 }
@@ -185,14 +180,9 @@ export async function getProjects(groupId?: number) {
     const params = groupId ? `?groupId=${groupId}` : "";
     const res = await axios.get(`${API_URL}/projects${params}`);
     const data = safeApiResponse(res);
-    if (!Array.isArray(data)) {
-      console.error('Received non-array response from /projects:', data);
-      return [];
-    }
-    return data ?? [];
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error fetching projects:", error);
-    throw error; // Laat error bubbelen in plaats van []
+    return [];
   }
 }
 
