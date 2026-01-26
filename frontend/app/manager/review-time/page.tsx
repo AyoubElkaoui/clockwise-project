@@ -71,7 +71,6 @@ export default function ManagerReviewTimePage() {
         setCurrentPeriod(periodId);
         await loadPendingEntries(periodId);
       } catch (error) {
-        console.error("Failed to load period:", error);
         showToast("Kon periode niet laden", "error");
       }
     };
@@ -93,7 +92,6 @@ export default function ManagerReviewTimePage() {
       const response = await getPendingReview(period);
       setEntries(response.entries);
     } catch (error) {
-      console.error("Error loading pending entries:", error);
       showToast("Fout bij laden van in te dienen uren", "error");
     } finally {
       setLoading(false);

@@ -25,8 +25,7 @@ export async function getVacationRequests(): Promise<VacationRequest[]> {
   try {
     const res = await axios.get(`${API_URL}/vacation`);
     return Array.isArray(res.data) ? res.data : [];
-  } catch (error) {
-    console.error("Error fetching vacation requests:", error);
+  } catch {
     return [];
   }
 }

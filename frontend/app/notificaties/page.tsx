@@ -22,7 +22,6 @@ async function safeJsonParse(response: Response): Promise<any> {
   const contentType = response.headers.get("content-type");
   if (!contentType || !contentType.includes("application/json")) {
     const bodyText = await response.text();
-    console.error("[SAFE JSON PARSE] Expected JSON but got:", contentType, "Body snippet:", bodyText.substring(0, 200));
     throw new Error(`Expected JSON response but got ${contentType || 'unknown'}: ${bodyText.substring(0, 100)}`);
   }
   return response.json();
@@ -61,8 +60,6 @@ export default function NotificatiesPage() {
       const userId = authUtils.getUserId();
       const medewGcId = authUtils.getMedewGcId();
       
-      console.log("[NOTIFICATIONS] Loading with userId:", userId, "medewGcId:", medewGcId, "rank:", userRank);
-      
       if (!userId || !medewGcId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
@@ -73,71 +70,51 @@ export default function NotificatiesPage() {
       // Voor managers: haal eigen notificaties op (geen team endpoint beschikbaar)
       if (userRank === "manager") {
         const url = `${API_URL}/activities?limit=100&userId=${userId}`;
-        console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
             "ngrok-skip-browser-warning": "1",
           },
         });
-        console.log("[NOTIFICATIONS] Response status:", response.status);
-        console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
         if (response.ok) {
           data = await safeJsonParse(response);
-          console.log("[NOTIFICATIONS] Loaded", data.length, "notifications");
         } else {
-          const bodyText = await response.text();
-          console.error("[NOTIFICATIONS] Error response body (first 200 chars):", bodyText.substring(0, 200));
           showToast("Fout bij laden notificaties", "error");
         }
       }
       // Voor admins: haal alle notificaties op
       else if (userRank === "admin") {
         const url = `${API_URL}/activities?limit=100`;
-        console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
             "ngrok-skip-browser-warning": "1",
           },
         });
-        console.log("[NOTIFICATIONS] Response status:", response.status);
-        console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
         if (response.ok) {
           data = await safeJsonParse(response);
-          console.log("[NOTIFICATIONS] Loaded", data.length, "notifications");
         } else {
-          const bodyText = await response.text();
-          console.error("[NOTIFICATIONS] Error response body (first 200 chars):", bodyText.substring(0, 200));
           showToast("Fout bij laden notificaties", "error");
         }
       }
       // Voor gewone users: alleen eigen notificaties
       else {
         const url = `${API_URL}/activities?limit=50&userId=${userId}`;
-        console.log("[NOTIFICATIONS] Fetching from:", url);
         const response = await fetch(url, {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
             "ngrok-skip-browser-warning": "1",
           },
         });
-        console.log("[NOTIFICATIONS] Response status:", response.status);
-        console.log("[NOTIFICATIONS] Response content-type:", response.headers.get("content-type"));
         if (response.ok) {
           data = await safeJsonParse(response);
-          console.log("[NOTIFICATIONS] Loaded", data.length, "notifications");
         } else {
-          const bodyText = await response.text();
-          console.error("[NOTIFICATIONS] Error response:", bodyText.substring(0, 200));
           showToast("Fout bij laden notificaties: " + response.status, "error");
         }
       }
 
       setNotifications(data);
-      console.log("[NOTIFICATIONS] Set", data.length, "notifications in state");
     } catch (error) {
-      console.error("Error loading notifications:", error);
       showToast("Fout bij laden notificaties: " + (error instanceof Error ? error.message : "Onbekende fout"), "error");
     } finally {
       setLoading(false);

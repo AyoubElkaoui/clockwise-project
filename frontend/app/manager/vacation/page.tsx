@@ -122,7 +122,6 @@ export default function ManagerVacationPage() {
       setComment("");
       loadRequests();
     } catch (error) {
-      console.error("Failed to approve:", error);
       showToast("Fout bij goedkeuren", "error");
     }
   };
@@ -135,7 +134,6 @@ export default function ManagerVacationPage() {
       setComment("");
       loadRequests();
     } catch (error) {
-      console.error("Failed to reject:", error);
       showToast("Fout bij afkeuren", "error");
     }
   };

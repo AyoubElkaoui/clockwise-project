@@ -36,8 +36,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   try {
     const res = await axios.get(`${API_URL}/admin/stats`);
     return res.data;
-  } catch (error) {
-    console.error("Error fetching admin stats:", error);
+  } catch {
     return {
       totalUsers: 0,
       hoursThisMonth: 0,
@@ -52,8 +51,7 @@ export async function getAdminTimeEntries(): Promise<TimeEntryWithDetails[]> {
   try {
     const res = await axios.get(`${API_URL}/admin/time-entries`);
     return Array.isArray(res.data) ? res.data : [];
-  } catch (error) {
-    console.error("Error fetching admin time entries:", error);
+  } catch {
     return [];
   }
 }
@@ -62,8 +60,7 @@ export async function getAdminVacationRequests(): Promise<VacationRequestWithUse
   try {
     const res = await axios.get(`${API_URL}/vacation/all`);
     return Array.isArray(res.data) ? res.data : [];
-  } catch (error) {
-    console.error("Error fetching admin vacation requests:", error);
+  } catch {
     return [];
   }
 }

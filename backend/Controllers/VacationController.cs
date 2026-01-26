@@ -129,15 +129,33 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpPost("{id}/approve")]
         public async Task<IActionResult> ApproveVacationRequest(int id, [FromBody] ReviewRequest request)
         {
-            await _vacationService.ApproveVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
-            return NoContent();
+            try
+            {
+                _logger.LogInformation("Approving vacation request {Id} by {ReviewedBy}", id, request.ReviewedBy);
+                await _vacationService.ApproveVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
+                return Ok(new { message = "Vacation request approved successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error approving vacation request {Id}", id);
+                return StatusCode(500, new { error = "Failed to approve vacation request", details = ex.Message });
+            }
         }
 
         [HttpPost("{id}/reject")]
         public async Task<IActionResult> RejectVacationRequest(int id, [FromBody] ReviewRequest request)
         {
-            await _vacationService.RejectVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
-            return NoContent();
+            try
+            {
+                _logger.LogInformation("Rejecting vacation request {Id} by {ReviewedBy}", id, request.ReviewedBy);
+                await _vacationService.RejectVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
+                return Ok(new { message = "Vacation request rejected successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting vacation request {Id}", id);
+                return StatusCode(500, new { error = "Failed to reject vacation request", details = ex.Message });
+            }
         }
 
         private int? ResolveMedewGcId()

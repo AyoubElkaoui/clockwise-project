@@ -41,7 +41,7 @@ export default function ManagerSettingsPage() {
           setDailySummary(parsed.dailySummary ?? false);
         }
       } catch (error) {
-        console.error("Error loading settings:", error);
+        // Settings could not be loaded
       }
     };
     loadSettings();
@@ -111,7 +111,6 @@ export default function ManagerSettingsPage() {
         showToast(`Fout bij wijzigen wachtwoord: ${error}`, "error");
       }
     } catch (error) {
-      console.error("Error changing password:", error);
       showToast("Fout bij wijzigen wachtwoord", "error");
     } finally {
       setChangingPassword(false);

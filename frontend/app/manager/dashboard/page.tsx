@@ -246,11 +246,9 @@ export default function ManagerDashboard() {
 
         setTeamPerformance(teamPerf);
       } catch (calcError) {
-        console.error("Error in dashboard calculations:", calcError);
         throw calcError;
       }
     } catch (error) {
-      console.error("Dashboard loading error:", error);
       showToast("Fout bij laden dashboard", "error");
     } finally {
       setLoading(false);

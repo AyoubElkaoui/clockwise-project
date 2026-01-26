@@ -31,6 +31,7 @@ interface Project {
   gcId?: number;
   name?: string;
   gcCode?: string;
+  description?: string;
 }
 
 interface ProjectAssignment {
@@ -94,7 +95,7 @@ export default function ManagerProjectToewijzingPage() {
   };
 
   const getProjectDisplayName = (project: Project): string => {
-    return project.name || project.gcCode || `Project ${getProjectId(project)}`;
+    return project.name || project.description || project.gcCode || `Project ${getProjectId(project)}`;
   };
 
   const getUserDisplayName = (user: User): string => {

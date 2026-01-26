@@ -30,7 +30,6 @@ async function safeJsonParse(response: Response): Promise<any> {
   const contentType = response.headers.get("content-type");
   if (!contentType || !contentType.includes("application/json")) {
     const bodyText = await response.text();
-    console.error("[SAFE JSON PARSE] Expected JSON but got:", contentType, "Body snippet:", bodyText.substring(0, 200));
     throw new Error(`Expected JSON response but got ${contentType || 'unknown'}: ${bodyText.substring(0, 100)}`);
   }
   return response.json();
@@ -123,7 +122,6 @@ export default function VakantiePage() {
       // Already filtered by backend based on medewGcId
       setRequests(data);
     } catch (error) {
-      console.error("Error loading vacation requests:", error);
       showToast("Fout bij laden vakantie aanvragen", "error");
     } finally {
       setLoading(false);
@@ -690,13 +688,23 @@ export default function VakantiePage() {
                         }
                         className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-timr-orange focus:border-transparent"
                       >
-                        <option value="Z03">Vakantie (ATV)</option>
-                        <option value="Z04">Snipperdag</option>
-                        <option value="Z05">Verlof eigen rekening</option>
-                        <option value="Z06">Bijzonder verlof</option>
-                        <option value="Z07">Ziekteverlof</option>
-                        <option value="Z08">Opbouw tijd voor tijd</option>
-                        <option value="Z09">Opname tijd voor tijd</option>
+                        {vacationTypes.length > 0 ? (
+                          vacationTypes.map((type: VacationType) => (
+                            <option key={type.gcCode} value={type.gcCode}>
+                              {type.omschrijving || type.gcCode}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Z03">Vakantie (ATV)</option>
+                            <option value="Z04">Snipperdag</option>
+                            <option value="Z05">Verlof eigen rekening</option>
+                            <option value="Z06">Bijzonder verlof</option>
+                            <option value="Z07">Ziekteverlof</option>
+                            <option value="Z08">Opbouw tijd voor tijd</option>
+                            <option value="Z09">Opname tijd voor tijd</option>
+                          </>
+                        )}
                       </select>
                     </div>
 

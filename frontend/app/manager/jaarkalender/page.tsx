@@ -59,7 +59,6 @@ export default function JaarkalenderPage() {
         showToast("Geen feestdagen gevonden - migration 012 uitgevoerd?", "info");
       }
     } catch (error) {
-      console.error("Jaarkalender: Error loading holidays:", error);
       showToast("Kon feestdagen niet laden", "error");
       setHolidays([]);
     } finally {

@@ -77,7 +77,6 @@ export default function ManagerTeamPage() {
       
       // Show all users to manager (no filtering by managerId since it doesn't exist in DB)
       const team = users;
-      console.log("Team members:", team);
 
       // Load workflow entries for stats
       const currentPeriodId = await getCurrentPeriodId();

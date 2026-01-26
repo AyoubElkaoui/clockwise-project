@@ -95,7 +95,6 @@ export default function UrenOverzichtPage() {
       
       // Load ALL workflow entries (DRAFT, SUBMITTED, APPROVED, REJECTED)
       const urenperGcId = 100426; // Current period
-      console.log('🔍 [loadEntries] Loading workflow entries for period:', urenperGcId);
       
       const [drafts, submitted, rejected] = await Promise.all([
         getDrafts(urenperGcId),
@@ -104,7 +103,6 @@ export default function UrenOverzichtPage() {
       ]);
       
       const allEntries = [...drafts, ...submitted, ...rejected];
-      console.log('🔍 [loadEntries] Loaded entries:', allEntries.length);
       
       // Transform to expected format
       const transformed = allEntries.map((e: any) => ({
@@ -129,7 +127,6 @@ export default function UrenOverzichtPage() {
       
       setEntries(transformed);
     } catch (error) {
-      console.error("Error in loadEntries:", error);
       showToast("Fout bij laden uren", "error");
     } finally {
       setLoading(false);
@@ -144,12 +141,10 @@ export default function UrenOverzichtPage() {
     if (startDate && endDate) {
       const start = dayjs(startDate);
       const end = dayjs(endDate);
-      console.log('🔍 [filteredEntries] Custom range filter: startDate=', startDate, 'endDate=', endDate, 'entries before:', entries.length);
       filtered = filtered.filter((entry) => {
         const entryDate = dayjs(entry.date || entry.startTime);
         return entryDate.isBetween(start, end, null, "[]");
       });
-      console.log('🔍 [filteredEntries] After custom filter:', filtered.length);
     } else {
       // Period filter
       if (viewMode === "week") {

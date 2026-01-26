@@ -20,28 +20,18 @@ export async function getActivities(limit: number = 10, userId?: number): Promis
 
     const response = await axios.get(url);
     return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error fetching activities:", error);
+  } catch {
     return [];
   }
 }
 
 export async function markActivityAsRead(activityId: number): Promise<void> {
-  try {
-    await axios.put(`${API_URL}/activities/${activityId}/read`);
-  } catch (error) {
-    console.error("Error marking activity as read:", error);
-  }
+  await axios.put(`${API_URL}/activities/${activityId}/read`);
 }
 
 export async function markAllActivitiesAsRead(): Promise<void> {
-  try {
-    const userId = Number(localStorage.getItem("userId"));
-    if (!userId) throw new Error("No user ID found");
+  const userId = Number(localStorage.getItem("userId"));
+  if (!userId) throw new Error("No user ID found");
 
-    await axios.put(`${API_URL}/activities/read-all?userId=${userId}`);
-  } catch (error) {
-    console.error("Error marking all activities as read:", error);
-    throw error;
-  }
+  await axios.put(`${API_URL}/activities/read-all?userId=${userId}`);
 }

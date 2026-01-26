@@ -91,7 +91,6 @@ export default function ManagerVacationReviewPage() {
       const data = await response.json();
       setRequests(data);
     } catch (error) {
-      console.error("Error loading vacation requests:", error);
       showToast("Fout bij laden van vakantie aanvragen", "error");
     } finally {
       setLoading(false);

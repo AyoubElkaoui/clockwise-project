@@ -183,7 +183,6 @@ export default function VacationCalendarPage() {
         }
       } catch (error) {
         // Endpoint doesn't exist yet, use only national holidays
-        console.log("Custom holidays endpoint not available");
       }
       
       const allClosedDays = [

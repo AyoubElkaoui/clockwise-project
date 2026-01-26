@@ -190,8 +190,7 @@ export async function getWorkTasks() {
   try {
     const res = await axios.get(`${API_URL}/tasks/work`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error(" Error fetching work tasks:", error);
+  } catch {
     return [];
   }
 }
@@ -200,8 +199,7 @@ export async function getVacationTasks() {
   try {
     const res = await axios.get(`${API_URL}/tasks/vacation`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error(" Error fetching vacation tasks:", error);
+  } catch {
     return [];
   }
 }
@@ -210,8 +208,7 @@ export async function getPeriods(count: number = 50) {
   try {
     const res = await axios.get(`${API_URL}/periods?count=${count}`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error(" Error fetching periods:", error);
+  } catch {
     return [];
   }
 }
@@ -271,7 +268,6 @@ export async function getTimeEntries(from?: string, to?: string) {
     new Date(toDate) > today ||
     new Date(fromDate) > today
   ) {
-    console.warn("Invalid or future date range; skipping time entry fetch.");
     return [];
   }
 
@@ -280,7 +276,6 @@ export async function getTimeEntries(from?: string, to?: string) {
       ? localStorage.getItem("medewGcId")
       : null;
   if (!medewGcId) {
-    console.warn("No medewGcId set; skipping time entry fetch.");
     return [];
   }
 
@@ -301,8 +296,7 @@ export async function getTimeEntries(from?: string, to?: string) {
     else return [];
 
     return transformTimeEntries(raw);
-  } catch (error) {
-    console.error(" Error fetching time entries:", error);
+  } catch {
     return [];
   }
 }
@@ -542,7 +536,6 @@ export async function getActivities(limit = 10, userId?: number) {
     typeof localStorage !== "undefined" &&
     !localStorage.getItem("medewGcId")
   ) {
-    console.warn("No medewGcId set; skipping activities fetch.");
     return [];
   }
 
@@ -556,10 +549,7 @@ export async function getActivities(limit = 10, userId?: number) {
     if (Array.isArray(data?.activities)) return data.activities;
     if (Array.isArray(data?.data)) return data.data;
     return [];
-  } catch (error: any) {
-    // Backend v1 has no /activities endpoint; silence 404s for now
-    if (error?.response?.status === 404) return [];
-    console.error("Error fetching activities:", error);
+  } catch {
     return [];
   }
 }
@@ -623,8 +613,7 @@ export async function getMyTeam(managerId: number) {
     return Array.isArray(users)
       ? users.filter((u: any) => u.managerId === managerId)
       : [];
-  } catch (error) {
-    console.error("Error fetching team:", error);
+  } catch {
     return [];
   }
 }
@@ -635,8 +624,7 @@ export async function getTeamTimeEntries(managerId: number) {
     const teamUserIds = team.map((u: any) => u.id);
     const allEntries = await getTimeEntries();
     return allEntries.filter((e: any) => teamUserIds.includes(e.userId));
-  } catch (error) {
-    console.error("Error fetching team time entries:", error);
+  } catch {
     return [];
   }
 }
@@ -645,8 +633,7 @@ export async function getTeamPendingHours(managerId: number) {
   try {
     const teamEntries = await getTeamTimeEntries(managerId);
     return teamEntries.filter((e: any) => e.status === "ingeleverd");
-  } catch (error) {
-    console.error("Error fetching team pending hours:", error);
+  } catch {
     return [];
   }
 }
@@ -659,8 +646,7 @@ export async function getTeamPendingVacations(managerId: number) {
     return allVacations.filter(
       (v: any) => teamUserIds.includes(v.userId) && v.status === "Pending",
     );
-  } catch (error) {
-    console.error("Error fetching team pending vacations:", error);
+  } catch {
     return [];
   }
 }
@@ -671,8 +657,7 @@ export async function getTeamVacations(managerId: number) {
     const teamUserIds = team.map((u: any) => u.id);
     const allVacations = await getVacationRequests();
     return allVacations.filter((v: any) => teamUserIds.includes(v.userId));
-  } catch (error) {
-    console.error("Error fetching team vacations:", error);
+  } catch {
     return [];
   }
 }
@@ -682,8 +667,7 @@ export async function getDashboardHealth() {
   try {
     const res = await axios.get(`${API_URL}/admin/dashboard/health`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error fetching dashboard health:", error);
+  } catch {
     return {
       databaseStatus: "unknown",
       latencyMs: 0,
@@ -697,8 +681,7 @@ export async function getDashboardAlerts() {
   try {
     const res = await axios.get(`${API_URL}/admin/dashboard/alerts`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching dashboard alerts:", error);
+  } catch {
     return [];
   }
 }
@@ -717,8 +700,7 @@ export async function getEmployees(
 
     const res = await axios.get(`${API_URL}/admin/employees?${params}`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching employees:", error);
+  } catch {
     return [];
   }
 }
@@ -727,8 +709,7 @@ export async function getEmployeeDetail(id: number) {
   try {
     const res = await axios.get(`${API_URL}/admin/employees/${id}`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error fetching employee detail:", error);
+  } catch {
     return null;
   }
 }
@@ -739,8 +720,7 @@ export async function getEmployeeHours(id: number, period: string = "month") {
       `${API_URL}/admin/employees/${id}/hours?period=${period}`,
     );
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching employee hours:", error);
+  } catch {
     return [];
   }
 }
@@ -755,8 +735,7 @@ export async function getTimeEntriesAggregates(
       `${API_URL}/admin/time-entries/aggregates?groupBy=${groupBy}&period=${period}`,
     );
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching time entries aggregates:", error);
+  } catch {
     return [];
   }
 }
@@ -765,8 +744,7 @@ export async function getTimeEntriesValidations() {
   try {
     const res = await axios.get(`${API_URL}/admin/time-entries/validations`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching time entries validations:", error);
+  } catch {
     return [];
   }
 }
@@ -776,8 +754,7 @@ export async function getAdminProjects() {
   try {
     const res = await axios.get(`${API_URL}/admin/projects`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching projects:", error);
+  } catch {
     return [];
   }
 }
@@ -786,8 +763,7 @@ export async function getProjectDetail(id: number) {
   try {
     const res = await axios.get(`${API_URL}/admin/projects/${id}`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error fetching project detail:", error);
+  } catch {
     return null;
   }
 }
@@ -796,8 +772,7 @@ export async function getDepartments() {
   try {
     const res = await axios.get(`${API_URL}/admin/departments`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching departments:", error);
+  } catch {
     return [];
   }
 }
@@ -807,8 +782,7 @@ export async function getValidations() {
   try {
     const res = await axios.get(`${API_URL}/admin/validations`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching validations:", error);
+  } catch {
     return [];
   }
 }
@@ -817,8 +791,7 @@ export async function runValidations() {
   try {
     const res = await axios.post(`${API_URL}/admin/validations/run`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error running validations:", error);
+  } catch {
     return null;
   }
 }
@@ -827,8 +800,7 @@ export async function getValidationsHistory() {
   try {
     const res = await axios.get(`${API_URL}/admin/validations/history`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching validations history:", error);
+  } catch {
     return [];
   }
 }
@@ -847,8 +819,7 @@ export async function getLogs(
 
     const res = await axios.get(`${API_URL}/admin/logs?${params}`);
     return safeApiResponse(res) ?? [];
-  } catch (error) {
-    console.error("Error fetching logs:", error);
+  } catch {
     return [];
   }
 }
@@ -857,8 +828,7 @@ export async function getLogDetail(id: number) {
   try {
     const res = await axios.get(`${API_URL}/admin/logs/${id}`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error fetching log detail:", error);
+  } catch {
     return null;
   }
 }
@@ -869,8 +839,7 @@ export async function cleanupLogs(olderThanDays: number = 30) {
       `${API_URL}/admin/logs?olderThanDays=${olderThanDays}`,
     );
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error cleaning up logs:", error);
+  } catch {
     return null;
   }
 }
@@ -880,8 +849,7 @@ export async function getSystemHealth() {
   try {
     const res = await axios.get(`${API_URL}/admin/system/health`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error fetching system health:", error);
+  } catch {
     return {
       databaseStatus: "unknown",
       latencyMs: 0,
@@ -895,8 +863,7 @@ export async function getSystemConfig() {
   try {
     const res = await axios.get(`${API_URL}/admin/system/config`);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error fetching system config:", error);
+  } catch {
     return null;
   }
 }
@@ -905,8 +872,7 @@ export async function updateSystemConfig(config: any) {
   try {
     const res = await axios.put(`${API_URL}/admin/system/config`, config);
     return safeApiResponse(res);
-  } catch (error) {
-    console.error("Error updating system config:", error);
+  } catch {
     return null;
   }
 }

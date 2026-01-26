@@ -20,7 +20,6 @@ async function safeJsonParse(response: Response): Promise<any> {
   const contentType = response.headers.get("content-type");
   if (!contentType || !contentType.includes("application/json")) {
     const bodyText = await response.text();
-    console.error("[SAFE JSON PARSE] Expected JSON but got:", contentType, "Body snippet:", bodyText.substring(0, 200));
     throw new Error(`Expected JSON response but got ${contentType || 'unknown'}: ${bodyText.substring(0, 100)}`);
   }
   return response.json();
@@ -71,14 +70,12 @@ export default function ManagerNotificatiesPage() {
       });
 
       if (!response.ok) {
-        console.error("Failed to load notifications:", response.status, response.statusText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error loading notifications:", error);
       showToast("Kon notificaties niet laden", "error");
       setNotifications([]);
     } finally {
@@ -107,7 +104,6 @@ export default function ManagerNotificatiesPage() {
       );
       showToast("Gemarkeerd als gelezen", "success");
     } catch (error) {
-      console.error("Error marking as read:", error);
       showToast("Fout bij markeren", "error");
     }
   };
@@ -135,7 +131,6 @@ export default function ManagerNotificatiesPage() {
       );
       showToast("Alle notificaties gemarkeerd als gelezen", "success");
     } catch (error) {
-      console.error("Error marking all as read:", error);
       showToast("Fout bij markeren", "error");
     }
   };

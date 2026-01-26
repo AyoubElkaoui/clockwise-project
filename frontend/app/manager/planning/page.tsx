@@ -109,11 +109,8 @@ export default function ManagerPlanningPage() {
         return;
       }
 
-      console.log("Loading planning data for manager:", managerId);
-
       // Get current period
       const currentPeriodId = await getCurrentPeriodId();
-      console.log("Current period ID:", currentPeriodId);
 
       // Load team members, workflow entries, and vacation requests
       const [users, workflowResponse, allVacations] = await Promise.all([
@@ -122,13 +119,8 @@ export default function ManagerPlanningPage() {
         getAllVacationRequests()
       ]);
 
-      console.log("Loaded users:", users.length);
-      console.log("Loaded workflow entries:", workflowResponse.entries?.length || 0);
-      console.log("Loaded vacations:", allVacations.length);
-
       // Filter team members by managerId
       const team = users.filter((u: any) => u.managerId === managerId);
-      console.log("Team members filtered:", team.length, team);
       setTeamMembers(team);
       
       // Convert workflow entries
@@ -143,13 +135,11 @@ export default function ManagerPlanningPage() {
         breakMinutes: 0,
         status: e.status,
       }));
-      console.log("Converted entries:", entries.length);
       setTimeEntries(entries);
 
       // Filter vacations for team members only
       const teamIds = team.map((u: any) => u.id || u.medewGcId);
       const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
-      console.log("Team vacations:", vacationsData.length);
       setVacations(vacationsData);
 
       // Load holidays (Dutch national holidays for current year)
@@ -164,7 +154,6 @@ export default function ManagerPlanningPage() {
         showToast("Geen teamleden gevonden. Controleer manager_assignments tabel.", "error");
       }
     } catch (error) {
-      console.error("Planning load error:", error);
       showToast("Fout bij laden planning: " + (error instanceof Error ? error.message : "Onbekende fout"), "error");
     } finally {
       setLoading(false);

@@ -2,6 +2,11 @@ import axios from "axios";
 import { API_URL } from "./api";
 import authUtils from "./auth-utils";
 import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 const getAuthHeaders = () => {
   const medewGcId = localStorage.getItem("medewGcId");
@@ -17,33 +22,34 @@ export async function getCurrentPeriodId(): Promise<number> {
   try {
     const response = await axios.get(`${API_URL}/periods?count=50`);
     const periods = response.data;
-    
+
     if (!Array.isArray(periods) || periods.length === 0) {
-      throw new Error("No periods found");
+      // Return fallback period ID
+      return 100426;
     }
-    
+
     // Find period that contains today's date
+    // Handle multiple possible property names from backend
     const today = dayjs();
     const currentPeriod = periods.find((p: any) => {
-      const startDate = dayjs(p.startDate || p.gcVanDatum);
-      const endDate = dayjs(p.endDate || p.gcTotDatum);
-      return today.isAfter(startDate) && today.isBefore(endDate);
+      const startDate = dayjs(p.beginDatum || p.startDate || p.gcVanDatum);
+      const endDate = dayjs(p.endDatum || p.endDate || p.gcTotDatum);
+      return today.isSameOrAfter(startDate, 'day') && today.isSameOrBefore(endDate, 'day');
     });
-    
+
     if (currentPeriod) {
       return currentPeriod.gcId || currentPeriod.id;
     }
-    
+
     // If no matching period, return the most recent one
     const sorted = periods.sort((a: any, b: any) => {
-      const dateA = new Date(a.startDate || a.gcVanDatum);
-      const dateB = new Date(b.startDate || b.gcVanDatum);
+      const dateA = new Date(a.beginDatum || a.startDate || a.gcVanDatum);
+      const dateB = new Date(b.beginDatum || b.startDate || b.gcVanDatum);
       return dateB.getTime() - dateA.getTime();
     });
-    
-    return sorted[0].gcId || sorted[0].id;
+
+    return sorted[0]?.gcId || sorted[0]?.id || 100426;
   } catch (error) {
-    console.error("Error getting current period:", error);
     // Fallback to a default period ID
     return 100426;
   }
