@@ -2,20 +2,16 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getUsers,
-  getCompanies,
-  getProjectGroups,
   getProjects,
   assignUserToProject,
   removeUserFromProject,
   getUserProjects,
+  getProjectUsers,
 } from "@/lib/api";
 import { showToast } from "@/components/ui/toast";
-import { User, Company, ProjectGroup, Project, UserProject } from "@/lib/types";
 import {
   UserPlusIcon,
-  FunnelIcon,
   UsersIcon,
-  BuildingOfficeIcon,
   FolderIcon,
   TrashIcon,
   MagnifyingGlassIcon,
@@ -23,64 +19,49 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  fullName?: string;
+}
+
+interface Project {
+  id?: number;
+  gcId?: number;
+  name?: string;
+  gcCode?: string;
+}
+
+interface ProjectAssignment {
+  id: number;
+  userId: number;
+  projectId: number;
+  userName?: string;
+  assignedDate?: string;
+}
+
 export default function ManagerProjectToewijzingPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [projectGroups, setProjectGroups] = useState<ProjectGroup[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // State voor het toewijzen van een gebruiker aan een project
-  const [selectedUser, setSelectedUser] = useState<number | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
-  const [selectedProjectGroup, setSelectedProjectGroup] = useState<
-    number | null
-  >(null);
+  // State voor project selectie en medewerker toewijzing
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
-
-  // State voor overzicht van alle koppelingen
-  const [userProjects, setUserProjects] = useState<UserProject[]>([]);
-  const [filteredUserProjects, setFilteredUserProjects] = useState<
-    UserProject[]
-  >([]);
-  const [filterUser, setFilterUser] = useState<number | null>(null);
-  const [filterProject, setFilterProject] = useState<number | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [projectAssignments, setProjectAssignments] = useState<ProjectAssignment[]>([]);
+  const [searchUser, setSearchUser] = useState("");
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const [usersData, companiesData, userProjectsData] = await Promise.all([
+      const [usersData, projectsData] = await Promise.all([
         getUsers(),
-        getCompanies(),
-        getUserProjects(0), // 0 haalt alle koppelingen op
+        getProjects(), // Haal alle projecten op
       ]);
 
-      setUsers(usersData);
-      setCompanies(companiesData);
-      setUserProjects(userProjectsData);
-      setFilteredUserProjects(userProjectsData);
-
-      // Haal alle projecten op voor de filter dropdown
-      // We laden alle projecten van alle companies/groups
-      const allProjectsData: Project[] = [];
-      for (const company of companiesData) {
-        try {
-          const groups = await getProjectGroups(company.id);
-          for (const group of groups) {
-            try {
-              const projectsForGroup = await getProjects(group.id);
-              allProjectsData.push(...projectsForGroup);
-            } catch {
-              // Skip als er geen projecten zijn
-            }
-          }
-        } catch {
-          // Skip als er geen project groups zijn
-        }
-      }
-      setAllProjects(allProjectsData);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setProjects(Array.isArray(projectsData) ? projectsData : []);
     } catch (error) {
-      console.error("Error fetching data:", error);
       showToast("Fout bij het ophalen van data", "error");
     } finally {
       setLoading(false);
@@ -91,144 +72,94 @@ export default function ManagerProjectToewijzingPage() {
     fetchInitialData();
   }, [fetchInitialData]);
 
+  // Laad medewerkers voor het geselecteerde project
   useEffect(() => {
-    if (selectedCompany) {
-      const fetchProjectGroups = async () => {
+    if (selectedProject) {
+      const loadProjectAssignments = async () => {
         try {
-          const data = await getProjectGroups(selectedCompany);
-          setProjectGroups(data);
-        } catch (error) {
-          console.error("Error fetching project groups:", error);
+          const assignments = await getProjectUsers(selectedProject);
+          setProjectAssignments(Array.isArray(assignments) ? assignments : []);
+        } catch {
+          setProjectAssignments([]);
         }
       };
-
-      fetchProjectGroups();
+      loadProjectAssignments();
     } else {
-      setProjectGroups([]);
+      setProjectAssignments([]);
     }
+  }, [selectedProject]);
 
-    setSelectedProjectGroup(null);
-    setSelectedProject(null);
-  }, [selectedCompany]);
+  const getProjectId = (project: Project): number => {
+    return project.gcId || project.id || 0;
+  };
 
-  useEffect(() => {
-    if (selectedProjectGroup) {
-      const fetchProjects = async () => {
-        try {
-          const data = await getProjects(selectedProjectGroup);
-          setProjects(data);
-        } catch (error) {
-          console.error("Error fetching projects:", error);
-        }
-      };
+  const getProjectDisplayName = (project: Project): string => {
+    return project.name || project.gcCode || `Project ${getProjectId(project)}`;
+  };
 
-      fetchProjects();
-    } else {
-      setProjects([]);
-    }
+  const getUserDisplayName = (user: User): string => {
+    return user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || `Gebruiker ${user.id}`;
+  };
 
-    setSelectedProject(null);
-  }, [selectedProjectGroup]);
+  // Filter gebruikers die nog niet zijn toegewezen
+  const availableUsers = users.filter(
+    (user) => !projectAssignments.some((pa) => pa.userId === user.id)
+  );
 
-  // Filter de koppelingen op basis van geselecteerde gebruiker en/of project
-  useEffect(() => {
-    let filtered = [...userProjects];
+  // Filter op zoekterm
+  const filteredAvailableUsers = availableUsers.filter((user) => {
+    const name = getUserDisplayName(user).toLowerCase();
+    return name.includes(searchUser.toLowerCase());
+  });
 
-    if (filterUser) {
-      filtered = filtered.filter((up) => up.userId === filterUser);
-    }
+  const handleToggleUser = (userId: number) => {
+    setSelectedUsers((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
 
-    if (filterProject) {
-      filtered = filtered.filter((up) => up.projectId === filterProject);
-    }
-
-    setFilteredUserProjects(filtered);
-  }, [userProjects, filterUser, filterProject]);
-
-  const handleAssignUserToProject = async () => {
-    if (!selectedUser || !selectedProject) {
-      showToast("Selecteer een gebruiker en een project", "error");
+  const handleAssignUsers = async () => {
+    if (!selectedProject || selectedUsers.length === 0) {
+      showToast("Selecteer een project en minimaal één medewerker", "error");
       return;
     }
 
+    const managerUserId = Number(localStorage.getItem("userId")) || 0;
+
     try {
-      // Haal de managerUserId op uit localStorage
-      const managerUserId = Number(localStorage.getItem("userId")) || 0;
-
-      await assignUserToProject(selectedUser, selectedProject, managerUserId);
-
-      // Ververs de lijst met koppelingen
-      const updatedUserProjects = await getUserProjects(0);
-      setUserProjects(updatedUserProjects);
-
-      showToast("Gebruiker succesvol toegewezen aan project!", "success");
-
-      // Reset selecties
-      setSelectedUser(null);
-      setSelectedCompany(null);
-      setSelectedProjectGroup(null);
-      setSelectedProject(null);
-    } catch (error) {
-      console.error("Error assigning user to project:", error);
-
-      // Toon de foutmelding van de server, als die er is
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Fout bij toewijzen gebruiker aan project";
-
-      // Controleer specifiek op het geval dat de gebruiker al is toegewezen
-      if (
-        errorMessage.includes("al gekoppeld") ||
-        errorMessage.includes("already assigned")
-      ) {
-        showToast("Deze gebruiker is al toegewezen aan dit project", "error");
-      } else {
-        showToast(errorMessage, "error");
+      // Wijs alle geselecteerde gebruikers toe
+      for (const userId of selectedUsers) {
+        await assignUserToProject(userId, selectedProject, managerUserId);
       }
+
+      // Ververs de toewijzingen
+      const assignments = await getProjectUsers(selectedProject);
+      setProjectAssignments(Array.isArray(assignments) ? assignments : []);
+
+      showToast(`${selectedUsers.length} medewerker(s) succesvol toegewezen!`, "success");
+      setSelectedUsers([]);
+    } catch (error) {
+      showToast("Fout bij toewijzen van medewerkers", "error");
     }
   };
 
-  const handleRemoveUserFromProject = async (
-    userId: number,
-    projectId: number
-  ) => {
-    if (!confirm("Weet je zeker dat je deze toewijzing wilt verwijderen?"))
-      return;
+  const handleRemoveAssignment = async (userId: number) => {
+    if (!selectedProject) return;
+    if (!confirm("Weet je zeker dat je deze medewerker wilt verwijderen van dit project?")) return;
 
     try {
-      await removeUserFromProject(userId, projectId);
+      await removeUserFromProject(userId, selectedProject);
 
-      // Ververs de lijst met koppelingen
-      const updatedUserProjects = await getUserProjects(0);
-      setUserProjects(updatedUserProjects);
+      // Ververs de toewijzingen
+      const assignments = await getProjectUsers(selectedProject);
+      setProjectAssignments(Array.isArray(assignments) ? assignments : []);
 
-      showToast("Gebruiker succesvol verwijderd van project!", "success");
+      showToast("Medewerker verwijderd van project", "success");
     } catch (error) {
-      console.error("Error removing user from project:", error);
-      showToast("Fout bij verwijderen gebruiker van project", "error");
+      showToast("Fout bij verwijderen", "error");
     }
-  };
-
-  // Hulpfunctie om gebruikersnaam te vinden
-  const getUserName = (userId: number) => {
-    // Probeer eerst de user property van het userProject object
-    const userProject = userProjects.find((up) => up.userId === userId);
-    if (userProject?.user?.fullName) {
-      return userProject.user.fullName;
-    }
-
-    // Als dat niet lukt, zoek in de users lijst
-    const user = users.find((u) => u.id === userId);
-    return user ? `${user.firstName} ${user.lastName}` : "Onbekende gebruiker";
-  };
-
-  // Hulpfunctie om projectnaam te vinden
-  const getProjectName = (project?: Project) => {
-    if (!project) {
-      return "Onbekend project";
-    }
-    return project.name;
   };
 
   if (loading) {
@@ -236,9 +167,7 @@ export default function ManagerProjectToewijzingPage() {
       <div className="flex justify-center items-center min-h-[400px]">
         <div className="text-center">
           <div className="loading loading-spinner loading-lg text-blue-600 mb-4"></div>
-          <p className="text-lg font-semibold text-gray-700">
-            Project toewijzingen laden...
-          </p>
+          <p className="text-lg font-semibold text-gray-700">Laden...</p>
         </div>
       </div>
     );
@@ -246,386 +175,187 @@ export default function ManagerProjectToewijzingPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Header Section */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-8 shadow-lg">
         <div className="flex items-center gap-3 mb-4">
           <UserPlusIcon className="w-8 h-8" />
           <h1 className="text-3xl font-bold">Project Toewijzingen</h1>
         </div>
         <p className="text-blue-100 text-lg">
-          Beheer welke medewerkers toegang hebben tot welke projecten
+          Selecteer eerst een project, daarna kun je medewerkers toewijzen
         </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Formulier voor toewijzen van gebruiker aan project */}
-        <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-          <div className="card-body p-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-              <UserPlusIcon className="w-6 h-6 text-blue-600" />
-              Nieuwe Toewijzing
-            </h2>
+      {/* Stap 1: Selecteer Project */}
+      <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl">
+        <div className="card-body p-6">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <span className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">1</span>
+            Selecteer een Project
+          </h2>
 
-            <div className="space-y-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <UsersIcon className="w-4 h-4" />
-                    Medewerker
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={selectedUser ?? ""}
-                  onChange={(e) =>
-                    setSelectedUser(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                >
-                  <option value="">Selecteer een medewerker</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName}
-                    </option>
-                  ))}
-                </select>
+          <select
+            className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600 text-lg"
+            value={selectedProject ?? ""}
+            onChange={(e) => {
+              setSelectedProject(e.target.value ? Number(e.target.value) : null);
+              setSelectedUsers([]);
+            }}
+          >
+            <option value="">-- Kies een project --</option>
+            {projects.map((project) => (
+              <option key={getProjectId(project)} value={getProjectId(project)}>
+                {getProjectDisplayName(project)}
+              </option>
+            ))}
+          </select>
+
+          {projects.length === 0 && (
+            <p className="text-amber-600 mt-2">
+              ⚠️ Geen projecten gevonden. Controleer de backend verbinding.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Stap 2: Toewijzingen beheren (alleen zichtbaar als project geselecteerd) */}
+      {selectedProject && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Huidige toewijzingen */}
+          <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl">
+            <div className="card-body p-6">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                Huidige Medewerkers ({projectAssignments.length})
+              </h2>
+
+              {projectAssignments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                  <p>Geen medewerkers toegewezen aan dit project</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {projectAssignments.map((assignment) => {
+                    const user = users.find((u) => u.id === assignment.userId);
+                    const displayName = assignment.userName || (user ? getUserDisplayName(user) : `Gebruiker ${assignment.userId}`);
+
+                    return (
+                      <div
+                        key={assignment.id || assignment.userId}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-xl"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="avatar placeholder">
+                            <div className="bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
+                              <span className="text-sm font-bold">
+                                {displayName.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="font-medium text-gray-800 dark:text-gray-100">
+                            {displayName}
+                          </span>
+                        </div>
+                        <button
+                          className="btn btn-sm btn-error btn-outline rounded-lg"
+                          onClick={() => handleRemoveAssignment(assignment.userId)}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Medewerkers toevoegen */}
+          <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl">
+            <div className="card-body p-6">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <span className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">2</span>
+                Medewerkers Toevoegen
+              </h2>
+
+              {/* Zoekbalk */}
+              <div className="relative mb-4">
+                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Zoek medewerker..."
+                  className="input input-bordered w-full pl-10 rounded-xl dark:bg-slate-800 dark:border-slate-600"
+                  value={searchUser}
+                  onChange={(e) => setSearchUser(e.target.value)}
+                />
               </div>
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <BuildingOfficeIcon className="w-4 h-4" />
-                    Bedrijf
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={selectedCompany ?? ""}
-                  onChange={(e) =>
-                    setSelectedCompany(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                >
-                  <option value="">Selecteer een bedrijf</option>
-                  {companies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
+              {/* Lijst met beschikbare medewerkers */}
+              <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+                {filteredAvailableUsers.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">
+                    {searchUser ? "Geen resultaten" : "Alle medewerkers zijn al toegewezen"}
+                  </p>
+                ) : (
+                  filteredAvailableUsers.map((user) => (
+                    <label
+                      key={user.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                        selectedUsers.includes(user.id)
+                          ? "bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500"
+                          : "bg-gray-50 dark:bg-slate-800 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-primary"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={() => handleToggleUser(user.id)}
+                      />
+                      <div className="avatar placeholder">
+                        <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                          <span className="text-xs font-bold">
+                            {getUserDisplayName(user).split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="font-medium text-gray-800 dark:text-gray-100">
+                        {getUserDisplayName(user)}
+                      </span>
+                    </label>
+                  ))
+                )}
               </div>
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-gray-700 dark:text-gray-300">
-                    Projectgroep
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={selectedProjectGroup ?? ""}
-                  onChange={(e) =>
-                    setSelectedProjectGroup(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                  disabled={!selectedCompany}
-                >
-                  <option value="">Selecteer een projectgroep</option>
-                  {projectGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <FolderIcon className="w-4 h-4" />
-                    Project
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={selectedProject ?? ""}
-                  onChange={(e) =>
-                    setSelectedProject(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                  disabled={!selectedProjectGroup}
-                >
-                  <option value="">Selecteer een project</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              {/* Toewijzen button */}
               <button
                 className="btn bg-blue-600 border-0 text-white rounded-xl w-full hover:bg-blue-700 disabled:opacity-50"
-                onClick={handleAssignUserToProject}
-                disabled={!selectedUser || !selectedProject}
+                onClick={handleAssignUsers}
+                disabled={selectedUsers.length === 0}
               >
                 <UserPlusIcon className="w-5 h-5 mr-2" />
-                Medewerker Toewijzen
+                {selectedUsers.length} Medewerker(s) Toewijzen
               </button>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Filters voor bestaande koppelingen */}
-        <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-          <div className="card-body p-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2">
-              <FunnelIcon className="w-6 h-6 text-blue-600" />
-              Filter Toewijzingen
-            </h2>
-
-            <div className="space-y-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-gray-700 dark:text-gray-300">
-                    Filter op Medewerker
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={filterUser ?? ""}
-                  onChange={(e) =>
-                    setFilterUser(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                >
-                  <option value="">Alle medewerkers</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-gray-700 dark:text-gray-300">
-                    Filter op Project
-                  </span>
-                </label>
-                <select
-                  className="select select-bordered w-full rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={filterProject ?? ""}
-                  onChange={(e) =>
-                    setFilterProject(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                >
-                  <option value="">Alle projecten</option>
-                  {allProjects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-800 dark:text-gray-100">
-                      Totaal Toewijzingen
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {filteredUserProjects.length} van {userProjects.length}
-                    </p>
-                  </div>
-                  <MagnifyingGlassIcon className="w-8 h-8 text-blue-500" />
-                </div>
-              </div>
-
-              <button
-                className="btn btn-outline btn-primary rounded-xl w-full"
-                onClick={() => {
-                  setFilterUser(null);
-                  setFilterProject(null);
-                }}
-              >
-                Reset Filters
-              </button>
-            </div>
+      {/* Info als geen project geselecteerd */}
+      {!selectedProject && (
+        <div className="card bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
+          <div className="card-body p-6 text-center">
+            <FolderIcon className="w-16 h-16 mx-auto text-blue-400 mb-4" />
+            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+              Selecteer eerst een project
+            </h3>
+            <p className="text-blue-600 dark:text-blue-300">
+              Kies hierboven een project om te zien welke medewerkers er toegang toe hebben en om nieuwe medewerkers toe te wijzen.
+            </p>
           </div>
         </div>
-      </div>
-
-      {/* Tabel met alle user-project koppelingen */}
-      <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-        <div className="bg-slate-50 dark:bg-slate-800 p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <CheckCircleIcon className="w-6 h-6 text-blue-600" />
-            Bestaande Toewijzingen
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Overzicht van alle actieve project toewijzingen
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="table w-full">
-            <thead className="bg-gray-50 dark:bg-slate-800">
-              <tr>
-                <th className="text-gray-700 dark:text-gray-300 font-semibold">
-                  Medewerker
-                </th>
-                <th className="text-gray-700 dark:text-gray-300 font-semibold">
-                  Project
-                </th>
-                <th className="text-gray-700 dark:text-gray-300 font-semibold">
-                  Bedrijf
-                </th>
-                <th className="text-gray-700 dark:text-gray-300 font-semibold">
-                  Toegewezen op
-                </th>
-                <th className="text-gray-700 dark:text-gray-300 font-semibold">
-                  Acties
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUserProjects.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-12">
-                    <div className="flex flex-col items-center gap-4">
-                      <ExclamationTriangleIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400">
-                          Geen toewijzingen gevonden
-                        </h3>
-                        <p className="text-gray-500 dark:text-gray-500">
-                          Probeer je filters aan te passen of voeg een nieuwe
-                          toewijzing toe
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredUserProjects.map((up) => (
-                  <tr
-                    key={up.id}
-                    className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors duration-150"
-                  >
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="avatar placeholder">
-                          <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
-                            <span className="text-sm font-bold">
-                              {getUserName(up.userId)
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .substring(0, 2)}
-                            </span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="font-bold text-gray-800 dark:text-gray-100">
-                            {getUserName(up.userId)}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            ID: {up.userId}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                        <span className="font-medium text-gray-800 dark:text-gray-100">
-                          {up.project
-                            ? getProjectName(up.project)
-                            : `Project ${up.projectId}`}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {up.project &&
-                          up.project.projectGroup &&
-                          up.project.projectGroup.company
-                            ? up.project.projectGroup.company.name
-                            : "Onbekend bedrijf"}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        {up.assignedDate
-                          ? new Date(up.assignedDate).toLocaleDateString(
-                              "nl-NL",
-                              {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              }
-                            )
-                          : "-"}
-                      </div>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-error rounded-xl"
-                        onClick={() =>
-                          handleRemoveUserFromProject(up.userId, up.projectId)
-                        }
-                      >
-                        <TrashIcon className="w-4 h-4 mr-1" />
-                        Verwijderen
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer met statistieken */}
-        {filteredUserProjects.length > 0 && (
-          <div className="bg-gray-50 dark:bg-slate-800 px-6 py-4 border-t border-gray-100 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Toont{" "}
-                <span className="font-semibold">
-                  {filteredUserProjects.length}
-                </span>{" "}
-                van <span className="font-semibold">{userProjects.length}</span>{" "}
-                toewijzingen
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Actief
-                  </span>
-                </div>
-                <div className="text-gray-600 dark:text-gray-400">
-                  {users.length} medewerkers • {companies.length} bedrijven
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

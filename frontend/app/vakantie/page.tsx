@@ -65,11 +65,13 @@ export default function VakantiePage() {
   const [showModal, setShowModal] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
+  const [isPartialDay, setIsPartialDay] = useState(false);
   const [formData, setFormData] = useState({
     startDate: "",
     endDate: "",
     vacationType: "Z03", // Default vakantie type
     notes: "",
+    hours: 8, // Default 8 uur (hele dag)
   });
 
   useEffect(() => {
@@ -230,10 +232,16 @@ export default function VakantiePage() {
       for (let i = 0; i < days; i++) {
         const currentDate = startDate.add(i, "day");
         if (currentDate.day() !== 0 && currentDate.day() !== 6) {
-          // Not Sunday (0) or Saturday (6)
           workingDays++;
         }
       }
+
+      // Calculate total hours - use custom hours for single day partial requests
+      const isSingleDay = formData.startDate === formData.endDate;
+      const totalHours = isSingleDay && isPartialDay ? formData.hours : workingDays * 8;
+
+      // Auto-approve requests under 8 hours
+      const autoApproved = totalHours < 8;
 
       const response = await fetch(
         `${API_URL}/vacation`,
@@ -249,25 +257,30 @@ export default function VakantiePage() {
             startDate: formData.startDate,
             endDate: formData.endDate,
             vacationType: formData.vacationType,
-            totalDays: workingDays,
+            totalDays: isSingleDay && isPartialDay ? formData.hours / 8 : workingDays,
+            totalHours: totalHours,
             notes: formData.notes,
+            status: autoApproved ? "approved" : "pending",
           }),
         },
       );
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error("Vacation request failed:", errorData);
         throw new Error(response.status === 409 ? "Er bestaat al een aanvraag voor deze periode" : "Kan aanvraag niet indienen");
       }
 
-      showToast("Vakantie aanvraag succesvol ingediend! Je manager ontvangt een notificatie.", "success");
+      if (autoApproved) {
+        showToast("Verlofaanvraag automatisch goedgekeurd! (minder dan 8 uur)", "success");
+      } else {
+        showToast("Vakantie aanvraag succesvol ingediend! Je manager ontvangt een notificatie.", "success");
+      }
       setShowModal(false);
       setValidationError("");
-      setFormData({ startDate: "", endDate: "", vacationType: "Z03", notes: "" });
+      setIsPartialDay(false);
+      setFormData({ startDate: "", endDate: "", vacationType: "Z03", notes: "", hours: 8 });
       loadVacationRequests();
     } catch (error) {
-      console.error("Error creating vacation request:", error);
       const errorMessage = error instanceof Error ? error.message : "Er ging iets mis. Probeer het opnieuw.";
       showToast(errorMessage, "error");
     }
@@ -606,6 +619,63 @@ export default function VakantiePage() {
                       </div>
                     </div>
 
+                    {/* Partial day / hours toggle */}
+                    {formData.startDate === formData.endDate && formData.startDate !== "" && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Gedeeltelijke dag (uren)?
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPartialDay(!isPartialDay);
+                              if (!isPartialDay) {
+                                setFormData({ ...formData, hours: 4 });
+                              } else {
+                                setFormData({ ...formData, hours: 8 });
+                              }
+                            }}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              isPartialDay ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                isPartialDay ? "translate-x-6" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        {isPartialDay && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                              Aantal uren
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="range"
+                                min="1"
+                                max="8"
+                                step="0.5"
+                                value={formData.hours}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, hours: parseFloat(e.target.value) })
+                                }
+                                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                              />
+                              <span className="text-lg font-bold text-blue-600 dark:text-blue-400 min-w-[3rem] text-center">
+                                {formData.hours} uur
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                              💡 Aanvragen onder 8 uur worden automatisch goedgekeurd
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
                         Type Verlof
@@ -620,22 +690,13 @@ export default function VakantiePage() {
                         }
                         className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-timr-orange focus:border-transparent"
                       >
-                        {vacationTypes.length > 0 ? (
-                          vacationTypes.map((type) => (
-                            <option key={type.gcCode} value={type.gcCode}>
-                              {type.omschrijving}
-                            </option>
-                          ))
-                        ) : (
-                          <>
-                            <option value="Z03">Vakantie (ATV)</option>
-                            <option value="Z04">Snipperdag</option>
-                            <option value="Z05">Verlof eigen rekening</option>
-                            <option value="Z06">Bijzonder verlof</option>
-                            <option value="Z08">Opbouw tijd voor tijd</option>
-                            <option value="Z09">Opname tijd voor tijd</option>
-                          </>
-                        )}
+                        <option value="Z03">Vakantie (ATV)</option>
+                        <option value="Z04">Snipperdag</option>
+                        <option value="Z05">Verlof eigen rekening</option>
+                        <option value="Z06">Bijzonder verlof</option>
+                        <option value="Z07">Ziekteverlof</option>
+                        <option value="Z08">Opbouw tijd voor tijd</option>
+                        <option value="Z09">Opname tijd voor tijd</option>
                       </select>
                     </div>
 

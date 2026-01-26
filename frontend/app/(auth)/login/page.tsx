@@ -56,6 +56,7 @@ export default function LoginPage(): JSX.Element {
       localStorage.setItem("lastName", response.user.last_name || "");
       localStorage.setItem("userRank", response.user.role);
       localStorage.setItem("email", response.user.email || "");
+      localStorage.setItem("allowedTasks", response.user.allowed_tasks || "BOTH");
 
       // Zet cookies
       document.cookie = `userId=${response.user.id}; path=/; max-age=3600;`;

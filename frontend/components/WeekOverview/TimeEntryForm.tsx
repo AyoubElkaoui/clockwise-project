@@ -287,21 +287,22 @@ export default function TimeEntryForm({
         try {
           const data = await getProjects(selectedProjectGroup);
 
-          const userRank = localStorage.getItem("userRank");
-          const isAdminOrManager =
-            userRank === "admin" || userRank === "manager";
+          // Always filter to assigned projects if user has assignments
+          // This ensures even managers only see their assigned projects
+          const assignedProjectIds = assignedProjects.map(
+            (ap) => ap.projectId,
+          );
 
-          if (isAdminOrManager) {
-            setProjects(data);
-          } else {
-            // Filter to only show projects the user has access to
-            const assignedProjectIds = assignedProjects.map(
-              (ap) => ap.projectId,
-            );
+          if (assignedProjectIds.length > 0) {
+            // User has project assignments - filter to only those
             const filteredProjects = data.filter((project: Project) =>
               assignedProjectIds.includes(project.id),
             );
             setProjects(filteredProjects);
+          } else {
+            // No assignments yet - show all (backwards compatible)
+            // Admin/manager can set up assignments via Project Toewijzing page
+            setProjects(data);
           }
 
           // Reset project selection when project group changes

@@ -185,36 +185,26 @@ export default function TimeRegistrationPage() {
   const loadClosedDays = async () => {
     try {
       const year = currentWeek.getFullYear();
-      console.log("Loading closed days for year:", year);
       const response = await axios.get(
         `/api/holidays/closed?year=${year}`,
       );
-      console.log("Loaded closed days:", response.data);
       setClosedDays(response.data);
     } catch (error) {
-      console.error("Fout bij laden gesloten dagen:", error);
+      // Silent fail - closed days are optional
     }
   };
 
   const isClosedDay = (date: string) => {
-    const isClosed = closedDays.some((day) => day.date === date);
-    console.log(`Checking if ${date} is closed:`, isClosed, closedDays);
-    return isClosed;
+    return closedDays.some((day) => day.date === date);
   };
 
-  const loadUserAllowedTasks = async () => {
-    try {
-      // Get from localStorage (already set during login)
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        setUserAllowedTasks(user.allowed_tasks || 'BOTH');
-      } else {
-        setUserAllowedTasks('BOTH'); // Default to both if not found
-      }
-    } catch (error) {
-      console.error('Fout bij laden user allowed tasks:', error);
-      setUserAllowedTasks('BOTH'); // Default to both if fetch fails
+  const loadUserAllowedTasks = () => {
+    // Get from localStorage (set during login as individual key)
+    const allowedTasks = localStorage.getItem('allowedTasks');
+    if (allowedTasks === 'MONTAGE_ONLY' || allowedTasks === 'TEKENKAMER_ONLY' || allowedTasks === 'BOTH') {
+      setUserAllowedTasks(allowedTasks);
+    } else {
+      setUserAllowedTasks('BOTH'); // Default to both if not found
     }
   };
 
@@ -240,7 +230,6 @@ export default function TimeRegistrationPage() {
   const loadEntries = async () => {
     try {
       const urenperGcId = getCurrentPeriodId();
-      console.log("Loading entries for period:", urenperGcId);
 
       // Load ALL statuses: DRAFT, SUBMITTED, APPROVED, REJECTED
       const [drafts, submitted, rejected] = await Promise.all([
@@ -250,7 +239,6 @@ export default function TimeRegistrationPage() {
       ]);
 
       const allEntries = [...drafts, ...submitted, ...rejected];
-      console.log("Loaded entries from API:", allEntries);
 
       const map: Record<string, TimeEntry> = {};
       const projectIdsToAdd = new Set<number>();
@@ -261,8 +249,6 @@ export default function TimeRegistrationPage() {
         // We need it in "YYYY-MM-DD" format to match keys created by formatDate()
         const normalizedDate = e.datum.split('T')[0]; // Take only date part, ignore time
         const key = `${normalizedDate}-${projectId}`;
-
-        console.log(`Entry: date=${normalizedDate}, projectId=${projectId}, hours=${e.aantal}, key=${key}`);
 
         map[key] = {
           date: normalizedDate,
@@ -284,9 +270,6 @@ export default function TimeRegistrationPage() {
           projectIdsToAdd.add(projectId);
         }
       });
-
-      console.log("Entries map created:", map);
-      console.log("Projects to add:", Array.from(projectIdsToAdd));
 
       // Update entries first
       setEntries(map);
@@ -311,11 +294,9 @@ export default function TimeRegistrationPage() {
           }
         });
 
-        console.log("Adding new project rows:", newRows);
         return [...prev, ...newRows];
       });
     } catch (error) {
-      console.error("Error loading entries:", error);
       showToast("Kon uren niet laden", "error");
     }
   };
@@ -618,7 +599,6 @@ export default function TimeRegistrationPage() {
       setEntries(updatedEntries);
       showToast("✓ Uren succesvol opgeslagen als concept", "success");
     } catch (error) {
-      console.error("Save error:", error);
       const errorMessage = error instanceof Error ? error.message : "Kan uren niet opslaan. Controleer je internetverbinding.";
       showToast(errorMessage, "error");
     } finally {
@@ -683,7 +663,6 @@ export default function TimeRegistrationPage() {
       }
 
       // Then submit all saved drafts
-      console.log("Submitting entries:", { urenperGcId, entryIds: savedIds });
       await submitEntries({
         urenperGcId,
         entryIds: savedIds,
@@ -692,7 +671,6 @@ export default function TimeRegistrationPage() {
       showToast(`✓ ${savedIds.length} uur${savedIds.length > 1 ? 'registraties' : 'registratie'} succesvol ingediend voor goedkeuring!`, "success");
       await loadEntries();
     } catch (error) {
-      console.error("Submit error:", error);
       const errorMessage = error instanceof Error 
         ? error.message 
         : "Kan uren niet indienen. Controleer of alle velden correct zijn ingevuld.";
