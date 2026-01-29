@@ -26,7 +26,7 @@ export default function SystemPage() {
       const data = await getSystemHealth();
       setHealth(data);
     } catch (error) {
-      console.error("Failed to load system health:", error);
+      
     }
   };
 
@@ -35,7 +35,7 @@ export default function SystemPage() {
       const data = await getSystemConfig();
       setConfig(data);
     } catch (error) {
-      console.error("Failed to load system config:", error);
+      
     }
   };
 
@@ -45,7 +45,7 @@ export default function SystemPage() {
       await updateSystemConfig(config);
       alert("Config bijgewerkt!");
     } catch (error) {
-      console.error("Failed to update config:", error);
+      
     } finally {
       setLoading(false);
     }

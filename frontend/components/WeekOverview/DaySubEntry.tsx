@@ -58,7 +58,7 @@ export default function DayEntry({
 
       return Math.round(hours * 4) / 4;
     } catch (error) {
-      console.warn("Error calculating hours for entry:", entry, error);
+      
       return 0;
     }
   };
@@ -159,7 +159,7 @@ export default function DayEntry({
         "success",
       );
     } catch (error) {
-      console.error("Error submitting entries:", error);
+      
       onShowToast("Fout bij inleveren van uren", "error");
     } finally {
       setIsSubmitting(false);
@@ -442,7 +442,7 @@ export default function DayEntry({
                       </div>
                     );
                   } catch (error) {
-                    console.warn("Error rendering entry:", entry, error);
+                    
                     return (
                       <div
                         key={index}

@@ -57,7 +57,7 @@ export default function EditUserPage(): JSX.Element {
                 setCity(userData.city || "");
                 setRank(userData.rank || "employee");
             } catch (error) {
-                console.error("Error fetching user:", error);
+                
                 setToastMessage("Fout bij laden gebruiker");
                 setToastType("error");
                 setTimeout(() => setToastMessage(""), 3000);
@@ -108,7 +108,7 @@ export default function EditUserPage(): JSX.Element {
                 router.push("/admin/users");
             }, 1500);
         } catch (error) {
-            console.error("Error updating user:", error);
+            
             setToastMessage("Fout bij bijwerken gebruiker");
             setToastType("error");
         } finally {

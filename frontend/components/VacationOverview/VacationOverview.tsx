@@ -49,7 +49,7 @@ const getVacationRequests = async (): Promise<VacationRequest[]> => {
             return Array.isArray(data) ? data : [];
         }
     } catch (error) {
-        console.warn('API niet beschikbaar, gebruik mock data:', error);
+        
     }
 
     // Fallback naar mock data
@@ -100,7 +100,7 @@ const createVacationRequest = async (request: {
             return await response.json();
         }
     } catch (error) {
-        console.warn('API niet beschikbaar, simuleer aanmaak:', error);
+        
     }
 
     // Fallback: simuleer succesvol aanmaken
@@ -134,7 +134,7 @@ const getVacationBalance = async (): Promise<VacationBalance> => {
             return data;
         }
     } catch (error) {
-        console.warn('API niet beschikbaar, gebruik mock balance:', error);
+        
     }
 
     // Fallback naar mock data
@@ -210,7 +210,7 @@ export default function VacationOverview(): React.JSX.Element {
             setRequests(requestsData);
             setBalance(balanceData);
         } catch (err) {
-            console.error('Error fetching vacation data:', err);
+            
             setError(t("vacation.errorLoading"));
         } finally {
             setLoading(false);

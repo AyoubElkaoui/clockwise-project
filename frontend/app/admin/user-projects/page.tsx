@@ -53,7 +53,7 @@ export default function AdminUserProjectsPage() {
             setUserProjects(userProjectsData);
             setFilteredUserProjects(userProjectsData);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            
             setToastMessage("Fout bij het ophalen van data");
             setToastType("error");
         } finally {
@@ -72,7 +72,7 @@ export default function AdminUserProjectsPage() {
                     const data = await getProjectGroups(selectedCompany);
                     setProjectGroups(data);
                 } catch (error) {
-                    console.error("Error fetching project groups:", error);
+                    
                 }
             };
 
@@ -92,7 +92,7 @@ export default function AdminUserProjectsPage() {
                     const data = await getProjects(selectedProjectGroup);
                     setProjects(data);
                 } catch (error) {
-                    console.error("Error fetching projects:", error);
+                    
                 }
             };
 
@@ -146,7 +146,7 @@ export default function AdminUserProjectsPage() {
             setSelectedProjectGroup(null);
             setSelectedProject(null);
         } catch (error) {
-            console.error("Error assigning user to project:", error);
+            
 
             // Toon de foutmelding van de server, als die er is
             const errorMessage = error instanceof Error ? error.message : "Fout bij toewijzen gebruiker aan project";
@@ -175,7 +175,7 @@ export default function AdminUserProjectsPage() {
             setToastMessage("Gebruiker succesvol verwijderd van project!");
             setToastType("success");
         } catch (error) {
-            console.error("Error removing user from project:", error);
+            
             setToastMessage("Fout bij verwijderen gebruiker van project");
             setToastType("error");
         }

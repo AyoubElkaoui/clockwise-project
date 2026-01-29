@@ -77,7 +77,7 @@ export default function EmployeeDetailPage() {
       const data = await getEmployeeDetail(parseInt(employeeId));
       setEmployee(data);
     } catch (error) {
-      console.error("Error loading employee detail:", error);
+      
     }
   };
 
@@ -86,7 +86,7 @@ export default function EmployeeDetailPage() {
       const data = await getEmployeeHours(parseInt(employeeId), period);
       setTimeEntries(data);
     } catch (error) {
-      console.error("Error loading time entries:", error);
+      
     } finally {
       setLoading(false);
     }

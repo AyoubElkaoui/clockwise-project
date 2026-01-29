@@ -48,7 +48,7 @@ export default function EmployeesPage() {
       const data = await getEmployees(search, department, activeOnly);
       setEmployees(data);
     } catch (error) {
-      console.error("Error loading employees:", error);
+      
       showToast("Fout bij laden medewerkers", "error");
     } finally {
       setLoading(false);

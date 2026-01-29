@@ -110,7 +110,7 @@ export default function ValidationsPage() {
       const data = await getValidations();
       setValidations(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Failed to load validations:", error);
+      
       showToast("Fout bij laden validaties", "error");
     } finally {
       setLoading(false);
@@ -122,7 +122,7 @@ export default function ValidationsPage() {
       const data = await getValidationsHistory();
       setHistory(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Failed to load validation history:", error);
+      
     }
   };
 
@@ -149,7 +149,7 @@ export default function ValidationsPage() {
         showToast("Alle validaties geslaagd!", "success");
       }
     } catch (error) {
-      console.error("Failed to run validations:", error);
+      
       showToast("Fout bij uitvoeren validaties", "error");
     } finally {
       setRunning(false);

@@ -97,7 +97,7 @@ export default function AdminTimeEntriesPage() {
       const data = await getTimeEntries();
       setEntries(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error loading time entries:", error);
+      
       showToast(t("common.errorLoading"), "error");
       setEntries([]);
     } finally {
@@ -190,7 +190,7 @@ export default function AdminTimeEntriesPage() {
       setSelectedEntry(details);
       setShowDetailsModal(true);
     } catch (error) {
-      console.error("Error fetching details:", error);
+      
       showToast("Fout bij ophalen details", "error");
     }
   };
@@ -205,7 +205,7 @@ export default function AdminTimeEntriesPage() {
       );
       showToast("Urenregistratie goedgekeurd", "success");
     } catch (error) {
-      console.error("Error approving:", error);
+      
       showToast("Fout bij goedkeuren", "error");
     }
   };
@@ -220,7 +220,7 @@ export default function AdminTimeEntriesPage() {
       );
       showToast("Urenregistratie afgekeurd", "success");
     } catch (error) {
-      console.error("Error rejecting:", error);
+      
       showToast("Fout bij afkeuren", "error");
     }
   };

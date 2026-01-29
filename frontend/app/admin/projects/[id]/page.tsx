@@ -65,7 +65,7 @@ export default function ProjectDetailPage() {
       const data = await getProjectDetail(parseInt(projectId));
       setProject(data);
     } catch (error) {
-      console.error("Error loading project detail:", error);
+      
     } finally {
       setLoading(false);
     }

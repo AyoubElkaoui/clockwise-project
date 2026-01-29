@@ -62,7 +62,7 @@ export default function AdminVacationRequestsPage() {
       const data = await getVacationRequests();
       setRequests(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error loading vacation requests:", error);
+      
       showToast(t("common.errorLoading"), "error");
       setRequests([]);
     } finally {
@@ -111,7 +111,7 @@ export default function AdminVacationRequestsPage() {
       );
       showToast("Vakantie-aanvraag goedgekeurd", "success");
     } catch (error) {
-      console.error("Error approving:", error);
+      
       showToast("Fout bij goedkeuren", "error");
     }
   };
@@ -124,7 +124,7 @@ export default function AdminVacationRequestsPage() {
       );
       showToast("Vakantie-aanvraag afgekeurd", "success");
     } catch (error) {
-      console.error("Error rejecting:", error);
+      
       showToast("Fout bij afkeuren", "error");
     }
   };

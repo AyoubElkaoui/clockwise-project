@@ -62,7 +62,7 @@ export default function UrenOverzicht(): JSX.Element {
             result.push(entry);
           }
         } catch (error) {
-          console.warn("Date filtering error for entry:", entry, error);
+          
         }
       }
 
@@ -109,7 +109,7 @@ export default function UrenOverzicht(): JSX.Element {
       setFilteredEntries(result);
       setCurrentPage(1);
     } catch (error) {
-      console.error("Filter data error:", error);
+      
       setFilteredEntries([]);
     }
   }, [
@@ -131,7 +131,7 @@ export default function UrenOverzicht(): JSX.Element {
         }
         setEntries(safeData);
       } catch (error) {
-        console.error("Fout bij ophalen van time entries:", error);
+        
         setEntries([]);
       }
     }
@@ -159,14 +159,14 @@ export default function UrenOverzicht(): JSX.Element {
             companiesSet.add(compName);
           }
         } catch (error) {
-          console.warn("Error processing entry for options:", entry, error);
+          
         }
       }
 
       setProjectOptions(Array.from(projectsSet));
       setCompanyOptions(Array.from(companiesSet));
     } catch (error) {
-      console.error("Error setting options:", error);
+      
       setProjectOptions([]);
       setCompanyOptions([]);
     }
@@ -210,7 +210,7 @@ export default function UrenOverzicht(): JSX.Element {
       totalExpenses += entry.expenses || 0;
       totalDistance += entry.distanceKm || 0;
     } catch (error) {
-      console.warn("Error calculating stats for entry:", entry, error);
+      
     }
   }
   totalDays = daysWithHours.size;
@@ -497,7 +497,7 @@ export default function UrenOverzicht(): JSX.Element {
                       </tr>
                     );
                   } catch (error) {
-                    console.warn("Error rendering entry:", entry, error);
+                    
                     return (
                       <tr key={index}>
                         <td colSpan={8} className="text-center text-error">

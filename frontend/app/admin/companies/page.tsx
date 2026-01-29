@@ -70,7 +70,7 @@ export default function AdminCompaniesPage() {
       }
       setCompanies(safeData);
     } catch (error) {
-      console.error("Error loading companies:", error);
+      
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);

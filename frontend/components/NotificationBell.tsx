@@ -44,8 +44,7 @@ const NotificationBell = () => {
         if (activity && !activity.read) unreadCountNum++;
       }
       setUnreadCount(unreadCountNum);
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
+    } catch {
       setActivities([]);
       setUnreadCount(0);
     } finally {
@@ -91,8 +90,8 @@ const NotificationBell = () => {
 
       setActivities(updatedActivities);
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error("Error marking activity as read:", error);
+    } catch {
+      // Silently ignore
     }
   };
 
@@ -107,8 +106,8 @@ const NotificationBell = () => {
 
       setActivities(updatedActivities);
       setUnreadCount(0);
-    } catch (error) {
-      console.error("Error marking all activities as read:", error);
+    } catch {
+      // Silently ignore
     }
   };
 

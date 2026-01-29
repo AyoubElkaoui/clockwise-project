@@ -93,7 +93,7 @@ export default function AdminApprovalsPage() {
       showToast("Uren afgekeurd!", "success");
       loadEntries();
     } catch (error) {
-      console.error("Failed to reject:", error);
+      
     }
   };
 

@@ -32,7 +32,7 @@ export default function RegisterPage() {
             });
             router.push("/login");
         } catch (error) {
-            console.error("Registratie error:", error); // Gebruik de error parameter zodat hij niet ongebruikt is
+             // Gebruik de error parameter zodat hij niet ongebruikt is
             setError("Registratie mislukt");
         }
     };

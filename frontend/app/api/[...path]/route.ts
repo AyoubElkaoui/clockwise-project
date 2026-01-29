@@ -23,13 +23,10 @@ function filterResponseHeaders(headers: Headers) {
 
 async function proxy(req: NextRequest, params: { path: string[] }) {
   if (!RAW_BACKEND) {
-    console.error("BACKEND_URL / INTERNAL_API_URL not set, cannot proxy");
     return NextResponse.json({ error: "Configuration error" }, { status: 500 });
   }
 
   const base = normalizeBase(RAW_BACKEND);
-  console.log('RAW_BACKEND:', RAW_BACKEND);
-  console.log('base:', base);
   const path = params.path?.join("/") ?? "";
   const search = new URL(req.url).search; // includes ?...
   const upstreamUrl = `${base}/api/${path}${search}`;
@@ -50,8 +47,6 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   const contentType = req.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);
 
-  console.log("[proxy]", req.method, req.nextUrl.pathname + req.nextUrl.search, "->", upstreamUrl);
-
   const upstreamRes = await fetch(upstreamUrl, {
     method: req.method,
     headers,
@@ -59,20 +54,6 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
     cache: "no-store",
     redirect: "manual",
   });
-
-  console.error("[proxy debug] Upstream failed?", upstreamRes.status, upstreamRes.headers.get("content-type"));
-  if (!upstreamRes.ok) {
-    const bodyText = await upstreamRes.text();
-    console.error("[proxy debug] Upstream body:", bodyText.substring(0, 500));
-    console.error("[proxy debug] Full URL:", upstreamUrl);
-    console.error("[proxy debug] Headers sent:", Object.fromEntries(headers.entries()));
-  }
-
-  console.log(
-    "[proxy upstream]",
-    upstreamRes.status,
-    upstreamRes.headers.get("content-type") || "(no content-type)"
-  );
 
   // Return upstream body as-is (no .json() / .text() parsing)
   const resHeaders = filterResponseHeaders(upstreamRes.headers);
@@ -99,5 +80,3 @@ export async function PATCH(req: NextRequest, ctx: { params: { path: string[] } 
 export async function DELETE(req: NextRequest, ctx: { params: { path: string[] } }) {
   return proxy(req, ctx.params);
 }
-
-// Herhaal voor PUT, DELETE, etc. als nodig

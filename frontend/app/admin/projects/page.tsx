@@ -108,7 +108,7 @@ export default function AdminProjectsPage() {
       const allGroups = groupsArrays.flat();
       setProjectGroups(allGroups);
     } catch (error) {
-      console.error("Error loading data:", error);
+      
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);

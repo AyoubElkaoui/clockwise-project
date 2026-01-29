@@ -97,8 +97,8 @@ export function AdminSidebar() {
         unreadNotifications: unreadCount > 0 ? unreadCount : null,
         pendingApprovals: pendingCount > 0 ? pendingCount : null,
       });
-    } catch (error) {
-      console.error("Failed to load badges:", error);
+    } catch {
+      // Silently ignore
     }
   };
 

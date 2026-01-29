@@ -125,7 +125,7 @@ export default function AdminDashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      console.log("Loading dashboard data from backend");
+      
       // Load stats, system status, alerts, and recent time entries in parallel
       const [statsData, systemStatusData, alertsData, timeEntries] =
         await Promise.all([
@@ -193,7 +193,7 @@ export default function AdminDashboardPage() {
 
       setRecentActivity(sorted);
     } catch (error) {
-      console.error("Error loading dashboard data:", error);
+      
       showToast(t("admin.dashboard.loadError"), "error");
     } finally {
       setLoading(false);

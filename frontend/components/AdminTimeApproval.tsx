@@ -35,7 +35,7 @@ export default function AdminTimeApproval() {
             const data = await getAdminTimeEntries();
             setEntries(data);
         } catch (error) {
-            console.error("Error fetching time entries:", error);
+            
             showToast("Fout bij het ophalen van uren", "error");
         } finally {
             setLoading(false);
@@ -67,7 +67,7 @@ export default function AdminTimeApproval() {
             setEntries(updatedEntries);
             showToast("Uren goedgekeurd", "success");
         } catch (error) {
-            console.error("Error approving entry:", error);
+            
             showToast("Fout bij goedkeuren", "error");
         }
     };
@@ -90,7 +90,7 @@ export default function AdminTimeApproval() {
             showToast("Uren afgekeurd", "success");
             setIsRejectModalOpen(false);
         } catch (error) {
-            console.error("Error rejecting entry:", error);
+            
             showToast("Fout bij afkeuren", "error");
         }
     };

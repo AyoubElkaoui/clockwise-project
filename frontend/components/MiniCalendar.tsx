@@ -73,7 +73,7 @@ export function MiniCalendar() {
 
       setDayData(grouped);
     } catch (error) {
-      console.error("Failed to load calendar data:", error);
+      
     } finally {
       setLoading(false);
     }

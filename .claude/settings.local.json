@@ -10,7 +10,9 @@
       "Bash(pkill:*)",
       "Bash(cat:*)",
       "Bash(npm run build:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(where:*)"
     ]
   }
 }

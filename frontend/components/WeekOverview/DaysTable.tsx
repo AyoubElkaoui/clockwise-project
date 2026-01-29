@@ -55,12 +55,7 @@ export default function DaysTable({
 
                   try {
                     return entry.startTime.startsWith(dayStr);
-                  } catch (error) {
-                    console.warn(
-                      "Error filtering entry for day:",
-                      entry,
-                      error,
-                    );
+                  } catch {
                     return false;
                   }
                 });

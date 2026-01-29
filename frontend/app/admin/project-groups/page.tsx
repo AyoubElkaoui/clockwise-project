@@ -36,7 +36,7 @@ export default function AdminProjectGroupsPage() {
         const data = await getProjectGroups();
         setProjectGroups(data);
       } catch (error) {
-        console.error("Error fetching project groups:", error);
+        
       } finally {
         setLoading(false);
       }

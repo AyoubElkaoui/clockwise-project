@@ -100,7 +100,7 @@ export default function AanwezigheidskalenderPage() {
       // Calculate stats
       calculateStats(yearEntries, holidaysData);
     } catch (error) {
-      console.error("Error loading data:", error);
+      
     } finally {
       setLoading(false);
     }

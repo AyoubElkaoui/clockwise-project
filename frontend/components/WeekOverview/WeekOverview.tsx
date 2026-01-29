@@ -75,8 +75,7 @@ function DayEntry({
       const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
       const hours = diffMin > 0 ? diffMin / 60 : 0;
       return Math.round(hours * 4) / 4;
-    } catch (error) {
-      console.warn("Error calculating hours for entry:", entry, error);
+    } catch {
       return 0;
     }
   };
@@ -363,8 +362,7 @@ function DayEntry({
                         )}
                       </div>
                     );
-                  } catch (error) {
-                    console.warn("Error rendering entry:", entry, error);
+                  } catch {
                     return (
                       <div
                         key={index}
@@ -471,8 +469,7 @@ export default function WeekOverview() {
       const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
       const hours = diffMin > 0 ? diffMin / 60 : 0;
       return Math.round(hours * 4) / 4;
-    } catch (error) {
-      console.warn("Error calculating hours:", error);
+    } catch {
       return 0;
     }
   };
@@ -532,8 +529,7 @@ export default function WeekOverview() {
           setWeekStatus("concept");
         }
       }
-    } catch (err) {
-      console.error("Error fetching time entries:", err);
+    } catch {
       setLocalEntries([]);
       setWeekStatus("concept");
     } finally {
@@ -619,8 +615,7 @@ export default function WeekOverview() {
         t("week.entriesSaved", { count: conceptEntries.length }),
         "success",
       );
-    } catch (error) {
-      console.error("Error saving entries:", error);
+    } catch {
       showToast(t("week.errorSaving"), "error");
     } finally {
       setIsSaving(false);
@@ -663,8 +658,7 @@ export default function WeekOverview() {
         t("week.entriesSubmitted", { count: conceptEntries.length }),
         "success",
       );
-    } catch (error) {
-      console.error("Error submitting entries:", error);
+    } catch {
       showToast(t("week.errorSubmitting"), "error");
     } finally {
       setIsSubmitting(false);

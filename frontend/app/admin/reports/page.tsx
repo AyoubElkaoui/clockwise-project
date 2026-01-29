@@ -58,7 +58,7 @@ export default function AdminReportsPage() {
       );
       showToast(t("admin.reports.usersGenerated"), "success");
     } catch (error) {
-      console.error("Error generating users report:", error);
+      
       showToast(t("admin.reports.generateError"), "error");
     } finally {
       setGenerating(null);
@@ -110,7 +110,7 @@ export default function AdminReportsPage() {
       );
       showToast(t("admin.reports.hoursGenerated"), "success");
     } catch (error) {
-      console.error("Error generating hours report:", error);
+      
       showToast(t("admin.reports.generateError"), "error");
     } finally {
       setGenerating(null);
@@ -152,7 +152,7 @@ export default function AdminReportsPage() {
       );
       showToast(t("admin.reports.companiesGenerated"), "success");
     } catch (error) {
-      console.error("Error generating companies report:", error);
+      
       showToast(t("admin.reports.generateError"), "error");
     } finally {
       setGenerating(null);

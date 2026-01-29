@@ -138,7 +138,7 @@ export default function DaysTable({
 
   function handleEdit(entry: TimeEntry) {
     // Nu gebruiken we de entry parameter door deze te loggen
-    console.log("Zou entry bewerken met ID:", entry.id);
+    
     alert("Bewerken van entry nog niet geïmplementeerd in dit voorbeeld!");
   }
 }

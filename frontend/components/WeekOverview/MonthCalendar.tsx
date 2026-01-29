@@ -60,7 +60,7 @@ export default function MonthCalendar({
             entries.push(te);
           }
         } catch (error) {
-          console.warn("Error filtering time entry:", te, error);
+          
         }
       }
 
@@ -76,7 +76,7 @@ export default function MonthCalendar({
             if (diff > 0) totalMinutes += diff;
           }
         } catch (error) {
-          console.warn("Error calculating time for entry:", e, error);
+          
         }
       }
 
@@ -84,7 +84,7 @@ export default function MonthCalendar({
       // Round to nearest quarter hour
       return Math.round(hours * 4) / 4;
     } catch (error) {
-      console.warn("Error in getHoursForDay:", error);
+      
       return 0;
     }
   }
@@ -162,7 +162,7 @@ export default function MonthCalendar({
           </td>
         );
       } catch (error) {
-        console.warn("Error rendering day cell:", d, error);
+        
         return (
           <td
             key={idx}

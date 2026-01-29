@@ -42,7 +42,7 @@ export default function AdminSettingsPage() {
           setSessionTimeout(parsed.sessionTimeout ?? false);
         }
       } catch (error) {
-        console.error("Error loading settings:", error);
+        
       }
     };
     loadSettings();

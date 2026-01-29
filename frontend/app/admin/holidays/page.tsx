@@ -102,7 +102,7 @@ export default function HolidaysPage() {
       resetForm();
       loadData();
     } catch (error) {
-      console.error("Failed to save holiday:", error);
+      
       addToast(t("admin.holidays.saveError"), "error");
     }
   };
@@ -120,7 +120,7 @@ export default function HolidaysPage() {
       addToast(t("admin.holidays.deleted"), "success");
       loadData();
     } catch (error) {
-      console.error("Failed to delete holiday:", error);
+      
       addToast(t("admin.holidays.deleteError"), "error");
     }
   };

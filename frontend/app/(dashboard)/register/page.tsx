@@ -43,20 +43,20 @@ export default function RegisterTime(): JSX.Element {
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    getCompanies().then(setCompanies).catch(console.error);
+    getCompanies().then(setCompanies).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (selectedCompany !== null) {
       getProjectGroups(selectedCompany)
         .then(setProjectGroups)
-        .catch(console.error);
+        .catch(() => {});
     }
   }, [selectedCompany]);
 
   useEffect(() => {
     if (selectedProjectGroup !== null) {
-      getProjects(selectedProjectGroup).then(setProjects).catch(console.error);
+      getProjects(selectedProjectGroup).then(setProjects).catch(() => {});
     }
   }, [selectedProjectGroup]);
 
@@ -125,7 +125,7 @@ export default function RegisterTime(): JSX.Element {
       setExpenses(0);
       setNotes("");
     } catch (error) {
-      console.error(error);
+      
       setMessage(t("register.saveError"));
       setIsSuccess(false);
     } finally {

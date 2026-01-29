@@ -104,7 +104,7 @@ export default function AdminVacationPage() {
       setComment("");
       loadRequests();
     } catch (error) {
-      console.error("Failed to reject:", error);
+      
     }
   };
 

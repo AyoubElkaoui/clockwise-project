@@ -80,7 +80,7 @@ export default function AccountPage() {
     try {
       const medewGcId = authUtils.getMedewGcId();
       const userId = medewGcId ? Number(medewGcId) : null;
-      console.log("Account page - Loading user with medewGcId:", userId);
+      
       
       if (!userId) {
         addToast("Niet ingelogd. Ga naar login pagina.", "error");
@@ -88,9 +88,9 @@ export default function AccountPage() {
         return;
       }
       
-      console.log("Fetching user data for ID:", userId);
+      
       const data = await getUser(userId);
-      console.log("User data received:", data);
+      
       
       if (!data) {
         addToast("Gebruikersgegevens niet gevonden voor ID " + userId, "error");
@@ -99,7 +99,7 @@ export default function AccountPage() {
       setUserData(data);
       addToast("Gegevens geladen", "success");
     } catch (error) {
-      console.error("Error loading user data:", error);
+      
       addToast("Kon gebruikersgegevens niet laden: " + error, "error");
     } finally {
       setLoading(false);

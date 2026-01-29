@@ -72,7 +72,7 @@ export default function AdminUsersPage() {
       }
       setUsers(safeData);
     } catch (error) {
-      console.error("Error loading users:", error);
+      
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);

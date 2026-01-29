@@ -8,7 +8,7 @@ export async function getUsers() {
         });
         return res.data;
     } catch (error) {
-        console.error("API Call Failed:", error);
+        
         throw error;
     }
 }
