@@ -58,7 +58,7 @@ export default function AccountPage(): JSX.Element {
       const userId = parseInt(userIdStr);
       getUser(userId)
         .then(setProfileData)
-        .catch((err) => );
+        .catch(() => {});
     }
   }, []);
 
