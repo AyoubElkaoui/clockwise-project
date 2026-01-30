@@ -27,8 +27,9 @@ import {
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
-import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
+import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteDraft } from "@/lib/api/workflowApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
+import { getUserProjects } from "@/lib/api/userProjectApi";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -150,6 +151,7 @@ export default function TimeRegistrationPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
+  const [assignedProjectIds, setAssignedProjectIds] = useState<number[]>([]);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -175,6 +177,7 @@ export default function TimeRegistrationPage() {
     loadEntries();
     loadUserAllowedTasks();
     loadHolidays();
+    loadAssignedProjects();
   }, [currentWeek, viewMode]);
 
   useEffect(() => {
@@ -237,6 +240,20 @@ export default function TimeRegistrationPage() {
     if (userAllowedTasks === 'MONTAGE_ONLY') return 'MONTAGE';
     if (userAllowedTasks === 'TEKENKAMER_ONLY') return 'TEKENKAMER';
     return 'MONTAGE'; // Default for users with BOTH
+  };
+
+  const loadAssignedProjects = async () => {
+    try {
+      const userId = Number(localStorage.getItem("userId")) || 0;
+      if (userId > 0) {
+        const userProjects = await getUserProjects(userId);
+        const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
+        setAssignedProjectIds(ids.filter((id: number) => id > 0));
+      }
+    } catch {
+      // If fetching fails, allow all projects (backwards compatible)
+      setAssignedProjectIds([]);
+    }
   };
 
   const loadCompanies = async () => {
@@ -346,8 +363,12 @@ export default function TimeRegistrationPage() {
       if (!projects[id]) {
         try {
           const projs = await getProjects(id);
-          setProjects((prev) => ({ ...prev, [id]: projs }));
-        } catch (error) {
+          // Filter to only show projects user is assigned to
+          const filtered = assignedProjectIds.length > 0
+            ? projs.filter((p: any) => assignedProjectIds.includes(p.id || p.gcId))
+            : projs;
+          setProjects((prev) => ({ ...prev, [id]: filtered }));
+        } catch {
           showToast("Kon projecten niet laden", "error");
         }
       }
@@ -431,7 +452,20 @@ export default function TimeRegistrationPage() {
     showToast("Geplakt!", "success");
   };
 
-  const removeProject = (projectId: number) => {
+  const removeProject = async (projectId: number) => {
+    // Delete entries from backend first
+    const entriesToDelete = Object.values(entries).filter(
+      (e) => e.projectId === projectId && e.id
+    );
+    for (const entry of entriesToDelete) {
+      try {
+        if (entry.id) await deleteDraft(entry.id);
+      } catch {
+        // Entry might already be submitted/approved - ignore delete errors
+      }
+    }
+
+    // Remove from local state
     setProjectRows((prev) => prev.filter((r) => r.projectId !== projectId));
     const newEntries = { ...entries };
     Object.keys(newEntries).forEach((k) => {

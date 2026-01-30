@@ -157,6 +157,36 @@ public class UserProjectsController : ControllerBase
         }
     }
 
+    // GET: api/user-projects/pg-users - Get all active users from PostgreSQL
+    [HttpGet("pg-users")]
+    public async Task<IActionResult> GetPostgresUsers()
+    {
+        try
+        {
+            var sql = @"
+                SELECT
+                    id,
+                    medew_gc_id AS ""medewGcId"",
+                    username,
+                    first_name AS ""firstName"",
+                    last_name AS ""lastName"",
+                    email,
+                    role,
+                    is_active AS ""isActive""
+                FROM users
+                WHERE is_active = TRUE
+                ORDER BY first_name, last_name";
+
+            var result = await _db.QueryAsync(sql);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching PostgreSQL users");
+            return Ok(new List<object>());
+        }
+    }
+
     // DELETE: api/user-projects/users/{userId}/projects/{projectId}
     [HttpDelete("users/{userId}/projects/{projectId}")]
     public async Task<IActionResult> RemoveUserFromProject(int userId, int projectId)

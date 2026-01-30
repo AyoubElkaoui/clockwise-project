@@ -27,6 +27,10 @@ axios.interceptors.request.use((config) => {
     if (medewGcId) {
       config.headers['X-MEDEW-GC-ID'] = medewGcId;
     }
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      config.headers['X-User-ID'] = userId;
+    }
   }
   return config;
 });

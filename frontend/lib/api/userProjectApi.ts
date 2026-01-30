@@ -8,6 +8,18 @@ export interface UserProject {
   projectId: number;
   assignedByUserId: number;
   assignedAt: string;
+  userName?: string;
+}
+
+export interface PostgresUser {
+  id: number;
+  medewGcId: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
 }
 
 export async function getUserProjects(userId: number): Promise<UserProject[]> {
@@ -28,16 +40,25 @@ export async function getProjectUsers(projectId: number): Promise<UserProject[]>
   }
 }
 
+export async function getPostgresUsers(): Promise<PostgresUser[]> {
+  try {
+    const res = await axios.get(`${API_URL}/user-projects/pg-users`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function assignUserToProject(
-  userId: number, 
-  projectId: number, 
+  userId: number,
+  projectId: number,
   assignedByUserId: number
 ): Promise<UserProject> {
   try {
-    const res = await axios.post(`${API_URL}/user-projects`, { 
-      userId, 
-      projectId, 
-      assignedByUserId 
+    const res = await axios.post(`${API_URL}/user-projects`, {
+      userId,
+      projectId,
+      assignedByUserId
     });
     return res.data;
   } catch (error) {

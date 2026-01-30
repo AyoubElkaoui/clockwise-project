@@ -38,6 +38,9 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   const medew = req.headers.get("x-medew-gc-id");
   if (medew) headers.set("X-MEDEW-GC-ID", medew);
 
+  const userId = req.headers.get("x-user-id");
+  if (userId) headers.set("X-User-ID", userId);
+
   const auth = req.headers.get("authorization");
   if (auth) headers.set("authorization", auth);
 

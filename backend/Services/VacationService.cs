@@ -86,34 +86,39 @@ namespace ClockwiseProject.Backend.Services
 
             _logger.LogInformation("Approving vacation request {Id} for user {UserId}", id, request.UserId);
 
-            // Update status in PostgreSQL
+            // Update status in PostgreSQL FIRST (most important)
             request.Status = "approved";
             request.RejectionReason = managerComment;
             request.ReviewedAt = DateTime.Now;
             request.ReviewedBy = reviewedBy;
+            await _vacationRepository.UpdateAsync(request);
+            _logger.LogInformation("Updated vacation request {Id} status to approved in PostgreSQL", id);
 
-            // Update vacation balance - move from pending to used
-            await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year, 
-                pendingDelta: -request.TotalDays * 8, // Remove from pending
-                usedDelta: request.TotalDays * 8);     // Add to used
-
-            // Write to Firebird: Create AT_URENBREG records for each working day
+            // Update vacation balance (non-critical)
             try
             {
-                var firebirdGcIds = await WriteVacationToFirebirdAsync(request);
-                _logger.LogInformation("Created {Count} Firebird entries for vacation request {Id}: {GcIds}", 
-                    firebirdGcIds.Count, id, string.Join(", ", firebirdGcIds));
-                
-                // Store firebird_gc_ids in PostgreSQL
-                request.FirebirdGcIds = firebirdGcIds.ToArray();
-                await _vacationRepository.UpdateAsync(request);
-                
-                _logger.LogInformation("Successfully approved vacation request {Id} and synced to Firebird", id);
+                await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year,
+                    pendingDelta: -request.TotalDays * 8,
+                    usedDelta: request.TotalDays * 8);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to write vacation request {Id} to Firebird", id);
-                throw;
+                _logger.LogWarning(ex, "Failed to update vacation balance for request {Id}, continuing anyway", id);
+            }
+
+            // Write to Firebird (optional - don't fail approve if Firebird is unavailable)
+            try
+            {
+                var firebirdGcIds = await WriteVacationToFirebirdAsync(request);
+                _logger.LogInformation("Created {Count} Firebird entries for vacation request {Id}",
+                    firebirdGcIds.Count, id);
+
+                request.FirebirdGcIds = firebirdGcIds.ToArray();
+                await _vacationRepository.UpdateAsync(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to write vacation request {Id} to Firebird - approve still succeeded in PostgreSQL", id);
             }
         }
 
@@ -126,13 +131,22 @@ namespace ClockwiseProject.Backend.Services
                 request.RejectionReason = managerComment;
                 request.ReviewedAt = DateTime.Now;
                 request.ReviewedBy = reviewedBy;
-                
-                // Update vacation balance - remove from pending (give hours back)
-                await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year, 
-                    pendingDelta: -request.TotalDays * 8, // Remove from pending
-                    usedDelta: 0);                          // No change to used
-                
+
+                // Update PostgreSQL FIRST
                 await _vacationRepository.UpdateAsync(request);
+                _logger.LogInformation("Rejected vacation request {Id} in PostgreSQL", id);
+
+                // Update vacation balance (non-critical)
+                try
+                {
+                    await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year,
+                        pendingDelta: -request.TotalDays * 8,
+                        usedDelta: 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to update vacation balance for rejected request {Id}", id);
+                }
             }
         }
 
