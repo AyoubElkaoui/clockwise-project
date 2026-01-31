@@ -184,6 +184,13 @@ export default function TimeRegistrationPage() {
     loadClosedDays();
   }, [currentWeek]);
 
+  // When assignedProjectIds loads, clear cached projects so they get re-fetched with filter
+  useEffect(() => {
+    if (assignedProjectIds !== null) {
+      setProjects({});
+    }
+  }, [assignedProjectIds]);
+
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
