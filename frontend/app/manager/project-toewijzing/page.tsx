@@ -9,17 +9,22 @@ import {
   type PostgresUser,
   type UserProject,
 } from "@/lib/api/userProjectApi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 import {
-  UserPlusIcon,
-  FolderIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  XMarkIcon,
-  ChevronDownIcon,
-} from "@heroicons/react/24/outline";
+  Search,
+  UserPlus,
+  Trash2,
+  X,
+  ChevronDown,
+  FolderOpen,
+  Users,
+  CheckCircle2,
+} from "lucide-react";
 
 interface Project {
   id?: number;
@@ -34,16 +39,15 @@ export default function ManagerProjectToewijzingPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Project search state
   const [projectSearch, setProjectSearch] = useState("");
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const projectSearchRef = useRef<HTMLDivElement>(null);
 
-  // User assignment state
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [projectAssignments, setProjectAssignments] = useState<UserProject[]>([]);
   const [searchUser, setSearchUser] = useState("");
+  const [assigning, setAssigning] = useState(false);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -51,7 +55,6 @@ export default function ManagerProjectToewijzingPage() {
         getPostgresUsers(),
         getProjects(),
       ]);
-
       setUsers(Array.isArray(usersData) ? usersData : []);
       setProjects(Array.isArray(projectsData) ? projectsData : []);
     } catch {
@@ -61,17 +64,11 @@ export default function ManagerProjectToewijzingPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+  useEffect(() => { fetchInitialData(); }, [fetchInitialData]);
 
-  // Close project dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        projectSearchRef.current &&
-        !projectSearchRef.current.contains(event.target as Node)
-      ) {
+      if (projectSearchRef.current && !projectSearchRef.current.contains(event.target as Node)) {
         setProjectDropdownOpen(false);
       }
     }
@@ -79,76 +76,65 @@ export default function ManagerProjectToewijzingPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Load assignments when project is selected
   useEffect(() => {
     if (selectedProject) {
-      const projectId = getProjectId(selectedProject);
-      if (projectId > 0) {
-        const loadAssignments = async () => {
+      const pid = getProjectId(selectedProject);
+      if (pid > 0) {
+        (async () => {
           try {
-            const assignments = await getProjectUsers(projectId);
-            setProjectAssignments(Array.isArray(assignments) ? assignments : []);
-          } catch {
-            setProjectAssignments([]);
-          }
-        };
-        loadAssignments();
+            const a = await getProjectUsers(pid);
+            setProjectAssignments(Array.isArray(a) ? a : []);
+          } catch { setProjectAssignments([]); }
+        })();
       }
     } else {
       setProjectAssignments([]);
     }
   }, [selectedProject]);
 
-  const getProjectId = (project: Project): number => {
-    return project.gcId || project.id || 0;
-  };
+  const getProjectId = (p: Project) => p.gcId || p.id || 0;
 
-  const getProjectDisplayName = (project: Project): string => {
-    const code = project.gcCode || "";
-    const name = project.name || project.description || "";
+  const getProjectDisplayName = (p: Project) => {
+    const code = p.gcCode || "";
+    const name = p.name || p.description || "";
     if (code && name && code !== name) return `${code} - ${name}`;
-    return name || code || `Project ${getProjectId(project)}`;
+    return name || code || `Project ${getProjectId(p)}`;
   };
 
-  const getUserDisplayName = (user: PostgresUser): string => {
-    const first = user.firstName || "";
-    const last = user.lastName || "";
-    const full = `${first} ${last}`.trim();
-    return full || user.username || `Gebruiker ${user.id}`;
+  const getUserDisplayName = (u: PostgresUser) => {
+    const full = `${u.firstName || ""} ${u.lastName || ""}`.trim();
+    return full || u.username || `Gebruiker ${u.id}`;
   };
 
-  // Filter projects by search term
+  const getInitials = (name: string) =>
+    name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+
   const filteredProjects = useMemo(() => {
     if (!projectSearch.trim()) return projects;
-    const term = projectSearch.toLowerCase();
-    return projects.filter((p) => {
-      const display = getProjectDisplayName(p).toLowerCase();
-      const code = (p.gcCode || "").toLowerCase();
-      return display.includes(term) || code.includes(term);
-    });
+    const t = projectSearch.toLowerCase();
+    return projects.filter(p =>
+      getProjectDisplayName(p).toLowerCase().includes(t) ||
+      (p.gcCode || "").toLowerCase().includes(t)
+    );
   }, [projects, projectSearch]);
 
-  // Filter available users (not already assigned) by search term
   const availableUsers = useMemo(() => {
-    const assignedUserIds = new Set(projectAssignments.map((pa) => pa.userId));
-    let available = users.filter((user) => !assignedUserIds.has(user.id));
-
+    const assigned = new Set(projectAssignments.map(pa => pa.userId));
+    let avail = users.filter(u => !assigned.has(u.id));
     if (searchUser.trim()) {
-      const term = searchUser.toLowerCase();
-      available = available.filter((user) => {
-        const name = getUserDisplayName(user).toLowerCase();
-        const email = (user.email || "").toLowerCase();
-        const username = (user.username || "").toLowerCase();
-        return name.includes(term) || email.includes(term) || username.includes(term);
-      });
+      const t = searchUser.toLowerCase();
+      avail = avail.filter(u =>
+        getUserDisplayName(u).toLowerCase().includes(t) ||
+        (u.email || "").toLowerCase().includes(t) ||
+        (u.username || "").toLowerCase().includes(t)
+      );
     }
-
-    return available;
+    return avail;
   }, [users, projectAssignments, searchUser]);
 
-  const handleSelectProject = (project: Project) => {
-    setSelectedProject(project);
-    setProjectSearch(getProjectDisplayName(project));
+  const handleSelectProject = (p: Project) => {
+    setSelectedProject(p);
+    setProjectSearch(getProjectDisplayName(p));
     setProjectDropdownOpen(false);
     setSelectedUsers([]);
   };
@@ -160,167 +146,139 @@ export default function ManagerProjectToewijzingPage() {
     setProjectAssignments([]);
   };
 
-  const handleToggleUser = (userId: number) => {
-    setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+  const handleToggleUser = (id: number) => {
+    setSelectedUsers(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
   };
 
-  const handleAssignUsers = async () => {
-    if (!selectedProject || selectedUsers.length === 0) {
-      showToast("Selecteer een project en minimaal een medewerker", "error");
-      return;
-    }
-
-    const managerUserId = Number(localStorage.getItem("userId")) || 0;
-    const projectId = getProjectId(selectedProject);
-
-    try {
-      for (const userId of selectedUsers) {
-        await assignUserToProject(userId, projectId, managerUserId);
-      }
-
-      // Refresh assignments
-      const assignments = await getProjectUsers(projectId);
-      setProjectAssignments(Array.isArray(assignments) ? assignments : []);
-
-      showToast(`${selectedUsers.length} medewerker(s) toegewezen`, "success");
+  const handleSelectAll = () => {
+    if (selectedUsers.length === availableUsers.length) {
       setSelectedUsers([]);
-    } catch {
-      showToast("Fout bij toewijzen van medewerkers", "error");
+    } else {
+      setSelectedUsers(availableUsers.map(u => u.id));
     }
   };
 
-  const handleRemoveAssignment = async (userId: number) => {
-    if (!selectedProject) return;
-    if (!confirm("Weet je zeker dat je deze medewerker wilt verwijderen van dit project?"))
-      return;
-
-    const projectId = getProjectId(selectedProject);
-
+  const handleAssignUsers = async () => {
+    if (!selectedProject || selectedUsers.length === 0) return;
+    const managerId = Number(localStorage.getItem("userId")) || 0;
+    const pid = getProjectId(selectedProject);
+    setAssigning(true);
     try {
-      await removeUserFromProject(userId, projectId);
+      for (const uid of selectedUsers) {
+        await assignUserToProject(uid, pid, managerId);
+      }
+      const a = await getProjectUsers(pid);
+      setProjectAssignments(Array.isArray(a) ? a : []);
+      showToast(`${selectedUsers.length} medewerker(s) toegewezen`, "success");
+      setSelectedUsers([]);
+    } catch {
+      showToast("Fout bij toewijzen", "error");
+    } finally {
+      setAssigning(false);
+    }
+  };
 
-      const assignments = await getProjectUsers(projectId);
-      setProjectAssignments(Array.isArray(assignments) ? assignments : []);
-
-      showToast("Medewerker verwijderd van project", "success");
+  const handleRemove = async (userId: number) => {
+    if (!selectedProject) return;
+    if (!confirm("Medewerker verwijderen van dit project?")) return;
+    const pid = getProjectId(selectedProject);
+    try {
+      await removeUserFromProject(userId, pid);
+      const a = await getProjectUsers(pid);
+      setProjectAssignments(Array.isArray(a) ? a : []);
+      showToast("Medewerker verwijderd", "success");
     } catch {
       showToast("Fout bij verwijderen", "error");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="text-center">
-          <div className="loading loading-spinner loading-lg text-blue-600 mb-4"></div>
-          <p className="text-lg font-semibold text-gray-700">Laden...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-8 shadow-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <UserPlusIcon className="w-8 h-8" />
-          <h1 className="text-3xl font-bold">Project Toewijzingen</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Project Toewijzingen
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Wijs medewerkers toe aan projecten
+          </p>
         </div>
-        <p className="text-blue-100 text-lg">
-          Zoek een project en wijs medewerkers toe
-        </p>
-        <div className="flex gap-4 mt-3 text-blue-200 text-sm">
-          <span>{projects.length} projecten</span>
-          <span>{users.length} medewerkers</span>
+        <div className="flex gap-3">
+          <Badge variant="secondary" className="text-sm py-1 px-3">
+            <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+            {projects.length} projecten
+          </Badge>
+          <Badge variant="secondary" className="text-sm py-1 px-3">
+            <Users className="w-3.5 h-3.5 mr-1.5" />
+            {users.length} medewerkers
+          </Badge>
         </div>
       </div>
 
-      {/* Stap 1: Zoek en selecteer project */}
-      <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl">
-        <div className="card-body p-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
-              1
-            </span>
-            Zoek een Project
-          </h2>
-
-          {/* Searchable project input */}
+      {/* Project zoeken */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Search className="w-4 h-4" />
+            Project Selecteren
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           <div ref={projectSearchRef} className="relative">
             <div className="relative">
-              <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input
                 type="text"
-                placeholder="Typ om een project te zoeken (naam of code)..."
-                className="input input-bordered w-full pl-10 pr-20 rounded-xl dark:bg-slate-800 dark:border-slate-600 text-lg"
+                placeholder="Zoek op projectnaam of code..."
+                className="pl-9 pr-16"
                 value={projectSearch}
                 onChange={(e) => {
                   setProjectSearch(e.target.value);
                   setProjectDropdownOpen(true);
-                  if (!e.target.value) {
-                    setSelectedProject(null);
-                  }
+                  if (!e.target.value) setSelectedProject(null);
                 }}
                 onFocus={() => setProjectDropdownOpen(true)}
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {selectedProject && (
-                  <button
-                    onClick={handleClearProject}
-                    className="btn btn-ghost btn-sm btn-circle"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
+                  <button onClick={handleClearProject} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
+                    <X className="w-4 h-4 text-slate-400" />
                   </button>
                 )}
-                <ChevronDownIcon
-                  className={`w-4 h-4 text-gray-400 transition-transform ${
-                    projectDropdownOpen ? "rotate-180" : ""
-                  }`}
-                />
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${projectDropdownOpen ? "rotate-180" : ""}`} />
               </div>
             </div>
 
-            {/* Project dropdown */}
-            {projectDropdownOpen && (
-              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl max-h-72 overflow-y-auto">
+            {projectDropdownOpen && !selectedProject && (
+              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-64 overflow-y-auto">
                 {filteredProjects.length === 0 ? (
-                  <div className="px-4 py-3 text-gray-500 text-center">
-                    Geen projecten gevonden voor &ldquo;{projectSearch}&rdquo;
+                  <div className="px-4 py-3 text-sm text-slate-500 text-center">
+                    Geen projecten gevonden
                   </div>
                 ) : (
-                  filteredProjects.slice(0, 50).map((project) => {
+                  filteredProjects.slice(0, 50).map(project => {
                     const pid = getProjectId(project);
-                    const isSelected = selectedProject && getProjectId(selectedProject) === pid;
                     return (
                       <button
                         key={pid}
-                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
-                          isSelected
-                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                            : "text-gray-800 dark:text-gray-100"
-                        }`}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
                         onClick={() => handleSelectProject(project)}
                       >
-                        <div className="font-medium">
+                        <span className="font-medium text-slate-900 dark:text-slate-100">
                           {getProjectDisplayName(project)}
-                        </div>
-                        {project.gcCode && project.name && project.gcCode !== project.name && (
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            Code: {project.gcCode}
-                          </div>
-                        )}
+                        </span>
                       </button>
                     );
                   })
                 )}
                 {filteredProjects.length > 50 && (
-                  <div className="px-4 py-2 text-center text-sm text-gray-500 bg-gray-50 dark:bg-slate-700">
-                    {filteredProjects.length - 50} meer resultaten - verfijn je zoekopdracht
+                  <div className="px-4 py-2 text-xs text-center text-slate-500 bg-slate-50 dark:bg-slate-700">
+                    +{filteredProjects.length - 50} meer — verfijn je zoekopdracht
                   </div>
                 )}
               </div>
@@ -328,185 +286,176 @@ export default function ManagerProjectToewijzingPage() {
           </div>
 
           {selectedProject && (
-            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center gap-2">
-              <CheckCircleIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <span className="text-blue-800 dark:text-blue-200 font-medium">
-                Geselecteerd: {getProjectDisplayName(selectedProject)}
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span className="font-medium text-slate-700 dark:text-slate-200">
+                {getProjectDisplayName(selectedProject)}
               </span>
+              <button onClick={handleClearProject} className="ml-auto text-xs text-slate-500 hover:text-slate-700 underline">
+                Wijzig
+              </button>
             </div>
           )}
+        </CardContent>
+      </Card>
 
-          {projects.length === 0 && (
-            <p className="text-amber-600 mt-2">
-              Geen projecten gevonden. Controleer de backend verbinding.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Stap 2: Toewijzingen beheren */}
+      {/* Toewijzingen */}
       {selectedProject && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Huidige toewijzingen */}
-          <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl">
-            <div className="card-body p-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <CheckCircleIcon className="w-6 h-6 text-green-600" />
-                Huidige Medewerkers ({projectAssignments.length})
-              </h2>
-
+          {/* Huidige medewerkers */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Toegewezen ({projectAssignments.length})
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               {projectAssignments.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                  <p>Geen medewerkers toegewezen aan dit project</p>
+                <div className="text-center py-6 text-slate-500 text-sm">
+                  Nog geen medewerkers toegewezen
                 </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {projectAssignments.map((assignment) => {
-                    const user = users.find((u) => u.id === assignment.userId);
-                    const displayName =
-                      assignment.userName ||
+                <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+                  {projectAssignments.map(assignment => {
+                    const user = users.find(u => u.id === assignment.userId);
+                    const name = assignment.userName ||
                       (user ? getUserDisplayName(user) : `Gebruiker ${assignment.userId}`);
-
                     return (
                       <div
                         key={assignment.id || assignment.userId}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-xl"
+                        className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 group"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
-                            <span className="text-sm font-bold">
-                              {displayName
-                                .split(" ")
-                                .map((n: string) => n[0])
-                                .join("")
-                                .substring(0, 2)
-                                .toUpperCase()}
-                            </span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {getInitials(name)}
                           </div>
-                          <div>
-                            <span className="font-medium text-gray-800 dark:text-gray-100">
-                              {displayName}
-                            </span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{name}</div>
                             {user?.email && (
-                              <div className="text-xs text-gray-500">
-                                {user.email}
-                              </div>
+                              <div className="text-xs text-slate-500 truncate">{user.email}</div>
                             )}
                           </div>
                         </div>
-                        <button
-                          className="btn btn-sm btn-error btn-outline rounded-lg"
-                          onClick={() => handleRemoveAssignment(assignment.userId)}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                          onClick={() => handleRemove(assignment.userId)}
                         >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Medewerkers toevoegen */}
-          <div className="card bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 rounded-2xl">
-            <div className="card-body p-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-                <span className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
-                  2
-                </span>
-                Medewerkers Toevoegen
-              </h2>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <UserPlus className="w-4 h-4" />
+                Toevoegen
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* Zoekbalk */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder="Zoek medewerker..."
+                    className="pl-9"
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                  />
+                </div>
 
-              {/* Zoekbalk */}
-              <div className="relative mb-4">
-                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Zoek medewerker (naam, email, username)..."
-                  className="input input-bordered w-full pl-10 rounded-xl dark:bg-slate-800 dark:border-slate-600"
-                  value={searchUser}
-                  onChange={(e) => setSearchUser(e.target.value)}
-                />
-              </div>
-
-              {/* Lijst met beschikbare medewerkers */}
-              <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
-                {availableUsers.length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">
-                    {searchUser
-                      ? "Geen resultaten"
-                      : "Alle medewerkers zijn al toegewezen"}
-                  </p>
-                ) : (
-                  availableUsers.map((user) => (
-                    <label
-                      key={user.id}
-                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                        selectedUsers.includes(user.id)
-                          ? "bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500"
-                          : "bg-gray-50 dark:bg-slate-800 border-2 border-transparent hover:bg-gray-100 dark:hover:bg-slate-700"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-primary"
-                        checked={selectedUsers.includes(user.id)}
-                        onChange={() => handleToggleUser(user.id)}
-                      />
-                      <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold">
-                          {getUserDisplayName(user)
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-gray-800 dark:text-gray-100 truncate">
-                          {getUserDisplayName(user)}
-                        </div>
-                        {user.email && (
-                          <div className="text-xs text-gray-500 truncate">
-                            {user.email}
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  ))
+                {/* Selecteer alles */}
+                {availableUsers.length > 0 && (
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>{availableUsers.length} beschikbaar</span>
+                    <button onClick={handleSelectAll} className="hover:text-slate-700 underline">
+                      {selectedUsers.length === availableUsers.length ? "Deselecteer alles" : "Selecteer alles"}
+                    </button>
+                  </div>
                 )}
-              </div>
 
-              {/* Toewijzen button */}
-              <button
-                className="btn bg-blue-600 border-0 text-white rounded-xl w-full hover:bg-blue-700 disabled:opacity-50"
-                onClick={handleAssignUsers}
-                disabled={selectedUsers.length === 0}
-              >
-                <UserPlusIcon className="w-5 h-5 mr-2" />
-                {selectedUsers.length} Medewerker(s) Toewijzen
-              </button>
-            </div>
-          </div>
+                {/* Lijst */}
+                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                  {availableUsers.length === 0 ? (
+                    <div className="text-center py-4 text-sm text-slate-500">
+                      {searchUser ? "Geen resultaten" : "Iedereen is al toegewezen"}
+                    </div>
+                  ) : (
+                    availableUsers.map(user => {
+                      const selected = selectedUsers.includes(user.id);
+                      return (
+                        <label
+                          key={user.id}
+                          className={`flex items-center gap-3 py-2 px-3 rounded-lg cursor-pointer transition-colors ${
+                            selected
+                              ? "bg-blue-50 dark:bg-blue-900/20"
+                              : "hover:bg-slate-50 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            checked={selected}
+                            onChange={() => handleToggleUser(user.id)}
+                          />
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {getInitials(getUserDisplayName(user))}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                              {getUserDisplayName(user)}
+                            </div>
+                            {user.email && (
+                              <div className="text-xs text-slate-500 truncate">{user.email}</div>
+                            )}
+                          </div>
+                          {user.role === "manager" && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manager</Badge>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Toewijzen knop */}
+                <Button
+                  className="w-full"
+                  onClick={handleAssignUsers}
+                  disabled={selectedUsers.length === 0 || assigning}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {assigning ? "Bezig..." : `${selectedUsers.length} toewijzen`}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* Info als geen project geselecteerd */}
+      {/* Placeholder als geen project geselecteerd */}
       {!selectedProject && (
-        <div className="card bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
-          <div className="card-body p-6 text-center">
-            <FolderIcon className="w-16 h-16 mx-auto text-blue-400 mb-4" />
-            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
-              Zoek en selecteer een project
-            </h3>
-            <p className="text-blue-600 dark:text-blue-300">
-              Gebruik de zoekbalk hierboven om een project te vinden en medewerkers toe te wijzen.
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <FolderOpen className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+            <p className="text-sm text-slate-500">
+              Selecteer een project hierboven om medewerkers toe te wijzen
             </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -151,7 +151,7 @@ export default function TimeRegistrationPage() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
-  const [assignedProjectIds, setAssignedProjectIds] = useState<number[]>([]);
+  const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -249,9 +249,11 @@ export default function TimeRegistrationPage() {
         const userProjects = await getUserProjects(userId);
         const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
         setAssignedProjectIds(ids.filter((id: number) => id > 0));
+      } else {
+        setAssignedProjectIds([]);
       }
     } catch {
-      // If fetching fails, allow all projects (backwards compatible)
+      // If fetching fails, set empty so user sees no projects until assigned
       setAssignedProjectIds([]);
     }
   };
@@ -364,9 +366,10 @@ export default function TimeRegistrationPage() {
         try {
           const projs = await getProjects(id);
           // Filter to only show projects user is assigned to
-          const filtered = assignedProjectIds.length > 0
-            ? projs.filter((p: any) => assignedProjectIds.includes(p.id || p.gcId))
-            : projs;
+          // null = not loaded yet (show all as fallback), [] = loaded but empty (show none)
+          const filtered = assignedProjectIds === null
+            ? projs
+            : projs.filter((p: any) => assignedProjectIds.includes(p.id || p.gcId));
           setProjects((prev) => ({ ...prev, [id]: filtered }));
         } catch {
           showToast("Kon projecten niet laden", "error");
