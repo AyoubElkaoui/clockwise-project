@@ -445,6 +445,7 @@ public class WorkflowService
 
         if (entry == null)
         {
+            _logger.LogWarning("DELETE entry {Id}: NOT FOUND", entryId);
             return new WorkflowResponse
             {
                 Success = false,
@@ -452,17 +453,23 @@ public class WorkflowService
             };
         }
 
+        _logger.LogInformation("DELETE entry {Id}: found with Status={Status}, MedewGcId={EntryMedew}, requesting MedewGcId={ReqMedew}",
+            entryId, entry.Status, entry.MedewGcId, medewGcId);
+
         if (entry.MedewGcId != medewGcId)
         {
+            _logger.LogWarning("DELETE entry {Id}: OWNER MISMATCH - entry belongs to {EntryMedew}, request from {ReqMedew}",
+                entryId, entry.MedewGcId, medewGcId);
             return new WorkflowResponse
             {
                 Success = false,
-                Message = "Entry does not belong to this employee"
+                Message = $"Entry belongs to employee {entry.MedewGcId}, not {medewGcId}"
             };
         }
 
         if (entry.Status == "APPROVED")
         {
+            _logger.LogWarning("DELETE entry {Id}: BLOCKED - status is APPROVED", entryId);
             return new WorkflowResponse
             {
                 Success = false,
@@ -471,6 +478,7 @@ public class WorkflowService
         }
 
         await _workflowRepo.DeleteAsync(entryId);
+        _logger.LogInformation("DELETE entry {Id}: SUCCESS - deleted from database", entryId);
 
         return new WorkflowResponse
         {

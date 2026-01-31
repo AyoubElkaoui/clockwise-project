@@ -497,12 +497,24 @@ export default function TimeRegistrationPage() {
     const entriesToDelete = Object.values(entries).filter(
       (e) => e.projectId === projectId && e.id
     );
+    console.log("[DELETE] Removing project", projectId, "entries to delete:", entriesToDelete.length, entriesToDelete.map(e => ({ id: e.id, status: e.status })));
+
+    let allDeleted = true;
     for (const entry of entriesToDelete) {
       try {
-        if (entry.id) await deleteDraft(entry.id);
-      } catch {
-        // Entry might already be submitted/approved - ignore delete errors
+        if (entry.id) {
+          console.log("[DELETE] Deleting entry", entry.id, "status:", entry.status);
+          await deleteDraft(entry.id);
+          console.log("[DELETE] Successfully deleted entry", entry.id);
+        }
+      } catch (err: any) {
+        console.error("[DELETE] Failed to delete entry", entry.id, ":", err?.response?.status, err?.response?.data || err?.message);
+        allDeleted = false;
       }
+    }
+
+    if (!allDeleted) {
+      showToast("Sommige uren konden niet verwijderd worden (goedgekeurd of fout)", "error");
     }
 
     // Remove from local state
@@ -892,7 +904,7 @@ export default function TimeRegistrationPage() {
                         className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
                       />
                       <span className="font-medium group-hover:text-blue-600">
-                        {company.name}
+                        {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
                       </span>
                     </div>
                     {expandedCompanies.includes(company.id) && (

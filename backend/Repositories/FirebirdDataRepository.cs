@@ -93,8 +93,14 @@ namespace ClockwiseProject.Backend.Repositories
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
-                var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum, EINDDATUM AS EndDatum FROM AT_URENPER ORDER BY BEGINDATUM DESC";
-                return await connection.QueryAsync<Period>(sql);
+                var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum FROM AT_URENPER ORDER BY BEGINDATUM DESC";
+                var periods = (await connection.QueryAsync<Period>(sql)).ToList();
+                // Calculate EndDatum as BeginDatum + 6 days (weekly periods)
+                foreach (var p in periods)
+                {
+                    if (p.EndDatum == default) p.EndDatum = p.BeginDatum.AddDays(6);
+                }
+                return periods;
             }
             catch (Exception ex)
             {
