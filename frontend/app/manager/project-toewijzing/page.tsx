@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { getProjects } from "@/lib/api";
+import { getProjects, getProjectGroups } from "@/lib/api";
 import {
   getPostgresUsers,
   assignUserToProject,
@@ -32,11 +32,19 @@ interface Project {
   name?: string;
   gcCode?: string;
   description?: string;
+  werkgrpGcId?: number;
+}
+
+interface ProjectGroupData {
+  gcId: number;
+  gcCode: string;
+  description?: string;
 }
 
 export default function ManagerProjectToewijzingPage() {
   const [users, setUsers] = useState<PostgresUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectGroups, setProjectGroups] = useState<ProjectGroupData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [projectSearch, setProjectSearch] = useState("");
@@ -51,12 +59,14 @@ export default function ManagerProjectToewijzingPage() {
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const [usersData, projectsData] = await Promise.all([
+      const [usersData, projectsData, groupsData] = await Promise.all([
         getPostgresUsers(),
         getProjects(),
+        getProjectGroups(),
       ]);
       setUsers(Array.isArray(usersData) ? usersData : []);
       setProjects(Array.isArray(projectsData) ? projectsData : []);
+      setProjectGroups(Array.isArray(groupsData) ? groupsData : []);
     } catch {
       showToast("Fout bij het ophalen van data", "error");
     } finally {
@@ -109,14 +119,69 @@ export default function ManagerProjectToewijzingPage() {
   const getInitials = (name: string) =>
     name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
 
+  // Map group IDs to group names
+  const groupNameMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    for (const g of projectGroups) {
+      map[g.gcId] = g.description || g.gcCode || `Groep ${g.gcId}`;
+    }
+    return map;
+  }, [projectGroups]);
+
   const filteredProjects = useMemo(() => {
-    if (!projectSearch.trim()) return projects;
-    const t = projectSearch.toLowerCase();
-    return projects.filter(p =>
-      getProjectDisplayName(p).toLowerCase().includes(t) ||
-      (p.gcCode || "").toLowerCase().includes(t)
-    );
-  }, [projects, projectSearch]);
+    let filtered = projects;
+    if (projectSearch.trim()) {
+      const t = projectSearch.toLowerCase();
+      filtered = projects.filter(p => {
+        // Search in project name and code
+        if (getProjectDisplayName(p).toLowerCase().includes(t)) return true;
+        if ((p.gcCode || "").toLowerCase().includes(t)) return true;
+        // Also search in group name
+        const gName = p.werkgrpGcId ? (groupNameMap[p.werkgrpGcId] || "") : "";
+        if (gName.toLowerCase().includes(t)) return true;
+        return false;
+      });
+    }
+    return filtered;
+  }, [projects, projectSearch, groupNameMap]);
+
+  // Group filtered projects by werkgrpGcId for grouped dropdown display
+  const groupedFilteredProjects = useMemo(() => {
+    const groups: { groupId: number; groupName: string; projects: Project[] }[] = [];
+    const groupMap = new Map<number, Project[]>();
+    const ungrouped: Project[] = [];
+
+    for (const p of filteredProjects) {
+      const gid = p.werkgrpGcId;
+      if (gid && gid > 0) {
+        if (!groupMap.has(gid)) groupMap.set(gid, []);
+        groupMap.get(gid)!.push(p);
+      } else {
+        ungrouped.push(p);
+      }
+    }
+
+    // Sort groups by name
+    const sortedGroupIds = Array.from(groupMap.keys()).sort((a, b) => {
+      const nameA = groupNameMap[a] || "";
+      const nameB = groupNameMap[b] || "";
+      return nameA.localeCompare(nameB);
+    });
+
+    for (const gid of sortedGroupIds) {
+      groups.push({
+        groupId: gid,
+        groupName: groupNameMap[gid] || `Groep ${gid}`,
+        projects: groupMap.get(gid)!,
+      });
+    }
+
+    if (ungrouped.length > 0) {
+      groups.push({ groupId: 0, groupName: "Overig", projects: ungrouped });
+    }
+
+    return groups;
+  }, [filteredProjects, groupNameMap]);
 
   const availableUsers = useMemo(() => {
     const assigned = new Set(projectAssignments.map(pa => pa.userId));
@@ -255,30 +320,43 @@ export default function ManagerProjectToewijzingPage() {
             </div>
 
             {projectDropdownOpen && !selectedProject && (
-              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-80 overflow-y-auto">
                 {filteredProjects.length === 0 ? (
                   <div className="px-4 py-3 text-sm text-slate-500 text-center">
                     Geen projecten gevonden
                   </div>
                 ) : (
-                  filteredProjects.slice(0, 50).map(project => {
-                    const pid = getProjectId(project);
-                    return (
-                      <button
-                        key={pid}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
-                        onClick={() => handleSelectProject(project)}
-                      >
-                        <span className="font-medium text-slate-900 dark:text-slate-100">
-                          {getProjectDisplayName(project)}
-                        </span>
-                      </button>
-                    );
-                  })
+                  groupedFilteredProjects.map(group => (
+                    <div key={group.groupId}>
+                      <div className="sticky top-0 px-4 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600">
+                        {group.groupName}
+                        <span className="ml-1.5 text-slate-400 dark:text-slate-500 font-normal normal-case">({group.projects.length})</span>
+                      </div>
+                      {group.projects.slice(0, 30).map(project => {
+                        const pid = getProjectId(project);
+                        return (
+                          <button
+                            key={pid}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
+                            onClick={() => handleSelectProject(project)}
+                          >
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                              {getProjectDisplayName(project)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {group.projects.length > 30 && (
+                        <div className="px-4 py-1.5 text-xs text-slate-500 bg-slate-50 dark:bg-slate-700/50">
+                          +{group.projects.length - 30} meer in deze groep
+                        </div>
+                      )}
+                    </div>
+                  ))
                 )}
-                {filteredProjects.length > 50 && (
+                {filteredProjects.length > 200 && (
                   <div className="px-4 py-2 text-xs text-center text-slate-500 bg-slate-50 dark:bg-slate-700">
-                    +{filteredProjects.length - 50} meer — verfijn je zoekopdracht
+                    Verfijn je zoekopdracht voor betere resultaten
                   </div>
                 )}
               </div>

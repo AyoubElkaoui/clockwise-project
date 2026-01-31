@@ -461,12 +461,12 @@ public class WorkflowService
             };
         }
 
-        if (entry.Status != "DRAFT")
+        if (entry.Status == "APPROVED")
         {
             return new WorkflowResponse
             {
                 Success = false,
-                Message = $"Cannot delete entry with status {entry.Status}"
+                Message = "Cannot delete approved entries"
             };
         }
 

@@ -184,12 +184,13 @@ export default function TimeRegistrationPage() {
     loadClosedDays();
   }, [currentWeek]);
 
-  // When assignedProjectIds loads, clear cached projects so they get re-fetched with filter
-  useEffect(() => {
-    if (assignedProjectIds !== null) {
-      setProjects({});
-    }
-  }, [assignedProjectIds]);
+  // Compute filtered projects at render time based on assignedProjectIds
+  // This guarantees the filter is always applied regardless of load order
+  const getVisibleProjects = (groupId: number): Project[] => {
+    const allProjects = projects[groupId] || [];
+    if (assignedProjectIds === null) return allProjects; // Still loading assignments, show all as fallback
+    return allProjects.filter(p => assignedProjectIds.includes(p.id));
+  };
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
@@ -372,12 +373,7 @@ export default function TimeRegistrationPage() {
       if (!projects[id]) {
         try {
           const projs = await getProjects(id);
-          // Filter to only show projects user is assigned to
-          // null = not loaded yet (show all as fallback), [] = loaded but empty (show none)
-          const filtered = assignedProjectIds === null
-            ? projs
-            : projs.filter((p: any) => assignedProjectIds.includes(p.id || p.gcId));
-          setProjects((prev) => ({ ...prev, [id]: filtered }));
+          setProjects((prev) => ({ ...prev, [id]: projs }));
         } catch {
           showToast("Kon projecten niet laden", "error");
         }
@@ -882,7 +878,7 @@ export default function TimeRegistrationPage() {
                             </div>
                             {expandedGroups.includes(group.id) && (
                               <div className="ml-5 space-y-1">
-                                {projects[group.id]?.map((project) => (
+                                {getVisibleProjects(group.id).map((project) => (
                                   <div
                                     key={project.id}
                                     onClick={() =>
