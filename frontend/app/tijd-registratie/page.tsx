@@ -30,6 +30,7 @@ import {
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteDraft } from "@/lib/api/workflowApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects } from "@/lib/api/userProjectApi";
+import { getProjects as getAllProjectsFlat } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -152,6 +153,7 @@ export default function TimeRegistrationPage() {
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
   const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
+  const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -188,8 +190,13 @@ export default function TimeRegistrationPage() {
   // This guarantees the filter is always applied regardless of load order
   const getVisibleProjects = (groupId: number): Project[] => {
     const allProjects = projects[groupId] || [];
-    if (assignedProjectIds === null) return allProjects; // Still loading assignments, show all as fallback
-    return allProjects.filter(p => assignedProjectIds.includes(p.id));
+    if (assignedProjectIds === null) {
+      console.log("[PROJECT-FILTER] getVisibleProjects group", groupId, "-> assignedProjectIds is null, showing all", allProjects.length);
+      return allProjects;
+    }
+    const filtered = allProjects.filter(p => assignedProjectIds.includes(p.id));
+    console.log("[PROJECT-FILTER] getVisibleProjects group", groupId, "-> all:", allProjects.length, "filtered:", filtered.length, "assignedIds:", assignedProjectIds);
+    return filtered;
   };
 
   const showToast = (message: string, type: "success" | "error") => {
@@ -253,16 +260,43 @@ export default function TimeRegistrationPage() {
   const loadAssignedProjects = async () => {
     try {
       const userId = Number(localStorage.getItem("userId")) || 0;
+      console.log("[PROJECT-FILTER] userId from localStorage:", userId);
       if (userId > 0) {
         const userProjects = await getUserProjects(userId);
+        console.log("[PROJECT-FILTER] API response userProjects:", JSON.stringify(userProjects));
         const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
-        setAssignedProjectIds(ids.filter((id: number) => id > 0));
+        const filteredIds = ids.filter((id: number) => id > 0);
+        console.log("[PROJECT-FILTER] assignedProjectIds:", filteredIds);
+        setAssignedProjectIds(filteredIds);
+
+        // Determine which project groups contain assigned projects
+        if (filteredIds.length > 0) {
+          const allProjects = await getAllProjectsFlat();
+          console.log("[PROJECT-FILTER] allProjects count:", allProjects.length, "sample:", JSON.stringify(allProjects.slice(0, 3)));
+          const assignedSet = new Set(filteredIds);
+          const groupIds = new Set<number>();
+          for (const p of allProjects) {
+            const pid = (p as any).gcId || (p as any).id;
+            if (assignedSet.has(pid) && (p as any).werkgrpGcId) {
+              groupIds.add((p as any).werkgrpGcId);
+              console.log("[PROJECT-FILTER] matched project:", pid, "-> group:", (p as any).werkgrpGcId);
+            }
+          }
+          console.log("[PROJECT-FILTER] assignedGroupIds:", Array.from(groupIds));
+          setAssignedGroupIds(groupIds);
+        } else {
+          console.log("[PROJECT-FILTER] No assigned projects, hiding all groups");
+          setAssignedGroupIds(new Set());
+        }
       } else {
+        console.log("[PROJECT-FILTER] No userId in localStorage, hiding all");
         setAssignedProjectIds([]);
+        setAssignedGroupIds(new Set());
       }
-    } catch {
-      // If fetching fails, set empty so user sees no projects until assigned
+    } catch (err) {
+      console.error("[PROJECT-FILTER] Error loading assigned projects:", err);
       setAssignedProjectIds([]);
+      setAssignedGroupIds(new Set());
     }
   };
 
@@ -863,7 +897,9 @@ export default function TimeRegistrationPage() {
                     </div>
                     {expandedCompanies.includes(company.id) && (
                       <div className="ml-5 space-y-1">
-                        {projectGroups[company.id]?.map((group, index) => (
+                        {projectGroups[company.id]?.filter(group =>
+                          assignedGroupIds === null || assignedGroupIds.has(group.id)
+                        ).map((group, index) => (
                           <div key={group.id || `group-${index}`}>
                             <div
                               onClick={() => toggleGroup(group.id)}
