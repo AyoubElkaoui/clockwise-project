@@ -125,7 +125,7 @@ public class HolidaysController : ControllerBase
 
             // Check if user is manager
             var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT rank FROM users WHERE id = @UserId", 
+                "SELECT role FROM users WHERE id = @UserId", 
                 new { UserId = userId });
 
             if (userRank != "manager" && userRank != "admin")
@@ -181,7 +181,7 @@ public class HolidaysController : ControllerBase
 
             // Check if user is manager
             var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT rank FROM users WHERE id = @UserId", 
+                "SELECT role FROM users WHERE id = @UserId", 
                 new { UserId = userId });
 
             if (userRank != "manager" && userRank != "admin")
@@ -228,7 +228,7 @@ public class HolidaysController : ControllerBase
 
             // Check if user is manager
             var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT rank FROM users WHERE id = @UserId", 
+                "SELECT role FROM users WHERE id = @UserId", 
                 new { UserId = userId });
 
             if (userRank != "manager" && userRank != "admin")
@@ -274,7 +274,7 @@ public class HolidaysController : ControllerBase
 
             // Check if user is manager
             var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT rank FROM users WHERE id = @UserId",
+                "SELECT role FROM users WHERE id = @UserId",
                 new { UserId = userId });
 
             if (userRank != "manager" && userRank != "admin")
@@ -397,7 +397,7 @@ public class HolidaysController : ControllerBase
 
             // Check if user is manager
             var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT rank FROM users WHERE id = @UserId", 
+                "SELECT role FROM users WHERE id = @UserId", 
                 new { UserId = userId });
 
             if (userRank != "manager" && userRank != "admin")

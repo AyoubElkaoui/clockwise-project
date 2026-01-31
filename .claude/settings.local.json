@@ -12,7 +12,8 @@
       "Bash(npm run build:*)",
       "Bash(dotnet build:*)",
       "Bash(npx tsc:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(npx next build)"
     ]
   }
 }

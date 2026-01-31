@@ -87,7 +87,7 @@ namespace ClockwiseProject.Backend.Services
             _logger.LogInformation("Approving vacation request {Id} for user {UserId}", id, request.UserId);
 
             // Update status in PostgreSQL FIRST (most important)
-            request.Status = "approved";
+            request.Status = "APPROVED";
             request.RejectionReason = managerComment;
             request.ReviewedAt = DateTime.Now;
             request.ReviewedBy = reviewedBy;
@@ -127,7 +127,7 @@ namespace ClockwiseProject.Backend.Services
             var request = await _vacationRepository.GetByIdAsync(id);
             if (request != null)
             {
-                request.Status = "rejected";
+                request.Status = "REJECTED";
                 request.RejectionReason = managerComment;
                 request.ReviewedAt = DateTime.Now;
                 request.ReviewedBy = reviewedBy;

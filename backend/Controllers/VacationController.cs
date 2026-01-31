@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Data;
+using Dapper;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
@@ -15,15 +17,18 @@ namespace ClockwiseProject.Backend.Controllers
     {
         private readonly VacationService _vacationService;
         private readonly IFirebirdDataRepository _firebirdRepo;
+        private readonly IDbConnection _db;
         private readonly ILogger<VacationController> _logger;
 
         public VacationController(
-            VacationService vacationService, 
+            VacationService vacationService,
             IFirebirdDataRepository firebirdRepo,
+            IDbConnection db,
             ILogger<VacationController> logger)
         {
             _vacationService = vacationService;
             _firebirdRepo = firebirdRepo;
+            _db = db;
             _logger = logger;
         }
 
@@ -55,15 +60,65 @@ namespace ClockwiseProject.Backend.Controllers
         }
 
         [HttpGet("all")]
-        public async Task<ActionResult<IEnumerable<VacationRequest>>> GetAllVacationRequests()
+        public async Task<IActionResult> GetAllVacationRequests()
         {
             _logger.LogInformation("GetAllVacationRequests called - returning ALL vacation requests for managers");
-            
+
             try
             {
-                var requests = await _vacationService.GetAllVacationRequestsAsync();
-                _logger.LogInformation("Found {Count} total vacation requests", requests.Count());
-                return Ok(requests);
+                var sql = @"
+                    SELECT
+                        l.id,
+                        l.medew_gc_id,
+                        l.user_id,
+                        l.taak_gc_id,
+                        l.start_date,
+                        l.end_date,
+                        l.hours_per_day,
+                        l.total_hours,
+                        l.description,
+                        l.status,
+                        l.created_at,
+                        l.submitted_at,
+                        l.reviewed_at,
+                        l.reviewed_by,
+                        l.rejection_reason,
+                        u.first_name,
+                        u.last_name,
+                        u.email
+                    FROM leave_requests_workflow l
+                    LEFT JOIN users u ON l.medew_gc_id = u.medew_gc_id
+                    ORDER BY l.created_at DESC";
+
+                var result = await _db.QueryAsync(sql);
+
+                var response = result.Select(r => new
+                {
+                    id = (int)r.id,
+                    userId = (int)r.medew_gc_id,
+                    startDate = ((DateTime)r.start_date).ToString("yyyy-MM-dd"),
+                    endDate = ((DateTime)r.end_date).ToString("yyyy-MM-dd"),
+                    totalDays = Math.Round((decimal)r.total_hours / 8.0m, 1),
+                    totalHours = (decimal)r.total_hours,
+                    hoursPerDay = (decimal)r.hours_per_day,
+                    vacationType = r.taak_gc_id?.ToString() ?? "Z03",
+                    notes = r.description as string ?? "",
+                    status = (string)r.status,
+                    createdAt = r.created_at as DateTime?,
+                    submittedAt = r.submitted_at as DateTime?,
+                    reviewedAt = r.reviewed_at as DateTime?,
+                    reviewedBy = r.reviewed_by as int?,
+                    rejectionReason = r.rejection_reason as string,
+                    user = new
+                    {
+                        firstName = r.first_name as string ?? "",
+                        lastName = r.last_name as string ?? "",
+                        email = r.email as string ?? ""
+                    }
+                });
+
+                _logger.LogInformation("Found {Count} total vacation requests", response.Count());
+                return Ok(response);
             }
             catch (Exception ex)
             {

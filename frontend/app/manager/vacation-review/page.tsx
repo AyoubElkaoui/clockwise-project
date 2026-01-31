@@ -77,7 +77,7 @@ export default function ManagerVacationReviewPage() {
       setLoading(true);
       const medewGcId = authUtils.getMedewGcId();
       
-      const response = await fetch(`${API_URL}/api/vacation`, {
+      const response = await fetch(`${API_URL}/api/vacation/all`, {
         headers: {
           "X-MEDEW-GC-ID": medewGcId?.toString() || "",
           "ngrok-skip-browser-warning": "1",

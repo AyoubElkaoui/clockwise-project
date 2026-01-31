@@ -183,7 +183,7 @@ namespace ClockwiseProject.Backend.Repositories
                 var sql = @"
                     SELECT
                         id AS Id,
-                        user_id AS UserId,
+                        medew_gc_id AS UserId,
                         start_date AS StartDate,
                         end_date AS EndDate,
                         'vacation' AS VacationType,
