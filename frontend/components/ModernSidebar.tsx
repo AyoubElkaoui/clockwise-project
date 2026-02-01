@@ -281,8 +281,8 @@ export function ModernSidebar({
                 <Image
                   src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
                   alt="TIMR logo"
-                  width={140}
-                  height={40}
+                  width={350}
+                  height={200}
                   priority
                   className="h-10 w-36 object-contain transition"
                 />
@@ -290,8 +290,8 @@ export function ModernSidebar({
                 <Image
                   src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
                   alt="TIMR logo"
-                  width={32}
-                  height={32}
+                  width={350}
+                  height={200}
                   className="h-8 w-8 object-contain"
                 />
               )}
