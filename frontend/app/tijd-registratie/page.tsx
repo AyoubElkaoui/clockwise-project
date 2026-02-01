@@ -191,12 +191,9 @@ export default function TimeRegistrationPage() {
   const getVisibleProjects = (groupId: number): Project[] => {
     const allProjects = projects[groupId] || [];
     if (assignedProjectIds === null) {
-      console.log("[PROJECT-FILTER] getVisibleProjects group", groupId, "-> assignedProjectIds is null, showing all", allProjects.length);
       return allProjects;
     }
-    const filtered = allProjects.filter(p => assignedProjectIds.includes(p.id));
-    console.log("[PROJECT-FILTER] getVisibleProjects group", groupId, "-> all:", allProjects.length, "filtered:", filtered.length, "assignedIds:", assignedProjectIds);
-    return filtered;
+    return allProjects.filter(p => assignedProjectIds.includes(p.id));
   };
 
   const showToast = (message: string, type: "success" | "error") => {
@@ -260,41 +257,32 @@ export default function TimeRegistrationPage() {
   const loadAssignedProjects = async () => {
     try {
       const userId = Number(localStorage.getItem("userId")) || 0;
-      console.log("[PROJECT-FILTER] userId from localStorage:", userId);
       if (userId > 0) {
         const userProjects = await getUserProjects(userId);
-        console.log("[PROJECT-FILTER] API response userProjects:", JSON.stringify(userProjects));
         const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
         const filteredIds = ids.filter((id: number) => id > 0);
-        console.log("[PROJECT-FILTER] assignedProjectIds:", filteredIds);
         setAssignedProjectIds(filteredIds);
 
         // Determine which project groups contain assigned projects
         if (filteredIds.length > 0) {
           const allProjects = await getAllProjectsFlat();
-          console.log("[PROJECT-FILTER] allProjects count:", allProjects.length, "sample:", JSON.stringify(allProjects.slice(0, 3)));
           const assignedSet = new Set(filteredIds);
           const groupIds = new Set<number>();
           for (const p of allProjects) {
             const pid = (p as any).gcId || (p as any).id;
             if (assignedSet.has(pid) && (p as any).werkgrpGcId) {
               groupIds.add((p as any).werkgrpGcId);
-              console.log("[PROJECT-FILTER] matched project:", pid, "-> group:", (p as any).werkgrpGcId);
             }
           }
-          console.log("[PROJECT-FILTER] assignedGroupIds:", Array.from(groupIds));
           setAssignedGroupIds(groupIds);
         } else {
-          console.log("[PROJECT-FILTER] No assigned projects, hiding all groups");
           setAssignedGroupIds(new Set());
         }
       } else {
-        console.log("[PROJECT-FILTER] No userId in localStorage, hiding all");
         setAssignedProjectIds([]);
         setAssignedGroupIds(new Set());
       }
     } catch (err) {
-      console.error("[PROJECT-FILTER] Error loading assigned projects:", err);
       setAssignedProjectIds([]);
       setAssignedGroupIds(new Set());
     }
@@ -497,18 +485,14 @@ export default function TimeRegistrationPage() {
     const entriesToDelete = Object.values(entries).filter(
       (e) => e.projectId === projectId && e.id
     );
-    console.log("[DELETE] Removing project", projectId, "entries to delete:", entriesToDelete.length, entriesToDelete.map(e => ({ id: e.id, status: e.status })));
 
     let allDeleted = true;
     for (const entry of entriesToDelete) {
       try {
         if (entry.id) {
-          console.log("[DELETE] Deleting entry", entry.id, "status:", entry.status);
           await deleteDraft(entry.id);
-          console.log("[DELETE] Successfully deleted entry", entry.id);
         }
       } catch (err: any) {
-        console.error("[DELETE] Failed to delete entry", entry.id, ":", err?.response?.status, err?.response?.data || err?.message);
         allDeleted = false;
       }
     }

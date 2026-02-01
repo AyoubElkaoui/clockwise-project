@@ -67,7 +67,7 @@ namespace backend.Repositories
                 }
                 else
                 {
-                    // Update existing
+                    // Update existing - revert to DRAFT if not APPROVED
                     var sql = @"
                         UPDATE time_entries_workflow
                         SET taak_gc_id = @TaakGcId,
@@ -80,6 +80,8 @@ namespace backend.Repositories
                             distance_km = @DistanceKm,
                             travel_costs = @TravelCosts,
                             other_expenses = @OtherExpenses,
+                            status = CASE WHEN status = 'APPROVED' THEN 'APPROVED' ELSE 'DRAFT' END,
+                            submitted_at = CASE WHEN status = 'APPROVED' THEN submitted_at ELSE NULL END,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = @Id
                         RETURNING id, medew_gc_id, urenper_gc_id, taak_gc_id, werk_gc_id, datum, aantal, omschrijving,
@@ -316,7 +318,7 @@ namespace backend.Repositories
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = "DELETE FROM time_entries_workflow WHERE id = @Id AND status = 'DRAFT'";
+                var sql = "DELETE FROM time_entries_workflow WHERE id = @Id AND status != 'APPROVED'";
 
                 await connection.ExecuteAsync(sql, new { Id = id });
             }
