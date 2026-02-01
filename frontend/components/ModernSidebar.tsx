@@ -284,7 +284,7 @@ export function ModernSidebar({
                   width={350}
                   height={200}
                   priority
-                  className="h-10 w-36 object-contain transition"
+                  className="h-20 w-auto object-contain transition"
                 />
               ) : (
                 <Image
@@ -292,7 +292,7 @@ export function ModernSidebar({
                   alt="TIMR logo"
                   width={350}
                   height={200}
-                  className="h-8 w-8 object-contain"
+                  className="h-20 w-auto object-contain transition"
                 />
               )}
             </Link>

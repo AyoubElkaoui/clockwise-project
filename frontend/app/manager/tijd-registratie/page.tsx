@@ -27,6 +27,8 @@ import {
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
+import { getProjects as getAllProjectsFlat } from "@/lib/api";
+import { getUserProjects } from "@/lib/api/userProjectApi";
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 
@@ -147,6 +149,8 @@ export default function TimeRegistrationPage() {
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
+  const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
+  const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -171,6 +175,7 @@ export default function TimeRegistrationPage() {
     loadCompanies();
     loadEntries();
     loadUserAllowedTasks();
+    loadAssignedProjects();
   }, [currentWeek, viewMode]);
 
   useEffect(() => {
@@ -180,6 +185,47 @@ export default function TimeRegistrationPage() {
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const loadAssignedProjects = async () => {
+    try {
+      const userId = Number(localStorage.getItem("userId")) || 0;
+      if (userId > 0) {
+        const userProjects = await getUserProjects(userId);
+        const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
+        const filteredIds = ids.filter((id: number) => id > 0);
+        setAssignedProjectIds(filteredIds);
+
+        if (filteredIds.length > 0) {
+          const allProjects = await getAllProjectsFlat();
+          const assignedSet = new Set(filteredIds);
+          const groupIds = new Set<number>();
+          for (const p of allProjects) {
+            const pid = (p as any).gcId || (p as any).id;
+            if (assignedSet.has(pid) && (p as any).werkgrpGcId) {
+              groupIds.add((p as any).werkgrpGcId);
+            }
+          }
+          setAssignedGroupIds(groupIds);
+        } else {
+          setAssignedGroupIds(new Set());
+        }
+      } else {
+        setAssignedProjectIds([]);
+        setAssignedGroupIds(new Set());
+      }
+    } catch (err) {
+      setAssignedProjectIds([]);
+      setAssignedGroupIds(new Set());
+    }
+  };
+
+  const getVisibleProjects = (groupId: number): Project[] => {
+    const allProjects = projects[groupId] || [];
+    if (assignedProjectIds === null) {
+      return allProjects;
+    }
+    return allProjects.filter(p => assignedProjectIds.includes(p.id));
   };
 
   const loadClosedDays = async () => {
@@ -795,12 +841,14 @@ export default function TimeRegistrationPage() {
                         className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
                       />
                       <span className="font-medium group-hover:text-blue-600">
-                        {company.name}
+                        {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
                       </span>
                     </div>
                     {expandedCompanies.includes(company.id) && (
                       <div className="ml-5 space-y-1">
-                        {projectGroups[company.id]?.map((group, index) => (
+                        {projectGroups[company.id]?.filter(group =>
+                          assignedGroupIds === null || assignedGroupIds.has(group.id)
+                        ).map((group, index) => (
                           <div key={group.id || `group-${index}`}>
                             <div
                               onClick={() => toggleGroup(group.id)}
@@ -815,7 +863,7 @@ export default function TimeRegistrationPage() {
                             </div>
                             {expandedGroups.includes(group.id) && (
                               <div className="ml-5 space-y-1">
-                                {projects[group.id]?.map((project) => (
+                                {getVisibleProjects(group.id).map((project) => (
                                   <div
                                     key={project.id}
                                     onClick={() =>

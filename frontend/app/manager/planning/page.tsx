@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { getAllUsers, getAllWorkflowEntries, getAllVacationRequests, getCurrentPeriodId } from "@/lib/manager-api";
-import { getPeriods } from "@/lib/api";
+import { getHolidays } from "@/lib/api/holidaysApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,13 +142,23 @@ export default function ManagerPlanningPage() {
       const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
       setVacations(vacationsData);
 
-      // Load holidays (Dutch national holidays for current year)
-      const currentYear = dayjs().year();
-      const dutchHolidays = getDutchHolidays(currentYear);
-      setHolidays(dutchHolidays);
+      // Load holidays and closed days from API
+      const currentYear = currentDate.year();
+      try {
+        const holidayData = await getHolidays(currentYear);
+        const mappedHolidays: Holiday[] = holidayData
+          .filter(h => h.type === "national" || h.type === "company")
+          .map(h => ({ date: h.holidayDate, name: h.name, type: h.type as "national" | "company" }));
+        setHolidays(mappedHolidays);
 
-      // Load closed days (placeholder - would come from API)
-      setClosedDays([]);
+        const mappedClosed: ClosedDay[] = holidayData
+          .filter(h => h.type === "closed" && !h.isWorkAllowed)
+          .map(h => ({ id: h.id, date: h.holidayDate, reason: h.name, createdBy: h.createdBy || 0 }));
+        setClosedDays(mappedClosed);
+      } catch {
+        setHolidays([]);
+        setClosedDays([]);
+      }
       
       if (team.length === 0) {
         showToast("Geen teamleden gevonden. Controleer manager_assignments tabel.", "error");
@@ -158,23 +168,6 @@ export default function ManagerPlanningPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Dutch national holidays
-  const getDutchHolidays = (year: number): Holiday[] => {
-    return [
-      { date: `${year}-01-01`, name: "Nieuwjaarsdag", type: "national" },
-      { date: `${year}-04-18`, name: "Goede Vrijdag", type: "national" },
-      { date: `${year}-04-21`, name: "1e Paasdag", type: "national" },
-      { date: `${year}-04-22`, name: "2e Paasdag", type: "national" },
-      { date: `${year}-04-27`, name: "Koningsdag", type: "national" },
-      { date: `${year}-05-05`, name: "Bevrijdingsdag", type: "national" },
-      { date: `${year}-05-18`, name: "Hemelvaartsdag", type: "national" },
-      { date: `${year}-05-29`, name: "1e Pinksterdag", type: "national" },
-      { date: `${year}-05-30`, name: "2e Pinksterdag", type: "national" },
-      { date: `${year}-12-25`, name: "1e Kerstdag", type: "national" },
-      { date: `${year}-12-26`, name: "2e Kerstdag", type: "national" },
-    ];
   };
 
   const calendarDays = useMemo(() => {
@@ -250,7 +243,7 @@ export default function ManagerPlanningPage() {
 
     // Check for vacation
     const memberVacations = vacations.filter(
-      (v) => v.userId === member.id && v.status === "approved",
+      (v) => v.userId === member.id && v.status?.toUpperCase() === "APPROVED",
     );
 
     const isOnVacation = memberVacations.some((vacation) =>
@@ -320,7 +313,7 @@ export default function ManagerPlanningPage() {
 
   const getVacationStats = (member: TeamMember) => {
     const approvedVacations = vacations.filter(
-      (v) => v.userId === member.id && v.status === "approved",
+      (v) => v.userId === member.id && v.status?.toUpperCase() === "APPROVED",
     );
 
     const usedDays = approvedVacations.reduce((total, vacation) => {
@@ -399,7 +392,7 @@ export default function ManagerPlanningPage() {
       teamMembers.length > 0 ? totalPlannedHours / teamMembers.length : 0;
 
     const totalVacationDays = vacations
-      .filter((v) => v.status === "approved")
+      .filter((v) => v.status?.toUpperCase() === "APPROVED")
       .reduce((total, vacation) => {
         const start = dayjs(vacation.startDate);
         const end = dayjs(vacation.endDate);
@@ -537,7 +530,7 @@ export default function ManagerPlanningPage() {
                         {vacations
                           .filter(
                             (v) =>
-                              v.status === "approved" &&
+                              v.status?.toUpperCase() === "APPROVED" &&
                               dayjs(v.startDate).isSame(month, "month") &&
                               dayjs(v.startDate).year() === month.year(),
                           )
@@ -558,7 +551,7 @@ export default function ManagerPlanningPage() {
                           })}
                         {vacations.filter(
                           (v) =>
-                            v.status === "approved" &&
+                            v.status?.toUpperCase() === "APPROVED" &&
                             dayjs(v.startDate).isSame(month, "month") &&
                             dayjs(v.startDate).year() === month.year(),
                         ).length === 0 && (

@@ -8,7 +8,6 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
-  CogIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { Calendar, Clock, Globe } from "lucide-react";
@@ -186,14 +185,14 @@ export default function Navbar(): JSX.Element {
               alt="Altum"
               width={500}
               height={120}
-              className="h-6 w-auto dark:hidden"
+              className="h-20 w-auto dark:hidden"
             />
             <Image
               src="/altum-logo-white.png"
               alt="Altum"
               width={500}
               height={120}
-              className="h-6 w-auto hidden dark:block"
+              className="h-20 w-auto hidden dark:block"
             />
           </div>
 
@@ -230,21 +229,6 @@ export default function Navbar(): JSX.Element {
             <div className="text-blue-500 dark:text-blue-400">
               <NotificationBell />
             </div>
-          )}
-
-          {/* Admin panel */}
-          {(userRank === "admin" || userRank === "manager") && (
-            <button
-              className="
-                hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm
-                border border-blue-500/40 text-blue-600 dark:text-blue-400
-                hover:bg-blue-600/10 dark:hover:bg-blue-600/20
-                transition
-              "
-            >
-              <CogIcon className="w-4 h-4" />
-              Admin Panel
-            </button>
           )}
 
           {/* User Profile */}
