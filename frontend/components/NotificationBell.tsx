@@ -32,10 +32,16 @@ const NotificationBell = () => {
       if (typeof window !== "undefined") {
         const userIdStr = localStorage.getItem("userId");
         userId = userIdStr ? Number(userIdStr) : undefined;
-        if (!userId) return;
+        if (!userId) {
+          console.warn("NotificationBell: No userId found in localStorage");
+          return;
+        }
       }
 
+      console.log("NotificationBell: Fetching activities for userId:", userId);
       const data = await getActivities(20, userId);
+      console.log("NotificationBell: Received activities:", data);
+      
       const activitiesArray = safeArray<Activity>(data);
       setActivities(activitiesArray);
 
@@ -44,7 +50,9 @@ const NotificationBell = () => {
         if (activity && !activity.read) unreadCountNum++;
       }
       setUnreadCount(unreadCountNum);
-    } catch {
+      console.log("NotificationBell: Unread count:", unreadCountNum);
+    } catch (error) {
+      console.error("NotificationBell: Error fetching activities:", error);
       setActivities([]);
       setUnreadCount(0);
     } finally {

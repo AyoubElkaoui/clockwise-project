@@ -183,16 +183,16 @@ export default function Navbar(): JSX.Element {
             <Image
               src="/altum-logo.png"
               alt="Altum"
-              width={500}
-              height={120}
-              className="h-20 w-auto dark:hidden"
+              width={80}
+              height={32}
+              className="h-8 w-auto object-contain dark:hidden"
             />
             <Image
               src="/altum-logo-white.png"
               alt="Altum"
-              width={500}
-              height={120}
-              className="h-20 w-auto hidden dark:block"
+              width={80}
+              height={32}
+              className="h-8 w-auto object-contain hidden dark:block"
             />
           </div>
 

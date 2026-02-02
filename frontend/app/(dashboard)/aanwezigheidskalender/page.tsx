@@ -110,8 +110,14 @@ export default function AanwezigheidskalenderPage() {
     const workDays = new Set<string>();
     let totalHours = 0;
 
+    // Process work entries
     entries.forEach((entry) => {
-      if (entry.status === "goedgekeurd") {
+      // Accept various status values for approved entries
+      const isApproved = entry.status?.toLowerCase() === "goedgekeurd" || 
+                        entry.status?.toLowerCase() === "approved" ||
+                        entry.status?.toLowerCase() === "afgekeurd";
+      
+      if (isApproved && entry.startTime) {
         const dateStr = dayjs(entry.startTime).format("YYYY-MM-DD");
         workDays.add(dateStr);
         totalHours += entry.hoursWorked || 0;
@@ -119,14 +125,24 @@ export default function AanwezigheidskalenderPage() {
     });
 
     const holidayDays = holidays.filter(
-      (h) => dayjs(h.holidayDate).year() === currentYear
+      (h) => h.holidayDate && dayjs(h.holidayDate).year() === currentYear
     ).length;
+
+    // Count approved vacations for the current year
+    const approvedVacations = vacationRequests.filter((v) => {
+      const isApproved = v.status?.toLowerCase() === "approved" || 
+                        v.status?.toLowerCase() === "goedgekeurd";
+      const inCurrentYear = v.startDate && (
+        dayjs(v.startDate).year() === currentYear ||
+        dayjs(v.endDate).year() === currentYear
+      );
+      return isApproved && inCurrentYear;
+    }).length;
 
     setStats({
       workDays: workDays.size,
       workHours: totalHours,
-      vacationDays: vacationRequests.filter((v) => v.status === "approved")
-        .length,
+      vacationDays: approvedVacations,
       holidayDays,
       remoteDays: 0, // Can be extended with remote work tracking
     });
