@@ -1,6 +1,9 @@
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
+using ClockwiseProject.Backend.Repositories;
+using ClockwiseProject.Backend.Models;
+using Npgsql;
 
 namespace backend.Controllers;
 
@@ -13,13 +16,19 @@ public class WorkflowController : ControllerBase
 {
     private readonly WorkflowService _workflowService;
     private readonly ILogger<WorkflowController> _logger;
+    private readonly INotificationRepository _notificationRepo;
+    private readonly string _connectionString;
 
     public WorkflowController(
         WorkflowService workflowService,
-        ILogger<WorkflowController> logger)
+        ILogger<WorkflowController> logger,
+        INotificationRepository notificationRepo,
+        IConfiguration configuration)
     {
         _workflowService = workflowService;
         _logger = logger;
+        _notificationRepo = notificationRepo;
+        _connectionString = configuration.GetConnectionString("PostgreSQL") ?? throw new InvalidOperationException("PostgreSQL connection string not found");
     }
 
     /// <summary>
@@ -173,6 +182,48 @@ public class WorkflowController : ControllerBase
             if (!response.Success)
             {
                 return BadRequest(response);
+            }
+
+            // Notificatie sturen naar manager
+            try
+            {
+                await using var conn = new NpgsqlConnection(_connectionString);
+                await conn.OpenAsync();
+                
+                var sql = @"
+                    SELECT ma.manager_id, u.first_name, u.last_name
+                    FROM manager_assignments ma
+                    JOIN users u ON u.id = ma.employee_id
+                    WHERE ma.employee_id = (SELECT id FROM users WHERE medew_gc_id = @MedewGcId)
+                    LIMIT 1";
+                
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("MedewGcId", medewGcId.Value);
+                
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    var managerId = reader.GetInt32(0);
+                    var firstName = reader.GetString(1);
+                    var lastName = reader.GetString(2);
+                    
+                    await reader.CloseAsync();
+                    
+                    await _notificationRepo.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId = managerId,
+                        Type = "timesheet_submitted",
+                        Title = "Nieuwe timesheet ingediend",
+                        Message = $"{firstName} {lastName} heeft een timesheet ingediend voor goedkeuring",
+                        RelatedEntityType = "timesheet",
+                        RelatedEntityId = request.UrenperGcId
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send manager notification for timesheet submission");
+                // Continue - don't fail the submission if notification fails
             }
 
             return Ok(response);

@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "react-i18next";
 
@@ -23,6 +24,9 @@ export default function LoginPage(): JSX.Element {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState<boolean>(false);
+  const [requires2FA, setRequires2FA] = useState<boolean>(false);
+  const [twoFactorMethod, setTwoFactorMethod] = useState<'email' | 'totp' | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState<string>("");
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -42,7 +46,20 @@ export default function LoginPage(): JSX.Element {
     setError("");
 
     try {
-      const response = await login(username, password);
+      const response = await login(username, password, requires2FA ? twoFactorCode : undefined);
+
+      // Check if 2FA is required
+      if (response.requires2FA) {
+        setRequires2FA(true);
+        setTwoFactorMethod(response.method);
+        setIsLoading(false);
+        
+        if (response.method === 'email') {
+          // Show success message that email was sent
+          setError(''); // Clear any previous errors
+        }
+        return;
+      }
 
       // Wis eerst alle bestaande data
       localStorage.clear();
@@ -67,7 +84,7 @@ export default function LoginPage(): JSX.Element {
       router.push("/dashboard");
     } catch (e: unknown) {
       if (e instanceof Error) {
-        setError("Ongeldige gebruikersnaam of wachtwoord");
+        setError(requires2FA ? "Ongeldige 2FA code" : "Ongeldige gebruikersnaam of wachtwoord");
       } else {
         setError("Onbekende fout");
       }
@@ -177,13 +194,14 @@ export default function LoginPage(): JSX.Element {
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Voer wachtwoord in"
-                  disabled={isLoading}
+                  disabled={isLoading || requires2FA}
                   className="pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  disabled={requires2FA}
                 >
                   {showPassword ? (
                     <EyeSlashIcon className="w-5 h-5" />
@@ -193,6 +211,35 @@ export default function LoginPage(): JSX.Element {
                 </button>
               </div>
             </div>
+
+            {/* 2FA Code Input */}
+            {requires2FA && (
+              <div className="space-y-2">
+                <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
+                  <AlertDescription className="text-blue-900 dark:text-blue-100">
+                    {twoFactorMethod === 'email' 
+                      ? '📧 Verificatiecode verstuurd naar je email'
+                      : '📱 Voer de code in van je authenticator app'}
+                  </AlertDescription>
+                </Alert>
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  2FA Verificatiecode
+                </label>
+                <Input
+                  type="text"
+                  placeholder="000000"
+                  maxLength={twoFactorMethod === 'email' ? 6 : 6}
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
+                  onKeyPress={handleKeyPress}
+                  className="text-center text-2xl tracking-widest"
+                  autoFocus
+                />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Verloren toegang? Gebruik een backup code of neem contact op met je beheerder.
+                </p>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -221,14 +268,14 @@ export default function LoginPage(): JSX.Element {
             {/* Login Button */}
             <Button
               onClick={handleLogin}
-              disabled={isLoading || !username.trim() || !password.trim()}
+              disabled={isLoading || !username.trim() || !password.trim() || (requires2FA && twoFactorCode.length !== 6)}
               className="w-full bg-timr-orange hover:bg-timr-orange-hover text-white shadow-md hover:shadow-lg transition-all duration-200"
               size="lg"
               isLoading={isLoading}
             >
               {!isLoading && (
                 <>
-                  {t("login.login")}
+                  {requires2FA ? 'Verifieer 2FA' : t("login.login")}
                   <ArrowRightIcon className="w-5 h-5 ml-2" />
                 </>
               )}

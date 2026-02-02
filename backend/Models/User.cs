@@ -20,4 +20,12 @@ public class User
     public int? ManagerId { get; set; }  // Foreign key naar manager
     public User? Manager { get; set; }  // Navigation property naar manager
     public ICollection<User> ManagedEmployees { get; set; } = new List<User>();  // Employees onder deze manager
+
+    // 2FA Properties
+    public bool TwoFactorEnabled { get; set; }
+    public string? TwoFactorMethod { get; set; } // "email", "totp", of null
+    public string? TwoFactorSecret { get; set; } // Encrypted TOTP secret
+    public string? TwoFactorEmailCode { get; set; }
+    public DateTime? TwoFactorCodeExpiresAt { get; set; }
+    public string? TwoFactorBackupCodes { get; set; } // JSON array
 }

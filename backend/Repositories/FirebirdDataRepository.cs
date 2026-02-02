@@ -155,24 +155,32 @@ namespace ClockwiseProject.Backend.Repositories
         {
             _logger.LogInformation("Getting activities for medew {MedewGcId}, limit {Limit}", medewGcId, limit);
             using var connection = _connectionFactory.CreateConnection();
+            
+            // Bredere query die meer notificaties toont
             const string sql = @"
                 SELECT r.DOCUMENT_GC_ID AS Id,
                        u.MEDEW_GC_ID AS UserId,
                        'time_entry' AS Type,
-                       COALESCE(t.GC_OMSCHRIJVING, 'Onbekende taak') || ': ' || COALESCE(r.GC_OMSCHRIJVING, '') AS Message,
+                       COALESCE(
+                           CASE 
+                               WHEN t.GC_OMSCHRIJVING IS NOT NULL THEN t.GC_OMSCHRIJVING
+                               WHEN w.GC_OMSCHRIJVING IS NOT NULL THEN w.GC_OMSCHRIJVING
+                               ELSE 'Tijdregistratie'
+                           END || ': ' || COALESCE(r.GC_OMSCHRIJVING, 'Geen omschrijving')
+                       , 'Nieuwe tijdregistratie') AS Message,
                        FALSE AS IsRead,
                        r.DATUM AS CreatedAt,
                        'ingediend' AS Status
                 FROM AT_URENBREG r
                 INNER JOIN AT_URENSTAT u ON r.DOCUMENT_GC_ID = u.DOCUMENT_GC_ID
                 LEFT JOIN AT_TAAK t ON t.GC_ID = r.TAAK_GC_ID
+                LEFT JOIN AT_WERK w ON w.GC_ID = r.WERK_GC_ID
                 WHERE u.MEDEW_GC_ID = @MedewGcId
-                  AND r.WERK_GC_ID IS NULL
-                  AND r.TAAK_GC_ID IS NOT NULL
+                  AND (r.TAAK_GC_ID IS NOT NULL OR r.WERK_GC_ID IS NOT NULL)
                 ORDER BY r.DATUM DESC
                 ROWS @Limit";
             var result = await connection.QueryAsync<Activity>(sql, new { MedewGcId = medewGcId, Limit = limit });
-            _logger.LogInformation("Found {Count} activities", result.Count());
+            _logger.LogInformation("Found {Count} activities for user {UserId}", result.Count(), medewGcId);
             return result;
         }
 

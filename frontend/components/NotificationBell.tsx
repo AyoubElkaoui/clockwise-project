@@ -1,59 +1,64 @@
-// frontend/components/NotificationBell.tsx - COMPLETE VERSION
+// frontend/components/NotificationBell.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
-import {
-  getActivities,
-  markActivityAsRead,
-  markAllActivitiesAsRead,
-} from "@/lib/api";
 import {
   BellIcon,
   EnvelopeOpenIcon,
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
-import { Activity } from "@/lib/types";
-import { safeArray } from "@/lib/type-safe-utils";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5226/api';
+
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  relatedEntityType?: string | null;
+  relatedEntityId?: number | null;
+  isRead: boolean;
+  createdAt: string;
+}
 
 const NotificationBell = () => {
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-
-  // NEW: ref voor click-outside
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const fetchActivities = async () => {
+  const fetchNotifications = async () => {
     try {
       setLoading(true);
-      let userId: number | undefined = undefined;
-
-      if (typeof window !== "undefined") {
-        const userIdStr = localStorage.getItem("userId");
-        userId = userIdStr ? Number(userIdStr) : undefined;
-        if (!userId) {
-          console.warn("NotificationBell: No userId found in localStorage");
-          return;
-        }
-      }
-
-      console.log("NotificationBell: Fetching activities for userId:", userId);
-      const data = await getActivities(20, userId);
-      console.log("NotificationBell: Received activities:", data);
+      const userId = localStorage.getItem("userId");
       
-      const activitiesArray = safeArray<Activity>(data);
-      setActivities(activitiesArray);
-
-      let unreadCountNum = 0;
-      for (const activity of activitiesArray) {
-        if (activity && !activity.read) unreadCountNum++;
+      if (!userId) {
+        console.warn("NotificationBell: No userId found in localStorage");
+        return;
       }
-      setUnreadCount(unreadCountNum);
-      console.log("NotificationBell: Unread count:", unreadCountNum);
+
+      console.log("NotificationBell: Fetching notifications for userId:", userId);
+      
+      const response = await fetch(`${API_URL}/notifications`, {
+        headers: {
+          'X-USER-ID': userId,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
+      }
+
+      const data: Notification[] = await response.json();
+      console.log("NotificationBell: Received notifications:", data);
+      
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.isRead).length);
+      console.log("NotificationBell: Unread count:", data.filter(n => !n.isRead).length);
     } catch (error) {
-      console.error("NotificationBell: Error fetching activities:", error);
-      setActivities([]);
+      console.error("NotificationBell: Error fetching notifications:", error);
+      setNotifications([]);
       setUnreadCount(0);
     } finally {
       setLoading(false);
@@ -61,14 +66,11 @@ const NotificationBell = () => {
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      fetchActivities();
-      const interval = setInterval(fetchActivities, 30000);
-      return () => clearInterval(interval);
-    }
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  // NEW: click-outside sluit dropdown
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -83,39 +85,43 @@ const NotificationBell = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleMarkAsRead = async (activityId: number) => {
+  const handleMarkAsRead = async (notificationId: number) => {
     try {
-      await markActivityAsRead(activityId);
+      const userId = localStorage.getItem("userId");
+      const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: {
+          'X-USER-ID': userId || '',
+        },
+      });
 
-      const updatedActivities: Activity[] = [];
-      for (const activity of activities) {
-        if (activity.id === activityId) {
-          updatedActivities.push({ ...activity, read: true });
-        } else {
-          updatedActivities.push(activity);
-        }
+      if (response.ok) {
+        setNotifications(prev =>
+          prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
       }
-
-      setActivities(updatedActivities);
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      // Silently ignore
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      await markAllActivitiesAsRead();
+      const userId = localStorage.getItem("userId");
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
+        method: 'PUT',
+        headers: {
+          'X-USER-ID': userId || '',
+        },
+      });
 
-      const updatedActivities: Activity[] = [];
-      for (const activity of activities) {
-        updatedActivities.push({ ...activity, read: true });
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
       }
-
-      setActivities(updatedActivities);
-      setUnreadCount(0);
-    } catch {
-      // Silently ignore
+    } catch (error) {
+      console.error("Error marking all as read:", error);
     }
   };
 
@@ -123,16 +129,11 @@ const NotificationBell = () => {
     setShowDropdown((v) => !v);
   };
 
-  // Safe filtering zonder .filter()
-  const filteredActivities: Activity[] = [];
-  for (const activity of activities) {
-    if (!activity) continue;
-
-    if (activeTab === "unread" && activity.read) continue;
-    if (activeTab === "read" && !activity.read) continue;
-
-    filteredActivities.push(activity);
-  }
+  const filteredNotifications = notifications.filter(notification => {
+    if (activeTab === "unread") return !notification.isRead;
+    if (activeTab === "read") return notification.isRead;
+    return true;
+  });
 
   const formatTimestamp = (timestamp: string) => {
     try {
@@ -176,12 +177,13 @@ const NotificationBell = () => {
             />
           </svg>
         );
-      }
-      if (activityType === "vacation") {
+  const getNotificationIcon = (type: string) => {
+    try {
+      if (type === "timesheet_submitted" || type === "timesheet_approved" || type === "timesheet_rejected") {
         return (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-green-500"
+            className="h-5 w-5 text-blue-500"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -190,6 +192,30 @@ const NotificationBell = () => {
               d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
               clipRule="evenodd"
             />
+          </svg>
+        );
+      }
+      if (type === "project_assigned") {
+        return (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 text-green-500"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+          </svg>
+        );
+      }
+      if (type === "vacation_approved" || type === "vacation_rejected") {
+        return (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5 text-purple-500"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
           </svg>
         );
       }
@@ -208,12 +234,11 @@ const NotificationBell = () => {
         </svg>
       );
     } catch {
-      return <span>Kopieer</span>;
+      return null;
     }
   };
 
   return (
-    // NEW: wrapper met ref rond button + dropdown
     <div ref={dropdownRef} className="relative">
       <button onClick={toggleDropdown} className="btn btn-ghost btn-circle">
         <div className="indicator">
@@ -243,7 +268,7 @@ const NotificationBell = () => {
               className={`flex-1 py-2 px-4 text-center ${activeTab === "all" ? "bg-base-200 font-semibold" : ""}`}
               onClick={() => setActiveTab("all")}
             >
-              Alle ({activities.length})
+              Alle ({notifications.length})
             </button>
 
             <button
@@ -262,7 +287,7 @@ const NotificationBell = () => {
             >
               <div className="flex items-center justify-center gap-1">
                 <EnvelopeOpenIcon className="h-4 w-4" />
-                <span>Gelezen ({activities.length - unreadCount})</span>
+                <span>Gelezen ({notifications.length - unreadCount})</span>
               </div>
             </button>
           </div>
@@ -271,43 +296,41 @@ const NotificationBell = () => {
             <div className="flex justify-center p-4">
               <div className="loading loading-spinner loading-md" />
             </div>
-          ) : filteredActivities.length === 0 ? (
+          ) : filteredNotifications.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               Geen notificaties gevonden
             </div>
           ) : (
             <div className="max-h-96 overflow-y-auto">
-              {filteredActivities.map((activity, index) => (
+              {filteredNotifications.map((notification) => (
                 <div
-                  key={activity.id || index}
-                  className={`p-3 hover:bg-base-200 flex gap-3 items-start ${!activity.read ? "bg-base-200" : ""}`}
+                  key={notification.id}
+                  className={`p-3 hover:bg-base-200 flex gap-3 items-start cursor-pointer ${!notification.isRead ? "bg-base-200" : ""}`}
                   onClick={() =>
-                    !activity.read && handleMarkAsRead(activity.id)
+                    !notification.isRead && handleMarkAsRead(notification.id)
                   }
                 >
                   <div className="shrink-0 mt-1">
-                    {getActivityIcon(activity)}
+                    {getNotificationIcon(notification.type)}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <span className="font-medium line-clamp-2">
-                        {activity.message || "Geen bericht"}
+                        {notification.title}
                       </span>
-                      {!activity.read && (
+                      {!notification.isRead && (
                         <span className="badge badge-primary badge-sm ml-1 shrink-0">
                           nieuw
                         </span>
                       )}
                     </div>
 
-                    {activity.details && (
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                        {activity.details}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                      {notification.message}
+                    </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {formatTimestamp(activity.timestamp)}
+                      {formatTimestamp(notification.createdAt)}
                     </p>
                   </div>
                 </div>
@@ -328,7 +351,7 @@ const NotificationBell = () => {
 
           <div className="p-3 border-t">
             <button
-              onClick={fetchActivities}
+              onClick={fetchNotifications}
               className="btn btn-sm btn-outline w-full"
             >
               Vernieuwen

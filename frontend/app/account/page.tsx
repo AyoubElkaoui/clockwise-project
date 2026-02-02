@@ -12,6 +12,7 @@ import {
   Calendar,
   Loader2,
   Save,
+  Shield,
 } from "lucide-react";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -411,6 +412,49 @@ export default function AccountPage() {
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : null}
                     Wachtwoord Wijzigen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tweestapsverificatie Card */}
+            <Card variant="elevated" padding="lg" className="h-full w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-blue-600" />
+                  Tweestapsverificatie (2FA)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Extra beveiliging voor je account. Bij inloggen heb je een
+                    tweede verificatiestap nodig via authenticator app.
+                  </p>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                          Waarom 2FA?
+                        </h3>
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                          Zelfs als iemand je wachtwoord kent, kunnen ze niet
+                          inloggen zonder toegang tot je tweede factor (bijv. je
+                          telefoon).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => (window.location.href = "/account/2fa")}
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    2FA Beheren
                   </Button>
                 </div>
               </CardContent>

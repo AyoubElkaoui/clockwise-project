@@ -78,12 +78,14 @@ builder.Services.AddScoped<backend.Repositories.ITimeEntryRepository, backend.Re
 // PostgreSQL repositories (Supabase)
 builder.Services.AddScoped<backend.Repositories.PostgreSQLUserRepository>();
 builder.Services.AddScoped<backend.Repositories.IWorkflowRepository, backend.Repositories.PostgresWorkflowRepository>();
+builder.Services.AddScoped<backend.Repositories.INotificationRepository, backend.Repositories.NotificationRepository>();
 
 // Dapper repositories
 builder.Services.AddScoped<backend.Repositories.DapperTimeEntryRepository>();
 
 // Register services
 builder.Services.AddScoped<backend.Services.AuthenticationService>();
+builder.Services.AddScoped<backend.Services.ITwoFactorService, backend.Services.TwoFactorService>();
 builder.Services.AddScoped<TimesheetService>();
 builder.Services.AddScoped<VacationService>();
 builder.Services.AddScoped<ActivityService>();

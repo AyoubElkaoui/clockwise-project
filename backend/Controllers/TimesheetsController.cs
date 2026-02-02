@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
+using ClockwiseProject.Backend.Repositories;
 
 namespace ClockwiseProject.Backend.Controllers
 {
@@ -12,10 +13,12 @@ namespace ClockwiseProject.Backend.Controllers
     public class TimesheetsController : ControllerBase
     {
         private readonly TimesheetService _timesheetService;
+        private readonly INotificationRepository _notificationRepo;
 
-        public TimesheetsController(TimesheetService timesheetService)
+        public TimesheetsController(TimesheetService timesheetService, INotificationRepository notificationRepo)
         {
             _timesheetService = timesheetService;
+            _notificationRepo = notificationRepo;
         }
 
         [HttpGet]
@@ -64,14 +67,46 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpPost("{id}/approve")]
         public async Task<IActionResult> ApproveTimesheet(int id, [FromBody] ReviewRequest request)
         {
+            var timesheet = await _timesheetService.GetTimesheetByIdAsync(id);
             await _timesheetService.ApproveTimesheetAsync(id, request.ManagerComment, request.ReviewedBy);
+            
+            // Notificatie sturen naar medewerker
+            if (timesheet != null)
+            {
+                await _notificationRepo.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = timesheet.UserId,
+                    Type = "timesheet_approved",
+                    Title = "Timesheet goedgekeurd",
+                    Message = $"Je timesheet voor week {timesheet.WeekNumber} is goedgekeurd",
+                    RelatedEntityType = "timesheet",
+                    RelatedEntityId = id
+                });
+            }
+            
             return NoContent();
         }
 
         [HttpPost("{id}/reject")]
         public async Task<IActionResult> RejectTimesheet(int id, [FromBody] ReviewRequest request)
         {
+            var timesheet = await _timesheetService.GetTimesheetByIdAsync(id);
             await _timesheetService.RejectTimesheetAsync(id, request.ManagerComment, request.ReviewedBy);
+            
+            // Notificatie sturen naar medewerker
+            if (timesheet != null)
+            {
+                await _notificationRepo.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = timesheet.UserId,
+                    Type = "timesheet_rejected",
+                    Title = "Timesheet afgekeurd",
+                    Message = $"Je timesheet voor week {timesheet.WeekNumber} is afgekeurd. Reden: {request.ManagerComment}",
+                    RelatedEntityType = "timesheet",
+                    RelatedEntityId = id
+                });
+            }
+            
             return NoContent();
         }
     }

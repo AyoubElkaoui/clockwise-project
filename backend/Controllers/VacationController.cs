@@ -19,17 +19,20 @@ namespace ClockwiseProject.Backend.Controllers
         private readonly IFirebirdDataRepository _firebirdRepo;
         private readonly IDbConnection _db;
         private readonly ILogger<VacationController> _logger;
+        private readonly INotificationRepository _notificationRepo;
 
         public VacationController(
             VacationService vacationService,
             IFirebirdDataRepository firebirdRepo,
             IDbConnection db,
-            ILogger<VacationController> logger)
+            ILogger<VacationController> logger,
+            INotificationRepository notificationRepo)
         {
             _vacationService = vacationService;
             _firebirdRepo = firebirdRepo;
             _db = db;
             _logger = logger;
+            _notificationRepo = notificationRepo;
         }
 
         [HttpGet]
@@ -158,6 +161,37 @@ namespace ClockwiseProject.Backend.Controllers
         public async Task<ActionResult<VacationRequest>> CreateVacationRequest(VacationRequest vacationRequest)
         {
             await _vacationService.AddVacationRequestAsync(vacationRequest);
+            
+            // Notificatie sturen naar manager
+            try
+            {
+                var sql = @"
+                    SELECT ma.manager_id, u.first_name, u.last_name
+                    FROM manager_assignments ma
+                    JOIN users u ON u.id = ma.employee_id
+                    WHERE ma.employee_id = @UserId
+                    LIMIT 1";
+                
+                var result = await _db.QueryFirstOrDefaultAsync<dynamic>(sql, new { UserId = vacationRequest.UserId });
+                if (result != null)
+                {
+                    await _notificationRepo.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId = (int)result.manager_id,
+                        Type = "vacation_requested",
+                        Title = "Nieuwe verlofaanvraag",
+                        Message = $"{result.first_name} {result.last_name} heeft verlof aangevraagd van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy}",
+                        RelatedEntityType = "vacation_request",
+                        RelatedEntityId = vacationRequest.Id
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send manager notification for vacation request");
+                // Continue - don't fail the request if notification fails
+            }
+            
             return CreatedAtAction(nameof(GetVacationRequest), new { id = vacationRequest.Id }, vacationRequest);
         }
 
@@ -185,7 +219,23 @@ namespace ClockwiseProject.Backend.Controllers
             try
             {
                 _logger.LogInformation("Approving vacation request {Id} by {ReviewedBy}", id, request.ReviewedBy);
+                var vacationRequest = await _vacationService.GetVacationRequestByIdAsync(id);
                 await _vacationService.ApproveVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
+                
+                // Notificatie sturen naar medewerker
+                if (vacationRequest != null)
+                {
+                    await _notificationRepo.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId = vacationRequest.UserId,
+                        Type = "vacation_approved",
+                        Title = "Verlofaanvraag goedgekeurd",
+                        Message = $"Je verlofaanvraag van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy} is goedgekeurd",
+                        RelatedEntityType = "vacation_request",
+                        RelatedEntityId = id
+                    });
+                }
+                
                 return Ok(new { message = "Vacation request approved successfully" });
             }
             catch (Exception ex)
@@ -201,7 +251,23 @@ namespace ClockwiseProject.Backend.Controllers
             try
             {
                 _logger.LogInformation("Rejecting vacation request {Id} by {ReviewedBy}", id, request.ReviewedBy);
+                var vacationRequest = await _vacationService.GetVacationRequestByIdAsync(id);
                 await _vacationService.RejectVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
+                
+                // Notificatie sturen naar medewerker
+                if (vacationRequest != null)
+                {
+                    await _notificationRepo.CreateAsync(new CreateNotificationDto
+                    {
+                        UserId = vacationRequest.UserId,
+                        Type = "vacation_rejected",
+                        Title = "Verlofaanvraag afgekeurd",
+                        Message = $"Je verlofaanvraag van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy} is afgekeurd. Reden: {request.ManagerComment}",
+                        RelatedEntityType = "vacation_request",
+                        RelatedEntityId = id
+                    });
+                }
+                
                 return Ok(new { message = "Vacation request rejected successfully" });
             }
             catch (Exception ex)

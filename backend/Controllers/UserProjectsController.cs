@@ -10,11 +10,13 @@ public class UserProjectsController : ControllerBase
 {
     private readonly IDbConnection _db;
     private readonly ILogger<UserProjectsController> _logger;
+    private readonly INotificationRepository _notificationRepo;
 
-    public UserProjectsController(IDbConnection db, ILogger<UserProjectsController> logger)
+    public UserProjectsController(IDbConnection db, ILogger<UserProjectsController> logger, INotificationRepository notificationRepo)
     {
         _db = db;
         _logger = logger;
+        _notificationRepo = notificationRepo;
     }
 
     // GET: api/user-projects/users/{userId} - Get all projects for a user (userId=0 returns all)
@@ -135,6 +137,17 @@ public class UserProjectsController : ControllerBase
                 UserId = request.UserId,
                 ProjectId = request.ProjectId,
                 AssignedBy = request.AssignedByUserId
+            });
+
+            // Notificatie sturen naar medewerker
+            await _notificationRepo.CreateAsync(new CreateNotificationDto
+            {
+                UserId = request.UserId,
+                Type = "project_assigned",
+                Title = "Nieuw project toegewezen",
+                Message = $"Je bent toegewezen aan project {request.ProjectId}",
+                RelatedEntityType = "project",
+                RelatedEntityId = request.ProjectId
             });
 
             return Ok(new
