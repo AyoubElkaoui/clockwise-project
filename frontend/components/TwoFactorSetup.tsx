@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Mail, Smartphone, Copy, Check, AlertCircle } from 'lucide-react';
-import QRCode from 'qrcode.react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5226/api';
 
@@ -190,7 +189,13 @@ export function TwoFactorSetup() {
                   Scan deze QR code met je authenticator app
                 </p>
                 <div className="inline-block p-4 bg-white rounded-lg">
-                  {qrCodeUrl && <QRCode value={qrCodeUrl} size={256} />}
+                  {qrCodeUrl && (
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="QR Code" 
+                      className="w-64 h-64"
+                    />
+                  )}
                 </div>
               </div>
 
