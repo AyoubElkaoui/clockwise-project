@@ -7,6 +7,8 @@ using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
 using ClockwiseProject.Backend.Repositories;
+using backend.Repositories;
+using backend.Models;
 using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Controllers

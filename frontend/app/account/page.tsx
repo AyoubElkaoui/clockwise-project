@@ -13,6 +13,9 @@ import {
   Loader2,
   Save,
   Shield,
+  Globe,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -25,6 +28,8 @@ import type { ToastType } from "@/components/Toast";
 import { getUser, updateUser } from "@/lib/api";
 import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/lib/theme-context";
+import i18n from "i18next";
 
 interface ToastMessage {
   id: string;
@@ -49,6 +54,7 @@ interface UserData {
 
 export default function AccountPage() {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -244,10 +250,10 @@ export default function AccountPage() {
             </p>
           </div>
 
-          {/* GRID: Profiel + Beveiliging */}
+          {/* GRID: Profiel + Beveiliging + Theme + Taal */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             {/* Profiel Informatie */}
-            <Card variant="elevated" padding="lg" className="h-full w-full">
+            <Card variant="elevated" padding="lg" className="h-full w-full lg:row-span-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Profiel Informatie</CardTitle>
@@ -455,6 +461,74 @@ export default function AccountPage() {
                   >
                     <Shield className="w-4 h-4 mr-2" />
                     2FA Beheren
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Theme Settings */}
+            <Card variant="elevated" padding="lg" className="h-full w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {theme === "dark" ? (
+                    <Moon className="h-5 w-5" />
+                  ) : (
+                    <Sun className="h-5 w-5" />
+                  )}
+                  {t("settings.theme")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Wissel tussen lichte en donkere modus
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant={theme === "light" ? "default" : "outline"}
+                    onClick={() => setTheme("light")}
+                    className="flex items-center gap-2 flex-1"
+                  >
+                    <Sun className="h-4 w-4" />
+                    {t("settings.light")}
+                  </Button>
+                  <Button
+                    variant={theme === "dark" ? "default" : "outline"}
+                    onClick={() => setTheme("dark")}
+                    className="flex items-center gap-2 flex-1"
+                  >
+                    <Moon className="h-4 w-4" />
+                    {t("settings.dark")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Language Settings */}
+            <Card variant="elevated" padding="lg" className="h-full w-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  {t("settings.language")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Kies de taal van de applicatie
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant={i18n.language === "nl" ? "default" : "outline"}
+                    onClick={() => i18n.changeLanguage("nl")}
+                    className="flex-1"
+                  >
+                    Nederlands
+                  </Button>
+                  <Button
+                    variant={i18n.language === "en" ? "default" : "outline"}
+                    onClick={() => i18n.changeLanguage("en")}
+                    className="flex-1"
+                  >
+                    English
                   </Button>
                 </div>
               </CardContent>

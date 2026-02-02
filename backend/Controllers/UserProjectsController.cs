@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Data;
+using backend.Repositories;
+using backend.Models;
 
 namespace backend.Controllers;
 

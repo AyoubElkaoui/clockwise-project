@@ -83,12 +83,6 @@ const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
     rank: "all",
   },
   { icon: User, label: t("nav.account"), href: "/account", rank: "all" },
-  {
-    icon: Settings,
-    label: t("nav.settings"),
-    href: "/instellingen",
-    rank: "all",
-  },
   { icon: HelpCircle, label: t("nav.faq"), href: "/faq", rank: "all" },
 ];
 

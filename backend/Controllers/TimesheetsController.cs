@@ -5,6 +5,8 @@ using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
 using ClockwiseProject.Backend.Repositories;
+using backend.Repositories;
+using backend.Models;
 
 namespace ClockwiseProject.Backend.Controllers
 {
@@ -78,7 +80,7 @@ namespace ClockwiseProject.Backend.Controllers
                     UserId = timesheet.UserId,
                     Type = "timesheet_approved",
                     Title = "Timesheet goedgekeurd",
-                    Message = $"Je timesheet voor week {timesheet.WeekNumber} is goedgekeurd",
+                    Message = $"Je timesheet van {timesheet.StartTime:dd-MM-yyyy} is goedgekeurd",
                     RelatedEntityType = "timesheet",
                     RelatedEntityId = id
                 });
@@ -101,7 +103,7 @@ namespace ClockwiseProject.Backend.Controllers
                     UserId = timesheet.UserId,
                     Type = "timesheet_rejected",
                     Title = "Timesheet afgekeurd",
-                    Message = $"Je timesheet voor week {timesheet.WeekNumber} is afgekeurd. Reden: {request.ManagerComment}",
+                    Message = $"Je timesheet van {timesheet.StartTime:dd-MM-yyyy} is afgekeurd. Reden: {request.ManagerComment}",
                     RelatedEntityType = "timesheet",
                     RelatedEntityId = id
                 });

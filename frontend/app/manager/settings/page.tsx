@@ -1,17 +1,23 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, User, Save, CheckCircle } from "lucide-react";
+import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
+import { useTheme } from "@/lib/theme-context";
+import { useTranslation } from "react-i18next";
 import authUtils from "@/lib/auth-utils";
 import { API_URL } from "@/lib/api";
+import i18n from "i18next";
+import ManagerLayout from "@/components/ManagerLayout";
 
 export default function ManagerSettingsPage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
 
   // Notification settings
   const [emailOnRequests, setEmailOnRequests] = useState(true);
@@ -122,114 +128,249 @@ export default function ManagerSettingsPage() {
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Instellingen
-        </h1>
-        <p className="text-gray-600 dark:text-slate-400">Manager voorkeuren</p>
-      </div>
+    <ManagerLayout>
+      <div className="p-6 max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Instellingen
+          </h1>
+          <p className="text-gray-600 dark:text-slate-400">
+            Manager voorkeuren en account beheer
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        {/* Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notificaties
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="emailOnRequests"
-                  checked={emailOnRequests}
-                  onCheckedChange={(checked) =>
-                    setEmailOnRequests(checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor="emailOnRequests"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Language Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                {t("settings.language")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Kies de taal van de applicatie
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant={i18n.language === "nl" ? "default" : "outline"}
+                  onClick={() => i18n.changeLanguage("nl")}
                 >
-                  Email bij nieuwe aanvragen
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="pushNotifications"
-                  checked={pushNotifications}
-                  onCheckedChange={(checked) =>
-                    setPushNotifications(checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor="pushNotifications"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  Nederlands
+                </Button>
+                <Button
+                  variant={i18n.language === "en" ? "default" : "outline"}
+                  onClick={() => i18n.changeLanguage("en")}
                 >
-                  Push notificaties
-                </label>
+                  English
+                </Button>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="dailySummary"
-                  checked={dailySummary}
-                  onCheckedChange={(checked) =>
-                    setDailySummary(checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor="dailySummary"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Dagelijkse samenvatting
-                </label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Password Change */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Wachtwoord Wijzigen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Huidig Wachtwoord</label>
-                <Input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                />
+          {/* Theme Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {theme === "dark" ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+                {t("settings.theme")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Wissel tussen lichte en donkere modus
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant={theme === "light" ? "default" : "outline"}
+                  onClick={() => setTheme("light")}
+                  className="flex items-center gap-2"
+                >
+                  <Sun className="h-4 w-4" />
+                  {t("settings.light")}
+                </Button>
+                <Button
+                  variant={theme === "dark" ? "default" : "outline"}
+                  onClick={() => setTheme("dark")}
+                  className="flex items-center gap-2"
+                >
+                  <Moon className="h-4 w-4" />
+                  {t("settings.dark")}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nieuw Wachtwoord</label>
-                <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+            </CardContent>
+          </Card>
+
+          {/* Notifications */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notificaties
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="emailOnRequests"
+                    checked={emailOnRequests}
+                    onCheckedChange={(checked) =>
+                      setEmailOnRequests(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="emailOnRequests"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Email bij nieuwe aanvragen
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pushNotifications"
+                    checked={pushNotifications}
+                    onCheckedChange={(checked) =>
+                      setPushNotifications(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="pushNotifications"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Push notificaties
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="dailySummary"
+                    checked={dailySummary}
+                    onCheckedChange={(checked) =>
+                      setDailySummary(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="dailySummary"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Dagelijkse samenvatting
+                  </label>
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Bevestig Nieuw Wachtwoord
-                </label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
+              <Button
+                onClick={handleSave}
+                disabled={saving || saved}
+                className="mt-4 w-full"
+              >
+                {saving ? (
+                  "Opslaan..."
+                ) : saved ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Opgeslagen!
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Opslaan
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* 2FA Security */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                Tweestapsverificatie (2FA)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Extra beveiliging voor je manager account. Bij inloggen heb je
+                  een tweede verificatiestap nodig.
+                </p>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                        Waarom 2FA?
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        Als manager heb je toegang tot gevoelige teamgegevens.
+                        2FA beschermt je account tegen ongeautoriseerde toegang.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => router.push("/account/2fa")}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  2FA Beheren
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Password Change */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Wachtwoord Wijzigen
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Huidig Wachtwoord
+                  </label>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Nieuw Wachtwoord
+                  </label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Bevestig Nieuw Wachtwoord
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
               </div>
               <Button
                 onClick={handleChangePassword}
                 disabled={changingPassword || passwordChanged}
-                className="w-full"
+                className="mt-4"
               >
                 {changingPassword ? (
                   <>
@@ -248,54 +389,29 @@ export default function ManagerSettingsPage() {
                   </>
                 )}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Profile */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Profiel
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleEditProfile} variant="outline">
-              <User className="w-4 h-4 mr-2" />
-              Bewerk Profiel
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex items-center gap-4">
-          <Button onClick={handleSave} disabled={saving || saved}>
-            {saving ? (
-              <>
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                Opslaan...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Opgeslagen!
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Wijzigingen Opslaan
-              </>
-            )}
-          </Button>
-
-          {saved && (
-            <span className="text-sm text-green-600 dark:text-green-400">
-              ✓ Voorkeuren succesvol opgeslagen
-            </span>
-          )}
+          {/* Profile */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Profiel Beheer
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Bewerk je persoonlijke gegevens, contactinformatie en meer
+              </p>
+              <Button onClick={handleEditProfile} variant="outline">
+                <User className="w-4 h-4 mr-2" />
+                Naar Profiel Pagina
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </div>
+    </ManagerLayout>
   );
 }
