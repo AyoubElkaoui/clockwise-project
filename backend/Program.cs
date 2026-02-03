@@ -232,9 +232,9 @@ public class MedewGcIdMiddleware
         }
 
         // Skip X-MEDEW-GC-ID for notifications (uses X-USER-ID instead)
-        if (path != null && path.Contains("/api/notifications"))
+        if (path != null && (path.Contains("/api/notifications") || path.Contains("/notifications")))
         {
-            _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for /api/notifications - checking X-USER-ID");
+            _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for notifications - checking X-USER-ID");
             
             // Log all headers for debugging
             foreach (var header in context.Request.Headers)

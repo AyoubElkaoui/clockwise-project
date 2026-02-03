@@ -62,7 +62,7 @@ export default function ManagerNotificatiesPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/notifications`, {
+      const response = await fetch(`${API_URL}/api/notifications`, {
         headers: {
           "X-USER-ID": userId.toString(),
           "ngrok-skip-browser-warning": "1",
@@ -99,7 +99,7 @@ export default function ManagerNotificatiesPage() {
   const handleMarkRead = async (id: number) => {
     try {
       const userId = authUtils.getUserId();
-      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
+      const response = await fetch(`${API_URL}/api/notifications/${id}/read`, {
         method: "PUT",
         headers: {
           "X-USER-ID": userId?.toString() || "",
@@ -124,7 +124,7 @@ export default function ManagerNotificatiesPage() {
     try {
       const userId = authUtils.getUserId();
       
-      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
+      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
         method: "PUT",
         headers: {
           "X-USER-ID": userId?.toString() || "",
@@ -259,14 +259,14 @@ export default function ManagerNotificatiesPage() {
       {/* Notifications List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 pb-8">
             <Bell className="w-5 h-5" />
             Team Notificaties
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center pt-8 py-12">
               <Loader2 className="w-8 h-8 animate-spin text-timr-orange" />
               <span className="ml-2 text-slate-600 dark:text-slate-400">
                 Notificaties laden...

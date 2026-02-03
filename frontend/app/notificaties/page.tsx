@@ -70,7 +70,7 @@ export default function NotificatiesPage() {
         return;
       }
 
-      const url = `${API_URL}/notifications`;
+      const url = `${API_URL}/api/notifications`;
       console.log("Fetching notifications from:", url);
       console.log("X-USER-ID header will be:", userId.toString());
       
