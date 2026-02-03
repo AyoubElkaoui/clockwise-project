@@ -62,9 +62,9 @@ export default function ManagerNotificatiesPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/activities/${userId}`, {
+      const response = await fetch(`${API_URL}/api/notifications`, {
         headers: {
-          "X-MEDEW-GC-ID": userId.toString(),
+          "X-USER-ID": userId.toString(),
           "ngrok-skip-browser-warning": "1",
         },
       });
@@ -74,7 +74,20 @@ export default function ManagerNotificatiesPage() {
       }
 
       const data = await response.json();
-      setNotifications(Array.isArray(data) ? data : []);
+      
+      // Map notifications to Activity format for compatibility
+      const mappedData = data.map((n: any) => ({
+        id: n.id,
+        userId: userId,
+        type: n.type,
+        action: n.type,
+        message: n.message,
+        details: n.title || "",
+        read: n.isRead,
+        timestamp: n.createdAt,
+      }));
+      
+      setNotifications(Array.isArray(mappedData) ? mappedData : []);
     } catch (error) {
       showToast("Kon notificaties niet laden", "error");
       setNotifications([]);
@@ -86,11 +99,10 @@ export default function ManagerNotificatiesPage() {
   const handleMarkRead = async (id: number) => {
     try {
       const userId = authUtils.getUserId();
-      const response = await fetch(`${API_URL}/activities/${id}/read`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/api/notifications/${id}/read`, {
+        method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          "X-MEDEW-GC-ID": userId?.toString() || "",
+          "X-USER-ID": userId?.toString() || "",
           "ngrok-skip-browser-warning": "1",
         },
       });
@@ -111,20 +123,18 @@ export default function ManagerNotificatiesPage() {
   const handleMarkAllRead = async () => {
     try {
       const userId = authUtils.getUserId();
-      const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+      
+      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
+        method: "PUT",
+        headers: {
+          "X-USER-ID": userId?.toString() || "",
+          "ngrok-skip-browser-warning": "1",
+        },
+      });
 
-      await Promise.all(
-        unreadIds.map((id) =>
-          fetch(`${API_URL}/activities/${id}/read`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-MEDEW-GC-ID": userId?.toString() || "",
-              "ngrok-skip-browser-warning": "1",
-            },
-          })
-        )
-      );
+      if (!response.ok) {
+        throw new Error("Failed to mark all as read");
+      }
 
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read: true }))

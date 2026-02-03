@@ -246,7 +246,7 @@ const NotificationBell = () => {
         <div className="indicator">
           <BellIcon className="h-6 w-6" />
           {unreadCount > 0 && (
-            <span className="indicator-item badge badge-primary badge-sm bg-red-500 text-white border-none">
+            <span className="indicator-item badge badge-sm !bg-red-500 !text-white !border-none">
               {unreadCount}
             </span>
           )}
@@ -254,9 +254,9 @@ const NotificationBell = () => {
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-96 bg-base-100 shadow-xl rounded-lg overflow-hidden z-50">
-          <div className="flex justify-between items-center p-3 border-b">
-            <h3 className="font-bold text-lg">Notificaties</h3>
+        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden z-50 border border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Notificaties</h3>
             <button
               onClick={() => setShowDropdown(false)}
               className="btn btn-ghost btn-sm btn-circle"
@@ -265,16 +265,16 @@ const NotificationBell = () => {
             </button>
           </div>
 
-          <div className="flex border-b">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <button
-              className={`flex-1 py-2 px-4 text-center ${activeTab === "all" ? "bg-base-200 font-semibold" : ""}`}
+              className={`flex-1 py-2 px-4 text-center ${activeTab === "all" ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
               onClick={() => setActiveTab("all")}
             >
               Alle ({notifications.length})
             </button>
 
             <button
-              className={`flex-1 py-2 px-4 text-center ${activeTab === "unread" ? "bg-base-200 font-semibold" : ""}`}
+              className={`flex-1 py-2 px-4 text-center ${activeTab === "unread" ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
               onClick={() => setActiveTab("unread")}
             >
               <div className="flex items-center justify-center gap-1">
@@ -284,7 +284,7 @@ const NotificationBell = () => {
             </button>
 
             <button
-              className={`flex-1 py-2 px-4 text-center ${activeTab === "read" ? "bg-base-200 font-semibold" : ""}`}
+              className={`flex-1 py-2 px-4 text-center ${activeTab === "read" ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
               onClick={() => setActiveTab("read")}
             >
               <div className="flex items-center justify-center gap-1">
@@ -295,19 +295,19 @@ const NotificationBell = () => {
           </div>
 
           {loading ? (
-            <div className="flex justify-center p-4">
+            <div className="flex justify-center p-4 bg-white dark:bg-gray-800">
               <div className="loading loading-spinner loading-md" />
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800">
               Geen notificaties gevonden
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto bg-white dark:bg-gray-800">
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 hover:bg-base-200 flex gap-3 items-start cursor-pointer ${!notification.isRead ? "bg-base-200" : ""}`}
+                  className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-3 items-start cursor-pointer ${!notification.isRead ? "bg-blue-50 dark:bg-gray-700" : ""}`}
                   onClick={() =>
                     !notification.isRead && handleMarkAsRead(notification.id)
                   }
@@ -341,7 +341,7 @@ const NotificationBell = () => {
           )}
 
           {unreadCount > 0 && (
-            <div className="p-3 border-t">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <button
                 onClick={handleMarkAllAsRead}
                 className="btn btn-sm btn-outline w-full"
@@ -351,7 +351,7 @@ const NotificationBell = () => {
             </div>
           )}
 
-          <div className="p-3 border-t">
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <button
               onClick={fetchNotifications}
               className="btn btn-sm btn-outline w-full"
