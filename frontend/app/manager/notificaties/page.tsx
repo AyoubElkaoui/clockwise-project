@@ -62,7 +62,7 @@ export default function ManagerNotificatiesPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/notifications`, {
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           "X-USER-ID": userId.toString(),
           "ngrok-skip-browser-warning": "1",
@@ -99,7 +99,7 @@ export default function ManagerNotificatiesPage() {
   const handleMarkRead = async (id: number) => {
     try {
       const userId = authUtils.getUserId();
-      const response = await fetch(`${API_URL}/api/notifications/${id}/read`, {
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: "PUT",
         headers: {
           "X-USER-ID": userId?.toString() || "",
@@ -124,7 +124,7 @@ export default function ManagerNotificatiesPage() {
     try {
       const userId = authUtils.getUserId();
       
-      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
+      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
         method: "PUT",
         headers: {
           "X-USER-ID": userId?.toString() || "",
