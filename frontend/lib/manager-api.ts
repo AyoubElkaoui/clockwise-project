@@ -19,40 +19,38 @@ const getAuthHeaders = () => {
 
 // Helper function to get current period ID
 export async function getCurrentPeriodId(): Promise<number> {
-  try {
-    const response = await axios.get(`${API_URL}/periods?count=50`);
-    const periods = response.data;
+  const response = await axios.get(`${API_URL}/periods?count=50`);
+  const periods = response.data;
 
-    if (!Array.isArray(periods) || periods.length === 0) {
-      // Return fallback period ID
-      return 100426;
-    }
-
-    // Find period that contains today's date
-    // Handle multiple possible property names from backend
-    const today = dayjs();
-    const currentPeriod = periods.find((p: any) => {
-      const startDate = dayjs(p.beginDatum || p.startDate || p.gcVanDatum);
-      const endDate = dayjs(p.endDatum || p.endDate || p.gcTotDatum);
-      return today.isSameOrAfter(startDate, 'day') && today.isSameOrBefore(endDate, 'day');
-    });
-
-    if (currentPeriod) {
-      return currentPeriod.gcId || currentPeriod.id;
-    }
-
-    // If no matching period, return the most recent one
-    const sorted = periods.sort((a: any, b: any) => {
-      const dateA = new Date(a.beginDatum || a.startDate || a.gcVanDatum);
-      const dateB = new Date(b.beginDatum || b.startDate || b.gcVanDatum);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-    return sorted[0]?.gcId || sorted[0]?.id || 100426;
-  } catch (error) {
-    // Fallback to a default period ID
-    return 100426;
+  if (!Array.isArray(periods) || periods.length === 0) {
+    throw new Error("Geen periodes gevonden in database");
   }
+
+  // Find period that contains today's date
+  const today = dayjs();
+  const currentPeriod = periods.find((p: any) => {
+    const startDate = dayjs(p.beginDatum || p.startDate || p.gcVanDatum);
+    const endDate = dayjs(p.endDatum || p.endDate || p.gcTotDatum);
+    return today.isSameOrAfter(startDate, 'day') && today.isSameOrBefore(endDate, 'day');
+  });
+
+  if (currentPeriod) {
+    return currentPeriod.gcId || currentPeriod.id;
+  }
+
+  // If no matching period, return the most recent one
+  const sorted = periods.sort((a: any, b: any) => {
+    const dateA = new Date(a.beginDatum || a.startDate || a.gcVanDatum);
+    const dateB = new Date(b.beginDatum || b.startDate || b.gcVanDatum);
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  if (!sorted[0]) {
+    throw new Error("Geen geldige periode gevonden");
+  }
+
+  return sorted[0].gcId || sorted[0].id;
+}
 }
 
 export interface TimeEntryDto {

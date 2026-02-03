@@ -31,6 +31,7 @@ import { getProjects as getAllProjectsFlat } from "@/lib/api";
 import { getUserProjects } from "@/lib/api/userProjectApi";
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
+import { getCurrentPeriodId as getManagerCurrentPeriodId } from "@/lib/manager-api";
 
 interface Company {
   id: number;
@@ -275,7 +276,7 @@ export default function TimeRegistrationPage() {
 
   const loadEntries = async () => {
     try {
-      const urenperGcId = getCurrentPeriodId();
+      const urenperGcId = await getCurrentPeriodId();
 
       // Load ALL statuses: DRAFT, SUBMITTED, APPROVED, REJECTED
       const [drafts, submitted, rejected] = await Promise.all([
@@ -550,7 +551,9 @@ export default function TimeRegistrationPage() {
       0,
     );
 
-  const getCurrentPeriodId = () => 100426; // Hardcoded for now
+  const getCurrentPeriodId = async () => {
+    return await getManagerCurrentPeriodId();
+  };
 
   // Helper functions for entry status styling and editability
   const isEditable = (status?: string) => {
@@ -613,7 +616,7 @@ export default function TimeRegistrationPage() {
         return;
       }
 
-      const urenperGcId = getCurrentPeriodId();
+      const urenperGcId = await getCurrentPeriodId();
 
       // Save each entry as draft using workflow API
       // Update entries with their IDs after saving
@@ -688,7 +691,7 @@ export default function TimeRegistrationPage() {
         return;
       }
 
-      const urenperGcId = getCurrentPeriodId();
+      const urenperGcId = await getCurrentPeriodId();
 
       // First save all entries as drafts
       const savedIds: number[] = [];
