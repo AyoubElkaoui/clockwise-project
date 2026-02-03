@@ -315,17 +315,25 @@ public class WorkflowController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("=== GET /api/workflow/review/pending START ===");
+            _logger.LogInformation("Query params: urenperGcId={UrenperGcId}", urenperGcId);
+            
             var medewGcId = ResolveMedewGcId();
+            _logger.LogInformation("Resolved medewGcId: {MedewGcId}", medewGcId);
+            
             if (medewGcId == null)
             {
+                _logger.LogError("GET /api/workflow/review/pending: No medewGcId found in headers");
                 return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
             }
 
             // Manager authorization check
             var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
+            _logger.LogInformation("X-USER-ROLE header: {UserRole}", userRole ?? "(null)");
+            
             if (userRole?.ToLower() != "manager")
             {
-                _logger.LogWarning("Non-manager user {MedewGcId} attempted to review time entries", medewGcId);
+                _logger.LogWarning("Non-manager user {MedewGcId} with role {UserRole} attempted to review time entries", medewGcId, userRole);
                 return StatusCode(403, new { error = "Only managers can review time entries" });
             }
 
@@ -334,11 +342,13 @@ public class WorkflowController : ControllerBase
                 medewGcId, urenperGcId);
 
             var response = await _workflowService.GetAllSubmittedForReviewAsync(urenperGcId, medewGcId.Value);
+            _logger.LogInformation("GetAllSubmittedForReviewAsync returned {Count} entries", response.TotalCount);
+            _logger.LogInformation("=== GET /api/workflow/review/pending END ===");
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching pending reviews");
+            _logger.LogError(ex, "Error fetching pending reviews: {Message}. StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
             return StatusCode(500, new { error = "Failed to fetch pending reviews", details = ex.Message });
         }
     }

@@ -122,9 +122,34 @@ export async function deleteDraft(id: number): Promise<void> {
 }
 
 // Get pending reviews (for managers)
-export async function getPendingReview(urenperGcId: number): Promise<WorkflowEntry[]> {
-  const response = await axios.get(`${API_URL}/workflow/review/pending?urenperGcId=${urenperGcId}`);
-  return response.data.entries || [];
+export async function getPendingReview(urenperGcId: number): Promise<{ entries: WorkflowEntry[], totalCount: number, totalHours: number }> {
+  console.log("=== getPendingReview START ===");
+  console.log("API_URL:", API_URL);
+  console.log("urenperGcId:", urenperGcId);
+  
+  const url = `${API_URL}/workflow/review/pending?urenperGcId=${urenperGcId}`;
+  console.log("Full URL:", url);
+  
+  const medewGcId = localStorage.getItem("medewGcId");
+  const userRank = localStorage.getItem("userRank");
+  console.log("Headers:", { medewGcId, userRank });
+  
+  try {
+    const response = await axios.get(url);
+    console.log("Response status:", response.status);
+    console.log("Response data:", response.data);
+    console.log("=== getPendingReview END ===");
+    return response.data;
+  } catch (error) {
+    console.error("=== getPendingReview ERROR ===");
+    console.error("Error:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("Response status:", error.response?.status);
+      console.error("Response data:", error.response?.data);
+      console.error("Response headers:", error.response?.headers);
+    }
+    throw error;
+  }
 }
 
 // Review (approve/reject) entries (for managers)

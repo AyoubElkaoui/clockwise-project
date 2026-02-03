@@ -112,11 +112,16 @@ namespace backend.Repositories
         {
             try
             {
+                _logger.LogInformation("=== GetAllSubmittedAsync START ===");
+                _logger.LogInformation("Parameters: urenperGcId={UrenperGcId}, managerMedewGcId={ManagerMedewGcId}", urenperGcId, managerMedewGcId);
+                
                 using var connection = _connectionFactory.CreateConnection();
 
                 string sql;
                 if (managerMedewGcId.HasValue)
                 {
+                    _logger.LogInformation("Filtering for manager medew_gc_id={ManagerMedewGcId}", managerMedewGcId.Value);
+                    
                     // Get manager's user.id from medew_gc_id, then find assigned employees
                     sql = $@"
                         SELECT {SelectColumns}
@@ -132,11 +137,17 @@ namespace backend.Repositories
                           )
                         ORDER BY w.submitted_at ASC";
                     
+                    _logger.LogInformation("Executing SQL: {Sql}", sql);
+                    _logger.LogInformation("SQL Parameters: UrenperGcId={UrenperGcId}, ManagerMedewGcId={ManagerMedewGcId}", urenperGcId, managerMedewGcId);
+                    
                     var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId, ManagerMedewGcId = managerMedewGcId });
+                    _logger.LogInformation("Query returned {Count} rows", result.Count());
+                    _logger.LogInformation("=== GetAllSubmittedAsync END ===");
                     return result.ToList();
                 }
                 else
                 {
+                    _logger.LogInformation("No manager filter - returning all submitted entries");
                     // No manager filter - return all (admin use case)
                     sql = $@"
                         SELECT {SelectColumns}
@@ -146,6 +157,7 @@ namespace backend.Repositories
                         ORDER BY submitted_at ASC";
 
                     var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId });
+                    _logger.LogInformation("Query returned {Count} rows", result.Count());
                     return result.ToList();
                 }
             }

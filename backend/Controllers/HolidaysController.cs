@@ -117,19 +117,29 @@ public class HolidaysController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("=== POST /api/holidays START ===");
+            _logger.LogInformation("Request: {@Request}", request);
+            
             var userIdHeader = Request.Headers["X-User-ID"].FirstOrDefault();
+            _logger.LogInformation("X-User-ID header: {UserId}", userIdHeader ?? "(null)");
+            
             if (string.IsNullOrEmpty(userIdHeader) || !int.TryParse(userIdHeader, out var userId))
             {
+                _logger.LogError("POST /api/holidays: Invalid or missing X-User-ID header");
                 return Unauthorized(new { error = "User not authenticated" });
             }
 
             // Check if user is manager
+            _logger.LogInformation("Checking role for userId={UserId}", userId);
             var userRank = await _db.QueryFirstOrDefaultAsync<string>(
                 "SELECT role FROM users WHERE id = @UserId", 
                 new { UserId = userId });
+            
+            _logger.LogInformation("User role: {Role}", userRank ?? "(null)");
 
             if (userRank != "manager" && userRank != "admin")
             {
+                _logger.LogWarning("User {UserId} with role {Role} attempted to create holiday", userId, userRank);
                 return Forbid("Only managers can create holidays");
             }
 
@@ -435,10 +445,15 @@ public class HolidaysController : ControllerBase
 }
 
 public record CreateHolidayRequest(
+    [property: System.Text.Json.Serialization.JsonPropertyName("holidayDate")]
     string HolidayDate,
+    [property: System.Text.Json.Serialization.JsonPropertyName("name")]
     string Name,
+    [property: System.Text.Json.Serialization.JsonPropertyName("type")]
     string Type,
+    [property: System.Text.Json.Serialization.JsonPropertyName("isWorkAllowed")]
     bool IsWorkAllowed,
+    [property: System.Text.Json.Serialization.JsonPropertyName("notes")]
     string? Notes
 );
 

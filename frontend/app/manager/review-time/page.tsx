@@ -83,15 +83,30 @@ export default function ManagerReviewTimePage() {
 
   const loadPendingEntries = async (periodId?: number) => {
     try {
+      console.log("=== loadPendingEntries START ===");
       setLoading(true);
       const period = periodId || currentPeriod;
+      console.log("Period ID:", period);
+      
       if (!period) {
+        console.error("No period available");
         showToast("Geen periode beschikbaar", "error");
         return;
       }
+      
+      console.log("Calling getPendingReview with period:", period);
       const response = await getPendingReview(period);
+      console.log("getPendingReview response:", response);
+      console.log("Entries count:", response.entries?.length);
+      
       setEntries(response.entries);
+      console.log("=== loadPendingEntries END ===");
     } catch (error) {
+      console.error("=== loadPendingEntries ERROR ===", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       showToast("Fout bij laden van in te dienen uren", "error");
     } finally {
       setLoading(false);
