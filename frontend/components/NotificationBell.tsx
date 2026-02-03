@@ -40,7 +40,7 @@ const NotificationBell = () => {
 
       console.log("NotificationBell: Fetching notifications for userId:", userId);
       
-      const response = await fetch(`${API_URL}/api/notifications`, {
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           'X-USER-ID': userId,
           'ngrok-skip-browser-warning': '1',
@@ -91,7 +91,7 @@ const NotificationBell = () => {
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',
@@ -112,7 +112,7 @@ const NotificationBell = () => {
   const handleMarkAllAsRead = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/api/notifications/read-all`, {
+      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',
