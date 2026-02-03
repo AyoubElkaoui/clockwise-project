@@ -7,7 +7,22 @@ import {
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+// Helper function to build API URL consistently
+const buildApiUrl = (endpoint: string) => {
+  const baseUrl = API_URL.replace(/\/+$/, ''); // Remove trailing slashes
+  const hasApi = baseUrl.includes('/api');
+  const cleanEndpoint = endpoint.replace(/^\/+/, ''); // Remove leading slashes
+  
+  if (hasApi) {
+    // API_URL already contains /api, so just append endpoint
+    return `${baseUrl}/${cleanEndpoint}`;
+  } else {
+    // API_URL doesn't contain /api, add it
+    return `${baseUrl}/api/${cleanEndpoint}`;
+  }
+};
 
 interface Notification {
   id: number;
@@ -42,7 +57,7 @@ const NotificationBell = () => {
         return;
       }
 
-      const url = `${API_URL}/notifications`;
+      const url = buildApiUrl('notifications');
       console.log("NotificationBell: Fetching from URL:", url);
       console.log("NotificationBell: Headers:", {
         'X-USER-ID': userId,
@@ -109,7 +124,7 @@ const NotificationBell = () => {
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
+      const response = await fetch(buildApiUrl(`notifications/${notificationId}/read`), {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',
@@ -130,7 +145,7 @@ const NotificationBell = () => {
   const handleMarkAllAsRead = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
+      const response = await fetch(buildApiUrl('notifications/mark-all-read'), {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',
