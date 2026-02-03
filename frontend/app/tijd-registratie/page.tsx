@@ -31,6 +31,7 @@ import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteD
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects } from "@/lib/api/userProjectApi";
 import { getProjects as getAllProjectsFlat } from "@/lib/api";
+import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 
@@ -132,6 +133,7 @@ function getMonthWeeks(date: Date): Date[] {
 export default function TimeRegistrationPage() {
   const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [currentPeriodId, setCurrentPeriodId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [projectGroups, setProjectGroups] = useState<
@@ -173,6 +175,21 @@ export default function TimeRegistrationPage() {
   ];
   const weekNumber = getWeekNumber(currentWeek);
   const monthWeeks = getMonthWeeks(currentWeek);
+
+  // Load current period ID on mount
+  useEffect(() => {
+    const loadPeriodId = async () => {
+      try {
+        const periodId = await fetchCurrentPeriodId();
+        setCurrentPeriodId(periodId);
+        console.log("Loaded current period ID:", periodId);
+      } catch (error) {
+        console.error("Failed to load period ID:", error);
+        setCurrentPeriodId(100436); // Fallback
+      }
+    };
+    loadPeriodId();
+  }, []);
 
   useEffect(() => {
     loadCompanies();
@@ -595,7 +612,10 @@ export default function TimeRegistrationPage() {
       0,
     );
 
-  const getCurrentPeriodId = () => 100426; // Hardcoded for now
+  const getCurrentPeriodId = () => {
+    // Return the cached period ID if already fetched
+    return currentPeriodId || 100436; // Fallback to 100436 if not loaded yet
+  };
 
   // Helper functions for entry status styling and editability
   const isEditable = (status?: string) => {

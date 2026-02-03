@@ -626,11 +626,90 @@ public class WorkflowService
 
     private async Task<List<WorkflowEntryDto>> MapToDtos(List<TimeEntryWorkflow> entries)
     {
+        if (!entries.Any())
+            return new List<WorkflowEntryDto>();
+
         var dtos = new List<WorkflowEntryDto>();
-        foreach (var entry in entries)
+        
+        // Open ONE Firebird connection for all entries (huge performance improvement!)
+        using var connection = _firebirdRepo.GetConnection();
+        await connection.OpenAsync();
+        
+        try
         {
-            dtos.Add(await MapToDto(entry));
+            // Pre-fetch all unique employee names in ONE query
+            var uniqueMedewIds = entries.Select(e => e.MedewGcId).Distinct().ToList();
+            var employeeNames = new Dictionary<int, string>();
+            if (uniqueMedewIds.Any())
+            {
+                var medewIdsStr = string.Join(",", uniqueMedewIds);
+                var employees = await connection.QueryAsync<(int GC_ID, string GC_OMSCHRIJVING)>(
+                    $"SELECT GC_ID, GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID IN ({medewIdsStr})");
+                foreach (var emp in employees)
+                {
+                    employeeNames[emp.GC_ID] = emp.GC_OMSCHRIJVING;
+                }
+            }
+
+            // Process each entry with pre-fetched data
+            foreach (var entry in entries)
+            {
+                var dto = new WorkflowEntryDto
+                {
+                    Id = entry.Id,
+                    MedewGcId = entry.MedewGcId,
+                    UrenperGcId = entry.UrenperGcId,
+                    TaakGcId = entry.TaakGcId,
+                    WerkGcId = entry.WerkGcId,
+                    Datum = entry.Datum,
+                    Aantal = entry.Aantal,
+                    Omschrijving = entry.Omschrijving,
+                    EveningNightHours = entry.EveningNightHours,
+                    TravelHours = entry.TravelHours,
+                    DistanceKm = entry.DistanceKm,
+                    TravelCosts = entry.TravelCosts,
+                    OtherExpenses = entry.OtherExpenses,
+                    Status = entry.Status,
+                    CreatedAt = entry.CreatedAt,
+                    UpdatedAt = entry.UpdatedAt,
+                    SubmittedAt = entry.SubmittedAt,
+                    ReviewedAt = entry.ReviewedAt,
+                    ReviewedBy = entry.ReviewedBy,
+                    RejectionReason = entry.RejectionReason,
+                    FirebirdGcId = entry.FirebirdGcId
+                };
+
+                // Use pre-fetched employee name
+                if (employeeNames.TryGetValue(entry.MedewGcId, out var empName))
+                {
+                    dto.EmployeeName = empName;
+                }
+
+                // Get task and werk details (these are still individual queries, but fewer total)
+                try
+                {
+                    dto.TaakCode = await _firebirdRepo.GetTaakCodeAsync(entry.TaakGcId);
+                    
+                    if (entry.WerkGcId.HasValue)
+                    {
+                        var werkData = await _firebirdRepo.GetWerkDetailsAsync(entry.WerkGcId.Value);
+                        dto.WerkCode = werkData.Code;
+                        dto.WerkDescription = werkData.Description;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to enrich entry {Id} with Firebird data", entry.Id);
+                }
+
+                dtos.Add(dto);
+            }
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error mapping entries to DTOs");
+        }
+        
         return dtos;
     }
 }

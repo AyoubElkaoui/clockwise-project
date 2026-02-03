@@ -117,11 +117,43 @@ namespace backend.Repositories
                 
                 using var connection = _connectionFactory.CreateConnection();
 
+                // STEP 1: Check total SUBMITTED entries for this period
+                var totalSubmitted = await connection.ExecuteScalarAsync<int>(
+                    "SELECT COUNT(*) FROM time_entries_workflow WHERE urenper_gc_id = @UrenperGcId AND status = 'SUBMITTED'",
+                    new { UrenperGcId = urenperGcId }
+                );
+                _logger.LogInformation("DEBUG: Total SUBMITTED entries in period {UrenperGcId}: {Count}", urenperGcId, totalSubmitted);
+
+                // STEP 2: Log which medew_gc_ids have submitted entries
+                var submittedMedews = await connection.QueryAsync<int>(
+                    "SELECT DISTINCT medew_gc_id FROM time_entries_workflow WHERE urenper_gc_id = @UrenperGcId AND status = 'SUBMITTED'",
+                    new { UrenperGcId = urenperGcId }
+                );
+                _logger.LogInformation("DEBUG: Employees with SUBMITTED entries: [{Medews}]", string.Join(", ", submittedMedews));
+
                 string sql;
                 if (managerMedewGcId.HasValue)
                 {
                     _logger.LogInformation("Filtering for manager medew_gc_id={ManagerMedewGcId}", managerMedewGcId.Value);
                     
+                    // STEP 3: Check manager's user.id
+                    var managerId = await connection.ExecuteScalarAsync<int?>(
+                        "SELECT id FROM users WHERE medew_gc_id = @ManagerMedewGcId LIMIT 1",
+                        new { ManagerMedewGcId = managerMedewGcId.Value }
+                    );
+                    _logger.LogInformation("DEBUG: Manager medew_gc_id {ManagerMedewGcId} has user.id: {ManagerId}", managerMedewGcId.Value, managerId);
+
+                    // STEP 4: Check which employees this manager can see
+                    var assignedEmployeeMedews = await connection.QueryAsync<int>(
+                        @"SELECT u.medew_gc_id 
+                          FROM manager_assignments ma
+                          INNER JOIN users u ON ma.employee_id = u.id
+                          WHERE ma.manager_id = @ManagerId
+                            AND (ma.active_until IS NULL OR ma.active_until > CURRENT_DATE)",
+                        new { ManagerId = managerId }
+                    );
+                    _logger.LogInformation("DEBUG: Manager {ManagerMedewGcId} can see employees: [{Employees}]", managerMedewGcId.Value, string.Join(", ", assignedEmployeeMedews));
+
                     // Get manager's user.id from medew_gc_id, then find assigned employees
                     sql = $@"
                         SELECT {SelectColumns}
@@ -142,6 +174,12 @@ namespace backend.Repositories
                     
                     var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId, ManagerMedewGcId = managerMedewGcId });
                     _logger.LogInformation("Query returned {Count} rows", result.Count());
+                    
+                    if (result.Count() == 0 && totalSubmitted > 0)
+                    {
+                        _logger.LogWarning("WARNING: Found {Total} SUBMITTED entries but manager {ManagerMedewGcId} can see 0. Check manager_assignments!", totalSubmitted, managerMedewGcId.Value);
+                    }
+                    
                     _logger.LogInformation("=== GetAllSubmittedAsync END ===");
                     return result.ToList();
                 }
