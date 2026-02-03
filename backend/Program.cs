@@ -231,6 +231,33 @@ public class MedewGcIdMiddleware
             return;
         }
 
+        // Skip X-MEDEW-GC-ID for notifications (uses X-USER-ID instead)
+        if (path != null && path.Contains("/api/notifications"))
+        {
+            _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for /api/notifications - checking X-USER-ID");
+            
+            // Log all headers for debugging
+            foreach (var header in context.Request.Headers)
+            {
+                _logger.LogInformation("  Header: {Key} = {Value}", header.Key, header.Value.ToString());
+            }
+            
+            // Check for X-USER-ID header and store userId
+            if (context.Request.Headers.TryGetValue("X-USER-ID", out var userIdHeader) &&
+                int.TryParse(userIdHeader, out var userId))
+            {
+                _logger.LogInformation("MedewGcIdMiddleware: Found X-USER-ID={UserId}, storing in HttpContext.Items", userId);
+                context.Items["UserId"] = userId;
+            }
+            else
+            {
+                _logger.LogWarning("MedewGcIdMiddleware: X-USER-ID header missing or invalid");
+            }
+            
+            await _next(context);
+            return;
+        }
+
         _logger.LogInformation("MedewGcIdMiddleware: Processing {Method} {Path}", context.Request.Method, context.Request.Path);
         _logger.LogInformation("MedewGcIdMiddleware: Headers: {Headers}", string.Join(", ", context.Request.Headers.Keys));
 

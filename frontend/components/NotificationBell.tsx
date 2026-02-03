@@ -33,33 +33,51 @@ const NotificationBell = () => {
       setLoading(true);
       const userId = localStorage.getItem("userId");
       
+      console.log("=== NotificationBell: START fetchNotifications ===");
+      console.log("NotificationBell: API_URL =", API_URL);
+      console.log("NotificationBell: userId from localStorage =", userId);
+      
       if (!userId) {
         console.warn("NotificationBell: No userId found in localStorage");
         return;
       }
 
-      console.log("NotificationBell: Fetching notifications for userId:", userId);
+      const url = `${API_URL}/notifications`;
+      console.log("NotificationBell: Fetching from URL:", url);
+      console.log("NotificationBell: Headers:", {
+        'X-USER-ID': userId,
+        'ngrok-skip-browser-warning': '1',
+      });
       
-      const response = await fetch(`${API_URL}/notifications`, {
+      const response = await fetch(url, {
         headers: {
           'X-USER-ID': userId,
           'ngrok-skip-browser-warning': '1',
         },
       });
 
+      console.log("NotificationBell: Response status:", response.status);
+      console.log("NotificationBell: Response ok:", response.ok);
+
       if (!response.ok) {
-        console.warn('NotificationBell: API returned', response.status);
+        console.warn('NotificationBell: API returned non-OK status:', response.status);
+        const errorText = await response.text();
+        console.error('NotificationBell: Error response body:', errorText);
         setNotifications([]);
         return;
       }
 
       const data: Notification[] = await response.json();
-      console.log("NotificationBell: Received notifications:", data);
+      console.log("NotificationBell: Received notifications count:", data.length);
+      console.log("NotificationBell: Received notifications data:", data);
       
       setNotifications(data);
-      setUnreadCount(data.filter(n => !n.isRead).length);
-      console.log("NotificationBell: Unread count:", data.filter(n => !n.isRead).length);
+      const unread = data.filter(n => !n.isRead).length;
+      setUnreadCount(unread);
+      console.log("NotificationBell: Unread count:", unread);
+      console.log("=== NotificationBell: END fetchNotifications SUCCESS ===");
     } catch (error) {
+      console.error("=== NotificationBell: END fetchNotifications ERROR ===");
       console.error("NotificationBell: Error fetching notifications:", error);
       setNotifications([]);
       setUnreadCount(0);

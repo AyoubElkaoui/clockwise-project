@@ -145,13 +145,31 @@ namespace backend.Controllers
 
         private int? GetCurrentUserId()
         {
-            if (HttpContext.Items.TryGetValue("UserId", out var userId))
-                return userId as int?;
+            _logger.LogInformation("GetCurrentUserId CALLED");
+            _logger.LogInformation("HttpContext.Items.UserId = {UserId}", HttpContext.Items.ContainsKey("UserId") ? HttpContext.Items["UserId"] : "NOT FOUND");
             
-            if (HttpContext.Request.Headers.TryGetValue("X-USER-ID", out var header) &&
-                int.TryParse(header, out var id))
+            if (HttpContext.Items.TryGetValue("UserId", out var userId))
+            {
+                _logger.LogInformation("UserId from HttpContext.Items = {UserId}", userId);
+                return userId as int?;
+            }
+            
+            _logger.LogInformation("UserId NOT in HttpContext.Items, checking headers");
+            
+            // Log all headers
+            foreach (var h in HttpContext.Request.Headers)
+            {
+                _logger.LogInformation("Header: {Key} = {Value}", h.Key, h.Value);
+            }
+            
+            if (HttpContext.Request.Headers.TryGetValue("X-USER-ID", out var userIdHeader) &&
+                int.TryParse(userIdHeader, out var id))
+            {
+                _logger.LogInformation("UserId from X-USER-ID header = {UserId}", id);
                 return id;
+            }
 
+            _logger.LogWarning("GetCurrentUserId returning NULL - no userId found");
             return null;
         }
     }
