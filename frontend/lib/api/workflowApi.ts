@@ -6,7 +6,7 @@ import { API_URL } from "../api";
 axios.interceptors.request.use((request) => {
   if (typeof window !== "undefined") {
     const medewGcId = localStorage.getItem("medewGcId");
-    const userRole = localStorage.getItem("userRole");
+    const userRole = localStorage.getItem("userRank");
     
     if (medewGcId && !request.headers["X-MEDEW-GC-ID"]) {
       request.headers.set("X-MEDEW-GC-ID", medewGcId);

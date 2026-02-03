@@ -117,24 +117,22 @@ namespace backend.Repositories
                 string sql;
                 if (managerMedewGcId.HasValue)
                 {
-                    _logger.LogInformation("GetAllSubmittedAsync: Filtering for manager medew_gc_id={ManagerMedewGcId}, period={UrenperGcId}", managerMedewGcId.Value, urenperGcId);
-                    
-                    // Filter by manager's assigned employees
-                    // JOIN via users table to match medew_gc_id
+                    // Get manager's user.id from medew_gc_id, then find assigned employees
                     sql = $@"
                         SELECT {SelectColumns}
                         FROM time_entries_workflow w
-                        INNER JOIN users u_employee ON w.medew_gc_id = u_employee.medew_gc_id
-                        INNER JOIN manager_assignments ma ON u_employee.id = ma.employee_id
-                        INNER JOIN users u_manager ON ma.manager_id = u_manager.id
                         WHERE w.urenper_gc_id = @UrenperGcId
                           AND w.status = 'SUBMITTED'
-                          AND u_manager.medew_gc_id = @ManagerMedewGcId
-                          AND (ma.active_until IS NULL OR ma.active_until > CURRENT_DATE)
+                          AND w.medew_gc_id IN (
+                              SELECT u.medew_gc_id 
+                              FROM manager_assignments ma
+                              INNER JOIN users u ON ma.employee_id = u.id
+                              WHERE ma.manager_id = (SELECT id FROM users WHERE medew_gc_id = @ManagerMedewGcId LIMIT 1)
+                                AND (ma.active_until IS NULL OR ma.active_until > CURRENT_DATE)
+                          )
                         ORDER BY w.submitted_at ASC";
                     
                     var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId, ManagerMedewGcId = managerMedewGcId });
-                    _logger.LogInformation("GetAllSubmittedAsync: Found {Count} submitted entries for manager", result.Count());
                     return result.ToList();
                 }
                 else

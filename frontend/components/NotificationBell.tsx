@@ -43,11 +43,14 @@ const NotificationBell = () => {
       const response = await fetch(`${API_URL}/notifications`, {
         headers: {
           'X-USER-ID': userId,
+          'ngrok-skip-browser-warning': '1',
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        console.warn('NotificationBell: API returned', response.status);
+        setNotifications([]);
+        return;
       }
 
       const data: Notification[] = await response.json();
