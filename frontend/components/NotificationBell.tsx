@@ -246,7 +246,7 @@ const NotificationBell = () => {
         <div className="indicator">
           <BellIcon className="h-6 w-6" />
           {unreadCount > 0 && (
-            <span className="indicator-item badge badge-primary badge-sm">
+            <span className="indicator-item badge badge-primary badge-sm bg-red-500 text-white border-none">
               {unreadCount}
             </span>
           )}
