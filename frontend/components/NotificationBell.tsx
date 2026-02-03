@@ -42,7 +42,7 @@ const NotificationBell = () => {
         return;
       }
 
-      const url = `${API_URL}/notifications`;
+      const url = `${API_URL}/api/notifications`;
       console.log("NotificationBell: Fetching from URL:", url);
       console.log("NotificationBell: Headers:", {
         'X-USER-ID': userId,
@@ -109,7 +109,7 @@ const NotificationBell = () => {
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/notifications/${notificationId}/read`, {
+      const response = await fetch(`${API_URL}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',
@@ -130,7 +130,7 @@ const NotificationBell = () => {
   const handleMarkAllAsRead = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
+      const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',
