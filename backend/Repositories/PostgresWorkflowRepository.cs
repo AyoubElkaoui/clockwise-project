@@ -118,10 +118,12 @@ namespace backend.Repositories
                 if (managerMedewGcId.HasValue)
                 {
                     // Filter by manager's assigned employees
+                    // JOIN via users table to match medew_gc_id
                     sql = $@"
                         SELECT {SelectColumns}
                         FROM time_entries_workflow w
-                        INNER JOIN manager_assignments ma ON w.medew_gc_id = ma.employee_id
+                        INNER JOIN users u_employee ON w.medew_gc_id = u_employee.medew_gc_id
+                        INNER JOIN manager_assignments ma ON u_employee.id = ma.employee_id
                         INNER JOIN users u_manager ON ma.manager_id = u_manager.id
                         WHERE w.urenper_gc_id = @UrenperGcId
                           AND w.status = 'SUBMITTED'

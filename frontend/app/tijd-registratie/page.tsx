@@ -760,6 +760,9 @@ export default function TimeRegistrationPage() {
       });
 
       showToast(`✓ ${savedIds.length} uur${savedIds.length > 1 ? 'registraties' : 'registratie'} succesvol ingediend voor goedkeuring!`, "success");
+      
+      // Force reload after a short delay to ensure backend has processed
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadEntries();
     } catch (error) {
       const errorMessage = error instanceof Error 

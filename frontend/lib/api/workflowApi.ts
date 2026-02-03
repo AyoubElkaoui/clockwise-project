@@ -2,12 +2,18 @@
 import axios from "axios";
 import { API_URL } from "../api";
 
-// Ensure X-MEDEW-GC-ID header is set
+// Ensure X-MEDEW-GC-ID and X-USER-ROLE headers are set
 axios.interceptors.request.use((request) => {
   if (typeof window !== "undefined") {
     const medewGcId = localStorage.getItem("medewGcId");
+    const userRole = localStorage.getItem("userRole");
+    
     if (medewGcId && !request.headers["X-MEDEW-GC-ID"]) {
       request.headers.set("X-MEDEW-GC-ID", medewGcId);
+    }
+    
+    if (userRole && !request.headers["X-USER-ROLE"]) {
+      request.headers.set("X-USER-ROLE", userRole);
     }
   }
   return request;

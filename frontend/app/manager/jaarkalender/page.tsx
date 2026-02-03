@@ -99,9 +99,18 @@ export default function JaarkalenderPage() {
 
     try {
       if (modalMode === "add") {
+        // Auto-generate name if empty for closed days
+        const finalName = formData.name.trim() || 
+          (formData.type === "closed" ? `Gesloten dag ${selectedDate}` : "");
+        
+        if (!finalName) {
+          showToast("Naam is verplicht", "error");
+          return;
+        }
+        
         await createHoliday({
           holidayDate: selectedDate,
-          name: formData.name,
+          name: finalName,
           type: formData.type,
           isWorkAllowed: formData.isWorkAllowed,
           notes: formData.notes,
