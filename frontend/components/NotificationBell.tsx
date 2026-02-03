@@ -7,7 +7,7 @@ import {
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5226/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 interface Notification {
   id: number;

@@ -117,6 +117,8 @@ namespace backend.Repositories
                 string sql;
                 if (managerMedewGcId.HasValue)
                 {
+                    _logger.LogInformation("GetAllSubmittedAsync: Filtering for manager medew_gc_id={ManagerMedewGcId}, period={UrenperGcId}", managerMedewGcId.Value, urenperGcId);
+                    
                     // Filter by manager's assigned employees
                     // JOIN via users table to match medew_gc_id
                     sql = $@"
@@ -132,6 +134,7 @@ namespace backend.Repositories
                         ORDER BY w.submitted_at ASC";
                     
                     var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId, ManagerMedewGcId = managerMedewGcId });
+                    _logger.LogInformation("GetAllSubmittedAsync: Found {Count} submitted entries for manager", result.Count());
                     return result.ToList();
                 }
                 else

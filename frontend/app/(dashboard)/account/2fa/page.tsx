@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Lock, Smartphone, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { TwoFactorSetup } from '@/components/TwoFactorSetup';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5226/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function TwoFactorPage() {
   const [twoFactorStatus, setTwoFactorStatus] = useState<{

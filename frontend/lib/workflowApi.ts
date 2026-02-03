@@ -1,7 +1,7 @@
 import axios from "axios";
 import authUtils from "./auth-utils";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 // Types
 export interface SaveDraftRequest {
@@ -82,7 +82,7 @@ const getHeaders = () => {
  * Save a time entry as draft
  */
 export async function saveDraft(data: SaveDraftRequest): Promise<DraftResponse> {
-  const response = await axios.post(`${API_URL}/api/workflow/draft`, data, {
+  const response = await axios.post(`${API_URL}/workflow/draft`, data, {
     headers: getHeaders(),
   });
   return response.data;
@@ -92,7 +92,7 @@ export async function saveDraft(data: SaveDraftRequest): Promise<DraftResponse> 
  * Get all drafts for a period
  */
 export async function getDrafts(urenperGcId: number): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/api/workflow/drafts`, {
+  const response = await axios.get(`${API_URL}/workflow/drafts`, {
     headers: getHeaders(),
     params: { urenperGcId },
   });
@@ -103,7 +103,7 @@ export async function getDrafts(urenperGcId: number): Promise<WorkflowEntriesRes
  * Get all submitted entries for a period
  */
 export async function getSubmitted(urenperGcId: number): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/api/workflow/submitted`, {
+  const response = await axios.get(`${API_URL}/workflow/submitted`, {
     headers: getHeaders(),
     params: { urenperGcId },
   });
@@ -114,7 +114,7 @@ export async function getSubmitted(urenperGcId: number): Promise<WorkflowEntries
  * Get all rejected entries for a period
  */
 export async function getRejected(urenperGcId: number): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/api/workflow/rejected`, {
+  const response = await axios.get(`${API_URL}/workflow/rejected`, {
     headers: getHeaders(),
     params: { urenperGcId },
   });
@@ -125,7 +125,7 @@ export async function getRejected(urenperGcId: number): Promise<WorkflowEntriesR
  * Submit draft entries for manager review
  */
 export async function submitEntries(data: SubmitTimeEntriesRequest): Promise<WorkflowResponse> {
-  const response = await axios.post(`${API_URL}/api/workflow/submit`, data, {
+  const response = await axios.post(`${API_URL}/workflow/submit`, data, {
     headers: getHeaders(),
   });
   return response.data;
@@ -135,7 +135,7 @@ export async function submitEntries(data: SubmitTimeEntriesRequest): Promise<Wor
  * Resubmit rejected entries
  */
 export async function resubmitRejected(data: SubmitTimeEntriesRequest): Promise<WorkflowResponse> {
-  const response = await axios.post(`${API_URL}/api/workflow/resubmit`, data, {
+  const response = await axios.post(`${API_URL}/workflow/resubmit`, data, {
     headers: getHeaders(),
   });
   return response.data;
@@ -145,7 +145,7 @@ export async function resubmitRejected(data: SubmitTimeEntriesRequest): Promise<
  * Delete a draft entry
  */
 export async function deleteDraft(id: number): Promise<{ message: string }> {
-  const response = await axios.delete(`${API_URL}/api/workflow/draft/${id}`, {
+  const response = await axios.delete(`${API_URL}/workflow/draft/${id}`, {
     headers: getHeaders(),
   });
   return response.data;
@@ -155,7 +155,7 @@ export async function deleteDraft(id: number): Promise<{ message: string }> {
  * Get pending entries for manager review
  */
 export async function getPendingReview(urenperGcId: number): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/api/workflow/review/pending`, {
+  const response = await axios.get(`${API_URL}/workflow/review/pending`, {
     headers: getHeaders(),
     params: { urenperGcId },
   });
@@ -169,7 +169,7 @@ export async function getAllWorkflowEntries(
   urenperGcId: number,
   status?: string
 ): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/api/workflow/entries`, {
+  const response = await axios.get(`${API_URL}/workflow/entries`, {
     headers: getHeaders(),
     params: { urenperGcId, status },
   });
@@ -180,7 +180,7 @@ export async function getAllWorkflowEntries(
  * Review (approve/reject) time entries (manager only)
  */
 export async function reviewEntries(data: ReviewTimeEntriesRequest): Promise<WorkflowResponse> {
-  const response = await axios.post(`${API_URL}/api/workflow/review`, data, {
+  const response = await axios.post(`${API_URL}/workflow/review`, data, {
     headers: getHeaders(),
   });
   return response.data;
