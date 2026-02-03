@@ -133,6 +133,17 @@ public class HolidaysController : ControllerBase
                 return Forbid("Only managers can create holidays");
             }
 
+            // Validate request
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return BadRequest(new { error = "Holiday name is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.HolidayDate))
+            {
+                return BadRequest(new { error = "Holiday date is required" });
+            }
+
             // Check if holiday already exists for this date
             var existing = await _db.QueryFirstOrDefaultAsync<int?>(
                 "SELECT id FROM holidays WHERE holiday_date = @Date AND type = @Type",
@@ -155,15 +166,15 @@ public class HolidaysController : ControllerBase
                 Type = request.Type,
                 IsWorkAllowed = request.IsWorkAllowed,
                 CreatedBy = userId,
-                Notes = request.Notes
+                Notes = request.Notes ?? string.Empty
             });
 
             return CreatedAtAction(nameof(GetHolidayByDate), new { date = request.HolidayDate }, new { id });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating holiday");
-            return StatusCode(500, new { error = "Failed to create holiday" });
+            _logger.LogError(ex, "Error creating holiday: {Message}. Request: {@Request}", ex.Message, request);
+            return StatusCode(500, new { error = "Failed to create holiday", details = ex.Message });
         }
     }
 

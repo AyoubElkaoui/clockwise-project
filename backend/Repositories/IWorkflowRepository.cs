@@ -25,7 +25,7 @@ public interface IWorkflowRepository
     /// <summary>
     /// Get all submitted entries (for manager review)
     /// </summary>
-    Task<List<TimeEntryWorkflow>> GetAllSubmittedAsync(int urenperGcId);
+    Task<List<TimeEntryWorkflow>> GetAllSubmittedAsync(int urenperGcId, int? managerMedewGcId = null);
 
     /// <summary>
     /// Get all entries for a period with optional status filter (for manager overview)

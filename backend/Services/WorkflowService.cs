@@ -248,9 +248,9 @@ public class WorkflowService
     /// <summary>
     /// Get all submitted entries for manager review
     /// </summary>
-    public async Task<WorkflowEntriesResponse> GetAllSubmittedForReviewAsync(int urenperGcId)
+    public async Task<WorkflowEntriesResponse> GetAllSubmittedForReviewAsync(int urenperGcId, int? managerMedewGcId = null)
     {
-        var entries = await _workflowRepo.GetAllSubmittedAsync(urenperGcId);
+        var entries = await _workflowRepo.GetAllSubmittedAsync(urenperGcId, managerMedewGcId);
         var dtos = await MapToDtos(entries);
 
         return new WorkflowEntriesResponse

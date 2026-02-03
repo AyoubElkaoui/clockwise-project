@@ -247,7 +247,7 @@ export default function ManagerReviewTimePage() {
             Uren Beoordelen
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Controleer en keur ingediende uren goed of af
+            {t("manager.reviewTimeSubtitle")}
           </p>
         </div>
         <div className="flex gap-3">

@@ -333,7 +333,7 @@ public class WorkflowController : ControllerBase
                 "GET /api/workflow/review/pending for manager {MedewGcId}, period {UrenperGcId}",
                 medewGcId, urenperGcId);
 
-            var response = await _workflowService.GetAllSubmittedForReviewAsync(urenperGcId);
+            var response = await _workflowService.GetAllSubmittedForReviewAsync(urenperGcId, medewGcId.Value);
             return Ok(response);
         }
         catch (Exception ex)

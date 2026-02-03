@@ -16,6 +16,12 @@
     "logout": "Logout",
     "menu": "Menu",
     "section": "Navigation"
+  },  "manager": {
+    "reviewTimeSubtitle": "Review and approve submitted hours",
+    "reviewVacationSubtitle": "Review and approve vacation requests"
+  },  "manager": {
+    "reviewTimeSubtitle": "Review and approve submitted hours",
+    "reviewVacationSubtitle": "Review and approve vacation requests"
   },
   "dashboard": {
     "greeting": {

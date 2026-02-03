@@ -108,21 +108,43 @@ namespace backend.Repositories
             return await GetEntriesByStatusAsync(medewGcId, urenperGcId, "SUBMITTED");
         }
 
-        public async Task<List<TimeEntryWorkflow>> GetAllSubmittedAsync(int urenperGcId)
+        public async Task<List<TimeEntryWorkflow>> GetAllSubmittedAsync(int urenperGcId, int? managerMedewGcId = null)
         {
             try
             {
                 using var connection = _connectionFactory.CreateConnection();
 
-                var sql = $@"
-                    SELECT {SelectColumns}
-                    FROM time_entries_workflow
-                    WHERE urenper_gc_id = @UrenperGcId
-                      AND status = 'SUBMITTED'
-                    ORDER BY submitted_at ASC";
+                string sql;
+                if (managerMedewGcId.HasValue)
+                {
+                    // Filter by manager's assigned employees
+                    sql = $@"
+                        SELECT {SelectColumns}
+                        FROM time_entries_workflow w
+                        INNER JOIN manager_assignments ma ON w.medew_gc_id = ma.employee_id
+                        INNER JOIN users u_manager ON ma.manager_id = u_manager.id
+                        WHERE w.urenper_gc_id = @UrenperGcId
+                          AND w.status = 'SUBMITTED'
+                          AND u_manager.medew_gc_id = @ManagerMedewGcId
+                          AND (ma.active_until IS NULL OR ma.active_until > CURRENT_DATE)
+                        ORDER BY w.submitted_at ASC";
+                    
+                    var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId, ManagerMedewGcId = managerMedewGcId });
+                    return result.ToList();
+                }
+                else
+                {
+                    // No manager filter - return all (admin use case)
+                    sql = $@"
+                        SELECT {SelectColumns}
+                        FROM time_entries_workflow
+                        WHERE urenper_gc_id = @UrenperGcId
+                          AND status = 'SUBMITTED'
+                        ORDER BY submitted_at ASC";
 
-                var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId });
-                return result.ToList();
+                    var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { UrenperGcId = urenperGcId });
+                    return result.ToList();
+                }
             }
             catch (Exception ex)
             {

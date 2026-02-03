@@ -17,6 +17,10 @@
     "menu": "Menu",
     "section": "Navigatie"
   },
+  "manager": {
+    "reviewTimeSubtitle": "Controleer en keur ingediende uren goed of af",
+    "reviewVacationSubtitle": "Controleer en keur vakantie aanvragen goed of af"
+  },
   "dashboard": {
     "greeting": {
       "morning": "Goedemorgen",

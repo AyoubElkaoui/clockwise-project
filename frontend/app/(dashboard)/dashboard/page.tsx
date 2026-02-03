@@ -217,7 +217,7 @@ export default function Dashboard() {
           variant="elevated"
           padding="md"
           className="cursor-pointer hover:shadow-lg transition"
-          onClick={() => router.push("/uren-registreren")}
+          onClick={() => router.push("/tijd-registratie")}
         >
           <CardContent>
             <div className="flex items-center gap-4">
@@ -351,7 +351,7 @@ export default function Dashboard() {
                 <p>{t("dashboard.noEntries")}</p>
                 <Button
                   className="mt-4 text-slate-900 dark:text-white"
-                  onClick={() => router.push("/uren-registreren")}
+                  onClick={() => router.push("/tijd-registratie")}
                 >
                   {t("dashboard.startRegistering")}
                 </Button>
