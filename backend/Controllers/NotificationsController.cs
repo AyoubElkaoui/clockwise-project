@@ -23,10 +23,18 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<NotificationResponse>>> GetNotifications([FromQuery] bool unreadOnly = false)
         {
+            _logger.LogInformation("=== GET /api/notifications START ===");
+            _logger.LogInformation("Request headers: {@Headers}", Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()));
+            
             var userId = GetCurrentUserId();
+            
+            _logger.LogInformation("Resolved userId: {UserId}", userId);
+            
             if (userId == null)
             {
-                _logger.LogWarning("Unauthorized notification access attempt");
+                _logger.LogWarning("Unauthorized notification access attempt - userId is null");
+                _logger.LogInformation("HttpContext.Items.UserId: {UserId}", HttpContext.Items.TryGetValue("UserId", out var ctxUserId) ? ctxUserId : "null");
+                _logger.LogInformation("X-USER-ID header: {Header}", Request.Headers.TryGetValue("X-USER-ID", out var header) ? header.ToString() : "null");
                 return Unauthorized(new { message = "User not authenticated" });
             }
 
@@ -47,6 +55,7 @@ namespace backend.Controllers
             });
 
             _logger.LogInformation("Returning {Count} notifications for userId: {UserId}", response.Count(), userId);
+            _logger.LogInformation("=== GET /api/notifications END ===");
 
             return Ok(response);
         }

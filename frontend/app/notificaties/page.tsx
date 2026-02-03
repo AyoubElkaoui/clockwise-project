@@ -59,13 +59,20 @@ export default function NotificatiesPage() {
       setLoading(true);
       const userId = authUtils.getUserId();
       
+      console.log("=== LOAD NOTIFICATIONS DEBUG ===");
+      console.log("userId from localStorage:", userId);
+      console.log("localStorage.userId:", localStorage.getItem('userId'));
+      console.log("localStorage.medewGcId:", localStorage.getItem('medewGcId'));
+      
       if (!userId) {
+        console.error("No userId found!");
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
 
       const url = `${API_URL}/notifications`;
       console.log("Fetching notifications from:", url);
+      console.log("X-USER-ID header will be:", userId.toString());
       
       const response = await fetch(url, {
         headers: {
@@ -75,6 +82,7 @@ export default function NotificatiesPage() {
       });
       
       console.log("Notifications response status:", response.status);
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -86,6 +94,7 @@ export default function NotificatiesPage() {
 
       const data = await safeJsonParse(response);
       console.log("Loaded notifications:", data);
+      console.log("=== END LOAD NOTIFICATIONS DEBUG ===");
       
       // Map notifications to Activity format for compatibility
       const mappedData = data.map((n: any) => ({
