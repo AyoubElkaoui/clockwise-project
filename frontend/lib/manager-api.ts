@@ -51,7 +51,6 @@ export async function getCurrentPeriodId(): Promise<number> {
 
   return sorted[0].gcId || sorted[0].id;
 }
-}
 
 export interface TimeEntryDto {
   id: number;
