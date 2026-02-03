@@ -556,7 +556,16 @@ export default function TimeRegistrationPage() {
   const isEditable = (status?: string) => {
     // DRAFT, REJECTED, and old "opgeslagen" status are editable
     // SUBMITTED and APPROVED are not editable
+    if (status === "SUBMITTED" || status === "APPROVED") {
+      return false;
+    }
     return !status || status === "DRAFT" || status === "REJECTED" || status === "opgeslagen";
+  };
+  
+  // Check if entire week is locked (has any SUBMITTED/APPROVED entries)
+  const isWeekLocked = () => {
+    const weekEntries = Object.values(entries) as TimeEntry[];
+    return weekEntries.some(e => e.status === "SUBMITTED" || e.status === "APPROVED");
   };
 
   const getEntryClassName = (status?: string) => {
@@ -812,15 +821,17 @@ export default function TimeRegistrationPage() {
               <div className="flex gap-3">
                 <button
                   onClick={saveAll}
-                  disabled={saving}
+                  disabled={saving || isWeekLocked()}
                   className="px-5 py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                  title={isWeekLocked() ? "Week is ingediend en kan niet meer worden gewijzigd" : ""}
                 >
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
                 <button
                   onClick={submitAll}
-                  disabled={saving}
+                  disabled={saving || isWeekLocked()}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                  title={isWeekLocked() ? "Week is al ingediend" : ""}
                 >
                   <Send className="w-4 h-4" /> Inleveren
                 </button>
@@ -1009,10 +1020,12 @@ export default function TimeRegistrationPage() {
                                     day.getFullYear() === currentYear;
                                   const entryEditable = isEditable(entry.status);
                                   const isClosed = isClosedDay(date);
+                                  const weekLocked = isWeekLocked();
                                   const isDisabled =
                                     !isInCurrentMonth ||
                                     !entryEditable ||
-                                    isClosed;
+                                    isClosed ||
+                                    weekLocked;
                                   return (
                                     <div
                                       key={`entry-${date}-${row.projectId}`}
@@ -1334,7 +1347,8 @@ export default function TimeRegistrationPage() {
                               };
                               const entryEditable = isEditable(entry.status);
                               const isClosed = isClosedDay(date);
-                              const isDisabled = !entryEditable || isClosed;
+                              const weekLocked = isWeekLocked();
+                              const isDisabled = !entryEditable || isClosed || weekLocked;
                               return (
                                 <div
                                   key={`week-entry-${date}-${row.projectId}`}

@@ -93,8 +93,15 @@ export default function ManagerApprovePage() {
 
   const loadEntries = async () => {
     try {
+      console.log("=== loadEntries (approve page) START ===");
+      setLoading(true);
       const currentPeriodId = await getCurrentPeriodId();
+      console.log("Current period ID:", currentPeriodId);
+      
+      console.log("Calling getSubmittedWorkflowEntries...");
       const response = await getSubmittedWorkflowEntries(currentPeriodId);
+      console.log("Response:", response);
+      console.log("Entries count:", response.entries?.length);
 
       // Adapt workflow entries to match UI expectations
       const adaptedEntries = response.entries.map((entry: any) => {
@@ -129,9 +136,15 @@ export default function ManagerApprovePage() {
       setEntries(adaptedEntries);
       setSelectedEntries(new Set());
     } catch (error) {
+      console.error("=== loadEntries ERROR ===", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       showToast("Fout bij laden van uren", "error");
     } finally {
       setLoading(false);
+      console.log("=== loadEntries END ===");
     }
   };
 

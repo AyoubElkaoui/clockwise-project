@@ -157,11 +157,31 @@ export interface WorkflowEntriesResponse {
  * Get all submitted time entries awaiting approval (for managers)
  */
 export async function getSubmittedWorkflowEntries(urenperGcId: number): Promise<WorkflowEntriesResponse> {
-  const response = await axios.get(`${API_URL}/workflow/review/pending`, {
-    params: { urenperGcId },
-    headers: getAuthHeaders(),
-  });
-  return response.data;
+  console.log("=== getSubmittedWorkflowEntries START ===");
+  console.log("API_URL:", API_URL);
+  console.log("urenperGcId:", urenperGcId);
+  
+  const headers = getAuthHeaders();
+  console.log("Headers:", headers);
+  
+  try {
+    const response = await axios.get(`${API_URL}/workflow/review/pending`, {
+      params: { urenperGcId },
+      headers,
+    });
+    console.log("Response status:", response.status);
+    console.log("Response data:", response.data);
+    console.log("=== getSubmittedWorkflowEntries END ===");
+    return response.data;
+  } catch (error) {
+    console.error("=== getSubmittedWorkflowEntries ERROR ===");
+    console.error("Error:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("Response status:", error.response?.status);
+      console.error("Response data:", error.response?.data);
+    }
+    throw error;
+  }
 }
 
 /**
