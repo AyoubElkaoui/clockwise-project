@@ -156,6 +156,7 @@ export default function TimeRegistrationPage() {
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
   const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
   const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
+  const [hasSubmittedEntries, setHasSubmittedEntries] = useState(false);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -326,6 +327,12 @@ export default function TimeRegistrationPage() {
       ]);
 
       const allEntries = [...drafts, ...submitted, ...rejected];
+
+      // Check if any entries are submitted or approved (locks the whole period)
+      const hasLockedEntries = allEntries.some((e: any) => 
+        e.status === 'SUBMITTED' || e.status === 'APPROVED'
+      );
+      setHasSubmittedEntries(hasLockedEntries);
 
       const map: Record<string, TimeEntry> = {};
       const projectIdsToAdd = new Set<number>();
@@ -619,6 +626,10 @@ export default function TimeRegistrationPage() {
 
   // Helper functions for entry status styling and editability
   const isEditable = (status?: string) => {
+    // If ANY entry in the period is submitted/approved, lock everything
+    if (hasSubmittedEntries) {
+      return false;
+    }
     // DRAFT, REJECTED, and old "opgeslagen" status are editable
     // SUBMITTED and APPROVED are not editable
     return !status || status === "DRAFT" || status === "REJECTED" || status === "opgeslagen";

@@ -156,7 +156,7 @@ public class HolidaysController : ControllerBase
 
             // Check if holiday already exists for this date
             var existing = await _db.QueryFirstOrDefaultAsync<int?>(
-                "SELECT id FROM holidays WHERE holiday_date = @Date AND type = @Type",
+                "SELECT id FROM holidays WHERE holiday_date = @Date::date AND type = @Type",
                 new { Date = request.HolidayDate, Type = request.Type });
 
             if (existing.HasValue)
@@ -166,7 +166,7 @@ public class HolidaysController : ControllerBase
 
             var sql = @"
                 INSERT INTO holidays (holiday_date, name, type, is_work_allowed, created_by, notes)
-                VALUES (@HolidayDate, @Name, @Type, @IsWorkAllowed, @CreatedBy, @Notes)
+                VALUES (@HolidayDate::date, @Name, @Type, @IsWorkAllowed, @CreatedBy, @Notes)
                 RETURNING id";
 
             var id = await _db.ExecuteScalarAsync<int>(sql, new

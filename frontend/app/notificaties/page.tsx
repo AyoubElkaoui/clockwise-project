@@ -58,64 +58,52 @@ export default function NotificatiesPage() {
     try {
       setLoading(true);
       const userId = authUtils.getUserId();
-      const medewGcId = authUtils.getMedewGcId();
       
-      if (!userId || !medewGcId) {
+      if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
 
-      let data: Activity[] = [];
-
-      // Voor managers: haal eigen notificaties op (geen team endpoint beschikbaar)
-      if (userRank === "manager") {
-        const url = `${API_URL}/activities?limit=100&userId=${userId}`;
-        const response = await fetch(url, {
-          headers: {
-            "X-MEDEW-GC-ID": medewGcId,
-            "ngrok-skip-browser-warning": "1",
-          },
-        });
-        if (response.ok) {
-          data = await safeJsonParse(response);
-        } else {
-          showToast("Fout bij laden notificaties", "error");
-        }
-      }
-      // Voor admins: haal alle notificaties op
-      else if (userRank === "admin") {
-        const url = `${API_URL}/activities?limit=100`;
-        const response = await fetch(url, {
-          headers: {
-            "X-MEDEW-GC-ID": medewGcId,
-            "ngrok-skip-browser-warning": "1",
-          },
-        });
-        if (response.ok) {
-          data = await safeJsonParse(response);
-        } else {
-          showToast("Fout bij laden notificaties", "error");
-        }
-      }
-      // Voor gewone users: alleen eigen notificaties
-      else {
-        const url = `${API_URL}/activities?limit=50&userId=${userId}`;
-        const response = await fetch(url, {
-          headers: {
-            "X-MEDEW-GC-ID": medewGcId,
-            "ngrok-skip-browser-warning": "1",
-          },
-        });
-        if (response.ok) {
-          data = await safeJsonParse(response);
-        } else {
-          showToast("Fout bij laden notificaties: " + response.status, "error");
-        }
+      const url = `${API_URL}/notifications`;
+      console.log("Fetching notifications from:", url);
+      
+      const response = await fetch(url, {
+        headers: {
+          "X-USER-ID": userId.toString(),
+          "ngrok-skip-browser-warning": "1",
+        },
+      });
+      
+      console.log("Notifications response status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to fetch notifications:", errorText);
+        showToast("Fout bij laden notificaties", "error");
+        setNotifications([]);
+        return;
       }
 
-      setNotifications(data);
+      const data = await safeJsonParse(response);
+      console.log("Loaded notifications:", data);
+      
+      // Map notifications to Activity format for compatibility
+      const mappedData = data.map((n: any) => ({
+        id: n.id,
+        userId: userId,
+        type: n.type,
+        action: n.type,
+        message: n.message,
+        details: n.title || "",
+        read: n.isRead,
+        timestamp: n.createdAt,
+      }));
+      
+      setNotifications(mappedData);
     } catch (error) {
-      showToast("Fout bij laden notificaties: " + (error instanceof Error ? error.message : "Onbekende fout"), "error");
+      console.error("Error loading notifications:", error);
+      showToast("Fout bij laden notificaties", "error");
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -124,15 +112,14 @@ export default function NotificatiesPage() {
   const handleMarkAllRead = async () => {
     try {
       const userId = authUtils.getUserId();
-      const medewGcId = authUtils.getMedewGcId();
-      if (!userId || !medewGcId) return;
+      if (!userId) return;
 
       const response = await fetch(
-        `${API_URL}/activities/read-all?userId=${userId}`,
+        `${API_URL}/notifications/mark-all-read`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
-            "X-MEDEW-GC-ID": medewGcId,
+            "X-USER-ID": userId.toString(),
             "ngrok-skip-browser-warning": "1",
           },
         },
@@ -151,12 +138,16 @@ export default function NotificatiesPage() {
 
   const handleMarkRead = async (id: number) => {
     try {
+      const userId = authUtils.getUserId();
+      if (!userId) return;
+
       const response = await fetch(
-        `${API_URL}/activities/${id}/read`,
+        `${API_URL}/notifications/${id}/read`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
-            "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "",
+            "X-USER-ID": userId.toString(),
+            "ngrok-skip-browser-warning": "1",
           },
         },
       );
