@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Lock, Smartphone, Mail, CheckCircle, XCircle } from 'lucide-react';
 import { TwoFactorSetup } from '@/components/TwoFactorSetup';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '@/lib/api';
 
 export default function TwoFactorPage() {
   const [twoFactorStatus, setTwoFactorStatus] = useState<{
@@ -24,9 +23,12 @@ export default function TwoFactorPage() {
   const fetchStatus = async () => {
     try {
       const userId = localStorage.getItem('userId');
+      const medewGcId = localStorage.getItem('medewGcId');
       const response = await fetch(`${API_URL}/two-factor/status`, {
         headers: {
           'X-USER-ID': userId || '',
+          'X-MEDEW-GC-ID': medewGcId || '',
+          'ngrok-skip-browser-warning': '1',
         },
       });
 

@@ -238,13 +238,13 @@ public class MedewGcIdMiddleware
         if (path != null && (path.Contains("/api/notifications") || path.Contains("/notifications")))
         {
             _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for notifications - checking X-USER-ID");
-            
+
             // Log all headers for debugging
             foreach (var header in context.Request.Headers)
             {
                 _logger.LogInformation("  Header: {Key} = {Value}", header.Key, header.Value.ToString());
             }
-            
+
             // Check for X-USER-ID header and store userId
             if (context.Request.Headers.TryGetValue("X-USER-ID", out var userIdHeader) &&
                 int.TryParse(userIdHeader, out var userId))
@@ -256,7 +256,28 @@ public class MedewGcIdMiddleware
             {
                 _logger.LogWarning("MedewGcIdMiddleware: X-USER-ID header missing or invalid");
             }
-            
+
+            await _next(context);
+            return;
+        }
+
+        // Skip X-MEDEW-GC-ID for two-factor authentication (uses X-USER-ID instead)
+        if (path != null && path.Contains("/api/two-factor"))
+        {
+            _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for two-factor - checking X-USER-ID");
+
+            // Check for X-USER-ID header and store userId
+            if (context.Request.Headers.TryGetValue("X-USER-ID", out var twoFactorUserIdHeader) &&
+                int.TryParse(twoFactorUserIdHeader, out var twoFactorUserId))
+            {
+                _logger.LogInformation("MedewGcIdMiddleware: Found X-USER-ID={UserId} for 2FA", twoFactorUserId);
+                context.Items["UserId"] = twoFactorUserId;
+            }
+            else
+            {
+                _logger.LogWarning("MedewGcIdMiddleware: X-USER-ID header missing for 2FA request");
+            }
+
             await _next(context);
             return;
         }

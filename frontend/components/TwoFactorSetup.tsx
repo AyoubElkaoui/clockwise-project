@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Mail, Smartphone, Copy, Check, AlertCircle } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '@/lib/api';
 
 type TwoFactorMethod = 'email' | 'totp';
 
@@ -36,11 +35,14 @@ export function TwoFactorSetup() {
 
     try {
       const userId = localStorage.getItem('userId');
+      const medewGcId = localStorage.getItem('medewGcId');
       const response = await fetch(`${API_URL}/two-factor/setup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-USER-ID': userId || '',
+          'X-MEDEW-GC-ID': medewGcId || '',
+          'ngrok-skip-browser-warning': '1',
         },
         body: JSON.stringify({ method: selectedMethod }),
       });
@@ -72,11 +74,14 @@ export function TwoFactorSetup() {
 
     try {
       const userId = localStorage.getItem('userId');
+      const medewGcId = localStorage.getItem('medewGcId');
       const response = await fetch(`${API_URL}/two-factor/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-USER-ID': userId || '',
+          'X-MEDEW-GC-ID': medewGcId || '',
+          'ngrok-skip-browser-warning': '1',
         },
         body: JSON.stringify({ code: verificationCode }),
       });
