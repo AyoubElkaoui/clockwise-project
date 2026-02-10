@@ -27,6 +27,13 @@ export default function ManagerRoute({
       return;
     }
 
+    // Check if 2FA setup is required
+    const require2FASetup = localStorage.getItem("require2FASetup");
+    if (require2FASetup === "true" && pathname !== "/manager/account/2fa") {
+      router.push("/manager/account/2fa");
+      return;
+    }
+
     // Check if user is manager or admin
     if (userRank !== "manager" && userRank !== "admin") {
       router.push("/"); // Redirect to normal dashboard

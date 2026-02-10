@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function AdminRoute({
   children,
@@ -8,6 +8,7 @@ export default function AdminRoute({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,6 +17,13 @@ export default function AdminRoute({
 
     if (!userId) {
       router.push("/login");
+      return;
+    }
+
+    // Check if 2FA setup is required
+    const require2FASetup = localStorage.getItem("require2FASetup");
+    if (require2FASetup === "true" && pathname !== "/admin/account/2fa") {
+      router.push("/admin/account/2fa");
       return;
     }
 
@@ -29,7 +37,7 @@ export default function AdminRoute({
       // Gewone users naar user dashboard
       router.push("/dashboard");
     }
-  }, [router]);
+  }, [router, pathname]);
 
   if (loading) {
     return (

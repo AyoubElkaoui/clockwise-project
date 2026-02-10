@@ -26,11 +26,26 @@ export default function ProtectedRoute({
       return;
     }
 
-    // Check if 2FA setup is required
+    // Check if 2FA setup is required - redirect to the correct 2FA page for their role
     const require2FASetup = localStorage.getItem("require2FASetup");
-    if (require2FASetup === "true" && pathname !== "/account/2fa") {
-      router.push("/account/2fa");
-      return;
+    if (require2FASetup === "true") {
+      // Each role has exactly one correct 2FA page
+      if (userRank === "manager") {
+        if (pathname !== "/manager/account/2fa") {
+          router.push("/manager/account/2fa");
+          return;
+        }
+      } else if (userRank === "admin") {
+        if (pathname !== "/admin/account/2fa") {
+          router.push("/admin/account/2fa");
+          return;
+        }
+      } else {
+        if (pathname !== "/account/2fa") {
+          router.push("/account/2fa");
+          return;
+        }
+      }
     }
 
     // Check if user is on correct routes based on role

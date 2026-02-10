@@ -84,12 +84,25 @@ export default function LoginPage(): JSX.Element {
       // Check if 2FA setup is required
       if (response.require2FASetup) {
         localStorage.setItem("require2FASetup", "true");
-        router.push("/account/2fa");
+        // Redirect based on role
+        if (response.user.role === "manager") {
+          router.push("/manager/account/2fa");
+        } else if (response.user.role === "admin") {
+          router.push("/admin/account/2fa");
+        } else {
+          router.push("/account/2fa");
+        }
         return;
       }
 
-      // Stuur naar dashboard
-      router.push("/dashboard");
+      // Stuur naar dashboard based on role
+      if (response.user.role === "manager") {
+        router.push("/manager/dashboard");
+      } else if (response.user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (e: unknown) {
       if (e instanceof Error) {
         setError(requires2FA ? "Ongeldige 2FA code" : "Ongeldige gebruikersnaam of wachtwoord");

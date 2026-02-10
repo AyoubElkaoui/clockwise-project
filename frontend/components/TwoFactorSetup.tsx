@@ -98,8 +98,15 @@ export function TwoFactorSetup() {
         localStorage.removeItem('require2FASetup');
         localStorage.setItem('twoFactorEnabled', 'true');
         alert('2FA succesvol geactiveerd! 🎉');
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        // Redirect to dashboard based on role
+        const userRank = localStorage.getItem('userRank');
+        if (userRank === 'manager') {
+          window.location.href = '/manager/dashboard';
+        } else if (userRank === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid verification code. Please try again.');
