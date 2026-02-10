@@ -21,19 +21,24 @@ import {
   FileText,
   Wrench,
   Ruler,
+  Moon,
   Clock,
+  Star,
+  Heart,
 } from "lucide-react";
 import {
   getCompanies,
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
-import { API_URL } from "@/lib/api";
-import { getProjects as getAllProjectsFlat } from "@/lib/api";
-import { getUserProjects } from "@/lib/api/userProjectApi";
-import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
+import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteDraft } from "@/lib/api/workflowApi";
+import { getFavoriteProjects, addFavoriteProject, removeFavoriteProject, type FavoriteProject } from "@/lib/api/favoriteProjectsApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
-import { getCurrentPeriodId as getManagerCurrentPeriodId } from "@/lib/manager-api";
+import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
+import { getProjects as getAllProjectsFlat } from "@/lib/api";
+import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import ModernLayout from "@/components/ModernLayout";
 
 interface Company {
   id: number;
@@ -133,6 +138,7 @@ function getMonthWeeks(date: Date): Date[] {
 export default function TimeRegistrationPage() {
   const { t } = useTranslation();
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [currentPeriodId, setCurrentPeriodId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [projectGroups, setProjectGroups] = useState<
@@ -150,10 +156,15 @@ export default function TimeRegistrationPage() {
   } | null>(null);
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
   const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
   const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
+  const [hasSubmittedEntries, setHasSubmittedEntries] = useState(false);
+  const [favoriteProjects, setFavoriteProjects] = useState<FavoriteProject[]>([]);
+  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(new Set());
+  const [projectMaxHours, setProjectMaxHours] = useState<Record<number, number>>({});
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -174,55 +185,84 @@ export default function TimeRegistrationPage() {
   const weekNumber = getWeekNumber(currentWeek);
   const monthWeeks = getMonthWeeks(currentWeek);
 
+  // Load current period ID on mount
+  useEffect(() => {
+    const loadPeriodId = async () => {
+      try {
+        const periodId = await fetchCurrentPeriodId();
+        setCurrentPeriodId(periodId);
+        console.log("Loaded current period ID:", periodId);
+      } catch (error) {
+        console.error("Failed to load period ID:", error);
+        setCurrentPeriodId(100436); // Fallback
+      }
+    };
+    loadPeriodId();
+  }, []);
+
   useEffect(() => {
     loadCompanies();
     loadEntries();
     loadUserAllowedTasks();
+    loadHolidays();
     loadAssignedProjects();
+    loadFavoriteProjects();
   }, [currentWeek, viewMode]);
 
   useEffect(() => {
     loadClosedDays();
   }, [currentWeek]);
 
-  const showToast = (message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const loadAssignedProjects = async () => {
+  const loadFavoriteProjects = async () => {
     try {
-      const userId = Number(localStorage.getItem("userId")) || 0;
-      if (userId > 0) {
-        const userProjects = await getUserProjects(userId);
-        const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
-        const filteredIds = ids.filter((id: number) => id > 0);
-        setAssignedProjectIds(filteredIds);
-
-        if (filteredIds.length > 0) {
-          const allProjects = await getAllProjectsFlat();
-          const assignedSet = new Set(filteredIds);
-          const groupIds = new Set<number>();
-          for (const p of allProjects) {
-            const pid = (p as any).gcId || (p as any).id;
-            if (assignedSet.has(pid) && (p as any).werkgrpGcId) {
-              groupIds.add((p as any).werkgrpGcId);
-            }
-          }
-          setAssignedGroupIds(groupIds);
-        } else {
-          setAssignedGroupIds(new Set());
-        }
-      } else {
-        setAssignedProjectIds([]);
-        setAssignedGroupIds(new Set());
-      }
-    } catch (err) {
-      setAssignedProjectIds([]);
-      setAssignedGroupIds(new Set());
+      const favorites = await getFavoriteProjects();
+      setFavoriteProjects(favorites);
+      setFavoriteProjectIds(new Set(favorites.map(f => f.projectGcId)));
+    } catch (error) {
+      console.error("Failed to load favorite projects:", error);
     }
   };
 
+  const toggleFavorite = async (projectId: number, projectName: string) => {
+    try {
+      if (favoriteProjectIds.has(projectId)) {
+        await removeFavoriteProject(projectId);
+        setFavoriteProjectIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(projectId);
+          return newSet;
+        });
+        setFavoriteProjects(prev => prev.filter(f => f.projectGcId !== projectId));
+        showToast(`${projectName} verwijderd uit favorieten`, "success");
+      } else {
+        const favorite = await addFavoriteProject(projectId);
+        setFavoriteProjectIds(prev => new Set([...prev, projectId]));
+        setFavoriteProjects(prev => [...prev, favorite]);
+        showToast(`${projectName} toegevoegd aan favorieten`, "success");
+      }
+    } catch (error) {
+      showToast("Fout bij aanpassen favorieten", "error");
+    }
+  };
+
+  const addFavoriteToRows = (favorite: FavoriteProject) => {
+    if (!projectRows.some(r => r.projectId === favorite.projectGcId)) {
+      setProjectRows(prev => [
+        ...prev,
+        {
+          companyId: 0,
+          companyName: favorite.companyName || "Favoriet",
+          projectGroupId: 0,
+          projectGroupName: favorite.projectGroupName || "",
+          projectId: favorite.projectGcId,
+          projectName: favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`,
+        },
+      ]);
+    }
+  };
+
+  // Compute filtered projects at render time based on assignedProjectIds
+  // This guarantees the filter is always applied regardless of load order
   const getVisibleProjects = (groupId: number): Project[] => {
     const allProjects = projects[groupId] || [];
     if (assignedProjectIds === null) {
@@ -231,11 +271,16 @@ export default function TimeRegistrationPage() {
     return allProjects.filter(p => assignedProjectIds.includes(p.id));
   };
 
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const loadClosedDays = async () => {
     try {
       const year = currentWeek.getFullYear();
       const response = await axios.get(
-        `${API_URL}/holidays/closed?year=${year}`,
+        `/api/holidays/closed?year=${year}`,
       );
       setClosedDays(response.data);
     } catch (error) {
@@ -244,7 +289,31 @@ export default function TimeRegistrationPage() {
   };
 
   const isClosedDay = (date: string) => {
+    // Check holidays first
+    const holiday = holidays.find(h => h.holidayDate === date);
+    if (holiday && !holiday.isWorkAllowed) {
+      return true;
+    }
+
+    // Check closed days
     return closedDays.some((day) => day.date === date);
+  };
+
+  // Check if date is a weekend (Saturday or Sunday)
+  const isWeekend = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const dayOfWeek = d.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+  };
+
+  const loadHolidays = async () => {
+    try {
+      const year = currentWeek.getFullYear();
+      const data = await getHolidays(year);
+      setHolidays(data);
+    } catch (error) {
+      // Silent fail - holidays are optional
+    }
   };
 
   const loadUserAllowedTasks = () => {
@@ -267,6 +336,52 @@ export default function TimeRegistrationPage() {
     return 'MONTAGE'; // Default for users with BOTH
   };
 
+  const loadAssignedProjects = async () => {
+    try {
+      const userId = Number(localStorage.getItem("userId")) || 0;
+      if (userId > 0) {
+        const userProjects = await getUserProjects(userId);
+        const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
+        const filteredIds = ids.filter((id: number) => id > 0);
+        setAssignedProjectIds(filteredIds);
+
+        // Extract max hours per project
+        const maxHoursMap: Record<number, number> = {};
+        for (const up of userProjects) {
+          const pid = up.projectId || (up as any).project_gc_id || (up as any).projectGcId;
+          if (pid && up.maxHours) {
+            maxHoursMap[pid] = up.maxHours;
+          }
+        }
+        setProjectMaxHours(maxHoursMap);
+
+        // Determine which project groups contain assigned projects
+        if (filteredIds.length > 0) {
+          const allProjects = await getAllProjectsFlat();
+          const assignedSet = new Set(filteredIds);
+          const groupIds = new Set<number>();
+          for (const p of allProjects) {
+            const pid = (p as any).gcId || (p as any).id;
+            if (assignedSet.has(pid) && (p as any).werkgrpGcId) {
+              groupIds.add((p as any).werkgrpGcId);
+            }
+          }
+          setAssignedGroupIds(groupIds);
+        } else {
+          setAssignedGroupIds(new Set());
+        }
+      } else {
+        setAssignedProjectIds([]);
+        setAssignedGroupIds(new Set());
+        setProjectMaxHours({});
+      }
+    } catch (err) {
+      setAssignedProjectIds([]);
+      setAssignedGroupIds(new Set());
+      setProjectMaxHours({});
+    }
+  };
+
   const loadCompanies = async () => {
     try {
       const data = await getCompanies();
@@ -278,7 +393,7 @@ export default function TimeRegistrationPage() {
 
   const loadEntries = async () => {
     try {
-      const urenperGcId = await getCurrentPeriodId();
+      const urenperGcId = getCurrentPeriodId();
 
       // Load ALL statuses: DRAFT, SUBMITTED, APPROVED, REJECTED
       const [drafts, submitted, rejected] = await Promise.all([
@@ -288,6 +403,12 @@ export default function TimeRegistrationPage() {
       ]);
 
       const allEntries = [...drafts, ...submitted, ...rejected];
+
+      // Check if any entries are submitted or approved (locks the whole period)
+      const hasLockedEntries = allEntries.some((e: any) => 
+        e.status === 'SUBMITTED' || e.status === 'APPROVED'
+      );
+      setHasSubmittedEntries(hasLockedEntries);
 
       const map: Record<string, TimeEntry> = {};
       const projectIdsToAdd = new Set<number>();
@@ -375,7 +496,7 @@ export default function TimeRegistrationPage() {
         try {
           const projs = await getProjects(id);
           setProjects((prev) => ({ ...prev, [id]: projs }));
-        } catch (error) {
+        } catch {
           showToast("Kon projecten niet laden", "error");
         }
       }
@@ -459,13 +580,50 @@ export default function TimeRegistrationPage() {
     showToast("Geplakt!", "success");
   };
 
-  const removeProject = (projectId: number) => {
+  const removeProject = async (projectId: number) => {
+    // Only try to delete entries that are editable (DRAFT or REJECTED)
+    const entriesToDelete = Object.values(entries).filter(
+      (e) => e.projectId === projectId && e.id && (e.status === "DRAFT" || e.status === "REJECTED" || e.status === "opgeslagen" || !e.status)
+    );
+
+    // Check if there are any non-deletable entries
+    const nonDeletableEntries = Object.values(entries).filter(
+      (e) => e.projectId === projectId && e.id && (e.status === "SUBMITTED" || e.status === "APPROVED")
+    );
+
+    if (nonDeletableEntries.length > 0) {
+      showToast(`Kan project niet verwijderen: ${nonDeletableEntries.length} uur${nonDeletableEntries.length > 1 ? 'registraties zijn' : 'registratie is'} al ingeleverd of goedgekeurd`, "error");
+      return;
+    }
+
+    let deletedCount = 0;
+    let failedCount = 0;
+
+    for (const entry of entriesToDelete) {
+      try {
+        if (entry.id) {
+          await deleteDraft(entry.id);
+          deletedCount++;
+        }
+      } catch (err: any) {
+        failedCount++;
+        console.error("Failed to delete entry:", entry.id, err);
+      }
+    }
+
+    if (failedCount > 0) {
+      showToast(`${failedCount} uur${failedCount > 1 ? 'registraties' : 'registratie'} kon niet verwijderd worden`, "error");
+    }
+
+    // Remove project row from UI
     setProjectRows((prev) => prev.filter((r) => r.projectId !== projectId));
-    const newEntries = { ...entries };
-    Object.keys(newEntries).forEach((k) => {
-      if (newEntries[k].projectId === projectId) delete newEntries[k];
-    });
-    setEntries(newEntries);
+
+    // Reload entries from server to ensure UI is in sync
+    await loadEntries();
+
+    if (deletedCount > 0 && failedCount === 0) {
+      showToast(`Project en ${deletedCount} uur${deletedCount > 1 ? 'registraties' : 'registratie'} verwijderd`, "success");
+    }
   };
 
   const updateEntry = (
@@ -553,24 +711,42 @@ export default function TimeRegistrationPage() {
       0,
     );
 
-  const getCurrentPeriodId = async () => {
-    return await getManagerCurrentPeriodId();
+  const getCurrentPeriodId = () => {
+    // Return the cached period ID if already fetched
+    return currentPeriodId || 100436; // Fallback to 100436 if not loaded yet
+  };
+
+  // Get total hours spent on a project (all entries, not just current week)
+  const getTotalHoursForProject = (projectId: number) => {
+    return (Object.values(entries) as TimeEntry[])
+      .filter((e) => e.projectId === projectId)
+      .reduce((sum, e) => sum + (e.hours || 0), 0);
+  };
+
+  // Check if project has max hours set and if user is at/over limit
+  const getProjectMaxInfo = (projectId: number) => {
+    const maxHours = projectMaxHours[projectId];
+    if (!maxHours) return { hasMax: false, currentHours: 0, maxHours: 0, isAtMax: false };
+    const currentHours = getTotalHoursForProject(projectId);
+    return {
+      hasMax: true,
+      currentHours,
+      maxHours,
+      isAtMax: currentHours >= maxHours,
+      remaining: Math.max(0, maxHours - currentHours)
+    };
   };
 
   // Helper functions for entry status styling and editability
   const isEditable = (status?: string) => {
-    // DRAFT, REJECTED, and old "opgeslagen" status are editable
-    // SUBMITTED and APPROVED are not editable
+    // Only lock individual entries that are SUBMITTED or APPROVED
+    // New entries (no status) and DRAFT/REJECTED entries remain editable
+    // This allows users to add new entries even when some are already submitted
     if (status === "SUBMITTED" || status === "APPROVED") {
       return false;
     }
+    // DRAFT, REJECTED, and old "opgeslagen" status are editable
     return !status || status === "DRAFT" || status === "REJECTED" || status === "opgeslagen";
-  };
-  
-  // Check if entire week is locked (has any SUBMITTED/APPROVED entries)
-  const isWeekLocked = () => {
-    const weekEntries = Object.values(entries) as TimeEntry[];
-    return weekEntries.some(e => e.status === "SUBMITTED" || e.status === "APPROVED");
   };
 
   const getEntryClassName = (status?: string) => {
@@ -618,7 +794,7 @@ export default function TimeRegistrationPage() {
         return;
       }
 
-      const urenperGcId = await getCurrentPeriodId();
+      const urenperGcId = getCurrentPeriodId();
 
       // Save each entry as draft using workflow API
       // Update entries with their IDs after saving
@@ -695,7 +871,7 @@ export default function TimeRegistrationPage() {
         return;
       }
 
-      const urenperGcId = await getCurrentPeriodId();
+      const urenperGcId = getCurrentPeriodId();
 
       // First save all entries as drafts
       const savedIds: number[] = [];
@@ -733,6 +909,9 @@ export default function TimeRegistrationPage() {
       });
 
       showToast(`✓ ${savedIds.length} uur${savedIds.length > 1 ? 'registraties' : 'registratie'} succesvol ingediend voor goedkeuring!`, "success");
+      
+      // Force reload after a short delay to ensure backend has processed
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadEntries();
     } catch (error) {
       const errorMessage = error instanceof Error 
@@ -745,23 +924,25 @@ export default function TimeRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
-            toast.type === "success" ? "bg-green-500" : "bg-red-500"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-lg">
-              {toast.type === "success" ? "✓" : "✕"}
-            </span>
-            <span className="font-medium">{toast.message}</span>
-          </div>
-        </div>
-      )}
+    <ProtectedRoute>
+      <ModernLayout>
+        <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
+          {toast && (
+            <div
+              className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
+                toast.type === "success" ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {toast.type === "success" ? "✓" : "✕"}
+                </span>
+                <span className="font-medium">{toast.message}</span>
+              </div>
+            </div>
+          )}
 
-      <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
+          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
             <div className="px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -830,17 +1011,15 @@ export default function TimeRegistrationPage() {
               <div className="flex gap-3">
                 <button
                   onClick={saveAll}
-                  disabled={saving || isWeekLocked()}
+                  disabled={saving}
                   className="px-5 py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
-                  title={isWeekLocked() ? "Week is ingediend en kan niet meer worden gewijzigd" : ""}
                 >
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
                 <button
                   onClick={submitAll}
-                  disabled={saving || isWeekLocked()}
+                  disabled={saving}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
-                  title={isWeekLocked() ? "Week is al ingediend" : ""}
                 >
                   <Send className="w-4 h-4" /> Inleveren
                 </button>
@@ -851,6 +1030,46 @@ export default function TimeRegistrationPage() {
           <div className="flex h-[calc(100vh-5rem)]">
             <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
               <div className="p-4 space-y-1">
+                {/* Favoriete Projecten sectie */}
+                {favoriteProjects.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span>Favorieten</span>
+                    </div>
+                    <div className="space-y-1">
+                      {favoriteProjects.map((favorite) => (
+                        <div
+                          key={`fav-${favorite.projectGcId}`}
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
+                            }}
+                            className="text-amber-500 hover:text-amber-600"
+                          >
+                            <Star className="w-3 h-3 fill-current" />
+                          </button>
+                          <span
+                            onClick={() => addFavoriteToRows(favorite)}
+                            className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
+                          >
+                            {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
+                          </span>
+                          <Plus
+                            onClick={() => addFavoriteToRows(favorite)}
+                            className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
+                  </div>
+                )}
+
+                {/* Bedrijven en projecten */}
                 {companies.map((company) => (
                   <div key={company.id}>
                     <div
@@ -886,15 +1105,31 @@ export default function TimeRegistrationPage() {
                                 {getVisibleProjects(group.id).map((project) => (
                                   <div
                                     key={project.id}
-                                    onClick={() =>
-                                      addProject(company, group, project)
-                                    }
-                                    className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
                                   >
-                                    <Plus className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <span className="text-sm text-slate-600 group-hover:text-emerald-600">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(project.id, project.name);
+                                      }}
+                                      className={`transition-colors ${
+                                        favoriteProjectIds.has(project.id)
+                                          ? "text-amber-500"
+                                          : "text-slate-300 hover:text-amber-400"
+                                      }`}
+                                    >
+                                      <Star className={`w-3 h-3 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
+                                    </button>
+                                    <span
+                                      onClick={() => addProject(company, group, project)}
+                                      className="text-sm text-slate-600 group-hover:text-emerald-600 cursor-pointer flex-1"
+                                    >
                                       {project.name}
                                     </span>
+                                    <Plus
+                                      onClick={() => addProject(company, group, project)}
+                                      className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    />
                                   </div>
                                 ))}
                               </div>
@@ -995,8 +1230,30 @@ export default function TimeRegistrationPage() {
                                     {row.companyName}
                                     {row.projectGroupName && ` › ${row.projectGroupName}`}
                                   </div>
-                                  <div className="font-semibold text-base text-slate-800 dark:text-slate-100 mb-2">
-                                    {row.projectName}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <button
+                                      onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                                      title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Toevoegen aan favorieten"}
+                                    >
+                                      <Heart
+                                        className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`}
+                                      />
+                                    </button>
+                                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">
+                                      {row.projectName}
+                                    </span>
+                                    {(() => {
+                                      const maxInfo = getProjectMaxInfo(row.projectId);
+                                      if (maxInfo.hasMax) {
+                                        return (
+                                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                                            max {maxInfo.currentHours}/{maxInfo.maxHours}
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </div>
                                   <div className="flex gap-2">
                                     <button
@@ -1029,19 +1286,23 @@ export default function TimeRegistrationPage() {
                                     day.getFullYear() === currentYear;
                                   const entryEditable = isEditable(entry.status);
                                   const isClosed = isClosedDay(date);
-                                  const weekLocked = isWeekLocked();
+                                  const isWeekendDay = isWeekend(day);
+                                  const maxInfo = getProjectMaxInfo(row.projectId);
+                                  const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
                                   const isDisabled =
                                     !isInCurrentMonth ||
                                     !entryEditable ||
                                     isClosed ||
-                                    weekLocked;
+                                    isWeekendDay ||
+                                    isAtMaxHours;
                                   return (
                                     <div
                                       key={`entry-${date}-${row.projectId}`}
                                       className={
-                                        "space-y-1 p-2 rounded " +
+                                        "space-y-1.5 p-2 rounded " +
                                         getEntryClassName(entry.status) +
-                                        (!isInCurrentMonth ? " opacity-30" : "")
+                                        (!isInCurrentMonth ? " opacity-30" : "") +
+                                        (isAtMaxHours ? " opacity-50" : "")
                                       }
                                     >
                                       {/* Task type selector (alleen voor users met BOTH) */}
@@ -1056,7 +1317,7 @@ export default function TimeRegistrationPage() {
                                               e.target.value as 'MONTAGE' | 'TEKENKAMER',
                                             )
                                           }
-                                          className="w-full px-2 py-1.5 mb-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
                                           title="Selecteer taaktype"
                                         >
                                           <option value="MONTAGE">⚙️ Montage</option>
@@ -1064,10 +1325,10 @@ export default function TimeRegistrationPage() {
                                         </select>
                                       )}
 
-                                      {/* Uren en Avond/Nacht side by side */}
-                                      <div className="grid grid-cols-2 gap-2 mb-2">
+                                      {/* Uren + Avond/Nacht (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
                                         <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
+                                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Uren</label>
                                           <input
                                             type="number"
                                             step="0.5"
@@ -1083,13 +1344,21 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
+                                            className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
                                             placeholder="0"
-                                            title="Gewerkte uren"
+                                            title={
+                                              isClosed
+                                                ? "Gesloten dag"
+                                                : entry.status === "SUBMITTED" ? "Ingeleverd"
+                                                : entry.status === "APPROVED" ? "Goedgekeurd"
+                                                : "Gewerkte uren"
+                                            }
                                           />
                                         </div>
                                         <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nacht</label>
+                                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5 flex items-center gap-0.5">
+                                            <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                          </label>
                                           <input
                                             type="number"
                                             step="0.5"
@@ -1105,17 +1374,17 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
+                                            className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
                                             placeholder="0"
-                                            title="Avond/Nacht uren"
+                                            title="Avond/nacht uren"
                                           />
                                         </div>
                                       </div>
 
-                                      {/* Reisuren */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                      {/* Reisuren + KM (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-blue-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="0.5"
@@ -1130,17 +1399,13 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                            placeholder="reisuren"
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="reisu"
                                             title="Reisuren"
                                           />
                                         </div>
-                                      </div>
-
-                                      {/* Kilometers (altijd zichtbaar, compact) */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Car className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                        <div className="flex items-center gap-1">
+                                          <Car className="w-3 h-3 text-green-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="1"
@@ -1155,17 +1420,17 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
                                             placeholder="km"
-                                            title="Afstand in kilometers"
+                                            title="Kilometers"
                                           />
                                         </div>
                                       </div>
 
-                                      {/* Reiskosten (altijd zichtbaar, compact) */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Ticket className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                      {/* Reiskosten + Onkosten (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <Ticket className="w-3 h-3 text-yellow-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="0.01"
@@ -1180,17 +1445,13 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                            placeholder="€ reis"
-                                            title="Reiskosten (OV, taxi, parkeren)"
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="€reis"
+                                            title="Reiskosten"
                                           />
                                         </div>
-                                      </div>
-
-                                      {/* Onkosten (altijd zichtbaar, compact) */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Euro className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                        <div className="flex items-center gap-1">
+                                          <Euro className="w-3 h-3 text-orange-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="0.01"
@@ -1205,53 +1466,36 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                            placeholder="€ onkosten"
-                                            title="Onkosten (materiaal, maaltijden)"
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="€onk"
+                                            title="Onkosten"
                                           />
                                         </div>
                                       </div>
 
-                                      {/* Notities (klikbaar veld) */}
-                                      {!isDisabled && (
-                                        <button
-                                          onClick={() => toggleCellExpanded(row.projectId, date)}
-                                          className="w-full mt-1 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-colors"
-                                        >
-                                          <FileText className="w-3.5 h-3.5" />
-                                          {entry.notes ? (
-                                            <span className="font-medium">Notitie</span>
-                                          ) : (
-                                            <span>+ Notitie</span>
-                                          )}
-                                        </button>
-                                      )}
-
-                                      {/* Uitklapbare notities sectie */}
-                                      {isCellExpanded(row.projectId, date) && (
-                                        <div className="mt-2 p-2 border-t border-slate-200 dark:border-slate-600">
-                                          <textarea
-                                            value={entry.notes || ""}
-                                            onChange={(e) =>
-                                              updateEntry(
-                                                row.projectId,
-                                                date,
-                                                "notes",
-                                                e.target.value,
-                                              )
-                                            }
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-xs resize-none", entry.status)}
-                                            placeholder="Notities..."
-                                            rows={3}
-                                            title="Notities"
-                                          />
-                                        </div>
-                                      )}
+                                      {/* Opmerkingen */}
+                                      <div>
+                                        <textarea
+                                          value={entry.notes || ""}
+                                          onChange={(e) =>
+                                            updateEntry(
+                                              row.projectId,
+                                              date,
+                                              "notes",
+                                              e.target.value,
+                                            )
+                                          }
+                                          disabled={isDisabled}
+                                          className={getInputClassName("w-full px-1.5 py-1 border rounded text-xs resize-none", entry.status)}
+                                          placeholder="Opmerkingen..."
+                                          rows={2}
+                                          title="Opmerkingen"
+                                        />
+                                      </div>
 
                                       {/* Afkeur reden */}
                                       {entry.status === "REJECTED" && entry.rejectionReason && (
-                                        <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                        <div className="p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-[10px]">
                                           <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
                                           <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
                                         </div>
@@ -1370,8 +1614,30 @@ export default function TimeRegistrationPage() {
                                 {row.companyName}
                                 {row.projectGroupName && ` › ${row.projectGroupName}`}
                               </div>
-                              <div className="font-semibold text-base text-slate-800 dark:text-slate-100 mb-2">
-                                {row.projectName}
+                              <div className="flex items-center gap-2 mb-2">
+                                <button
+                                  onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                                  title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Toevoegen aan favorieten"}
+                                >
+                                  <Heart
+                                    className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`}
+                                  />
+                                </button>
+                                <span className="font-semibold text-base text-slate-800 dark:text-slate-100">
+                                  {row.projectName}
+                                </span>
+                                {(() => {
+                                  const maxInfo = getProjectMaxInfo(row.projectId);
+                                  if (maxInfo.hasMax) {
+                                    return (
+                                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                                        max {maxInfo.currentHours}/{maxInfo.maxHours}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                               <div className="flex gap-2">
                                 <button
@@ -1399,12 +1665,14 @@ export default function TimeRegistrationPage() {
                               };
                               const entryEditable = isEditable(entry.status);
                               const isClosed = isClosedDay(date);
-                              const weekLocked = isWeekLocked();
-                              const isDisabled = !entryEditable || isClosed || weekLocked;
+                              const isWeekendDay = isWeekend(day);
+                              const maxInfo = getProjectMaxInfo(row.projectId);
+                              const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                              const isDisabled = !entryEditable || isClosed || isWeekendDay || isAtMaxHours;
                               return (
                                 <div
                                   key={`week-entry-${date}-${row.projectId}`}
-                                  className={"space-y-1 p-2 rounded " + getEntryClassName(entry.status)}
+                                  className={"space-y-1.5 p-2 rounded " + getEntryClassName(entry.status) + (isAtMaxHours ? " opacity-50" : "")}
                                 >
                                   {/* Task type selector (alleen voor users met BOTH) */}
                                   {shouldShowTaskDropdown() && !isDisabled && (
@@ -1418,7 +1686,7 @@ export default function TimeRegistrationPage() {
                                           e.target.value as 'MONTAGE' | 'TEKENKAMER',
                                         )
                                       }
-                                      className="w-full px-2 py-1.5 mb-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                      className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
                                       title="Selecteer taaktype"
                                     >
                                       <option value="MONTAGE">⚙️ Montage</option>
@@ -1426,40 +1694,87 @@ export default function TimeRegistrationPage() {
                                     </select>
                                   )}
 
-                                  {/* Uren input (groot en prominent) */}
-                                  <div className="mb-2">
-                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
-                                    <input
-                                      type="number"
-                                      step="0.5"
-                                      min="0"
-                                      max="24"
-                                      value={entry.hours || ""}
-                                      onChange={(e) =>
-                                        updateEntry(
-                                          row.projectId,
-                                          date,
-                                          "hours",
-                                          parseFloat(e.target.value) || 0,
-                                        )
-                                      }
-                                      disabled={isDisabled}
-                                      className={getInputClassName("w-full px-3 py-2.5 border rounded-lg text-center text-xl font-bold", entry.status)}
-                                      placeholder="0"
-                                      title={
-                                        isClosed
-                                          ? "Gesloten dag - geen uren registratie mogelijk"
-                                          : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                          : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                          : "Gewerkte uren"
-                                      }
-                                    />
+                                  {/* Uren + Avond/Nacht (naast elkaar) */}
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Uren</label>
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={entry.hours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "hours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                        placeholder="0"
+                                        title={
+                                          isClosed
+                                            ? "Gesloten dag"
+                                            : entry.status === "SUBMITTED" ? "Ingeleverd"
+                                            : entry.status === "APPROVED" ? "Goedgekeurd"
+                                            : "Gewerkte uren"
+                                        }
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5 flex items-center gap-0.5">
+                                        <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={entry.eveningNightHours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "eveningNightHours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                        placeholder="0"
+                                        title="Avond/nacht uren"
+                                      />
+                                    </div>
                                   </div>
 
-                                  {/* Kilometers (altijd zichtbaar, compact) */}
-                                  <div className="mb-1">
-                                    <div className="flex items-center gap-2">
-                                      <Car className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  {/* Reisuren + KM (naast elkaar) */}
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        value={entry.travelHours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "travelHours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="reisu"
+                                        title="Reisuren"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Car className="w-3 h-3 text-green-500 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="1"
@@ -1474,17 +1789,17 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
                                         placeholder="km"
-                                        title="Afstand in kilometers"
+                                        title="Kilometers"
                                       />
                                     </div>
                                   </div>
 
-                                  {/* Reiskosten (altijd zichtbaar, compact) */}
-                                  <div className="mb-1">
-                                    <div className="flex items-center gap-2">
-                                      <Ticket className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                  {/* Reiskosten + Onkosten (naast elkaar) */}
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <Ticket className="w-3 h-3 text-yellow-500 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1499,17 +1814,13 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                        placeholder="€ reis"
-                                        title="Reiskosten (OV, taxi, parkeren)"
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="€reis"
+                                        title="Reiskosten"
                                       />
                                     </div>
-                                  </div>
-
-                                  {/* Onkosten (altijd zichtbaar, compact) */}
-                                  <div className="mb-1">
-                                    <div className="flex items-center gap-2">
-                                      <Euro className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                    <div className="flex items-center gap-1">
+                                      <Euro className="w-3 h-3 text-orange-500 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1524,53 +1835,36 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                        placeholder="€ onkosten"
-                                        title="Onkosten (materiaal, maaltijden)"
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="€onk"
+                                        title="Onkosten"
                                       />
                                     </div>
                                   </div>
 
-                                  {/* Notities (klikbaar veld) */}
-                                  {!isDisabled && (
-                                    <button
-                                      onClick={() => toggleCellExpanded(row.projectId, date)}
-                                      className="w-full mt-1 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-colors"
-                                    >
-                                      <FileText className="w-3.5 h-3.5" />
-                                      {entry.notes ? (
-                                        <span className="font-medium">Notitie</span>
-                                      ) : (
-                                        <span>+ Notitie</span>
-                                      )}
-                                    </button>
-                                  )}
-
-                                  {/* Uitklapbare notities sectie */}
-                                  {isCellExpanded(row.projectId, date) && (
-                                    <div className="mt-2 p-2 border-t border-slate-200 dark:border-slate-600">
-                                      <textarea
-                                        value={entry.notes || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "notes",
-                                            e.target.value,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-xs resize-none", entry.status)}
-                                        placeholder="Notities..."
-                                        rows={3}
-                                        title="Notities"
-                                      />
-                                    </div>
-                                  )}
+                                  {/* Opmerkingen */}
+                                  <div>
+                                    <textarea
+                                      value={entry.notes || ""}
+                                      onChange={(e) =>
+                                        updateEntry(
+                                          row.projectId,
+                                          date,
+                                          "notes",
+                                          e.target.value,
+                                        )
+                                      }
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-1.5 py-1 border rounded text-xs resize-none", entry.status)}
+                                      placeholder="Opmerkingen..."
+                                      rows={2}
+                                      title="Opmerkingen"
+                                    />
+                                  </div>
 
                                   {/* Afkeur reden */}
                                   {entry.status === "REJECTED" && entry.rejectionReason && (
-                                    <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                    <div className="p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-[10px]">
                                       <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
                                       <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
                                     </div>
@@ -1617,5 +1911,7 @@ export default function TimeRegistrationPage() {
             </div>
           </div>
         </div>
+      </ModernLayout>
+    </ProtectedRoute>
   );
 }
