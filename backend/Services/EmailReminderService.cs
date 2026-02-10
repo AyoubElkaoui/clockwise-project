@@ -1,4 +1,5 @@
 using backend.Repositories;
+using ClockwiseProject.Backend.Repositories;
 using MailKit.Net.Smtp;
 using MimeKit;
 using Npgsql;
@@ -51,7 +52,7 @@ public class EmailReminderService : IEmailReminderService
             var users = await conn.QueryAsync<(int Id, string Email, string FirstName, string LastName)>(
                 @"SELECT id, email, first_name, last_name
                   FROM users
-                  WHERE rank != 'inactive' AND email IS NOT NULL AND email != ''");
+                  WHERE role != 'inactive' AND email IS NOT NULL AND email != ''");
 
             var sentCount = 0;
             foreach (var user in users)
@@ -98,7 +99,7 @@ public class EmailReminderService : IEmailReminderService
             var managers = await conn.QueryAsync<(int Id, string Email, string FirstName, string LastName)>(
                 @"SELECT id, email, first_name, last_name
                   FROM users
-                  WHERE rank = 'manager' AND email IS NOT NULL AND email != ''");
+                  WHERE role = 'manager' AND email IS NOT NULL AND email != ''");
 
             // Get current period ID
             var currentPeriodId = await GetCurrentPeriodIdAsync();
@@ -112,7 +113,7 @@ public class EmailReminderService : IEmailReminderService
             var allUsers = await conn.QueryAsync<(int Id, int MedewGcId, string FirstName, string LastName, string Email)>(
                 @"SELECT id, medew_gc_id, first_name, last_name, email
                   FROM users
-                  WHERE rank != 'inactive' AND rank != 'manager'");
+                  WHERE role != 'inactive' AND role != 'manager'");
 
             // Get who has submitted entries this week
             var submittedUsers = await conn.QueryAsync<int>(

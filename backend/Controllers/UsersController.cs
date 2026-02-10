@@ -15,13 +15,13 @@ namespace ClockwiseProject.Backend.Controllers
     }
 
     [ApiController]
-    [Route("api/[controller]")]
-    public class UsersController : ControllerBase
+    [Route("api/firebird-users")]
+    public class FirebirdUsersController : ControllerBase
     {
         private readonly IFirebirdDataRepository _repository;
-        private readonly ILogger<UsersController> _logger;
+        private readonly ILogger<FirebirdUsersController> _logger;
 
-        public UsersController(IFirebirdDataRepository repository, ILogger<UsersController> logger)
+        public FirebirdUsersController(IFirebirdDataRepository repository, ILogger<FirebirdUsersController> logger)
         {
             _repository = repository;
             _logger = logger;

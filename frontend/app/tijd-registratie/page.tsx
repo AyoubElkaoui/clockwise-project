@@ -698,12 +698,13 @@ export default function TimeRegistrationPage() {
 
   // Helper functions for entry status styling and editability
   const isEditable = (status?: string) => {
-    // If ANY entry in the period is submitted/approved, lock everything
-    if (hasSubmittedEntries) {
+    // Only lock individual entries that are SUBMITTED or APPROVED
+    // New entries (no status) and DRAFT/REJECTED entries remain editable
+    // This allows users to add new entries even when some are already submitted
+    if (status === "SUBMITTED" || status === "APPROVED") {
       return false;
     }
     // DRAFT, REJECTED, and old "opgeslagen" status are editable
-    // SUBMITTED and APPROVED are not editable
     return !status || status === "DRAFT" || status === "REJECTED" || status === "opgeslagen";
   };
 

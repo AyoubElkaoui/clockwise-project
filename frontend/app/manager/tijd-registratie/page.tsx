@@ -21,6 +21,7 @@ import {
   FileText,
   Wrench,
   Ruler,
+  Clock,
 } from "lucide-react";
 import {
   getCompanies,
@@ -469,7 +470,7 @@ export default function TimeRegistrationPage() {
   const updateEntry = (
     projectId: number,
     date: string,
-    field: "hours" | "taskType" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
+    field: "hours" | "taskType" | "eveningNightHours" | "travelHours" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
     value: any,
   ) => {
     const key = `${date}-${projectId}`;
@@ -640,6 +641,8 @@ export default function TimeRegistrationPage() {
           datum: entry.date,
           aantal: entry.hours,
           omschrijving: entry.notes || "",
+          eveningNightHours: entry.eveningNightHours || 0,
+          travelHours: entry.travelHours || 0,
           distanceKm: entry.distanceKm || 0,
           travelCosts: entry.travelCosts || 0,
           otherExpenses: entry.otherExpenses || 0,
@@ -713,6 +716,8 @@ export default function TimeRegistrationPage() {
           datum: entry.date,
           aantal: entry.hours,
           omschrijving: entry.notes || "",
+          eveningNightHours: entry.eveningNightHours || 0,
+          travelHours: entry.travelHours || 0,
           distanceKm: entry.distanceKm || 0,
           travelCosts: entry.travelCosts || 0,
           otherExpenses: entry.otherExpenses || 0,
@@ -1058,34 +1063,77 @@ export default function TimeRegistrationPage() {
                                         </select>
                                       )}
 
-                                      {/* Uren input (groot en prominent) */}
-                                      <div className="mb-2">
-                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
-                                        <input
-                                          type="number"
-                                          step="0.5"
-                                          min="0"
-                                          max="24"
-                                          value={entry.hours || ""}
-                                          onChange={(e) =>
-                                            updateEntry(
-                                              row.projectId,
-                                              date,
-                                              "hours",
-                                              parseFloat(e.target.value) || 0,
-                                            )
-                                          }
-                                          disabled={isDisabled}
-                                          className={getInputClassName("w-full px-3 py-2.5 border rounded-lg text-center text-xl font-bold", entry.status)}
-                                          placeholder="0"
-                                          title={
-                                            isClosed
-                                              ? "Gesloten dag - geen uren registratie mogelijk"
-                                              : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                              : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                              : "Gewerkte uren"
-                                          }
-                                        />
+                                      {/* Uren en Avond/Nacht side by side */}
+                                      <div className="grid grid-cols-2 gap-2 mb-2">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.hours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "hours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
+                                            placeholder="0"
+                                            title="Gewerkte uren"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Nacht</label>
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.eveningNightHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "eveningNightHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-2 border rounded-lg text-center text-lg font-bold", entry.status)}
+                                            placeholder="0"
+                                            title="Avond/Nacht uren"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Reisuren */}
+                                      <div className="mb-1">
+                                        <div className="flex items-center gap-2">
+                                          <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            value={entry.travelHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "travelHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                            placeholder="reisuren"
+                                            title="Reisuren"
+                                          />
+                                        </div>
                                       </div>
 
                                       {/* Kilometers (altijd zichtbaar, compact) */}
