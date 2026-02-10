@@ -74,11 +74,19 @@ export default function LoginPage(): JSX.Element {
       localStorage.setItem("userRank", response.user.role);
       localStorage.setItem("email", response.user.email || "");
       localStorage.setItem("allowedTasks", response.user.allowed_tasks || "BOTH");
+      localStorage.setItem("twoFactorEnabled", response.user.twoFactorEnabled ? "true" : "false");
 
       // Zet cookies
       document.cookie = `userId=${response.user.id}; path=/; max-age=3600;`;
       document.cookie = `userRank=${response.user.role}; path=/; max-age=3600;`;
       document.cookie = `token=${response.token}; path=/; max-age=3600;`;
+
+      // Check if 2FA setup is required
+      if (response.require2FASetup) {
+        localStorage.setItem("require2FASetup", "true");
+        router.push("/account/2fa");
+        return;
+      }
 
       // Stuur naar dashboard
       router.push("/dashboard");

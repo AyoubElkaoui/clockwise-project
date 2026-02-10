@@ -54,7 +54,14 @@ public class AuthController : ControllerBase
             await connection.OpenAsync();
 
             var user = await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE id = @Id", 
+                @"SELECT id AS Id, email AS Email,
+                         two_factor_enabled AS TwoFactorEnabled,
+                         two_factor_method AS TwoFactorMethod,
+                         two_factor_secret AS TwoFactorSecret,
+                         two_factor_email_code AS TwoFactorEmailCode,
+                         two_factor_code_expires_at AS TwoFactorCodeExpiresAt,
+                         two_factor_backup_codes AS TwoFactorBackupCodes
+                  FROM users WHERE id = @Id",
                 new { Id = result.User!.Id });
 
             if (user?.TwoFactorEnabled == true)
@@ -134,10 +141,22 @@ public class AuthController : ControllerBase
                 _logger.LogInformation("User {UserId} successfully logged in with 2FA", user.Id);
             }
 
+            // Check if 2FA is required system-wide but user doesn't have it enabled
+            bool require2FASetup = false;
+            var require2FASetting = await connection.QueryFirstOrDefaultAsync<string>(
+                "SELECT value FROM system_settings WHERE key = 'require_2fa'");
+
+            if (require2FASetting?.ToLower() == "true" && user?.TwoFactorEnabled != true)
+            {
+                require2FASetup = true;
+                _logger.LogInformation("User {UserId} needs to setup 2FA (system requirement)", result.User!.Id);
+            }
+
             // Return JWT token and user info
             return Ok(new
             {
                 token = result.Token,
+                require2FASetup = require2FASetup,
                 user = new
                 {
                     id = result.User!.Id,
@@ -147,7 +166,8 @@ public class AuthController : ControllerBase
                     role = result.User.Role,
                     first_name = result.User.FirstName,
                     last_name = result.User.LastName,
-                    allowed_tasks = result.User.AllowedTasks
+                    allowed_tasks = result.User.AllowedTasks,
+                    twoFactorEnabled = user?.TwoFactorEnabled ?? false
                 }
             });
         }

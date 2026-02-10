@@ -207,8 +207,22 @@ public class MedewGcIdMiddleware
         if (context.Request.Method == "GET" && path != null &&
             (path.Contains("/api/holidays") ||
              path.Contains("/api/periods") ||
-             path.Contains("/api/health")))
+             path.Contains("/api/health") ||
+             path.Contains("/api/system-settings/require-2fa")))
         {
+            await _next(context);
+            return;
+        }
+
+        // Skip X-MEDEW-GC-ID for system-settings (admin only, uses X-User-ID)
+        if (path != null && path.Contains("/api/system-settings"))
+        {
+            // Check for X-USER-ID header and store userId
+            if (context.Request.Headers.TryGetValue("X-USER-ID", out var settingsUserIdHeader) &&
+                int.TryParse(settingsUserIdHeader, out var settingsUserId))
+            {
+                context.Items["UserId"] = settingsUserId;
+            }
             await _next(context);
             return;
         }

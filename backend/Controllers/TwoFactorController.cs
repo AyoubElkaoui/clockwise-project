@@ -37,7 +37,12 @@ namespace backend.Controllers
             await connection.OpenAsync();
 
             var user = await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE id = @Id", new { Id = userId });
+                @"SELECT id AS Id, email AS Email,
+                         two_factor_enabled AS TwoFactorEnabled,
+                         two_factor_method AS TwoFactorMethod,
+                         two_factor_secret AS TwoFactorSecret,
+                         two_factor_backup_codes AS TwoFactorBackupCodes
+                  FROM users WHERE id = @Id", new { Id = userId });
 
             if (user == null)
                 return NotFound(new { message = "User not found" });
@@ -106,10 +111,18 @@ namespace backend.Controllers
             await connection.OpenAsync();
 
             var user = await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE id = @Id", new { Id = userId });
+                @"SELECT id AS Id, email AS Email,
+                         two_factor_enabled AS TwoFactorEnabled,
+                         two_factor_method AS TwoFactorMethod,
+                         two_factor_secret AS TwoFactorSecret,
+                         two_factor_backup_codes AS TwoFactorBackupCodes
+                  FROM users WHERE id = @Id", new { Id = userId });
 
             if (user == null)
                 return NotFound(new { message = "User not found" });
+
+            _logger.LogInformation("Verify 2FA for user {UserId}: Method={Method}, HasSecret={HasSecret}",
+                userId, user.TwoFactorMethod ?? "null", !string.IsNullOrEmpty(user.TwoFactorSecret));
 
             bool isValid = false;
 
@@ -167,7 +180,14 @@ namespace backend.Controllers
             await connection.OpenAsync();
 
             var user = await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE id = @Id", new { Id = userId });
+                @"SELECT id AS Id, email AS Email,
+                         two_factor_enabled AS TwoFactorEnabled,
+                         two_factor_method AS TwoFactorMethod,
+                         two_factor_secret AS TwoFactorSecret,
+                         two_factor_email_code AS TwoFactorEmailCode,
+                         two_factor_code_expires_at AS TwoFactorCodeExpiresAt,
+                         two_factor_backup_codes AS TwoFactorBackupCodes
+                  FROM users WHERE id = @Id", new { Id = userId });
 
             if (user == null)
                 return NotFound(new { message = "User not found" });
@@ -226,7 +246,10 @@ namespace backend.Controllers
             await connection.OpenAsync();
 
             var user = await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT * FROM users WHERE login_name = @LoginName", 
+                @"SELECT id AS Id, email AS Email,
+                         two_factor_enabled AS TwoFactorEnabled,
+                         two_factor_method AS TwoFactorMethod
+                  FROM users WHERE login_name = @LoginName",
                 new { LoginName = request.Username });
 
             if (user == null || user.TwoFactorMethod != "email" || !user.TwoFactorEnabled)
@@ -260,14 +283,16 @@ namespace backend.Controllers
             await connection.OpenAsync();
 
             var user = await connection.QueryFirstOrDefaultAsync<User>(
-                "SELECT two_factor_enabled, two_factor_method FROM users WHERE id = @Id", 
+                @"SELECT two_factor_enabled AS TwoFactorEnabled,
+                         two_factor_method AS TwoFactorMethod
+                  FROM users WHERE id = @Id",
                 new { Id = userId });
 
             if (user == null)
                 return NotFound(new { message = "User not found" });
 
-            return Ok(new 
-            { 
+            return Ok(new
+            {
                 enabled = user.TwoFactorEnabled,
                 method = user.TwoFactorMethod
             });

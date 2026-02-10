@@ -94,8 +94,12 @@ export function TwoFactorSetup() {
       const data = await response.json();
       
       if (data.success) {
+        // Clear the 2FA setup requirement flag
+        localStorage.removeItem('require2FASetup');
+        localStorage.setItem('twoFactorEnabled', 'true');
         alert('2FA succesvol geactiveerd! 🎉');
-        window.location.reload();
+        // Redirect to dashboard
+        window.location.href = '/dashboard';
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid verification code. Please try again.');

@@ -26,6 +26,13 @@ export default function ProtectedRoute({
       return;
     }
 
+    // Check if 2FA setup is required
+    const require2FASetup = localStorage.getItem("require2FASetup");
+    if (require2FASetup === "true" && pathname !== "/account/2fa") {
+      router.push("/account/2fa");
+      return;
+    }
+
     // Check if user is on correct routes based on role
     const isManagerRoute = pathname.startsWith("/manager");
     const isAdminRoute = pathname.startsWith("/admin");
