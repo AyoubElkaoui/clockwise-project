@@ -8,8 +8,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, Lock, Smartphone, Mail, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { TwoFactorSetup } from '@/components/TwoFactorSetup';
 import { API_URL } from '@/lib/api';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import ModernLayout from '@/components/ModernLayout';
 
 export default function TwoFactorPage() {
   const [twoFactorStatus, setTwoFactorStatus] = useState<{
@@ -95,277 +93,265 @@ export default function TwoFactorPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <ModernLayout>
-          <div className="flex justify-center items-center h-96">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          </div>
-        </ModernLayout>
-      </ProtectedRoute>
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
     );
   }
 
   if (showSetup) {
     return (
-      <ProtectedRoute>
-        <ModernLayout>
-          <div className="max-w-4xl mx-auto p-6">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowSetup(false);
-                fetchStatus();
-              }}
-              className="mb-4"
-            >
-              ← Terug
-            </Button>
-            <TwoFactorSetup />
-          </div>
-        </ModernLayout>
-      </ProtectedRoute>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setShowSetup(false);
+            fetchStatus();
+          }}
+          className="mb-4"
+        >
+          ← Terug
+        </Button>
+        <TwoFactorSetup />
+      </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <ModernLayout>
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Shield className="w-8 h-8 text-blue-600" />
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <Shield className="w-8 h-8 text-blue-600" />
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Tweestapsverificatie (2FA)
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Extra beveiliging voor je account
+          </p>
+        </div>
+      </div>
+
+      {/* Required 2FA Alert */}
+      {isRequired && !twoFactorStatus?.enabled && (
+        <Alert className="bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
+          <AlertTriangle className="w-4 h-4 text-orange-600" />
+          <AlertDescription className="text-orange-900 dark:text-orange-100">
+            <strong>Actie vereist:</strong> Je beheerder heeft tweestapsverificatie verplicht gesteld.
+            Stel 2FA in om toegang te krijgen tot de applicatie.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Status</span>
+            {twoFactorStatus?.enabled ? (
+              <span className="flex items-center gap-2 text-green-600 text-base font-normal">
+                <CheckCircle className="w-5 h-5" />
+                Actief
+              </span>
+            ) : (
+              <span className="flex items-center gap-2 text-gray-500 text-base font-normal">
+                <XCircle className="w-5 h-5" />
+                Niet actief
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {twoFactorStatus?.enabled ? (
+            <>
+              <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <AlertDescription className="text-green-900 dark:text-green-100">
+                  Tweestapsverificatie is ingeschakeld met{' '}
+                  <strong>
+                    {twoFactorStatus.method === 'totp'
+                      ? 'Authenticator App (Microsoft Authenticator)'
+                      : 'Email'}
+                  </strong>
+                  . Je account is extra beveiligd.
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <Lock className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">Actieve Methode</h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    {twoFactorStatus.method === 'totp'
+                      ? '📱 Microsoft Authenticator / Google Authenticator'
+                      : '📧 Email verificatie'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Disable Section */}
+              {showDisable ? (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-red-900 dark:text-red-100">
+                        2FA Uitschakelen
+                      </h3>
+                      <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        Voer je huidige authenticator code of een backup code in om 2FA uit te schakelen.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="000000 of backup code"
+                      value={disableCode}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDisableCode(e.target.value)}
+                      className="text-center text-lg tracking-wider"
+                    />
+                    <Button
+                      variant="destructive"
+                      onClick={handleDisable}
+                      disabled={disabling}
+                    >
+                      {disabling ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Uitschakelen'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowDisable(false);
+                        setDisableCode('');
+                        setError('');
+                      }}
+                    >
+                      Annuleren
+                    </Button>
+                  </div>
+
+                  {error && (
+                    <p className="text-sm text-red-600">{error}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+                    ⚠️ Wil je 2FA uitschakelen?
+                  </h3>
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                    Als je 2FA uitschakelt, is je account minder veilig. Je hebt een verificatiecode of backup code nodig.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="border-yellow-600 text-yellow-700 hover:bg-yellow-100"
+                    onClick={() => setShowDisable(true)}
+                  >
+                    2FA Uitschakelen
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Alert>
+                <Shield className="w-4 h-4" />
+                <AlertDescription>
+                  Tweestapsverificatie voegt een extra beveiligingslaag toe aan
+                  je account. Zelfs als iemand je wachtwoord kent, kunnen ze
+                  niet inloggen zonder toegang tot je authenticator app.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="p-4 border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <Smartphone className="w-8 h-8 text-green-600 mb-2" />
+                  <h3 className="font-semibold mb-1">Authenticator App</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Gebruik Microsoft Authenticator, Google Authenticator of Authy.
+                  </p>
+                  <p className="text-xs text-green-600 mt-2 font-medium">✓ Aanbevolen</p>
+                </div>
+
+                <div className="p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
+                  <Mail className="w-8 h-8 text-gray-400 mb-2" />
+                  <h3 className="font-semibold mb-1 text-gray-500">Email Verificatie</h3>
+                  <p className="text-sm text-gray-400">
+                    Ontvang een code via email bij elke login.
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">Binnenkort beschikbaar</p>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setShowSetup(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                size="lg"
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                2FA Inschakelen met Authenticator App
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* How it works Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hoe werkt 2FA?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 font-bold">
+              1
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Tweestapsverificatie (2FA)
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Extra beveiliging voor je account
+              <h4 className="font-semibold">Installeer een authenticator app</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Download Microsoft Authenticator of Google Authenticator op je telefoon.
               </p>
             </div>
           </div>
 
-          {/* Required 2FA Alert */}
-          {isRequired && !twoFactorStatus?.enabled && (
-            <Alert className="bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
-              <AlertTriangle className="w-4 h-4 text-orange-600" />
-              <AlertDescription className="text-orange-900 dark:text-orange-100">
-                <strong>Actie vereist:</strong> Je beheerder heeft tweestapsverificatie verplicht gesteld.
-                Stel 2FA in om toegang te krijgen tot de applicatie.
-              </AlertDescription>
-            </Alert>
-          )}
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 font-bold">
+              2
+            </div>
+            <div>
+              <h4 className="font-semibold">Scan de QR code</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Open de app en scan de QR code die verschijnt bij het instellen.
+              </p>
+            </div>
+          </div>
 
-          {/* Status Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Status</span>
-                {twoFactorStatus?.enabled ? (
-                  <span className="flex items-center gap-2 text-green-600 text-base font-normal">
-                    <CheckCircle className="w-5 h-5" />
-                    Actief
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2 text-gray-500 text-base font-normal">
-                    <XCircle className="w-5 h-5" />
-                    Niet actief
-                  </span>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {twoFactorStatus?.enabled ? (
-                <>
-                  <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <AlertDescription className="text-green-900 dark:text-green-100">
-                      Tweestapsverificatie is ingeschakeld met{' '}
-                      <strong>
-                        {twoFactorStatus.method === 'totp'
-                          ? 'Authenticator App (Microsoft Authenticator)'
-                          : 'Email'}
-                      </strong>
-                      . Je account is extra beveiligd.
-                    </AlertDescription>
-                  </Alert>
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 font-bold">
+              3
+            </div>
+            <div>
+              <h4 className="font-semibold">Bewaar je backup codes</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Je krijgt 10 backup codes. Bewaar deze veilig voor noodgevallen.
+              </p>
+            </div>
+          </div>
 
-                  <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <Lock className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">Actieve Methode</h3>
-                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                        {twoFactorStatus.method === 'totp'
-                          ? '📱 Microsoft Authenticator / Google Authenticator'
-                          : '📧 Email verificatie'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Disable Section */}
-                  {showDisable ? (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 space-y-4">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
-                        <div>
-                          <h3 className="font-semibold text-red-900 dark:text-red-100">
-                            2FA Uitschakelen
-                          </h3>
-                          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                            Voer je huidige authenticator code of een backup code in om 2FA uit te schakelen.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder="000000 of backup code"
-                          value={disableCode}
-                          onChange={(e) => setDisableCode(e.target.value)}
-                          className="text-center text-lg tracking-wider"
-                        />
-                        <Button
-                          variant="destructive"
-                          onClick={handleDisable}
-                          disabled={disabling}
-                        >
-                          {disabling ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Uitschakelen'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowDisable(false);
-                            setDisableCode('');
-                            setError('');
-                          }}
-                        >
-                          Annuleren
-                        </Button>
-                      </div>
-
-                      {error && (
-                        <p className="text-sm text-red-600">{error}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-                        ⚠️ Wil je 2FA uitschakelen?
-                      </h3>
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
-                        Als je 2FA uitschakelt, is je account minder veilig. Je hebt een verificatiecode of backup code nodig.
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="border-yellow-600 text-yellow-700 hover:bg-yellow-100"
-                        onClick={() => setShowDisable(true)}
-                      >
-                        2FA Uitschakelen
-                      </Button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Alert>
-                    <Shield className="w-4 h-4" />
-                    <AlertDescription>
-                      Tweestapsverificatie voegt een extra beveiligingslaag toe aan
-                      je account. Zelfs als iemand je wachtwoord kent, kunnen ze
-                      niet inloggen zonder toegang tot je authenticator app.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="p-4 border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <Smartphone className="w-8 h-8 text-green-600 mb-2" />
-                      <h3 className="font-semibold mb-1">Authenticator App</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Gebruik Microsoft Authenticator, Google Authenticator of Authy.
-                      </p>
-                      <p className="text-xs text-green-600 mt-2 font-medium">✓ Aanbevolen</p>
-                    </div>
-
-                    <div className="p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
-                      <Mail className="w-8 h-8 text-gray-400 mb-2" />
-                      <h3 className="font-semibold mb-1 text-gray-500">Email Verificatie</h3>
-                      <p className="text-sm text-gray-400">
-                        Ontvang een code via email bij elke login.
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">Binnenkort beschikbaar</p>
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={() => setShowSetup(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    <Shield className="w-5 h-5 mr-2" />
-                    2FA Inschakelen met Authenticator App
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* How it works Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Hoe werkt 2FA?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                  1
-                </div>
-                <div>
-                  <h4 className="font-semibold">Installeer een authenticator app</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Download Microsoft Authenticator of Google Authenticator op je telefoon.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                  2
-                </div>
-                <div>
-                  <h4 className="font-semibold">Scan de QR code</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Open de app en scan de QR code die verschijnt bij het instellen.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                  3
-                </div>
-                <div>
-                  <h4 className="font-semibold">Bewaar je backup codes</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Je krijgt 10 backup codes. Bewaar deze veilig voor noodgevallen.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-green-600 font-bold">
-                  ✓
-                </div>
-                <div>
-                  <h4 className="font-semibold">Klaar!</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Bij elke login voer je je wachtwoord in + de 6-cijferige code uit je app.
-                    De code verandert elke 30 seconden.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </ModernLayout>
-    </ProtectedRoute>
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-green-600 font-bold">
+              ✓
+            </div>
+            <div>
+              <h4 className="font-semibold">Klaar!</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Bij elke login voer je je wachtwoord in + de 6-cijferige code uit je app.
+                De code verandert elke 30 seconden.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
