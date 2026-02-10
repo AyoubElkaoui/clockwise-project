@@ -6,6 +6,7 @@ import {
   assignUserToProject,
   removeUserFromProject,
   getProjectUsers,
+  updateUserProjectHours,
   type PostgresUser,
   type UserProject,
 } from "@/lib/api/userProjectApi";
@@ -24,6 +25,8 @@ import {
   FolderOpen,
   Users,
   CheckCircle2,
+  Clock,
+  Save,
 } from "lucide-react";
 
 interface Project {
@@ -56,6 +59,8 @@ export default function ManagerProjectToewijzingPage() {
   const [projectAssignments, setProjectAssignments] = useState<UserProject[]>([]);
   const [searchUser, setSearchUser] = useState("");
   const [assigning, setAssigning] = useState(false);
+  const [editingMaxHours, setEditingMaxHours] = useState<number | null>(null);
+  const [maxHoursValue, setMaxHoursValue] = useState<string>("");
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -259,6 +264,27 @@ export default function ManagerProjectToewijzingPage() {
     }
   };
 
+  const handleEditMaxHours = (userId: number, currentMaxHours?: number) => {
+    setEditingMaxHours(userId);
+    setMaxHoursValue(currentMaxHours?.toString() || "");
+  };
+
+  const handleSaveMaxHours = async (userId: number) => {
+    if (!selectedProject) return;
+    const pid = getProjectId(selectedProject);
+    try {
+      const maxHours = maxHoursValue ? parseFloat(maxHoursValue) : null;
+      await updateUserProjectHours(userId, pid, null, maxHours);
+      const a = await getProjectUsers(pid);
+      setProjectAssignments(Array.isArray(a) ? a : []);
+      setEditingMaxHours(null);
+      setMaxHoursValue("");
+      showToast(maxHours ? `Max uren ingesteld op ${maxHours}` : "Max uren verwijderd", "success");
+    } catch {
+      showToast("Fout bij opslaan", "error");
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -396,16 +422,17 @@ export default function ManagerProjectToewijzingPage() {
                   Nog geen medewerkers toegewezen
                 </div>
               ) : (
-                <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
                   {projectAssignments.map(assignment => {
                     const user = users.find(u => u.id === assignment.userId);
                     const name = assignment.userName ||
                       (user ? getUserDisplayName(user) : `Gebruiker ${assignment.userId}`);
+                    const isEditing = editingMaxHours === assignment.userId;
 
                     return (
                       <div
                         key={assignment.id || assignment.userId}
-                        className="py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 group"
+                        className="py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 group border border-slate-100 dark:border-slate-700"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 min-w-0">
@@ -430,7 +457,46 @@ export default function ManagerProjectToewijzingPage() {
                             </Button>
                           </div>
                         </div>
-
+                        {/* Max uren instelling */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="text-xs text-slate-500">Max uren:</span>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                placeholder="Geen limiet"
+                                value={maxHoursValue}
+                                onChange={(e) => setMaxHoursValue(e.target.value)}
+                                className="w-20 h-6 text-xs px-2"
+                              />
+                              <Button
+                                size="sm"
+                                className="h-6 px-2"
+                                onClick={() => handleSaveMaxHours(assignment.userId)}
+                              >
+                                <Save className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2"
+                                onClick={() => setEditingMaxHours(null)}
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleEditMaxHours(assignment.userId, assignment.maxHours)}
+                              className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {assignment.maxHours ? `${assignment.maxHours} uur` : "Geen limiet (klik om in te stellen)"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
