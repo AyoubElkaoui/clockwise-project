@@ -288,7 +288,7 @@ export default function ManagerVacationReviewPage() {
             Vakantie Aanvragen Beoordelen
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {t("manager.reviewVacationSubtitle")}
+            Beoordeel en verwerk vakantie aanvragen van je team
           </p>
         </div>
       </div>

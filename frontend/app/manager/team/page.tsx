@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAllUsers, getAllWorkflowEntries, getCurrentPeriodId } from "@/lib/manager-api";
 import axios from "axios";
+import { API_URL } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -136,7 +137,7 @@ export default function ManagerTeamPage() {
             ? dayjs(
                 Math.max(
                   ...memberEntries.map((e: any) =>
-                    new Date(e.startTime).getTime(),
+                    new Date(e.date).getTime(),
                   ),
                 ),
               )
@@ -262,7 +263,7 @@ export default function ManagerTeamPage() {
   const handleToggleActive = async (member: any) => {
     const newStatus = member.rank === "inactive" ? "user" : "inactive";
     try {
-      await axios.put(`/api/users/${member.medewGcId}`, {
+      await axios.put(`${API_URL}/users/${member.medewGcId}`, {
         ...member,
         rank: newStatus,
       });
@@ -293,7 +294,7 @@ export default function ManagerTeamPage() {
         usedVacationDays: editFormData.usedVacationDays,
       };
 
-      await axios.put(`/api/users/${editingMember.medewGcId}`, updatedData);
+      await axios.put(`${API_URL}/users/${editingMember.medewGcId}`, updatedData);
 
       showToast("Teamlid bijgewerkt", "success");
       setEditingMember(null);
@@ -313,7 +314,7 @@ export default function ManagerTeamPage() {
 
     setSaving(true);
     try {
-      await axios.post("/api/users", {
+      await axios.post(`${API_URL}/users`, {
         ...newMemberData,
         managerId: authUtils.getUserId(),
       });

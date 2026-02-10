@@ -6,11 +6,8 @@ import {
   assignUserToProject,
   removeUserFromProject,
   getProjectUsers,
-  updateUserProjectHours,
-  updateEmployeeSettings,
   type PostgresUser,
   type UserProject,
-  type EmployeeSettings,
 } from "@/lib/api/userProjectApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,10 +24,6 @@ import {
   FolderOpen,
   Users,
   CheckCircle2,
-  Clock,
-  Settings,
-  Save,
-  Edit,
 } from "lucide-react";
 
 interface Project {
@@ -63,14 +56,6 @@ export default function ManagerProjectToewijzingPage() {
   const [projectAssignments, setProjectAssignments] = useState<UserProject[]>([]);
   const [searchUser, setSearchUser] = useState("");
   const [assigning, setAssigning] = useState(false);
-
-  // Hours editing state
-  const [editingHours, setEditingHours] = useState<{userId: number; hours: string; notes: string} | null>(null);
-  const [savingHours, setSavingHours] = useState(false);
-
-  // Employee settings editing
-  const [editingEmployee, setEditingEmployee] = useState<PostgresUser | null>(null);
-  const [employeeFormData, setEmployeeFormData] = useState<EmployeeSettings>({});
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -274,59 +259,6 @@ export default function ManagerProjectToewijzingPage() {
     }
   };
 
-  const handleEditHours = (assignment: UserProject) => {
-    const user = users.find(u => u.id === assignment.userId);
-    setEditingHours({
-      userId: assignment.userId,
-      hours: assignment.hoursPerWeek?.toString() || "",
-      notes: assignment.notes || ""
-    });
-  };
-
-  const handleSaveHours = async () => {
-    if (!editingHours || !selectedProject) return;
-    setSavingHours(true);
-    try {
-      const pid = getProjectId(selectedProject);
-      const hours = editingHours.hours ? parseFloat(editingHours.hours) : null;
-      await updateUserProjectHours(editingHours.userId, pid, hours, editingHours.notes);
-      const a = await getProjectUsers(pid);
-      setProjectAssignments(Array.isArray(a) ? a : []);
-      setEditingHours(null);
-      showToast("Uren opgeslagen", "success");
-    } catch {
-      showToast("Fout bij opslaan", "error");
-    } finally {
-      setSavingHours(false);
-    }
-  };
-
-  const handleEditEmployee = (user: PostgresUser) => {
-    setEditingEmployee(user);
-    setEmployeeFormData({
-      contractHours: user.contractHours || 40,
-      atvHoursPerWeek: user.atvHoursPerWeek || 0,
-      disabilityPercentage: user.disabilityPercentage || 0,
-      vacationDays: user.vacationDays || 25,
-      usedVacationDays: user.usedVacationDays || 0,
-      hrNotes: user.hrNotes || "",
-    });
-  };
-
-  const handleSaveEmployee = async () => {
-    if (!editingEmployee) return;
-    try {
-      await updateEmployeeSettings(editingEmployee.medewGcId, employeeFormData);
-      // Refresh users list
-      const usersData = await getPostgresUsers();
-      setUsers(Array.isArray(usersData) ? usersData : []);
-      setEditingEmployee(null);
-      showToast("Medewerker instellingen opgeslagen", "success");
-    } catch {
-      showToast("Fout bij opslaan", "error");
-    }
-  };
-
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -469,7 +401,6 @@ export default function ManagerProjectToewijzingPage() {
                     const user = users.find(u => u.id === assignment.userId);
                     const name = assignment.userName ||
                       (user ? getUserDisplayName(user) : `Gebruiker ${assignment.userId}`);
-                    const isEditing = editingHours?.userId === assignment.userId;
 
                     return (
                       <div
@@ -489,29 +420,6 @@ export default function ManagerProjectToewijzingPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            {/* Uren per week badge */}
-                            {!isEditing && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700"
-                                onClick={() => handleEditHours(assignment)}
-                              >
-                                <Clock className="w-3 h-3 mr-1" />
-                                {assignment.hoursPerWeek != null ? `${assignment.hoursPerWeek}u/w` : "- u/w"}
-                              </Badge>
-                            )}
-                            {/* Settings knop */}
-                            {user && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="opacity-0 group-hover:opacity-100 h-7 w-7 p-0"
-                                onClick={() => handleEditEmployee(user)}
-                                title="Medewerker instellingen"
-                              >
-                                <Settings className="w-3.5 h-3.5 text-slate-500" />
-                              </Button>
-                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -523,35 +431,6 @@ export default function ManagerProjectToewijzingPage() {
                           </div>
                         </div>
 
-                        {/* Inline uren bewerken */}
-                        {isEditing && (
-                          <div className="mt-2 pl-11 flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="Uren/week"
-                              className="w-24 h-8 text-sm"
-                              value={editingHours.hours}
-                              onChange={(e) => setEditingHours({...editingHours, hours: e.target.value})}
-                              step="0.5"
-                              min="0"
-                              max="40"
-                            />
-                            <Input
-                              type="text"
-                              placeholder="Notities"
-                              className="flex-1 h-8 text-sm"
-                              value={editingHours.notes}
-                              onChange={(e) => setEditingHours({...editingHours, notes: e.target.value})}
-                            />
-                            <Button size="sm" className="h-8" onClick={handleSaveHours} disabled={savingHours}>
-                              <Save className="w-3 h-3 mr-1" />
-                              {savingHours ? "..." : "Opslaan"}
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingHours(null)}>
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -663,145 +542,6 @@ export default function ManagerProjectToewijzingPage() {
         </Card>
       )}
 
-      {/* Employee Settings Modal */}
-      {editingEmployee && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Medewerker Instellingen
-                </span>
-                <button onClick={() => setEditingEmployee(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded">
-                  <X className="w-5 h-5 text-slate-400" />
-                </button>
-              </CardTitle>
-              <p className="text-sm text-slate-500">
-                {getUserDisplayName(editingEmployee)}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Contract Uren */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Contract uren/week
-                </label>
-                <Input
-                  type="number"
-                  value={employeeFormData.contractHours ?? ""}
-                  onChange={(e) => setEmployeeFormData({...employeeFormData, contractHours: e.target.value ? parseFloat(e.target.value) : undefined})}
-                  step="0.5"
-                  min="0"
-                  max="40"
-                  placeholder="40"
-                />
-              </div>
-
-              {/* ATV Uren */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  ATV uren/week
-                  <span className="text-xs text-slate-500 ml-1">(Arbeidstijdverkorting)</span>
-                </label>
-                <Input
-                  type="number"
-                  value={employeeFormData.atvHoursPerWeek ?? ""}
-                  onChange={(e) => setEmployeeFormData({...employeeFormData, atvHoursPerWeek: e.target.value ? parseFloat(e.target.value) : undefined})}
-                  step="0.5"
-                  min="0"
-                  max="40"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Arbeidsongeschiktheid */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Arbeidsongeschiktheid %
-                </label>
-                <Input
-                  type="number"
-                  value={employeeFormData.disabilityPercentage ?? ""}
-                  onChange={(e) => setEmployeeFormData({...employeeFormData, disabilityPercentage: e.target.value ? parseInt(e.target.value) : undefined})}
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Verlof dagen */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Verlofdagen totaal
-                  </label>
-                  <Input
-                    type="number"
-                    value={employeeFormData.vacationDays ?? ""}
-                    onChange={(e) => setEmployeeFormData({...employeeFormData, vacationDays: e.target.value ? parseInt(e.target.value) : undefined})}
-                    min="0"
-                    placeholder="25"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Gebruikt
-                  </label>
-                  <Input
-                    type="number"
-                    value={employeeFormData.usedVacationDays ?? ""}
-                    onChange={(e) => setEmployeeFormData({...employeeFormData, usedVacationDays: e.target.value ? parseInt(e.target.value) : undefined})}
-                    min="0"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Effectieve uren berekening */}
-              {(employeeFormData.contractHours || employeeFormData.atvHoursPerWeek || employeeFormData.disabilityPercentage) && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">Effectieve werkuren/week:</div>
-                  <div className="text-lg font-bold text-blue-900 dark:text-blue-200">
-                    {(
-                      ((employeeFormData.contractHours || 40) - (employeeFormData.atvHoursPerWeek || 0)) *
-                      (1 - (employeeFormData.disabilityPercentage || 0) / 100)
-                    ).toFixed(1)} uur
-                  </div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    ({employeeFormData.contractHours || 40} contract - {employeeFormData.atvHoursPerWeek || 0} ATV) × {100 - (employeeFormData.disabilityPercentage || 0)}%
-                  </div>
-                </div>
-              )}
-
-              {/* HR Notities */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  HR Notities
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                  value={employeeFormData.hrNotes ?? ""}
-                  onChange={(e) => setEmployeeFormData({...employeeFormData, hrNotes: e.target.value})}
-                  placeholder="Interne notities over deze medewerker..."
-                />
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setEditingEmployee(null)}>
-                  Annuleren
-                </Button>
-                <Button onClick={handleSaveEmployee}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Opslaan
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

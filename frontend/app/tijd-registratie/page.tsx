@@ -34,7 +34,7 @@ import {
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteDraft } from "@/lib/api/workflowApi";
 import { getFavoriteProjects, addFavoriteProject, removeFavoriteProject, type FavoriteProject } from "@/lib/api/favoriteProjectsApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
-import { getUserProjects } from "@/lib/api/userProjectApi";
+import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
 import { getProjects as getAllProjectsFlat } from "@/lib/api";
 import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -164,6 +164,7 @@ export default function TimeRegistrationPage() {
   const [hasSubmittedEntries, setHasSubmittedEntries] = useState(false);
   const [favoriteProjects, setFavoriteProjects] = useState<FavoriteProject[]>([]);
   const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(new Set());
+  const [projectMaxHours, setProjectMaxHours] = useState<Record<number, number>>({});
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -344,6 +345,16 @@ export default function TimeRegistrationPage() {
         const filteredIds = ids.filter((id: number) => id > 0);
         setAssignedProjectIds(filteredIds);
 
+        // Extract max hours per project
+        const maxHoursMap: Record<number, number> = {};
+        for (const up of userProjects) {
+          const pid = up.projectId || (up as any).project_gc_id || (up as any).projectGcId;
+          if (pid && up.maxHours) {
+            maxHoursMap[pid] = up.maxHours;
+          }
+        }
+        setProjectMaxHours(maxHoursMap);
+
         // Determine which project groups contain assigned projects
         if (filteredIds.length > 0) {
           const allProjects = await getAllProjectsFlat();
@@ -362,10 +373,12 @@ export default function TimeRegistrationPage() {
       } else {
         setAssignedProjectIds([]);
         setAssignedGroupIds(new Set());
+        setProjectMaxHours({});
       }
     } catch (err) {
       setAssignedProjectIds([]);
       setAssignedGroupIds(new Set());
+      setProjectMaxHours({});
     }
   };
 
@@ -701,6 +714,27 @@ export default function TimeRegistrationPage() {
   const getCurrentPeriodId = () => {
     // Return the cached period ID if already fetched
     return currentPeriodId || 100436; // Fallback to 100436 if not loaded yet
+  };
+
+  // Get total hours spent on a project (all entries, not just current week)
+  const getTotalHoursForProject = (projectId: number) => {
+    return (Object.values(entries) as TimeEntry[])
+      .filter((e) => e.projectId === projectId)
+      .reduce((sum, e) => sum + (e.hours || 0), 0);
+  };
+
+  // Check if project has max hours set and if user is at/over limit
+  const getProjectMaxInfo = (projectId: number) => {
+    const maxHours = projectMaxHours[projectId];
+    if (!maxHours) return { hasMax: false, currentHours: 0, maxHours: 0, isAtMax: false };
+    const currentHours = getTotalHoursForProject(projectId);
+    return {
+      hasMax: true,
+      currentHours,
+      maxHours,
+      isAtMax: currentHours >= maxHours,
+      remaining: Math.max(0, maxHours - currentHours)
+    };
   };
 
   // Helper functions for entry status styling and editability
@@ -1196,8 +1230,30 @@ export default function TimeRegistrationPage() {
                                     {row.companyName}
                                     {row.projectGroupName && ` › ${row.projectGroupName}`}
                                   </div>
-                                  <div className="font-semibold text-base text-slate-800 dark:text-slate-100 mb-2">
-                                    {row.projectName}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <button
+                                      onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                                      title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Toevoegen aan favorieten"}
+                                    >
+                                      <Heart
+                                        className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`}
+                                      />
+                                    </button>
+                                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">
+                                      {row.projectName}
+                                    </span>
+                                    {(() => {
+                                      const maxInfo = getProjectMaxInfo(row.projectId);
+                                      if (maxInfo.hasMax) {
+                                        return (
+                                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                                            max {maxInfo.currentHours}/{maxInfo.maxHours}
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </div>
                                   <div className="flex gap-2">
                                     <button
@@ -1231,18 +1287,22 @@ export default function TimeRegistrationPage() {
                                   const entryEditable = isEditable(entry.status);
                                   const isClosed = isClosedDay(date);
                                   const isWeekendDay = isWeekend(day);
+                                  const maxInfo = getProjectMaxInfo(row.projectId);
+                                  const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
                                   const isDisabled =
                                     !isInCurrentMonth ||
                                     !entryEditable ||
                                     isClosed ||
-                                    isWeekendDay;
+                                    isWeekendDay ||
+                                    isAtMaxHours;
                                   return (
                                     <div
                                       key={`entry-${date}-${row.projectId}`}
                                       className={
                                         "space-y-1.5 p-2 rounded " +
                                         getEntryClassName(entry.status) +
-                                        (!isInCurrentMonth ? " opacity-30" : "")
+                                        (!isInCurrentMonth ? " opacity-30" : "") +
+                                        (isAtMaxHours ? " opacity-50" : "")
                                       }
                                     >
                                       {/* Task type selector (alleen voor users met BOTH) */}
@@ -1554,8 +1614,30 @@ export default function TimeRegistrationPage() {
                                 {row.companyName}
                                 {row.projectGroupName && ` › ${row.projectGroupName}`}
                               </div>
-                              <div className="font-semibold text-base text-slate-800 dark:text-slate-100 mb-2">
-                                {row.projectName}
+                              <div className="flex items-center gap-2 mb-2">
+                                <button
+                                  onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                                  title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Toevoegen aan favorieten"}
+                                >
+                                  <Heart
+                                    className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`}
+                                  />
+                                </button>
+                                <span className="font-semibold text-base text-slate-800 dark:text-slate-100">
+                                  {row.projectName}
+                                </span>
+                                {(() => {
+                                  const maxInfo = getProjectMaxInfo(row.projectId);
+                                  if (maxInfo.hasMax) {
+                                    return (
+                                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                                        max {maxInfo.currentHours}/{maxInfo.maxHours}
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </div>
                               <div className="flex gap-2">
                                 <button
@@ -1584,11 +1666,13 @@ export default function TimeRegistrationPage() {
                               const entryEditable = isEditable(entry.status);
                               const isClosed = isClosedDay(date);
                               const isWeekendDay = isWeekend(day);
-                              const isDisabled = !entryEditable || isClosed || isWeekendDay;
+                              const maxInfo = getProjectMaxInfo(row.projectId);
+                              const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                              const isDisabled = !entryEditable || isClosed || isWeekendDay || isAtMaxHours;
                               return (
                                 <div
                                   key={`week-entry-${date}-${row.projectId}`}
-                                  className={"space-y-1.5 p-2 rounded " + getEntryClassName(entry.status)}
+                                  className={"space-y-1.5 p-2 rounded " + getEntryClassName(entry.status) + (isAtMaxHours ? " opacity-50" : "")}
                                 >
                                   {/* Task type selector (alleen voor users met BOTH) */}
                                   {shouldShowTaskDropdown() && !isDisabled && (

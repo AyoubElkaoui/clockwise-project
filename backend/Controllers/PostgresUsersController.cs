@@ -34,18 +34,19 @@ public class PostgresUsersController : ControllerBase
 
             var sql = @"
                 SELECT
-                    id AS ""Id"",
-                    medew_gc_id AS ""MedewGcId"",
-                    username AS ""Username"",
-                    first_name AS ""FirstName"",
-                    last_name AS ""LastName"",
-                    email AS ""Email"",
-                    phone AS ""Phone"",
-                    role AS ""Role"",
-                    is_active AS ""IsActive"",
-                    contract_hours AS ""ContractHours"",
-                    vacation_days AS ""VacationDays"",
-                    used_vacation_days AS ""UsedVacationDays""
+                    id,
+                    medew_gc_id AS ""medewGcId"",
+                    username,
+                    first_name AS ""firstName"",
+                    last_name AS ""lastName"",
+                    email,
+                    phone,
+                    role,
+                    role AS ""rank"",
+                    is_active AS ""isActive"",
+                    contract_hours AS ""contractHours"",
+                    vacation_days AS ""vacationDays"",
+                    used_vacation_days AS ""usedVacationDays""
                 FROM users
                 ORDER BY first_name, last_name";
 
@@ -135,16 +136,8 @@ public class PostgresUsersController : ControllerBase
                     role = COALESCE(@Role, role),
                     is_active = COALESCE(@IsActive, is_active),
                     contract_hours = COALESCE(@ContractHours, contract_hours),
-                    atv_hours_per_week = COALESCE(@AtvHoursPerWeek, atv_hours_per_week),
-                    disability_percentage = COALESCE(@DisabilityPercentage, disability_percentage),
                     vacation_days = COALESCE(@VacationDays, vacation_days),
                     used_vacation_days = COALESCE(@UsedVacationDays, used_vacation_days),
-                    hr_notes = COALESCE(@HrNotes, hr_notes),
-                    effective_hours_per_week = CASE
-                        WHEN @ContractHours IS NOT NULL OR @AtvHoursPerWeek IS NOT NULL OR @DisabilityPercentage IS NOT NULL
-                        THEN (COALESCE(@ContractHours, contract_hours, 40) - COALESCE(@AtvHoursPerWeek, atv_hours_per_week, 0)) * (1 - COALESCE(@DisabilityPercentage, disability_percentage, 0)::decimal / 100)
-                        ELSE effective_hours_per_week
-                    END,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE medew_gc_id = @MedewGcId";
 
@@ -158,11 +151,8 @@ public class PostgresUsersController : ControllerBase
                 Role = request.Rank ?? request.Role, // Support both 'rank' and 'role'
                 IsActive = request.Rank != "inactive" && request.IsActive != false,
                 ContractHours = request.ContractHours,
-                AtvHoursPerWeek = request.AtvHoursPerWeek,
-                DisabilityPercentage = request.DisabilityPercentage,
                 VacationDays = request.VacationDays,
-                UsedVacationDays = request.UsedVacationDays,
-                HrNotes = request.HrNotes
+                UsedVacationDays = request.UsedVacationDays
             });
 
             _logger.LogInformation("Updated {Rows} rows for medewGcId: {MedewGcId}", rows, medewGcId);

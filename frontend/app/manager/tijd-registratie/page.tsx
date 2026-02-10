@@ -28,6 +28,7 @@ import {
   getProjectGroups,
   getProjects,
 } from "@/lib/api/companyApi";
+import { API_URL } from "@/lib/api";
 import { getProjects as getAllProjectsFlat } from "@/lib/api";
 import { getUserProjects } from "@/lib/api/userProjectApi";
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
@@ -234,7 +235,7 @@ export default function TimeRegistrationPage() {
     try {
       const year = currentWeek.getFullYear();
       const response = await axios.get(
-        `/api/holidays/closed?year=${year}`,
+        `${API_URL}/holidays/closed?year=${year}`,
       );
       setClosedDays(response.data);
     } catch (error) {

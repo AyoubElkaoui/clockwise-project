@@ -10,6 +10,7 @@ export interface UserProject {
   assignedAt: string;
   userName?: string;
   hoursPerWeek?: number;
+  maxHours?: number;
   notes?: string;
 }
 
@@ -86,10 +87,12 @@ export async function updateUserProjectHours(
   userId: number,
   projectId: number,
   hoursPerWeek: number | null,
+  maxHours?: number | null,
   notes?: string
 ): Promise<void> {
   await axios.put(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`, {
     hoursPerWeek,
+    maxHours,
     notes
   });
 }

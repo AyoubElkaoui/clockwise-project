@@ -40,6 +40,9 @@ public class UserProjectsController : ControllerBase
                         up.project_gc_id AS ""projectId"",
                         up.assigned_by AS ""assignedByUserId"",
                         up.assigned_at AS ""assignedDate"",
+                        up.hours_per_week AS ""hoursPerWeek"",
+                        up.max_hours AS ""maxHours"",
+                        up.notes,
                         u.first_name || ' ' || u.last_name AS ""userName""
                     FROM user_projects up
                     LEFT JOIN users u ON up.user_id = u.id
@@ -55,6 +58,9 @@ public class UserProjectsController : ControllerBase
                         up.project_gc_id AS ""projectId"",
                         up.assigned_by AS ""assignedByUserId"",
                         up.assigned_at AS ""assignedDate"",
+                        up.hours_per_week AS ""hoursPerWeek"",
+                        up.max_hours AS ""maxHours"",
+                        up.notes,
                         u.first_name || ' ' || u.last_name AS ""userName""
                     FROM user_projects up
                     LEFT JOIN users u ON up.user_id = u.id
@@ -93,6 +99,7 @@ public class UserProjectsController : ControllerBase
                     up.assigned_by AS ""assignedByUserId"",
                     up.assigned_at AS ""assignedDate"",
                     up.hours_per_week AS ""hoursPerWeek"",
+                    up.max_hours AS ""maxHours"",
                     up.notes,
                     u.first_name || ' ' || u.last_name AS ""userName"",
                     u.contract_hours AS ""contractHours""
@@ -123,9 +130,8 @@ public class UserProjectsController : ControllerBase
         try
         {
             var sql = @"
-                UPDATE user_projects SET
-                    hours_per_week = @HoursPerWeek,
-                    notes = @Notes
+                UPDATE user_projects
+                SET hours_per_week = @HoursPerWeek, max_hours = @MaxHours, notes = @Notes
                 WHERE user_id = @UserId AND project_gc_id = @ProjectId";
 
             var rows = await _db.ExecuteAsync(sql, new
@@ -133,17 +139,23 @@ public class UserProjectsController : ControllerBase
                 UserId = userId,
                 ProjectId = projectId,
                 HoursPerWeek = request.HoursPerWeek,
+                MaxHours = request.MaxHours,
                 Notes = request.Notes
             });
 
             if (rows == 0)
+            {
                 return NotFound(new { error = "Toewijzing niet gevonden" });
+            }
 
-            return Ok(new { success = true });
+            _logger.LogInformation("Updated assignment for user {UserId} on project {ProjectId}: {Hours} hours/week",
+                userId, projectId, request.HoursPerWeek);
+
+            return Ok(new { success = true, message = "Toewijzing bijgewerkt" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user project assignment");
+            _logger.LogError(ex, "Error updating assignment for user {UserId} on project {ProjectId}", userId, projectId);
             return StatusCode(500, new { error = "Fout bij bijwerken toewijzing" });
         }
     }
@@ -224,12 +236,8 @@ public class UserProjectsController : ControllerBase
                     role,
                     is_active AS ""isActive"",
                     contract_hours AS ""contractHours"",
-                    COALESCE(atv_hours_per_week, 0) AS ""atvHoursPerWeek"",
-                    COALESCE(disability_percentage, 0) AS ""disabilityPercentage"",
-                    COALESCE(effective_hours_per_week, contract_hours) AS ""effectiveHoursPerWeek"",
                     vacation_days AS ""vacationDays"",
-                    used_vacation_days AS ""usedVacationDays"",
-                    hr_notes AS ""hrNotes""
+                    used_vacation_days AS ""usedVacationDays""
                 FROM users
                 WHERE is_active = TRUE
                 ORDER BY first_name, last_name";
@@ -275,5 +283,6 @@ public record AssignUserRequest(
 
 public record UpdateAssignmentRequest(
     decimal? HoursPerWeek,
+    decimal? MaxHours,
     string? Notes
 );

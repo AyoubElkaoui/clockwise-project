@@ -119,8 +119,8 @@ export default function ManagerPlanningPage() {
         getAllVacationRequests()
       ]);
 
-      // Filter team members by managerId
-      const team = users.filter((u: any) => u.managerId === managerId);
+      // Show all users to manager (manager_assignments not in use)
+      const team = users;
       setTeamMembers(team);
       
       // Convert workflow entries
@@ -161,7 +161,7 @@ export default function ManagerPlanningPage() {
       }
       
       if (team.length === 0) {
-        showToast("Geen teamleden gevonden. Controleer manager_assignments tabel.", "error");
+        showToast("Geen teamleden gevonden.", "error");
       }
     } catch (error) {
       showToast("Fout bij laden planning: " + (error instanceof Error ? error.message : "Onbekende fout"), "error");
