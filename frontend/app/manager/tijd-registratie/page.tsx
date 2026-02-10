@@ -37,8 +37,6 @@ import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
 import { getProjects as getAllProjectsFlat } from "@/lib/api";
 import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ModernLayout from "@/components/ModernLayout";
 
 interface Company {
   id: number;
@@ -924,8 +922,6 @@ export default function TimeRegistrationPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <ModernLayout>
         <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
           {toast && (
             <div
@@ -1911,7 +1907,5 @@ export default function TimeRegistrationPage() {
             </div>
           </div>
         </div>
-      </ModernLayout>
-    </ProtectedRoute>
   );
 }
