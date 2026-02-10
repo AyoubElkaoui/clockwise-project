@@ -298,6 +298,13 @@ export default function TimeRegistrationPage() {
     return closedDays.some((day) => day.date === date);
   };
 
+  // Check if date is a weekend (Saturday or Sunday)
+  const isWeekend = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const dayOfWeek = d.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+  };
+
   const loadHolidays = async () => {
     try {
       const year = currentWeek.getFullYear();
@@ -1223,10 +1230,12 @@ export default function TimeRegistrationPage() {
                                     day.getFullYear() === currentYear;
                                   const entryEditable = isEditable(entry.status);
                                   const isClosed = isClosedDay(date);
+                                  const isWeekendDay = isWeekend(day);
                                   const isDisabled =
                                     !isInCurrentMonth ||
                                     !entryEditable ||
-                                    isClosed;
+                                    isClosed ||
+                                    isWeekendDay;
                                   return (
                                     <div
                                       key={`entry-${date}-${row.projectId}`}
@@ -1574,7 +1583,8 @@ export default function TimeRegistrationPage() {
                               };
                               const entryEditable = isEditable(entry.status);
                               const isClosed = isClosedDay(date);
-                              const isDisabled = !entryEditable || isClosed;
+                              const isWeekendDay = isWeekend(day);
+                              const isDisabled = !entryEditable || isClosed || isWeekendDay;
                               return (
                                 <div
                                   key={`week-entry-${date}-${row.projectId}`}

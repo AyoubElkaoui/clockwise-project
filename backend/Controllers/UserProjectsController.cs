@@ -92,7 +92,10 @@ public class UserProjectsController : ControllerBase
                     up.project_gc_id AS ""projectId"",
                     up.assigned_by AS ""assignedByUserId"",
                     up.assigned_at AS ""assignedDate"",
-                    u.first_name || ' ' || u.last_name AS ""userName""
+                    up.hours_per_week AS ""hoursPerWeek"",
+                    up.notes,
+                    u.first_name || ' ' || u.last_name AS ""userName"",
+                    u.contract_hours AS ""contractHours""
                 FROM user_projects up
                 LEFT JOIN users u ON up.user_id = u.id
                 WHERE up.project_gc_id = @ProjectId
@@ -110,6 +113,38 @@ public class UserProjectsController : ControllerBase
         {
             _logger.LogError(ex, "Error fetching project users for projectId {ProjectId}", projectId);
             return Ok(new List<object>());
+        }
+    }
+
+    // PUT: api/user-projects/users/{userId}/projects/{projectId} - Update assignment details
+    [HttpPut("users/{userId}/projects/{projectId}")]
+    public async Task<IActionResult> UpdateUserProjectAssignment(int userId, int projectId, [FromBody] UpdateAssignmentRequest request)
+    {
+        try
+        {
+            var sql = @"
+                UPDATE user_projects SET
+                    hours_per_week = @HoursPerWeek,
+                    notes = @Notes
+                WHERE user_id = @UserId AND project_gc_id = @ProjectId";
+
+            var rows = await _db.ExecuteAsync(sql, new
+            {
+                UserId = userId,
+                ProjectId = projectId,
+                HoursPerWeek = request.HoursPerWeek,
+                Notes = request.Notes
+            });
+
+            if (rows == 0)
+                return NotFound(new { error = "Toewijzing niet gevonden" });
+
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user project assignment");
+            return StatusCode(500, new { error = "Fout bij bijwerken toewijzing" });
         }
     }
 
@@ -187,7 +222,14 @@ public class UserProjectsController : ControllerBase
                     last_name AS ""lastName"",
                     email,
                     role,
-                    is_active AS ""isActive""
+                    is_active AS ""isActive"",
+                    contract_hours AS ""contractHours"",
+                    COALESCE(atv_hours_per_week, 0) AS ""atvHoursPerWeek"",
+                    COALESCE(disability_percentage, 0) AS ""disabilityPercentage"",
+                    COALESCE(effective_hours_per_week, contract_hours) AS ""effectiveHoursPerWeek"",
+                    vacation_days AS ""vacationDays"",
+                    used_vacation_days AS ""usedVacationDays"",
+                    hr_notes AS ""hrNotes""
                 FROM users
                 WHERE is_active = TRUE
                 ORDER BY first_name, last_name";
@@ -229,4 +271,9 @@ public record AssignUserRequest(
     int UserId,
     int ProjectId,
     int AssignedByUserId
+);
+
+public record UpdateAssignmentRequest(
+    decimal? HoursPerWeek,
+    string? Notes
 );

@@ -135,8 +135,16 @@ public class PostgresUsersController : ControllerBase
                     role = COALESCE(@Role, role),
                     is_active = COALESCE(@IsActive, is_active),
                     contract_hours = COALESCE(@ContractHours, contract_hours),
+                    atv_hours_per_week = COALESCE(@AtvHoursPerWeek, atv_hours_per_week),
+                    disability_percentage = COALESCE(@DisabilityPercentage, disability_percentage),
                     vacation_days = COALESCE(@VacationDays, vacation_days),
                     used_vacation_days = COALESCE(@UsedVacationDays, used_vacation_days),
+                    hr_notes = COALESCE(@HrNotes, hr_notes),
+                    effective_hours_per_week = CASE
+                        WHEN @ContractHours IS NOT NULL OR @AtvHoursPerWeek IS NOT NULL OR @DisabilityPercentage IS NOT NULL
+                        THEN (COALESCE(@ContractHours, contract_hours, 40) - COALESCE(@AtvHoursPerWeek, atv_hours_per_week, 0)) * (1 - COALESCE(@DisabilityPercentage, disability_percentage, 0)::decimal / 100)
+                        ELSE effective_hours_per_week
+                    END,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE medew_gc_id = @MedewGcId";
 
@@ -150,8 +158,11 @@ public class PostgresUsersController : ControllerBase
                 Role = request.Rank ?? request.Role, // Support both 'rank' and 'role'
                 IsActive = request.Rank != "inactive" && request.IsActive != false,
                 ContractHours = request.ContractHours,
+                AtvHoursPerWeek = request.AtvHoursPerWeek,
+                DisabilityPercentage = request.DisabilityPercentage,
                 VacationDays = request.VacationDays,
-                UsedVacationDays = request.UsedVacationDays
+                UsedVacationDays = request.UsedVacationDays,
+                HrNotes = request.HrNotes
             });
 
             _logger.LogInformation("Updated {Rows} rows for medewGcId: {MedewGcId}", rows, medewGcId);
@@ -170,7 +181,7 @@ public class PostgresUsersController : ControllerBase
     /// Login with medew_gc_id
     /// </summary>
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] PostgresLoginRequest request)
     {
         try
         {
@@ -197,7 +208,7 @@ public class PostgresUsersController : ControllerBase
                 return Unauthorized(new { error = "Invalid MedewGcId" });
             }
 
-            _logger.LogInformation("Login successful for user: {Username}", user.Username);
+            _logger.LogInformation("Login successful for user: {Username}", (string)user.Username);
             return Ok(user);
         }
         catch (Exception ex)
@@ -264,7 +275,7 @@ public class PostgresUsersController : ControllerBase
                     new { ManagerMedewGcId = request.ManagerId, EmployeeId = result?.id });
             }
 
-            _logger.LogInformation("Created user with id: {Id}, medewGcId: {MedewGcId}", result?.id, result?.medewGcId);
+            _logger.LogInformation("Created user with id: {Id}, medewGcId: {MedewGcId}", (int?)result?.id, (int?)result?.medewGcId);
 
             return Ok(new { success = true, id = result?.id, medewGcId = result?.medewGcId });
         }
@@ -285,9 +296,12 @@ public class UpdateUserRequest
     public string? Role { get; set; }
     public string? Rank { get; set; } // Frontend uses 'rank' sometimes
     public bool? IsActive { get; set; }
-    public int? ContractHours { get; set; }
+    public decimal? ContractHours { get; set; }
+    public decimal? AtvHoursPerWeek { get; set; }
+    public int? DisabilityPercentage { get; set; }
     public int? VacationDays { get; set; }
     public int? UsedVacationDays { get; set; }
+    public string? HrNotes { get; set; }
 }
 
 public class CreateUserRequest
@@ -302,7 +316,7 @@ public class CreateUserRequest
     public int? ManagerId { get; set; }
 }
 
-public class LoginRequest
+public class PostgresLoginRequest
 {
     public int MedewGcId { get; set; }
 }

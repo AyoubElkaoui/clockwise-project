@@ -9,6 +9,8 @@ export interface UserProject {
   assignedByUserId: number;
   assignedAt: string;
   userName?: string;
+  hoursPerWeek?: number;
+  notes?: string;
 }
 
 export interface PostgresUser {
@@ -20,6 +22,13 @@ export interface PostgresUser {
   email: string;
   role: string;
   isActive: boolean;
+  contractHours?: number;
+  atvHoursPerWeek?: number;
+  disabilityPercentage?: number;
+  effectiveHoursPerWeek?: number;
+  vacationDays?: number;
+  usedVacationDays?: number;
+  hrNotes?: string;
 }
 
 export async function getUserProjects(userId: number): Promise<UserProject[]> {
@@ -71,4 +80,32 @@ export async function assignUserToProject(
 
 export async function removeUserFromProject(userId: number, projectId: number): Promise<void> {
   await axios.delete(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`);
+}
+
+export async function updateUserProjectHours(
+  userId: number,
+  projectId: number,
+  hoursPerWeek: number | null,
+  notes?: string
+): Promise<void> {
+  await axios.put(`${API_URL}/user-projects/users/${userId}/projects/${projectId}`, {
+    hoursPerWeek,
+    notes
+  });
+}
+
+export interface EmployeeSettings {
+  contractHours?: number;
+  atvHoursPerWeek?: number;
+  disabilityPercentage?: number;
+  vacationDays?: number;
+  usedVacationDays?: number;
+  hrNotes?: string;
+}
+
+export async function updateEmployeeSettings(
+  medewGcId: number,
+  settings: EmployeeSettings
+): Promise<void> {
+  await axios.put(`${API_URL}/users/${medewGcId}`, settings);
 }

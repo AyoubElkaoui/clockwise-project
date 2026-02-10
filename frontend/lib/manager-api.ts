@@ -109,7 +109,8 @@ export async function approveTimeEntry(id: number, approved: boolean): Promise<v
 }
 
 export async function getAllUsers(): Promise<any[]> {
-  const response = await axios.get(`${API_URL}/manager/users`, {
+  // Use the PostgreSQL users endpoint instead of non-existent /manager/users
+  const response = await axios.get(`${API_URL}/users`, {
     headers: getAuthHeaders(),
   });
   return response.data;
