@@ -13,17 +13,15 @@ import authUtils from "@/lib/auth-utils";
 import {
   Clock,
   Search,
-  Download,
   Calendar,
   ChevronLeft,
   ChevronRight,
-  User,
   Building,
   FileSpreadsheet,
+  FileText,
   Table,
   List,
   TrendingUp,
-  TrendingDown,
   Target,
   BarChart3,
   PieChart,
@@ -37,6 +35,8 @@ import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import ExcelJS from "exceljs";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import "dayjs/locale/nl";
 
 dayjs.extend(isoWeek);
@@ -314,91 +314,240 @@ export default function ManagerTeamHoursPage() {
     setCurrentPeriod(dayjs().startOf(newMode === "week" ? "isoWeek" : "month"));
   };
 
-  const exportToCSV = () => {
-    const csvContent = [
-      [
-        "Datum",
-        "Medewerker",
-        "Bedrijf",
-        "Project",
-        "Start",
-        "Eind",
-        "Pauze",
-        "Totaal",
-        "Status",
-      ].join(","),
-      ...filteredEntries.map((entry) => {
-        const hours =
-          (dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") -
-            (entry.breakMinutes || 0)) /
-          60;
-        return [
-          dayjs(entry.startTime).format("YYYY-MM-DD"),
-          `${entry.user?.firstName} ${entry.user?.lastName}`,
-          entry.project?.projectGroup?.company?.name || "",
-          entry.project?.name || "",
-          dayjs(entry.startTime).format("HH:mm"),
-          dayjs(entry.endTime).format("HH:mm"),
-          entry.breakMinutes || 0,
-          hours.toFixed(2),
-          entry.status,
-        ].join(",");
-      }),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `team-uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   const exportToExcel = async () => {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Team Uren");
+    workbook.creator = "Clockwise";
+    workbook.created = new Date();
 
-    // Add headers
-    worksheet.columns = [
-      { header: "Datum", key: "date", width: 12 },
-      { header: "Medewerker", key: "employee", width: 20 },
-      { header: "Bedrijf", key: "company", width: 20 },
-      { header: "Project", key: "project", width: 25 },
+    // === OVERZICHT TAB ===
+    const summarySheet = workbook.addWorksheet("Overzicht");
+
+    // Title
+    summarySheet.mergeCells("A1:E1");
+    summarySheet.getCell("A1").value = "Team Uren Rapport";
+    summarySheet.getCell("A1").font = { bold: true, size: 18, color: { argb: "FF1E3A8A" } };
+    summarySheet.getCell("A1").alignment = { horizontal: "center" };
+
+    // Period info
+    summarySheet.mergeCells("A2:E2");
+    summarySheet.getCell("A2").value = `Periode: ${periodLabel}`;
+    summarySheet.getCell("A2").font = { size: 12, color: { argb: "FF64748B" } };
+    summarySheet.getCell("A2").alignment = { horizontal: "center" };
+
+    summarySheet.mergeCells("A3:E3");
+    summarySheet.getCell("A3").value = `Gegenereerd op: ${dayjs().format("DD-MM-YYYY HH:mm")}`;
+    summarySheet.getCell("A3").font = { size: 10, color: { argb: "FF94A3B8" } };
+    summarySheet.getCell("A3").alignment = { horizontal: "center" };
+
+    // Empty row
+    summarySheet.addRow([]);
+
+    // Analytics section header
+    summarySheet.getRow(5).values = ["SAMENVATTING"];
+    summarySheet.getCell("A5").font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
+    summarySheet.mergeCells("A5:E5");
+
+    // Analytics data
+    const summaryData = [
+      ["Totaal Uren", `${analytics.total.toFixed(1)} uur`],
+      ["Goedgekeurde Uren", `${analytics.approved.toFixed(1)} uur`],
+      ["In Behandeling", `${analytics.pending.toFixed(1)} uur`],
+      ["Benutting", `${analytics.utilizationRate.toFixed(0)}%`],
+      ["Gemiddeld per Dag", `${analytics.avgHoursPerDay.toFixed(1)} uur`],
+      ["Verwachte Uren", `${analytics.expectedHours.toFixed(0)} uur`],
+      ["Aantal Teamleden", `${teamMembers.length}`],
+      ["Aantal Registraties", `${filteredEntries.length}`],
+    ];
+
+    summaryData.forEach((row, index) => {
+      const rowNum = 6 + index;
+      summarySheet.getRow(rowNum).values = row;
+      summarySheet.getCell(`A${rowNum}`).font = { bold: true };
+      summarySheet.getCell(`B${rowNum}`).alignment = { horizontal: "right" };
+    });
+
+    // Empty row
+    summarySheet.addRow([]);
+
+    // Project verdeling section
+    const projectStartRow = 6 + summaryData.length + 2;
+    summarySheet.getRow(projectStartRow).values = ["PROJECT VERDELING"];
+    summarySheet.getCell(`A${projectStartRow}`).font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
+    summarySheet.mergeCells(`A${projectStartRow}:E${projectStartRow}`);
+
+    // Project headers
+    summarySheet.getRow(projectStartRow + 1).values = ["Project", "Uren", "Registraties", "Percentage"];
+    summarySheet.getRow(projectStartRow + 1).font = { bold: true };
+    summarySheet.getRow(projectStartRow + 1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE2E8F0" },
+    };
+
+    // Project data
+    Object.entries(analytics.projectStats)
+      .sort(([, a], [, b]) => (b as any).hours - (a as any).hours)
+      .forEach(([project, stats]: [string, any], index) => {
+        const rowNum = projectStartRow + 2 + index;
+        const percentage = analytics.total > 0 ? ((stats.hours / analytics.total) * 100).toFixed(1) : "0";
+        summarySheet.getRow(rowNum).values = [
+          project,
+          `${stats.hours.toFixed(1)} uur`,
+          stats.entries,
+          `${percentage}%`,
+        ];
+      });
+
+    // Set column widths for summary sheet
+    summarySheet.columns = [
+      { width: 30 },
+      { width: 20 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+    ];
+
+    // === DETAILS TAB ===
+    const detailsSheet = workbook.addWorksheet("Uren Details");
+
+    // Headers
+    detailsSheet.columns = [
+      { header: "Datum", key: "date", width: 14 },
+      { header: "Medewerker", key: "employee", width: 22 },
+      { header: "Project", key: "project", width: 28 },
+      { header: "Projectcode", key: "projectCode", width: 15 },
       { header: "Start", key: "start", width: 10 },
       { header: "Eind", key: "end", width: 10 },
       { header: "Pauze (min)", key: "break", width: 12 },
-      { header: "Totaal (uren)", key: "total", width: 15 },
+      { header: "Totaal (uren)", key: "total", width: 14 },
       { header: "Status", key: "status", width: 15 },
+      { header: "Omschrijving", key: "notes", width: 35 },
     ];
 
     // Style header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
+    detailsSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    detailsSheet.getRow(1).fill = {
       type: "pattern",
       pattern: "solid",
-      fgColor: { argb: "FFE6E6FA" },
+      fgColor: { argb: "FF1E3A8A" },
     };
+    detailsSheet.getRow(1).alignment = { horizontal: "center" };
 
     // Add data rows
-    filteredEntries.forEach((entry) => {
+    filteredEntries.forEach((entry, index) => {
       const hours =
         (dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") -
           (entry.breakMinutes || 0)) /
         60;
 
-      worksheet.addRow({
-        date: dayjs(entry.startTime).format("YYYY-MM-DD"),
-        employee: `${entry.user?.firstName} ${entry.user?.lastName}`,
-        company: entry.project?.projectGroup?.company?.name || "",
+      const row = detailsSheet.addRow({
+        date: dayjs(entry.startTime).format("DD-MM-YYYY"),
+        employee: `${entry.user?.firstName || ""} ${entry.user?.lastName || ""}`.trim(),
         project: entry.project?.name || "",
+        projectCode: entry.projectCode || "",
         start: dayjs(entry.startTime).format("HH:mm"),
         end: dayjs(entry.endTime).format("HH:mm"),
         break: entry.breakMinutes || 0,
         total: parseFloat(hours.toFixed(2)),
-        status: entry.status,
+        status: entry.status === "APPROVED" ? "Goedgekeurd" : entry.status === "SUBMITTED" ? "In behandeling" : entry.status === "REJECTED" ? "Afgekeurd" : "Concept",
+        notes: entry.notes || "",
+      });
+
+      // Alternate row colors
+      if (index % 2 === 1) {
+        row.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF8FAFC" },
+        };
+      }
+
+      // Status coloring
+      const statusCell = row.getCell("status");
+      if (entry.status === "APPROVED") {
+        statusCell.font = { color: { argb: "FF16A34A" } };
+      } else if (entry.status === "SUBMITTED") {
+        statusCell.font = { color: { argb: "FFEA580C" } };
+      } else if (entry.status === "REJECTED") {
+        statusCell.font = { color: { argb: "FFDC2626" } };
+      }
+    });
+
+    // Add totals row
+    const totalRow = detailsSheet.addRow({
+      date: "",
+      employee: "",
+      project: "",
+      projectCode: "",
+      start: "",
+      end: "TOTAAL:",
+      break: "",
+      total: parseFloat(analytics.total.toFixed(2)),
+      status: "",
+      notes: "",
+    });
+    totalRow.font = { bold: true };
+    totalRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE2E8F0" },
+    };
+
+    // Add borders to all data cells
+    detailsSheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE2E8F0" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
       });
     });
+
+    // === PER MEDEWERKER TAB ===
+    const perEmployeeSheet = workbook.addWorksheet("Per Medewerker");
+
+    // Group entries by employee
+    const employeeStats = filteredEntries.reduce((acc: any, entry: any) => {
+      const name = `${entry.user?.firstName || ""} ${entry.user?.lastName || ""}`.trim() || "Onbekend";
+      if (!acc[name]) {
+        acc[name] = { hours: 0, approved: 0, pending: 0, entries: 0 };
+      }
+      const hours = (dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") - (entry.breakMinutes || 0)) / 60;
+      acc[name].hours += hours;
+      acc[name].entries += 1;
+      if (entry.status === "APPROVED") acc[name].approved += hours;
+      if (entry.status === "SUBMITTED") acc[name].pending += hours;
+      return acc;
+    }, {});
+
+    perEmployeeSheet.columns = [
+      { header: "Medewerker", key: "employee", width: 25 },
+      { header: "Totaal Uren", key: "total", width: 15 },
+      { header: "Goedgekeurd", key: "approved", width: 15 },
+      { header: "In Behandeling", key: "pending", width: 15 },
+      { header: "Registraties", key: "entries", width: 15 },
+    ];
+
+    perEmployeeSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    perEmployeeSheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF1E3A8A" },
+    };
+
+    Object.entries(employeeStats)
+      .sort(([, a]: any, [, b]: any) => b.hours - a.hours)
+      .forEach(([name, stats]: [string, any]) => {
+        perEmployeeSheet.addRow({
+          employee: name,
+          total: parseFloat(stats.hours.toFixed(2)),
+          approved: parseFloat(stats.approved.toFixed(2)),
+          pending: parseFloat(stats.pending.toFixed(2)),
+          entries: stats.entries,
+        });
+      });
 
     // Generate and download file
     const buffer = await workbook.xlsx.writeBuffer();
@@ -408,9 +557,86 @@ export default function ManagerTeamHoursPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `team-uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.xlsx`;
+    link.download = `team-uren-rapport-${currentPeriod.format("YYYY-MM-DD")}.xlsx`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(30, 58, 138);
+    doc.text("Team Uren Rapport", 105, 20, { align: "center" });
+
+    // Period
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139);
+    doc.text(periodLabel, 105, 30, { align: "center" });
+
+    // Generated date
+    doc.setFontSize(10);
+    doc.text(`Gegenereerd op: ${dayjs().format("DD-MM-YYYY HH:mm")}`, 105, 38, { align: "center" });
+
+    // Summary section
+    doc.setFontSize(14);
+    doc.setTextColor(30, 58, 138);
+    doc.text("Samenvatting", 14, 52);
+
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const summaryY = 60;
+    doc.text(`Totaal Uren: ${analytics.total.toFixed(1)} uur`, 14, summaryY);
+    doc.text(`Goedgekeurd: ${analytics.approved.toFixed(1)} uur`, 14, summaryY + 6);
+    doc.text(`In Behandeling: ${analytics.pending.toFixed(1)} uur`, 14, summaryY + 12);
+    doc.text(`Benutting: ${analytics.utilizationRate.toFixed(0)}%`, 100, summaryY);
+    doc.text(`Teamleden: ${teamMembers.length}`, 100, summaryY + 6);
+    doc.text(`Registraties: ${filteredEntries.length}`, 100, summaryY + 12);
+
+    // Entries table
+    const tableData = filteredEntries.map((entry) => {
+      const hours = (dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") - (entry.breakMinutes || 0)) / 60;
+      return [
+        dayjs(entry.startTime).format("DD-MM-YYYY"),
+        `${entry.user?.firstName || ""} ${entry.user?.lastName || ""}`.trim(),
+        entry.project?.name || "",
+        dayjs(entry.startTime).format("HH:mm"),
+        dayjs(entry.endTime).format("HH:mm"),
+        hours.toFixed(2),
+        entry.status === "APPROVED" ? "Goedgekeurd" : entry.status === "SUBMITTED" ? "In behandeling" : entry.status === "REJECTED" ? "Afgekeurd" : "Concept",
+      ];
+    });
+
+    autoTable(doc, {
+      startY: summaryY + 25,
+      head: [["Datum", "Medewerker", "Project", "Start", "Eind", "Uren", "Status"]],
+      body: tableData,
+      headStyles: {
+        fillColor: [30, 58, 138],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: {
+        0: { cellWidth: 22 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 15 },
+        5: { cellWidth: 15 },
+        6: { cellWidth: 25 },
+      },
+    });
+
+    // Footer with totals
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Totaal: ${analytics.total.toFixed(1)} uur`, 14, finalY);
+
+    doc.save(`team-uren-rapport-${currentPeriod.format("YYYY-MM-DD")}.pdf`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -465,19 +691,19 @@ export default function ManagerTeamHoursPage() {
             )}
           </Button>
           <Button
-            onClick={exportToCSV}
-            disabled={filteredEntries.length === 0}
-            variant="outline"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            CSV
-          </Button>
-          <Button
             onClick={exportToExcel}
             disabled={filteredEntries.length === 0}
           >
             <FileSpreadsheet className="w-4 h-4 mr-2" />
             Excel
+          </Button>
+          <Button
+            onClick={exportToPDF}
+            disabled={filteredEntries.length === 0}
+            variant="outline"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            PDF
           </Button>
         </div>
       </div>
