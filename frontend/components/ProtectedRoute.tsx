@@ -1,5 +1,3 @@
-// Fix voor ProtectedRoute.tsx
-
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -28,16 +26,33 @@ export default function ProtectedRoute({
       return;
     }
 
-    // Redirect based on user role
+    // Check if user is on correct routes based on role
+    const isManagerRoute = pathname.startsWith("/manager");
+    const isAdminRoute = pathname.startsWith("/admin");
+    const isEmployeeRoute = !isManagerRoute && !isAdminRoute && pathname !== "/login";
+
     if (userRank === "admin") {
-      router.push("/admin");
-      return;
+      // Admins can access admin routes, redirect from other routes
+      if (!isAdminRoute) {
+        router.push("/admin");
+        return;
+      }
     } else if (userRank === "manager") {
-      router.push("/manager/dashboard");
-      return;
+      // Managers can access manager routes AND employee routes (like /tijd-registratie)
+      // Only redirect if they're on admin routes
+      if (isAdminRoute) {
+        router.push("/manager/dashboard");
+        return;
+      }
+    } else {
+      // Regular users: redirect away from manager/admin routes
+      if (isManagerRoute || isAdminRoute) {
+        router.push("/dashboard");
+        return;
+      }
     }
 
-    // Regular users can access dashboard routes
+    // User has access to current route
     setLoading(false);
   }, [router, pathname]);
 

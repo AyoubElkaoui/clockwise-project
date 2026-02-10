@@ -87,7 +87,15 @@ export default function ManagerDashboard() {
       ]);
 
       // Filter for only this manager's team
-      const managersTeam = allUsers.filter((u: any) => u.managerId === managerId);
+      // If no team members assigned to this manager, show all active users as fallback
+      let managersTeam = allUsers.filter((u: any) => u.managerId === managerId);
+
+      // Fallback: if no team members found, show all active users
+      if (managersTeam.length === 0) {
+        console.log("No team members assigned to manager, showing all active users");
+        managersTeam = allUsers.filter((u: any) => u.isActive !== false && u.rank !== 'inactive');
+      }
+
       const teamMemberIds = managersTeam.map((u: any) => u.medewGcId || u.id);
 
       // Filter entries for this manager's team only
@@ -249,7 +257,8 @@ export default function ManagerDashboard() {
         throw calcError;
       }
     } catch (error) {
-      showToast("Fout bij laden dashboard", "error");
+      console.error("Dashboard load error:", error);
+      showToast("Fout bij laden dashboard data", "error");
     } finally {
       setLoading(false);
     }
