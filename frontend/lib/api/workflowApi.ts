@@ -28,6 +28,8 @@ export interface SaveDraftRequest {
   datum: string;
   aantal: number;
   omschrijving: string;
+  eveningNightHours?: number;
+  travelHours?: number;
   distanceKm?: number;
   travelCosts?: number;
   otherExpenses?: number;

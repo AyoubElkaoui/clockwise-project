@@ -21,6 +21,10 @@ import {
   FileText,
   Wrench,
   Ruler,
+  Moon,
+  Clock,
+  Star,
+  Heart,
 } from "lucide-react";
 import {
   getCompanies,
@@ -28,6 +32,7 @@ import {
   getProjects,
 } from "@/lib/api/companyApi";
 import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteDraft } from "@/lib/api/workflowApi";
+import { getFavoriteProjects, addFavoriteProject, removeFavoriteProject, type FavoriteProject } from "@/lib/api/favoriteProjectsApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects } from "@/lib/api/userProjectApi";
 import { getProjects as getAllProjectsFlat } from "@/lib/api";
@@ -157,6 +162,8 @@ export default function TimeRegistrationPage() {
   const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
   const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
   const [hasSubmittedEntries, setHasSubmittedEntries] = useState(false);
+  const [favoriteProjects, setFavoriteProjects] = useState<FavoriteProject[]>([]);
+  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(new Set());
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -198,11 +205,60 @@ export default function TimeRegistrationPage() {
     loadUserAllowedTasks();
     loadHolidays();
     loadAssignedProjects();
+    loadFavoriteProjects();
   }, [currentWeek, viewMode]);
 
   useEffect(() => {
     loadClosedDays();
   }, [currentWeek]);
+
+  const loadFavoriteProjects = async () => {
+    try {
+      const favorites = await getFavoriteProjects();
+      setFavoriteProjects(favorites);
+      setFavoriteProjectIds(new Set(favorites.map(f => f.projectGcId)));
+    } catch (error) {
+      console.error("Failed to load favorite projects:", error);
+    }
+  };
+
+  const toggleFavorite = async (projectId: number, projectName: string) => {
+    try {
+      if (favoriteProjectIds.has(projectId)) {
+        await removeFavoriteProject(projectId);
+        setFavoriteProjectIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(projectId);
+          return newSet;
+        });
+        setFavoriteProjects(prev => prev.filter(f => f.projectGcId !== projectId));
+        showToast(`${projectName} verwijderd uit favorieten`, "success");
+      } else {
+        const favorite = await addFavoriteProject(projectId);
+        setFavoriteProjectIds(prev => new Set([...prev, projectId]));
+        setFavoriteProjects(prev => [...prev, favorite]);
+        showToast(`${projectName} toegevoegd aan favorieten`, "success");
+      }
+    } catch (error) {
+      showToast("Fout bij aanpassen favorieten", "error");
+    }
+  };
+
+  const addFavoriteToRows = (favorite: FavoriteProject) => {
+    if (!projectRows.some(r => r.projectId === favorite.projectGcId)) {
+      setProjectRows(prev => [
+        ...prev,
+        {
+          companyId: 0,
+          companyName: favorite.companyName || "Favoriet",
+          projectGroupId: 0,
+          projectGroupName: favorite.projectGroupName || "",
+          projectId: favorite.projectGcId,
+          projectName: favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`,
+        },
+      ]);
+    }
+  };
 
   // Compute filtered projects at render time based on assignedProjectIds
   // This guarantees the filter is always applied regardless of load order
@@ -505,39 +561,55 @@ export default function TimeRegistrationPage() {
   };
 
   const removeProject = async (projectId: number) => {
-    // Delete entries from backend first
+    // Only try to delete entries that are editable (DRAFT or REJECTED)
     const entriesToDelete = Object.values(entries).filter(
-      (e) => e.projectId === projectId && e.id
+      (e) => e.projectId === projectId && e.id && (e.status === "DRAFT" || e.status === "REJECTED" || e.status === "opgeslagen" || !e.status)
     );
 
-    let allDeleted = true;
+    // Check if there are any non-deletable entries
+    const nonDeletableEntries = Object.values(entries).filter(
+      (e) => e.projectId === projectId && e.id && (e.status === "SUBMITTED" || e.status === "APPROVED")
+    );
+
+    if (nonDeletableEntries.length > 0) {
+      showToast(`Kan project niet verwijderen: ${nonDeletableEntries.length} uur${nonDeletableEntries.length > 1 ? 'registraties zijn' : 'registratie is'} al ingeleverd of goedgekeurd`, "error");
+      return;
+    }
+
+    let deletedCount = 0;
+    let failedCount = 0;
+
     for (const entry of entriesToDelete) {
       try {
         if (entry.id) {
           await deleteDraft(entry.id);
+          deletedCount++;
         }
       } catch (err: any) {
-        allDeleted = false;
+        failedCount++;
+        console.error("Failed to delete entry:", entry.id, err);
       }
     }
 
-    if (!allDeleted) {
-      showToast("Sommige uren konden niet verwijderd worden (goedgekeurd of fout)", "error");
+    if (failedCount > 0) {
+      showToast(`${failedCount} uur${failedCount > 1 ? 'registraties' : 'registratie'} kon niet verwijderd worden`, "error");
     }
 
-    // Remove from local state
+    // Remove project row from UI
     setProjectRows((prev) => prev.filter((r) => r.projectId !== projectId));
-    const newEntries = { ...entries };
-    Object.keys(newEntries).forEach((k) => {
-      if (newEntries[k].projectId === projectId) delete newEntries[k];
-    });
-    setEntries(newEntries);
+
+    // Reload entries from server to ensure UI is in sync
+    await loadEntries();
+
+    if (deletedCount > 0 && failedCount === 0) {
+      showToast(`Project en ${deletedCount} uur${deletedCount > 1 ? 'registraties' : 'registratie'} verwijderd`, "success");
+    }
   };
 
   const updateEntry = (
     projectId: number,
     date: string,
-    field: "hours" | "taskType" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
+    field: "hours" | "taskType" | "eveningNightHours" | "travelHours" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
     value: any,
   ) => {
     const key = `${date}-${projectId}`;
@@ -704,6 +776,8 @@ export default function TimeRegistrationPage() {
           datum: entry.date,
           aantal: entry.hours,
           omschrijving: entry.notes || "",
+          eveningNightHours: entry.eveningNightHours || 0,
+          travelHours: entry.travelHours || 0,
           distanceKm: entry.distanceKm || 0,
           travelCosts: entry.travelCosts || 0,
           otherExpenses: entry.otherExpenses || 0,
@@ -777,6 +851,8 @@ export default function TimeRegistrationPage() {
           datum: entry.date,
           aantal: entry.hours,
           omschrijving: entry.notes || "",
+          eveningNightHours: entry.eveningNightHours || 0,
+          travelHours: entry.travelHours || 0,
           distanceKm: entry.distanceKm || 0,
           travelCosts: entry.travelCosts || 0,
           otherExpenses: entry.otherExpenses || 0,
@@ -912,6 +988,46 @@ export default function TimeRegistrationPage() {
           <div className="flex h-[calc(100vh-5rem)]">
             <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
               <div className="p-4 space-y-1">
+                {/* Favoriete Projecten sectie */}
+                {favoriteProjects.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span>Favorieten</span>
+                    </div>
+                    <div className="space-y-1">
+                      {favoriteProjects.map((favorite) => (
+                        <div
+                          key={`fav-${favorite.projectGcId}`}
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
+                            }}
+                            className="text-amber-500 hover:text-amber-600"
+                          >
+                            <Star className="w-3 h-3 fill-current" />
+                          </button>
+                          <span
+                            onClick={() => addFavoriteToRows(favorite)}
+                            className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
+                          >
+                            {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
+                          </span>
+                          <Plus
+                            onClick={() => addFavoriteToRows(favorite)}
+                            className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
+                  </div>
+                )}
+
+                {/* Bedrijven en projecten */}
                 {companies.map((company) => (
                   <div key={company.id}>
                     <div
@@ -947,15 +1063,31 @@ export default function TimeRegistrationPage() {
                                 {getVisibleProjects(group.id).map((project) => (
                                   <div
                                     key={project.id}
-                                    onClick={() =>
-                                      addProject(company, group, project)
-                                    }
-                                    className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
                                   >
-                                    <Plus className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <span className="text-sm text-slate-600 group-hover:text-emerald-600">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(project.id, project.name);
+                                      }}
+                                      className={`transition-colors ${
+                                        favoriteProjectIds.has(project.id)
+                                          ? "text-amber-500"
+                                          : "text-slate-300 hover:text-amber-400"
+                                      }`}
+                                    >
+                                      <Star className={`w-3 h-3 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
+                                    </button>
+                                    <span
+                                      onClick={() => addProject(company, group, project)}
+                                      className="text-sm text-slate-600 group-hover:text-emerald-600 cursor-pointer flex-1"
+                                    >
                                       {project.name}
                                     </span>
+                                    <Plus
+                                      onClick={() => addProject(company, group, project)}
+                                      className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    />
                                   </div>
                                 ))}
                               </div>
@@ -1098,7 +1230,7 @@ export default function TimeRegistrationPage() {
                                     <div
                                       key={`entry-${date}-${row.projectId}`}
                                       className={
-                                        "space-y-1 p-2 rounded " +
+                                        "space-y-1.5 p-2 rounded " +
                                         getEntryClassName(entry.status) +
                                         (!isInCurrentMonth ? " opacity-30" : "")
                                       }
@@ -1115,7 +1247,7 @@ export default function TimeRegistrationPage() {
                                               e.target.value as 'MONTAGE' | 'TEKENKAMER',
                                             )
                                           }
-                                          className="w-full px-2 py-1.5 mb-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
                                           title="Selecteer taaktype"
                                         >
                                           <option value="MONTAGE">⚙️ Montage</option>
@@ -1123,40 +1255,87 @@ export default function TimeRegistrationPage() {
                                         </select>
                                       )}
 
-                                      {/* Uren input (groot en prominent) */}
-                                      <div className="mb-2">
-                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
-                                        <input
-                                          type="number"
-                                          step="0.5"
-                                          min="0"
-                                          max="24"
-                                          value={entry.hours || ""}
-                                          onChange={(e) =>
-                                            updateEntry(
-                                              row.projectId,
-                                              date,
-                                              "hours",
-                                              parseFloat(e.target.value) || 0,
-                                            )
-                                          }
-                                          disabled={isDisabled}
-                                          className={getInputClassName("w-full px-3 py-2.5 border rounded-lg text-center text-xl font-bold", entry.status)}
-                                          placeholder="0"
-                                          title={
-                                            isClosed
-                                              ? "Gesloten dag - geen uren registratie mogelijk"
-                                              : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                              : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                              : "Gewerkte uren"
-                                          }
-                                        />
+                                      {/* Uren + Avond/Nacht (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div>
+                                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Uren</label>
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.hours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "hours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                            placeholder="0"
+                                            title={
+                                              isClosed
+                                                ? "Gesloten dag"
+                                                : entry.status === "SUBMITTED" ? "Ingeleverd"
+                                                : entry.status === "APPROVED" ? "Goedgekeurd"
+                                                : "Gewerkte uren"
+                                            }
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5 flex items-center gap-0.5">
+                                            <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                          </label>
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.eveningNightHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "eveningNightHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                            placeholder="0"
+                                            title="Avond/nacht uren"
+                                          />
+                                        </div>
                                       </div>
 
-                                      {/* Kilometers (altijd zichtbaar, compact) */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Car className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                      {/* Reisuren + KM (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            value={entry.travelHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "travelHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="reisu"
+                                            title="Reisuren"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Car className="w-3 h-3 text-green-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="1"
@@ -1171,17 +1350,17 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
                                             placeholder="km"
-                                            title="Afstand in kilometers"
+                                            title="Kilometers"
                                           />
                                         </div>
                                       </div>
 
-                                      {/* Reiskosten (altijd zichtbaar, compact) */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Ticket className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                      {/* Reiskosten + Onkosten (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <Ticket className="w-3 h-3 text-yellow-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="0.01"
@@ -1196,17 +1375,13 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                            placeholder="€ reis"
-                                            title="Reiskosten (OV, taxi, parkeren)"
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="€reis"
+                                            title="Reiskosten"
                                           />
                                         </div>
-                                      </div>
-
-                                      {/* Onkosten (altijd zichtbaar, compact) */}
-                                      <div className="mb-1">
-                                        <div className="flex items-center gap-2">
-                                          <Euro className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                        <div className="flex items-center gap-1">
+                                          <Euro className="w-3 h-3 text-orange-500 flex-shrink-0" />
                                           <input
                                             type="number"
                                             step="0.01"
@@ -1221,53 +1396,36 @@ export default function TimeRegistrationPage() {
                                               )
                                             }
                                             disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                            placeholder="€ onkosten"
-                                            title="Onkosten (materiaal, maaltijden)"
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="€onk"
+                                            title="Onkosten"
                                           />
                                         </div>
                                       </div>
 
-                                      {/* Notities (klikbaar veld) */}
-                                      {!isDisabled && (
-                                        <button
-                                          onClick={() => toggleCellExpanded(row.projectId, date)}
-                                          className="w-full mt-1 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-colors"
-                                        >
-                                          <FileText className="w-3.5 h-3.5" />
-                                          {entry.notes ? (
-                                            <span className="font-medium">Notitie</span>
-                                          ) : (
-                                            <span>+ Notitie</span>
-                                          )}
-                                        </button>
-                                      )}
-
-                                      {/* Uitklapbare notities sectie */}
-                                      {isCellExpanded(row.projectId, date) && (
-                                        <div className="mt-2 p-2 border-t border-slate-200 dark:border-slate-600">
-                                          <textarea
-                                            value={entry.notes || ""}
-                                            onChange={(e) =>
-                                              updateEntry(
-                                                row.projectId,
-                                                date,
-                                                "notes",
-                                                e.target.value,
-                                              )
-                                            }
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-2 py-1.5 border rounded text-xs resize-none", entry.status)}
-                                            placeholder="Notities..."
-                                            rows={3}
-                                            title="Notities"
-                                          />
-                                        </div>
-                                      )}
+                                      {/* Opmerkingen */}
+                                      <div>
+                                        <textarea
+                                          value={entry.notes || ""}
+                                          onChange={(e) =>
+                                            updateEntry(
+                                              row.projectId,
+                                              date,
+                                              "notes",
+                                              e.target.value,
+                                            )
+                                          }
+                                          disabled={isDisabled}
+                                          className={getInputClassName("w-full px-1.5 py-1 border rounded text-xs resize-none", entry.status)}
+                                          placeholder="Opmerkingen..."
+                                          rows={2}
+                                          title="Opmerkingen"
+                                        />
+                                      </div>
 
                                       {/* Afkeur reden */}
                                       {entry.status === "REJECTED" && entry.rejectionReason && (
-                                        <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                        <div className="p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-[10px]">
                                           <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
                                           <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
                                         </div>
@@ -1419,7 +1577,7 @@ export default function TimeRegistrationPage() {
                               return (
                                 <div
                                   key={`week-entry-${date}-${row.projectId}`}
-                                  className={"space-y-1 p-2 rounded " + getEntryClassName(entry.status)}
+                                  className={"space-y-1.5 p-2 rounded " + getEntryClassName(entry.status)}
                                 >
                                   {/* Task type selector (alleen voor users met BOTH) */}
                                   {shouldShowTaskDropdown() && !isDisabled && (
@@ -1433,7 +1591,7 @@ export default function TimeRegistrationPage() {
                                           e.target.value as 'MONTAGE' | 'TEKENKAMER',
                                         )
                                       }
-                                      className="w-full px-2 py-1.5 mb-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                      className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
                                       title="Selecteer taaktype"
                                     >
                                       <option value="MONTAGE">⚙️ Montage</option>
@@ -1441,40 +1599,87 @@ export default function TimeRegistrationPage() {
                                     </select>
                                   )}
 
-                                  {/* Uren input (groot en prominent) */}
-                                  <div className="mb-2">
-                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
-                                    <input
-                                      type="number"
-                                      step="0.5"
-                                      min="0"
-                                      max="24"
-                                      value={entry.hours || ""}
-                                      onChange={(e) =>
-                                        updateEntry(
-                                          row.projectId,
-                                          date,
-                                          "hours",
-                                          parseFloat(e.target.value) || 0,
-                                        )
-                                      }
-                                      disabled={isDisabled}
-                                      className={getInputClassName("w-full px-3 py-2.5 border rounded-lg text-center text-xl font-bold", entry.status)}
-                                      placeholder="0"
-                                      title={
-                                        isClosed
-                                          ? "Gesloten dag - geen uren registratie mogelijk"
-                                          : entry.status === "SUBMITTED" ? "Ingeleverd - niet meer te wijzigen"
-                                          : entry.status === "APPROVED" ? "Goedgekeurd - niet meer te wijzigen"
-                                          : "Gewerkte uren"
-                                      }
-                                    />
+                                  {/* Uren + Avond/Nacht (naast elkaar) */}
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Uren</label>
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={entry.hours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "hours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                        placeholder="0"
+                                        title={
+                                          isClosed
+                                            ? "Gesloten dag"
+                                            : entry.status === "SUBMITTED" ? "Ingeleverd"
+                                            : entry.status === "APPROVED" ? "Goedgekeurd"
+                                            : "Gewerkte uren"
+                                        }
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5 flex items-center gap-0.5">
+                                        <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                      </label>
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="24"
+                                        value={entry.eveningNightHours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "eveningNightHours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                        placeholder="0"
+                                        title="Avond/nacht uren"
+                                      />
+                                    </div>
                                   </div>
 
-                                  {/* Kilometers (altijd zichtbaar, compact) */}
-                                  <div className="mb-1">
-                                    <div className="flex items-center gap-2">
-                                      <Car className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                  {/* Reisuren + KM (naast elkaar) */}
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                      <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        value={entry.travelHours || ""}
+                                        onChange={(e) =>
+                                          updateEntry(
+                                            row.projectId,
+                                            date,
+                                            "travelHours",
+                                            parseFloat(e.target.value) || 0,
+                                          )
+                                        }
+                                        disabled={isDisabled}
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="reisu"
+                                        title="Reisuren"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Car className="w-3 h-3 text-green-500 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="1"
@@ -1489,17 +1694,17 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
                                         placeholder="km"
-                                        title="Afstand in kilometers"
+                                        title="Kilometers"
                                       />
                                     </div>
                                   </div>
 
-                                  {/* Reiskosten (altijd zichtbaar, compact) */}
-                                  <div className="mb-1">
-                                    <div className="flex items-center gap-2">
-                                      <Ticket className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                  {/* Reiskosten + Onkosten (naast elkaar) */}
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <Ticket className="w-3 h-3 text-yellow-500 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1514,17 +1719,13 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                        placeholder="€ reis"
-                                        title="Reiskosten (OV, taxi, parkeren)"
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="€reis"
+                                        title="Reiskosten"
                                       />
                                     </div>
-                                  </div>
-
-                                  {/* Onkosten (altijd zichtbaar, compact) */}
-                                  <div className="mb-1">
-                                    <div className="flex items-center gap-2">
-                                      <Euro className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                                    <div className="flex items-center gap-1">
+                                      <Euro className="w-3 h-3 text-orange-500 flex-shrink-0" />
                                       <input
                                         type="number"
                                         step="0.01"
@@ -1539,53 +1740,36 @@ export default function TimeRegistrationPage() {
                                           )
                                         }
                                         disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-sm", entry.status)}
-                                        placeholder="€ onkosten"
-                                        title="Onkosten (materiaal, maaltijden)"
+                                        className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                        placeholder="€onk"
+                                        title="Onkosten"
                                       />
                                     </div>
                                   </div>
 
-                                  {/* Notities (klikbaar veld) */}
-                                  {!isDisabled && (
-                                    <button
-                                      onClick={() => toggleCellExpanded(row.projectId, date)}
-                                      className="w-full mt-1 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-colors"
-                                    >
-                                      <FileText className="w-3.5 h-3.5" />
-                                      {entry.notes ? (
-                                        <span className="font-medium">Notitie</span>
-                                      ) : (
-                                        <span>+ Notitie</span>
-                                      )}
-                                    </button>
-                                  )}
-
-                                  {/* Uitklapbare notities sectie */}
-                                  {isCellExpanded(row.projectId, date) && (
-                                    <div className="mt-2 p-2 border-t border-slate-200 dark:border-slate-600">
-                                      <textarea
-                                        value={entry.notes || ""}
-                                        onChange={(e) =>
-                                          updateEntry(
-                                            row.projectId,
-                                            date,
-                                            "notes",
-                                            e.target.value,
-                                          )
-                                        }
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full px-2 py-1.5 border rounded text-xs resize-none", entry.status)}
-                                        placeholder="Notities..."
-                                        rows={3}
-                                        title="Notities"
-                                      />
-                                    </div>
-                                  )}
+                                  {/* Opmerkingen */}
+                                  <div>
+                                    <textarea
+                                      value={entry.notes || ""}
+                                      onChange={(e) =>
+                                        updateEntry(
+                                          row.projectId,
+                                          date,
+                                          "notes",
+                                          e.target.value,
+                                        )
+                                      }
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-1.5 py-1 border rounded text-xs resize-none", entry.status)}
+                                      placeholder="Opmerkingen..."
+                                      rows={2}
+                                      title="Opmerkingen"
+                                    />
+                                  </div>
 
                                   {/* Afkeur reden */}
                                   {entry.status === "REJECTED" && entry.rejectionReason && (
-                                    <div className="mt-1 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs">
+                                    <div className="p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-[10px]">
                                       <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
                                       <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
                                     </div>

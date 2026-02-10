@@ -477,6 +477,16 @@ public class WorkflowService
             };
         }
 
+        if (entry.Status == "SUBMITTED")
+        {
+            _logger.LogWarning("DELETE entry {Id}: BLOCKED - status is SUBMITTED", entryId);
+            return new WorkflowResponse
+            {
+                Success = false,
+                Message = "Cannot delete submitted entries - they are awaiting approval"
+            };
+        }
+
         await _workflowRepo.DeleteAsync(entryId);
         _logger.LogInformation("DELETE entry {Id}: SUCCESS - deleted from database", entryId);
 

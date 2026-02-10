@@ -50,6 +50,16 @@ export default function ManagerTeamPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberData, setNewMemberData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    rank: "user",
+    contractHours: 40,
+    vacationDays: 25,
+  });
 
   useEffect(() => {
     loadTeamData();
@@ -243,6 +253,9 @@ export default function ManagerTeamPage() {
       phone: member.phone || "",
       rank: member.rank || "user",
       isActive: member.rank !== "inactive",
+      contractHours: member.contractHours || 40,
+      vacationDays: member.vacationDays || 25,
+      usedVacationDays: member.usedVacationDays || 0,
     });
   };
 
@@ -265,7 +278,7 @@ export default function ManagerTeamPage() {
 
   const handleSaveEdit = async () => {
     if (!editingMember) return;
-    
+
     setSaving(true);
     try {
       const updatedData = {
@@ -275,15 +288,50 @@ export default function ManagerTeamPage() {
         email: editFormData.email,
         phone: editFormData.phone,
         rank: editFormData.isActive ? editFormData.rank : "inactive",
+        contractHours: editFormData.contractHours,
+        vacationDays: editFormData.vacationDays,
+        usedVacationDays: editFormData.usedVacationDays,
       };
 
       await axios.put(`/api/users/${editingMember.medewGcId}`, updatedData);
-      
+
       showToast("Teamlid bijgewerkt", "success");
       setEditingMember(null);
       loadTeamData();
     } catch (error) {
       showToast("Fout bij opslaan", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberData.firstName || !newMemberData.lastName || !newMemberData.email) {
+      showToast("Vul alle verplichte velden in", "error");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await axios.post("/api/users", {
+        ...newMemberData,
+        managerId: authUtils.getUserId(),
+      });
+
+      showToast("Nieuw teamlid toegevoegd", "success");
+      setShowAddMember(false);
+      setNewMemberData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        rank: "user",
+        contractHours: 40,
+        vacationDays: 25,
+      });
+      loadTeamData();
+    } catch (error) {
+      showToast("Fout bij toevoegen", "error");
     } finally {
       setSaving(false);
     }
@@ -344,9 +392,13 @@ export default function ManagerTeamPage() {
             <Mail className="w-4 h-4 mr-2" />
             Team E-mail
           </Button>
-          <Button>
+          <Button variant="outline">
             <UserCheck className="w-4 h-4 mr-2" />
             Team Rapport
+          </Button>
+          <Button onClick={() => setShowAddMember(true)}>
+            <Users className="w-4 h-4 mr-2" />
+            Nieuw Teamlid
           </Button>
         </div>
       </div>
@@ -639,64 +691,153 @@ export default function ManagerTeamPage() {
 
       {/* Edit Member Dialog */}
       <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Teamlid Bewerken</DialogTitle>
+            <DialogTitle>Teamlid Beheren</DialogTitle>
             <DialogDescription>
-              Wijzig de gegevens van {editingMember?.firstName} {editingMember?.lastName}
+              Volledig beheer van {editingMember?.firstName} {editingMember?.lastName}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
-                  Voornaam
-                </label>
-                <Input
-                  value={editFormData.firstName || ""}
-                  onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
-                />
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            {/* Persoonlijke gegevens */}
+            <div className="border-b border-slate-200 dark:border-slate-700 pb-4">
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Persoonlijke Gegevens</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Voornaam
+                  </label>
+                  <Input
+                    value={editFormData.firstName || ""}
+                    onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Achternaam
+                  </label>
+                  <Input
+                    value={editFormData.lastName || ""}
+                    onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
-                  Achternaam
-                </label>
-                <Input
-                  value={editFormData.lastName || ""}
-                  onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
-                />
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    value={editFormData.email || ""}
+                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Telefoon
+                  </label>
+                  <Input
+                    value={editFormData.phone || ""}
+                    onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
-                Email
-              </label>
-              <Input
-                type="email"
-                value={editFormData.email || ""}
-                onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
-              />
+
+            {/* Contract gegevens */}
+            <div className="border-b border-slate-200 dark:border-slate-700 pb-4">
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Contract Gegevens</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Contract Uren / Week
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={editFormData.contractHours || 40}
+                    onChange={(e) => setEditFormData({...editFormData, contractHours: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Rol
+                  </label>
+                  <select
+                    value={editFormData.rank || "user"}
+                    onChange={(e) => setEditFormData({...editFormData, rank: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="user">Medewerker</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
-                Telefoon
-              </label>
-              <Input
-                value={editFormData.phone || ""}
-                onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
-              />
+
+            {/* Vakantie gegevens */}
+            <div className="border-b border-slate-200 dark:border-slate-700 pb-4">
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Vakantiedagen</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Totaal / Jaar
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={editFormData.vacationDays || 25}
+                    onChange={(e) => setEditFormData({...editFormData, vacationDays: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Opgenomen
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={editFormData.usedVacationDays || 0}
+                    onChange={(e) => setEditFormData({...editFormData, usedVacationDays: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Resterend
+                  </label>
+                  <div className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium">
+                    {(editFormData.vacationDays || 25) - (editFormData.usedVacationDays || 0)} dagen
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={editFormData.isActive}
-                onChange={(e) => setEditFormData({...editFormData, isActive: e.target.checked})}
-                className="w-4 h-4"
-              />
-              <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Actief
-              </label>
+
+            {/* Status */}
+            <div>
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Status</h4>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg flex-1">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={editFormData.isActive}
+                    onChange={(e) => setEditFormData({...editFormData, isActive: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="isActive" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Medewerker is actief
+                  </label>
+                </div>
+                {!editFormData.isActive && (
+                  <Badge className="bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                    Inactief
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -707,6 +848,120 @@ export default function ManagerTeamPage() {
             <Button onClick={handleSaveEdit} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Opslaan..." : "Opslaan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add New Member Dialog */}
+      <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nieuw Teamlid Toevoegen</DialogTitle>
+            <DialogDescription>
+              Voeg een nieuwe medewerker toe aan je team
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Persoonlijke gegevens */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                  Voornaam *
+                </label>
+                <Input
+                  value={newMemberData.firstName}
+                  onChange={(e) => setNewMemberData({...newMemberData, firstName: e.target.value})}
+                  placeholder="Jan"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                  Achternaam *
+                </label>
+                <Input
+                  value={newMemberData.lastName}
+                  onChange={(e) => setNewMemberData({...newMemberData, lastName: e.target.value})}
+                  placeholder="Jansen"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                  Email *
+                </label>
+                <Input
+                  type="email"
+                  value={newMemberData.email}
+                  onChange={(e) => setNewMemberData({...newMemberData, email: e.target.value})}
+                  placeholder="jan.jansen@bedrijf.nl"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                  Telefoon
+                </label>
+                <Input
+                  value={newMemberData.phone}
+                  onChange={(e) => setNewMemberData({...newMemberData, phone: e.target.value})}
+                  placeholder="06-12345678"
+                />
+              </div>
+            </div>
+
+            {/* Contract gegevens */}
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+              <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Contract Gegevens</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Contract Uren
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={newMemberData.contractHours}
+                    onChange={(e) => setNewMemberData({...newMemberData, contractHours: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Vakantiedagen
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={newMemberData.vacationDays}
+                    onChange={(e) => setNewMemberData({...newMemberData, vacationDays: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
+                    Rol
+                  </label>
+                  <select
+                    value={newMemberData.rank}
+                    onChange={(e) => setNewMemberData({...newMemberData, rank: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                  >
+                    <option value="user">Medewerker</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddMember(false)}>
+              <X className="w-4 h-4 mr-2" />
+              Annuleren
+            </Button>
+            <Button onClick={handleAddMember} disabled={saving}>
+              <Users className="w-4 h-4 mr-2" />
+              {saving ? "Toevoegen..." : "Toevoegen"}
             </Button>
           </DialogFooter>
         </DialogContent>

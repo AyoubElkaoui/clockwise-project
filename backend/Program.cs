@@ -93,6 +93,9 @@ builder.Services.AddScoped<backend.Services.TaskService>();
 builder.Services.AddScoped<backend.Services.LeaveService>();
 builder.Services.AddScoped<backend.Services.WorkflowService>();
 
+// Email reminder services
+builder.Services.AddScoped<backend.Services.IEmailReminderService, backend.Services.EmailReminderService>();
+builder.Services.AddHostedService<backend.Services.ReminderSchedulerService>();
 
 var app = builder.Build();
 
