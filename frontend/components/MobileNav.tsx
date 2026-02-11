@@ -162,18 +162,10 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-3">
               <Image
-                src="/logo.png"
-                alt="TIMR logo"
-                width={120}
-                height={40}
-                className="h-7 w-auto dark:hidden"
-              />
-              <Image
-                src="/logo_white.png"
-                alt="TIMR logo"
-                width={120}
-                height={40}
-                className="h-7 w-auto hidden dark:block"
+                src="/image.png"
+                alt="CLOCKD"
+                width={110}
+                height={22}
               />
               <button
                 onClick={onClose}

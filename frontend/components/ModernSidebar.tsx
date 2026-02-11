@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -29,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
 import { HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/lib/theme-context";
+import Image from "next/image";
 
 /* ======================
    Types
@@ -165,7 +164,6 @@ export function ModernSidebar({
   const pathname = usePathname();
   const { t } = useTranslation();
   const router = useRouter();
-  const { theme } = useTheme();
 
   const [collapsed, setCollapsed] = useState(externalCollapsed || false);
   const [mounted, setMounted] = useState(false);
@@ -271,24 +269,14 @@ export function ModernSidebar({
               className="flex items-center gap-3 focus:outline-none"
               aria-label="Ga naar dashboard"
             >
-              {!collapsed ? (
-                <Image
-                  src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
-                  alt="TIMR logo"
-                  width={350}
-                  height={200}
-                  priority
-                  className="h-20 w-auto object-contain transition"
-                />
-              ) : (
-                <Image
-                  src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
-                  alt="TIMR logo"
-                  width={350}
-                  height={200}
-                  className="h-20 w-auto object-contain transition"
-                />
-              )}
+              <Image
+                src="/image.png"
+                alt="CLOCKD"
+                width={collapsed ? 80 : 130}
+                height={collapsed ? 16 : 26}
+                className="transition-all"
+                priority
+              />
             </Link>
 
             {/* Collapse button */}

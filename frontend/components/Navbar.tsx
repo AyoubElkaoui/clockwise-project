@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, JSX } from "react";
-import Image from "next/image";
 import NotificationBell from "./NotificationBell";
+import Image from "next/image";
 import { MobileNav } from "./MobileNav";
 import {
   ArrowRightOnRectangleIcon,
@@ -134,18 +134,12 @@ export default function Navbar(): JSX.Element {
 
           {/* Company Logo - desktop only */}
           <Image
-            src="/altum-logo-new-Photoroom.png"
-            alt="Altum Technical Solutions"
-            width={280}
-            height={96}
-            className="hidden md:block dark:hidden h-16 w-auto object-contain flex-shrink-0"
-          />
-          <Image
-            src="/edited-image-preview-Photoroom.png"
-            alt="Altum Technical Solutions"
-            width={280}
-            height={96}
-            className="hidden md:dark:block h-16 w-auto object-contain flex-shrink-0"
+            src="/image.png"
+            alt="CLOCKD"
+            width={130}
+            height={26}
+            className="hidden md:block flex-shrink-0"
+            priority
           />
 
           {/* Search bar - desktop only */}
