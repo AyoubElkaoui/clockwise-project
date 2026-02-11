@@ -35,7 +35,7 @@ import { saveDraft, submitEntries, getDrafts, getSubmitted, getRejected, deleteD
 import { getFavoriteProjects, addFavoriteProject, removeFavoriteProject, type FavoriteProject } from "@/lib/api/favoriteProjectsApi";
 import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
-import { getProjects as getAllProjectsFlat } from "@/lib/api";
+import { getProjects as getAllProjectsFlat, API_URL } from "@/lib/api";
 import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
@@ -82,6 +82,23 @@ interface ClosedDay {
   id: number;
   date: string;
   reason: string;
+}
+
+interface IndirectTask {
+  taakGcId: number;
+  code: string;
+  description: string;
+  budget: number;
+  used: number;
+}
+
+interface IndirectEntry {
+  date: string;
+  taakGcId: number;
+  taskCode: string;
+  hours: number;
+  id?: number;
+  status?: string;
 }
 
 const MAX_HOURS_PER_DAY = 8;
@@ -171,6 +188,8 @@ export default function TimeRegistrationPage() {
     return today === 0 ? 6 : today - 1; // 0=Mon, 6=Sun
   });
   const [selectedMobileWeek, setSelectedMobileWeek] = useState(0);
+  const [indirectTasks, setIndirectTasks] = useState<IndirectTask[]>([]);
+  const [indirectEntries, setIndirectEntries] = useState<Record<string, IndirectEntry>>({});
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -213,6 +232,7 @@ export default function TimeRegistrationPage() {
     loadHolidays();
     loadAssignedProjects();
     loadFavoriteProjects();
+    loadIndirectTasks();
   }, [currentWeek, viewMode]);
 
   // Reset mobile week/day selection when navigating months
@@ -336,6 +356,70 @@ export default function TimeRegistrationPage() {
     } else {
       setUserAllowedTasks('BOTH'); // Default to both if not found
     }
+  };
+
+  const loadIndirectTasks = async () => {
+    try {
+      const medewGcId = localStorage.getItem("medewGcId");
+      if (!medewGcId) return;
+
+      // Fetch user's allocations and all tasks in parallel
+      const [allocRes, tasksRes] = await Promise.all([
+        axios.get(`${API_URL}/users/${medewGcId}/hour-allocations`, {
+          headers: { "ngrok-skip-browser-warning": "1" },
+        }),
+        axios.get(`${API_URL}/tasks`, {
+          headers: { "ngrok-skip-browser-warning": "1" },
+        }),
+      ]);
+
+      const allocations = allocRes.data || [];
+      const allTasks = tasksRes.data?.tasks || [];
+
+      // Only show codes where user has budget > 0
+      const tasksWithBudget: IndirectTask[] = [];
+      for (const alloc of allocations) {
+        if ((alloc.annualBudget || 0) > 0) {
+          const task = allTasks.find((t: any) => t.code === alloc.taskCode);
+          if (task) {
+            tasksWithBudget.push({
+              taakGcId: task.id,
+              code: alloc.taskCode,
+              description: alloc.taskDescription || task.description,
+              budget: alloc.annualBudget,
+              used: alloc.used || 0,
+            });
+          }
+        }
+      }
+      setIndirectTasks(tasksWithBudget);
+    } catch (err) {
+      console.error("Error loading indirect tasks:", err);
+    }
+  };
+
+  const updateIndirectEntry = (taakGcId: number, taskCode: string, date: string, hours: number) => {
+    const key = `${date}-indirect-${taskCode}`;
+    setIndirectEntries((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        date,
+        taakGcId,
+        taskCode,
+        hours,
+      },
+    }));
+  };
+
+  const getIndirectEntry = (taskCode: string, date: string): IndirectEntry | undefined => {
+    return indirectEntries[`${date}-indirect-${taskCode}`];
+  };
+
+  const getIndirectTotalForCode = (taskCode: string): number => {
+    return Object.values(indirectEntries)
+      .filter((e) => e.taskCode === taskCode && e.hours > 0)
+      .reduce((sum, e) => sum + e.hours, 0);
   };
 
   const shouldShowTaskDropdown = () => {
@@ -783,9 +867,14 @@ export default function TimeRegistrationPage() {
   const saveAll = async () => {
     setSaving(true);
     try {
-      // Validate total hours per day
+      // Validate total hours per day (project + indirect)
       const dayTotals: Record<string, number> = {};
       (Object.values(entries) as TimeEntry[]).forEach(e => {
+        if (e.hours > 0) {
+          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
+        }
+      });
+      Object.values(indirectEntries).forEach(e => {
         if (e.hours > 0) {
           dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
         }
@@ -847,7 +936,34 @@ export default function TimeRegistrationPage() {
       }
 
       setEntries(updatedEntries);
-      showToast("✓ Uren succesvol opgeslagen als concept", "success");
+
+      // Also save indirect entries (verlof, ATV, etc.)
+      const indirectToSave = Object.values(indirectEntries).filter(
+        (e) => e.hours > 0 && !isClosedDay(e.date)
+      );
+      const updatedIndirect = { ...indirectEntries };
+      for (const ie of indirectToSave) {
+        const result = await saveDraft({
+          id: ie.id,
+          urenperGcId,
+          taakGcId: ie.taakGcId,
+          werkGcId: null,
+          datum: ie.date,
+          aantal: ie.hours,
+          omschrijving: "",
+          eveningNightHours: 0,
+          travelHours: 0,
+          distanceKm: 0,
+          travelCosts: 0,
+          otherExpenses: 0,
+        });
+        const key = `${ie.date}-indirect-${ie.taskCode}`;
+        updatedIndirect[key] = { ...ie, id: result.entry.id, status: result.entry.status };
+      }
+      setIndirectEntries(updatedIndirect);
+
+      const totalSaved = toSave.length + indirectToSave.length;
+      showToast(`✓ ${totalSaved} registratie(s) opgeslagen als concept`, "success");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Kan uren niet opslaan. Controleer je internetverbinding.";
       showToast(errorMessage, "error");
@@ -866,10 +982,15 @@ export default function TimeRegistrationPage() {
           dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
         }
       });
+      Object.values(indirectEntries).forEach(e => {
+        if (e.hours > 0) {
+          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
+        }
+      });
       const invalidDays = Object.entries(dayTotals).filter(([, total]) => total > MAX_HOURS_PER_DAY);
       if (invalidDays.length > 0) {
         const datesFormatted = invalidDays.map(([date]) => dayjs(date).format("DD MMMM")).join(", ");
-        showToast(`❌ Te veel uren op ${datesFormatted}. Maximaal ${MAX_HOURS_PER_DAY} uur per dag toegestaan.`, "error");
+        showToast(`Te veel uren op ${datesFormatted}. Maximaal ${MAX_HOURS_PER_DAY} uur per dag toegestaan.`, "error");
         setSaving(false);
         return;
       }
@@ -878,27 +999,30 @@ export default function TimeRegistrationPage() {
         .filter((e: TimeEntry) => e.hours > 0)
         .filter((e: TimeEntry) => !isClosedDay(e.date));
 
-      if (toSave.length === 0) {
-        showToast("❌ Geen uren ingevuld. Voeg eerst uren toe voordat je indient.", "error");
+      const indirectToSave = Object.values(indirectEntries).filter(
+        (e) => e.hours > 0 && !isClosedDay(e.date)
+      );
+
+      if (toSave.length === 0 && indirectToSave.length === 0) {
+        showToast("Geen uren ingevuld. Voeg eerst uren toe voordat je indient.", "error");
         return;
       }
 
       const urenperGcId = getCurrentPeriodId();
 
-      // First save all entries as drafts
+      // First save all project entries as drafts
       const savedIds: number[] = [];
       for (const entry of toSave as TimeEntry[]) {
-        // Determine taakGcId based on user's taskType selection or restriction
         let taakGcId: number;
         const taskType = entry.taskType || getDefaultTaskType();
         if (taskType === 'MONTAGE') {
-          taakGcId = 100256; // Montage task
+          taakGcId = 100256;
         } else {
-          taakGcId = 100032; // Tekenkamer task
+          taakGcId = 100032;
         }
 
         const result = await saveDraft({
-          id: entry.id, // Include ID if it exists (for updates)
+          id: entry.id,
           urenperGcId,
           taakGcId,
           werkGcId: entry.projectId || null,
@@ -914,14 +1038,33 @@ export default function TimeRegistrationPage() {
         savedIds.push(result.entry.id);
       }
 
+      // Save indirect entries as drafts
+      for (const ie of indirectToSave) {
+        const result = await saveDraft({
+          id: ie.id,
+          urenperGcId,
+          taakGcId: ie.taakGcId,
+          werkGcId: null,
+          datum: ie.date,
+          aantal: ie.hours,
+          omschrijving: "",
+          eveningNightHours: 0,
+          travelHours: 0,
+          distanceKm: 0,
+          travelCosts: 0,
+          otherExpenses: 0,
+        });
+        savedIds.push(result.entry.id);
+      }
+
       // Then submit all saved drafts
       await submitEntries({
         urenperGcId,
         entryIds: savedIds,
       });
 
-      showToast(`✓ ${savedIds.length} uur${savedIds.length > 1 ? 'registraties' : 'registratie'} succesvol ingediend voor goedkeuring!`, "success");
-      
+      showToast(`✓ ${savedIds.length} registratie(s) ingediend voor goedkeuring!`, "success");
+
       // Force reload after a short delay to ensure backend has processed
       await new Promise(resolve => setTimeout(resolve, 500));
       await loadEntries();
@@ -2653,6 +2796,99 @@ export default function TimeRegistrationPage() {
                   </div>
                 </div>
                 </>
+              )}
+
+              {/* Indirect hours section (Verlof, ATV, Ziekte) */}
+              {indirectTasks.length > 0 && (
+                <div className="mt-4 mx-2 md:mx-0 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Verlof & Indirecte uren
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700">
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 min-w-[180px]">
+                            Uurcode
+                          </th>
+                          {(viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek)).map((day) => (
+                            <th key={formatDate(day)} className="text-center px-1 py-2 font-medium text-slate-500 dark:text-slate-400 w-16">
+                              {dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}
+                              <div className="text-[10px] text-slate-400">{day.getDate()}</div>
+                            </th>
+                          ))}
+                          <th className="text-center px-2 py-2 font-semibold text-slate-600 dark:text-slate-400 w-16">Tot</th>
+                          <th className="text-center px-2 py-2 font-semibold text-slate-600 dark:text-slate-400 w-20">Rest</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indirectTasks.map((task) => {
+                          const weekTotal = getIndirectTotalForCode(task.code);
+                          const remaining = task.budget - task.used - weekTotal;
+                          return (
+                            <tr key={task.code} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20">
+                              <td className="px-3 py-1.5">
+                                <div className="flex items-center gap-2">
+                                  <code className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                                    {task.code}
+                                  </code>
+                                  <span className="text-xs text-slate-700 dark:text-slate-300 truncate max-w-[120px]">
+                                    {task.description}
+                                  </span>
+                                </div>
+                              </td>
+                              {(viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek)).map((day) => {
+                                const dateStr = formatDate(day);
+                                const ie = getIndirectEntry(task.code, dateStr);
+                                const closed = isClosedDay(dateStr);
+                                return (
+                                  <td key={dateStr} className="px-1 py-1.5 text-center">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="8"
+                                      step="0.5"
+                                      value={ie?.hours || ""}
+                                      placeholder={closed ? "X" : "-"}
+                                      disabled={closed}
+                                      onChange={(e) =>
+                                        updateIndirectEntry(task.taakGcId, task.code, dateStr, parseFloat(e.target.value) || 0)
+                                      }
+                                      className={`w-12 h-7 text-center text-xs border rounded ${
+                                        closed
+                                          ? "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                                          : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                      }`}
+                                    />
+                                  </td>
+                                );
+                              })}
+                              <td className="px-2 py-1.5 text-center">
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                                  {weekTotal > 0 ? `${weekTotal}u` : "-"}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1.5 text-center">
+                                <span className={`text-xs font-bold ${
+                                  remaining < 0
+                                    ? "text-red-600 dark:text-red-400"
+                                    : remaining <= task.budget * 0.1
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-green-600 dark:text-green-400"
+                                }`}>
+                                  {remaining}/{task.budget}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
 
               {/* Mobile floating action buttons */}

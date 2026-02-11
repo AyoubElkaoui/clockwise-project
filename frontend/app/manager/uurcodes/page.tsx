@@ -136,12 +136,12 @@ export default function UurcodesPage() {
     if (!selectedMember) return;
     setSaving(true);
     try {
-      const toSave = allocations.filter((a) => a.annualBudget > 0);
+      // Send all allocations that exist in state (including 0 to clear old values)
       await axios.put(
         `${API_URL}/users/${selectedMember.medewGcId}/hour-allocations`,
         {
           year: new Date().getFullYear(),
-          allocations: toSave.map((a) => ({
+          allocations: allocations.map((a) => ({
             taskCode: a.taskCode,
             taskDescription: a.taskDescription,
             annualBudget: a.annualBudget,
