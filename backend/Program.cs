@@ -28,6 +28,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigins", policy =>
     {
         policy.WithOrigins(
+                "https://clockd.nl",
+                "https://www.clockd.nl",
                 "https://clockwise-project.vercel.app",
                 "http://localhost:3000",
                 "http://localhost:3001"
@@ -106,43 +108,40 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (app.Environment.IsDevelopment())
+// Middleware volgorde: belangrijk voor CORS - moet altijd actief zijn
+app.UseRouting();
+app.UseCors("AllowSpecificOrigins");
+
+// Global exception handler that returns JSON for API routes
+app.UseExceptionHandler(errorApp =>
 {
-    // Middleware volgorde: belangrijk voor CORS
-    app.UseRouting();
-    app.UseCors("AllowSpecificOrigins");
-
-    // Global exception handler that returns JSON for API routes
-    app.UseExceptionHandler(errorApp =>
+    errorApp.Run(async context =>
     {
-        errorApp.Run(async context =>
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        var problemDetails = new ProblemDetails
         {
-            var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-            var problemDetails = new ProblemDetails
-            {
-                Status = 500,
-                Title = "An error occurred",
-                Detail = exception?.Message ?? "Internal server error",
-                Instance = context.Request.Path
-            };
+            Status = 500,
+            Title = "An error occurred",
+            Detail = exception?.Message ?? "Internal server error",
+            Instance = context.Request.Path
+        };
 
-            // Always return JSON for API routes
-            if (context.Request.Path.Value?.StartsWith("/api") == true)
-            {
-                context.Response.ContentType = "application/json";
-                context.Response.StatusCode = 500;
-                await context.Response.WriteAsJsonAsync(problemDetails);
-            }
-            else
-            {
-                // For non-API routes, return HTML
-                context.Response.ContentType = "text/html";
-                context.Response.StatusCode = 500;
-                await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>{problemDetails.Detail}</p></body></html>");
-            }
-        });
+        // Always return JSON for API routes
+        if (context.Request.Path.Value?.StartsWith("/api") == true)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(problemDetails);
+        }
+        else
+        {
+            // For non-API routes, return HTML
+            context.Response.ContentType = "text/html";
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>{problemDetails.Detail}</p></body></html>");
+        }
     });
-}
+});
 
 // Add dummy holidays endpoint before middleware so it doesn't require auth
 app.MapGet("/api/holidays/closed", (int? year) => Results.Ok(new string[0]));

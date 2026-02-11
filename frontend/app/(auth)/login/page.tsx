@@ -124,21 +124,22 @@ export default function LoginPage(): JSX.Element {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
 
       <div className="w-full max-w-md">
-        <Card className="bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700">
+        <Card className="bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          {/* Blue accent bar */}
+          <div className="h-1.5 bg-[#3563E9]" />
+
           {/* Header Section */}
-          <CardHeader className="text-center pb-8 pt-8">
-            <div className="flex justify-center mb-6">
-              <div className="bg-timr-orange dark:bg-timr-orange rounded-2xl p-6 shadow-lg">
-                <Image
-                  src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
-                  alt="timr. Logo"
-                  width={80}
-                  height={80}
-                  className="w-20 h-20 rounded-xl object-contain"
-                />
-              </div>
+          <CardHeader className="text-center pb-6 pt-8">
+            <div className="flex justify-center mb-4">
+              <Image
+                src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
+                alt="Clockd Logo"
+                width={200}
+                height={60}
+                className="h-14 w-auto object-contain"
+              />
             </div>
-            <div className="flex justify-center gap-2 mb-6">
+            <div className="flex justify-center gap-2 mb-4">
               <button
                 onClick={toggleTheme}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
@@ -157,8 +158,8 @@ export default function LoginPage(): JSX.Element {
               <button
                 onClick={() => i18n.changeLanguage('en')}
                 className={`px-3 py-2 rounded-lg transition-colors font-semibold text-sm ${
-                  i18n.language === 'en' 
-                    ? 'bg-timr-orange text-white' 
+                  i18n.language === 'en'
+                    ? 'bg-[#3563E9] text-white'
                     : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                 }`}
               >
@@ -167,21 +168,18 @@ export default function LoginPage(): JSX.Element {
               <button
                 onClick={() => i18n.changeLanguage('nl')}
                 className={`px-3 py-2 rounded-lg transition-colors font-semibold text-sm ${
-                  i18n.language === 'nl' 
-                    ? 'bg-timr-orange text-white' 
+                  i18n.language === 'nl'
+                    ? 'bg-[#3563E9] text-white'
                     : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                 }`}
               >
                 NL
               </button>
             </div>
-            <CardTitle className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
               {t("login.welcomeBack")}
             </CardTitle>
-            <p className="text-timr-orange font-bold text-xl mb-1">
-              timr.
-            </p>
-            <p className="text-slate-600 dark:text-slate-400">
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
               {t("login.loginToContinue")}
             </p>
           </CardHeader>
@@ -290,7 +288,7 @@ export default function LoginPage(): JSX.Element {
             <Button
               onClick={handleLogin}
               disabled={isLoading || !username.trim() || !password.trim() || (requires2FA && twoFactorCode.length !== 6)}
-              className="w-full bg-timr-orange hover:bg-timr-orange-hover text-white shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full bg-[#3563E9] hover:bg-[#2952CC] text-white shadow-md hover:shadow-lg transition-all duration-200"
               size="lg"
               isLoading={isLoading}
             >
@@ -319,8 +317,8 @@ export default function LoginPage(): JSX.Element {
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6">
                 <div className="text-center mb-6">
-                  <div className="mx-auto w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-4">
-                    <LockClosedIcon className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+                    <LockClosedIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
                     Wachtwoord Vergeten?
@@ -346,7 +344,7 @@ export default function LoginPage(): JSX.Element {
 
                 <Button
                   onClick={() => setShowForgotPasswordModal(false)}
-                  className="w-full bg-timr-orange hover:bg-timr-orange-hover text-white"
+                  className="w-full bg-[#3563E9] hover:bg-[#2952CC] text-white"
                 >
                   Begrepen
                 </Button>
