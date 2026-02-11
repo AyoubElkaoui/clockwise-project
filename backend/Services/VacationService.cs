@@ -106,6 +106,16 @@ namespace ClockwiseProject.Backend.Services
                 _logger.LogWarning(ex, "Failed to update vacation balance for request {Id}, continuing anyway", id);
             }
 
+            // Update hour allocation budget (non-critical)
+            try
+            {
+                await UpdateHourAllocationUsedAsync(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update hour allocation for vacation request {Id}, continuing anyway", id);
+            }
+
             // Write to Firebird (optional - don't fail approve if Firebird is unavailable)
             try
             {
@@ -300,6 +310,60 @@ namespace ClockwiseProject.Backend.Services
         {
             var sql = "SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG";
             return await connection.ExecuteScalarAsync<int>(sql, transaction: transaction);
+        }
+
+        /// <summary>
+        /// Update user_hour_allocations.used when a vacation is approved.
+        /// Deducts total vacation hours from the corresponding task_code budget.
+        /// </summary>
+        private async Task UpdateHourAllocationUsedAsync(VacationRequest request)
+        {
+            using var connection = _postgresConnectionFactory.CreateConnection();
+
+            // Get the vacation type code from leave_requests_workflow
+            var vacationInfo = await connection.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT lrw.taak_gc_id, lrw.total_hours, lrw.user_id
+                FROM leave_requests_workflow lrw
+                WHERE lrw.id = @Id", new { Id = request.Id });
+
+            if (vacationInfo == null)
+            {
+                _logger.LogWarning("Could not find leave_requests_workflow entry for vacation {Id}", request.Id);
+                return;
+            }
+
+            int taakGcId = (int)vacationInfo.taak_gc_id;
+            decimal totalHours = (decimal)vacationInfo.total_hours;
+            int userId = (int)vacationInfo.user_id;
+
+            // Get the task code from Firebird
+            var taskCode = await _firebirdRepository.GetTaakCodeAsync(taakGcId);
+            if (string.IsNullOrEmpty(taskCode))
+            {
+                _logger.LogWarning("Could not find task code for taak_gc_id {TaakGcId}", taakGcId);
+                return;
+            }
+
+            var year = request.StartDate.Year;
+            var trimmedCode = taskCode.Trim();
+
+            // Update the used hours in user_hour_allocations
+            var rowsAffected = await connection.ExecuteAsync(@"
+                UPDATE user_hour_allocations
+                SET used = used + @Hours, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = @UserId AND task_code = @TaskCode AND year = @Year",
+                new { Hours = totalHours, UserId = userId, TaskCode = trimmedCode, Year = year });
+
+            if (rowsAffected > 0)
+            {
+                _logger.LogInformation("Updated hour allocation: user {UserId}, code {TaskCode}, +{Hours}h for year {Year}",
+                    userId, trimmedCode, totalHours, year);
+            }
+            else
+            {
+                _logger.LogWarning("No hour allocation found for user {UserId}, code {TaskCode}, year {Year} - no budget to deduct from",
+                    userId, trimmedCode, year);
+            }
         }
 
         /// <summary>
