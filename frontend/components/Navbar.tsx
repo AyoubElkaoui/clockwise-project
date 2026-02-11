@@ -120,20 +120,15 @@ export default function Navbar(): JSX.Element {
         {/* === LEFT: Logo + Hamburger + Search === */}
         <div className="flex items-center gap-3 flex-1 max-w-xs lg:max-w-lg">
           {/* Company Logo */}
-          <Image
-            src="/altum-logo.png"
-            alt="Altum"
-            width={140}
-            height={44}
-            className="hidden md:block h-12 w-auto object-contain dark:hidden flex-shrink-0"
-          />
-          <Image
-            src="/altum-logo-white.png"
-            alt="Altum"
-            width={140}
-            height={44}
-            className="hidden md:dark:block h-12 w-auto object-contain flex-shrink-0"
-          />
+          <div className="hidden md:block flex-shrink-0 rounded-lg overflow-hidden bg-white dark:bg-white px-3 py-2">
+            <Image
+              src="/altum-logo-new.png"
+              alt="Altum Technical Solutions"
+              width={280}
+              height={128}
+              className="h-32 w-auto object-contain"
+            />
+          </div>
 
           {/* Hamburger menu for mobile */}
           <button
