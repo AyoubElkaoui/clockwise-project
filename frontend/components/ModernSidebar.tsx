@@ -274,7 +274,15 @@ export function ModernSidebar({
                 alt="CLOCKD"
                 width={collapsed ? 80 : 130}
                 height={collapsed ? 16 : 26}
-                className="transition-all"
+                className="transition-all dark:hidden"
+                priority
+              />
+              <Image
+                src="/white_logo.png"
+                alt="CLOCKD"
+                width={collapsed ? 80 : 130}
+                height={collapsed ? 16 : 26}
+                className="transition-all hidden dark:block"
                 priority
               />
             </Link>

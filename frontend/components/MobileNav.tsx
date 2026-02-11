@@ -166,6 +166,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 alt="CLOCKD"
                 width={110}
                 height={22}
+                className="dark:hidden"
+              />
+              <Image
+                src="/white_logo.png"
+                alt="CLOCKD"
+                width={110}
+                height={22}
+                className="hidden dark:block"
               />
               <button
                 onClick={onClose}
