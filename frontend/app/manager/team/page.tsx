@@ -51,8 +51,6 @@ export default function ManagerTeamPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [hourAllocations, setHourAllocations] = useState<any[]>([]);
-  const [availableTaskCodes, setAvailableTaskCodes] = useState<any[]>([]);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberData, setNewMemberData] = useState({
     firstName: "",
@@ -247,7 +245,7 @@ export default function ManagerTeamPage() {
     };
   };
 
-  const handleEditMember = async (member: any) => {
+  const handleEditMember = (member: any) => {
     setEditingMember(member);
     setEditFormData({
       firstName: member.firstName || "",
@@ -260,36 +258,6 @@ export default function ManagerTeamPage() {
       vacationDays: member.vacationDays || 25,
       usedVacationDays: member.usedVacationDays || 0,
     });
-
-    // Load hour allocations and available task codes
-    try {
-      const [allocRes, tasksRes] = await Promise.all([
-        axios.get(`${API_URL}/users/${member.medewGcId}/hour-allocations`, {
-          headers: { "ngrok-skip-browser-warning": "1" },
-        }),
-        availableTaskCodes.length === 0
-          ? axios.get(`${API_URL}/tasks`, {
-              headers: { "ngrok-skip-browser-warning": "1" },
-            })
-          : Promise.resolve(null),
-      ]);
-
-      const allocs = allocRes.data || [];
-      setHourAllocations(allocs);
-
-      if (tasksRes) {
-        // Filter to relevant codes (I, Z, SLEEFTIJD - not numeric work codes)
-        const tasks = (tasksRes.data.tasks || []).filter(
-          (t: any) =>
-            t.code.startsWith("I") ||
-            t.code.startsWith("Z") ||
-            t.code === "SLEEFTIJD"
-        );
-        setAvailableTaskCodes(tasks);
-      }
-    } catch {
-      setHourAllocations([]);
-    }
   };
 
   const handleToggleActive = async (member: any) => {
@@ -330,20 +298,6 @@ export default function ManagerTeamPage() {
       };
 
       await axios.put(`${API_URL}/users/${editingMember.medewGcId}`, updatedData);
-
-      // Save hour allocations if any are configured
-      const configuredAllocations = hourAllocations.filter((a: any) => a.annualBudget > 0);
-      if (configuredAllocations.length > 0) {
-        await axios.put(`${API_URL}/users/${editingMember.medewGcId}/hour-allocations`, {
-          year: new Date().getFullYear(),
-          allocations: configuredAllocations.map((a: any) => ({
-            taskCode: a.taskCode,
-            taskDescription: a.taskDescription,
-            annualBudget: a.annualBudget,
-            used: a.used || 0,
-          })),
-        });
-      }
 
       showToast("Teamlid bijgewerkt", "success");
       setEditingMember(null);
@@ -878,72 +832,6 @@ export default function ManagerTeamPage() {
                     {(editFormData.vacationDays || 25) - (editFormData.usedVacationDays || 0)} dagen
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Uurcode Toewijzingen */}
-            <div className="border-b border-slate-200 dark:border-slate-700 pb-4">
-              <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Uurcode Toewijzingen</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                Stel het jaarlijks budget in per uurcode (dagen/uren per jaar)
-              </p>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {availableTaskCodes.map((task: any) => {
-                  const existing = hourAllocations.find((a: any) => a.taskCode === task.code);
-                  const budget = existing?.annualBudget ?? 0;
-                  const used = existing?.used ?? 0;
-
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg"
-                    >
-                      <code className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 w-16 flex-shrink-0">
-                        {task.code}
-                      </code>
-                      <span className="text-sm text-slate-700 dark:text-slate-300 flex-1 truncate" title={task.description}>
-                        {task.description}
-                      </span>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          placeholder="0"
-                          value={budget || ""}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setHourAllocations((prev: any[]) => {
-                              const idx = prev.findIndex((a: any) => a.taskCode === task.code);
-                              if (idx >= 0) {
-                                const updated = [...prev];
-                                updated[idx] = { ...updated[idx], annualBudget: val };
-                                return updated;
-                              }
-                              return [...prev, {
-                                taskCode: task.code,
-                                taskDescription: task.description,
-                                annualBudget: val,
-                                used: 0,
-                              }];
-                            });
-                          }}
-                          className="w-16 h-8 text-center text-sm px-1"
-                        />
-                        {budget > 0 && (
-                          <span className="text-[10px] text-slate-400 w-12 text-right">
-                            {used}/{budget}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                {availableTaskCodes.length === 0 && (
-                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">
-                    Uurcodes worden geladen...
-                  </p>
-                )}
               </div>
             </div>
 
