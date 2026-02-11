@@ -136,7 +136,7 @@ export default function LoginPage(): JSX.Element {
                 alt="Clockd Logo"
                 width={300}
                 height={160}
-                className="h-32 w-auto object-contain"
+                className="w-auto object-contain"
               />
             </div>
             <div className="flex justify-center gap-2 mb-4">
