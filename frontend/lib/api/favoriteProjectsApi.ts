@@ -34,7 +34,8 @@ axios.interceptors.request.use((request) => {
  */
 export async function getFavoriteProjects(): Promise<FavoriteProject[]> {
   const response = await axios.get(`${API_URL}/favorite-projects`);
-  return response.data;
+  // Filter out any entries with invalid projectGcId (0 or missing)
+  return (response.data || []).filter((f: FavoriteProject) => f.projectGcId > 0);
 }
 
 /**

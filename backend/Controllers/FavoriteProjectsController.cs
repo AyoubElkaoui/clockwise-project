@@ -48,7 +48,8 @@ public class FavoriteProjectsController : ControllerBase
             await conn.OpenAsync();
 
             var favorites = await conn.QueryAsync<FavoriteProject>(
-                "SELECT id, user_id, project_gc_id, created_at FROM favorite_projects WHERE user_id = @UserId ORDER BY created_at DESC",
+                @"SELECT id AS Id, user_id AS UserId, project_gc_id AS ProjectGcId, created_at AS CreatedAt
+                  FROM favorite_projects WHERE user_id = @UserId ORDER BY created_at DESC",
                 new { UserId = userId.Value });
 
             // Enrich with Firebird project data
