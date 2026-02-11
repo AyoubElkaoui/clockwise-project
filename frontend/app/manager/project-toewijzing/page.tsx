@@ -290,23 +290,23 @@ export default function ManagerProjectToewijzingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Project Toewijzingen
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Wijs medewerkers toe aan projecten
           </p>
         </div>
-        <div className="flex gap-3">
-          <Badge variant="secondary" className="text-sm py-1 px-3">
+        <div className="flex gap-2 md:gap-3">
+          <Badge variant="secondary" className="text-xs md:text-sm py-1 px-2 md:px-3">
             <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
-            {projects.length} projecten
+            {projects.length}
           </Badge>
-          <Badge variant="secondary" className="text-sm py-1 px-3">
+          <Badge variant="secondary" className="text-xs md:text-sm py-1 px-2 md:px-3">
             <Users className="w-3.5 h-3.5 mr-1.5" />
-            {users.length} medewerkers
+            {users.length}
           </Badge>
         </div>
       </div>

@@ -129,9 +129,9 @@ export default function AdminApprovalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Alle Goedkeuringen
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -173,28 +173,32 @@ export default function AdminApprovalsPage() {
       </Card>
 
       {/* Filters */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant={filterStatus === "ingeleverd" ? "default" : "outline"}
           onClick={() => setFilterStatus("ingeleverd")}
+          size="sm"
         >
           In behandeling
         </Button>
         <Button
           variant={filterStatus === "goedgekeurd" ? "default" : "outline"}
           onClick={() => setFilterStatus("goedgekeurd")}
+          size="sm"
         >
           Goedgekeurd
         </Button>
         <Button
           variant={filterStatus === "afgekeurd" ? "default" : "outline"}
           onClick={() => setFilterStatus("afgekeurd")}
+          size="sm"
         >
           Afgekeurd
         </Button>
         <Button
           variant={filterStatus === "all" ? "default" : "outline"}
           onClick={() => setFilterStatus("all")}
+          size="sm"
         >
           Alles
         </Button>
@@ -213,8 +217,8 @@ export default function AdminApprovalsPage() {
           filteredEntries.map((entry) => (
             <Card key={entry.id} className="hover:shadow-lg transition">
               <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
+                <div className="flex flex-col md:flex-row items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 md:gap-4 flex-1">
                     <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                       <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                         {entry.user?.firstName?.charAt(0)}
@@ -232,7 +236,7 @@ export default function AdminApprovalsPage() {
                         {getStatusBadge(entry.status)}
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-3">
                         <div>
                           <p className="text-xs text-slate-600 dark:text-slate-400">
                             Datum
@@ -298,7 +302,7 @@ export default function AdminApprovalsPage() {
                   </div>
 
                   {entry.status === "ingeleverd" && (
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex gap-2 md:ml-4">
                       <Button size="sm" onClick={() => handleApprove(entry.id)}>
                         <CheckCircle className="w-4 h-4 mr-1" />
                         Goedkeuren

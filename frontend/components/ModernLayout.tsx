@@ -33,7 +33,7 @@ export default function ModernLayout({ children }: { children: ReactNode }) {
         <Navbar /> 
         
         {/* Pagina inhoud */}
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {children}
         </div>
 

@@ -305,46 +305,48 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
                 Beheerdersdashboard
               </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
                 Overzicht van systeem prestaties en activiteiten
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={loadDashboardData}
-                className="bg-white/50 dark:bg-slate-800/50"
+                className="bg-white/50 dark:bg-slate-800/50 flex-1 sm:flex-none"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Vernieuwen
+                <RefreshCw className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Vernieuwen</span>
               </Button>
               <Button
+                size="sm"
                 onClick={() => router.push("/admin/users")}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
               >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Nieuwe Gebruiker
+                <UserPlus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nieuwe Gebruiker</span>
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Navigation */}
-        <div className="flex items-center gap-2 mb-8 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <div className="flex items-center gap-2 mb-6 md:mb-8 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50 overflow-x-auto">
           <Button
+            size="sm"
             variant={activeView === "overview" ? "default" : "ghost"}
             onClick={() => setActiveView("overview")}
-            className={`flex items-center gap-2 ${
+            className={`flex items-center gap-2 whitespace-nowrap ${
               activeView === "overview"
                 ? "bg-white dark:bg-slate-700 shadow-sm"
                 : "hover:bg-white/50 dark:hover:bg-slate-700/50"
@@ -354,9 +356,10 @@ export default function AdminDashboardPage() {
             Overzicht
           </Button>
           <Button
+            size="sm"
             variant={activeView === "analytics" ? "default" : "ghost"}
             onClick={() => setActiveView("analytics")}
-            className={`flex items-center gap-2 ${
+            className={`flex items-center gap-2 whitespace-nowrap ${
               activeView === "analytics"
                 ? "bg-white dark:bg-slate-700 shadow-sm"
                 : "hover:bg-white/50 dark:hover:bg-slate-700/50"
@@ -366,9 +369,10 @@ export default function AdminDashboardPage() {
             Analytics
           </Button>
           <Button
+            size="sm"
             variant={activeView === "system" ? "default" : "ghost"}
             onClick={() => setActiveView("system")}
-            className={`flex items-center gap-2 ${
+            className={`flex items-center gap-2 whitespace-nowrap ${
               activeView === "system"
                 ? "bg-white dark:bg-slate-700 shadow-sm"
                 : "hover:bg-white/50 dark:hover:bg-slate-700/50"
@@ -378,9 +382,10 @@ export default function AdminDashboardPage() {
             Systeem
           </Button>
           <Button
+            size="sm"
             variant={activeView === "activity" ? "default" : "ghost"}
             onClick={() => setActiveView("activity")}
-            className={`flex items-center gap-2 ${
+            className={`flex items-center gap-2 whitespace-nowrap ${
               activeView === "activity"
                 ? "bg-white dark:bg-slate-700 shadow-sm"
                 : "hover:bg-white/50 dark:hover:bg-slate-700/50"
@@ -393,9 +398,9 @@ export default function AdminDashboardPage() {
 
         {/* Overview View */}
         {activeView === "overview" && (
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8">
             {/* Hero Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
               <Card className="border-l-4 border-l-blue-500">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
@@ -554,14 +559,14 @@ export default function AdminDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   <Button
                     variant="outline"
-                    className="h-20 flex-col gap-3 hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-900/20"
+                    className="h-16 md:h-20 flex-col gap-2 md:gap-3 hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-900/20"
                     onClick={() => router.push("/admin/users")}
                   >
-                    <Users className="w-6 h-6 text-blue-600" />
-                    <span className="text-sm font-medium">Gebruikers</span>
+                    <Users className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                    <span className="text-xs md:text-sm font-medium">Gebruikers</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -592,7 +597,7 @@ export default function AdminDashboardPage() {
             </Card>
 
             {/* Charts and Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
               {/* Performance Chart */}
               <Card className="lg:col-span-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
                 <CardHeader>
@@ -841,23 +846,25 @@ export default function AdminDashboardPage() {
                   {recentActivity.map((activity) => (
                     <div
                       key={activity.id}
-                      className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
                     >
-                      <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                        {activity.user?.firstName?.charAt(0)}
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {activity.user?.firstName?.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                            {activity.user?.firstName} {activity.user?.lastName}
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                            Registreerde {activity.hours.toFixed(1)} uur voor{" "}
+                            {activity.project?.name}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900 dark:text-slate-100">
-                          {activity.user?.firstName} {activity.user?.lastName}
-                        </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Registreerde {activity.hours.toFixed(1)} uur voor{" "}
-                          {activity.project?.name}
-                        </p>
-                      </div>
-                      <div className="text-right">
+                      <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:text-right ml-13 sm:ml-0">
                         {getStatusBadge(activity.status)}
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-slate-500">
                           {dayjs(activity.timestamp).fromNow()}
                         </p>
                       </div>

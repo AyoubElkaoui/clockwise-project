@@ -434,7 +434,7 @@ export default function ManagerPlanningPage() {
   const calendarContent = (() => {
     if (viewMode === "year") {
       return (
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {calendarDays.map((month, index) => {
             const daysInMonth = month.daysInMonth();
             const startOfMonth = month.startOf("month");
@@ -762,17 +762,18 @@ export default function ManagerPlanningPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Team Planning
           </h1>
-          <p className="text-slate-700 dark:text-slate-300 mt-1">
+          <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 mt-1">
             {teamMembers.length} teamleden • Overzicht van uren en beschikbaarheid
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 md:gap-3">
           <Button
+            size="sm"
             variant={viewMode === "week" ? "default" : "outline"}
             onClick={() => {
               setViewMode("week");
@@ -782,6 +783,7 @@ export default function ManagerPlanningPage() {
             Week
           </Button>
           <Button
+            size="sm"
             variant={viewMode === "month" ? "default" : "outline"}
             onClick={() => {
               setViewMode("month");
@@ -791,6 +793,7 @@ export default function ManagerPlanningPage() {
             Maand
           </Button>
           <Button
+            size="sm"
             variant={viewMode === "year" ? "default" : "outline"}
             onClick={() => {
               setViewMode("year");
@@ -805,7 +808,7 @@ export default function ManagerPlanningPage() {
       {/* Period Navigation */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <Button
               variant="outline"
               size="sm"
@@ -819,17 +822,17 @@ export default function ManagerPlanningPage() {
                 }
               }}
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Vorige{" "}
+              <ChevronLeft className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Vorige{" "}
               {viewMode === "week"
                 ? "Week"
                 : viewMode === "month"
                   ? "Maand"
-                  : "Jaar"}
+                  : "Jaar"}</span>
             </Button>
 
-            <div className="text-center min-w-[300px]">
-              <p className="font-semibold text-slate-900 dark:text-slate-100">
+            <div className="text-center min-w-0 md:min-w-[300px]">
+              <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100">
                 {viewMode === "week" &&
                   `Week ${currentDate.isoWeek()} • ${currentDate.format("D MMM")} - ${currentDate.add(6, "day").format("D MMM YYYY")}`}
                 {viewMode === "month" && currentDate.format("MMMM YYYY")}
@@ -850,20 +853,20 @@ export default function ManagerPlanningPage() {
                 }
               }}
             >
-              Volgende{" "}
+              <span className="hidden sm:inline">Volgende{" "}
               {viewMode === "week"
                 ? "Week"
                 : viewMode === "month"
                   ? "Maand"
-                  : "Jaar"}
-              <ChevronRight className="w-4 h-4 ml-1" />
+                  : "Jaar"}</span>
+              <ChevronRight className="w-4 h-4 sm:ml-1" />
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">

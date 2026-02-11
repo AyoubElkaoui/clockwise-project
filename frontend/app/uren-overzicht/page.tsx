@@ -385,18 +385,20 @@ export default function UrenOverzichtPage() {
       <ModernLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
                 Uren Overzicht
               </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
                 Bekijk en beheer al je tijdregistraties
               </p>
             </div>
             <Button
+              size="sm"
               onClick={exportToCSV}
               disabled={filteredEntries.length === 0}
+              className="w-full sm:w-auto"
             >
               <Download className="w-4 h-4 mr-2" />
               Exporteren
@@ -405,29 +407,29 @@ export default function UrenOverzichtPage() {
 
           {/* Period Navigation */}
           <Card variant="elevated" padding="md">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-2 md:gap-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePrev}
                 className="text-slate-700 dark:text-slate-300"
               >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Vorige
+                <ChevronLeft className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">Vorige</span>
               </Button>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleToday}
-                  className="text-slate-700 dark:text-slate-300"
+                  className="text-slate-700 dark:text-slate-300 hidden sm:flex"
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   Vandaag
                 </Button>
-                <div className="text-center min-w-[280px]">
-                  <p className="font-semibold text-slate-900 dark:text-slate-100">
+                <div className="text-center min-w-0">
+                  <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate">
                     {periodLabel}
                   </p>
                 </div>
@@ -468,7 +470,7 @@ export default function UrenOverzichtPage() {
           </Card>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
             {[
               { label: "Totaal Uren", value: stats.total, color: "blue" },
               { label: "Goedgekeurd", value: stats.approved, color: "green" },
@@ -585,7 +587,7 @@ export default function UrenOverzichtPage() {
           </Card>
 
           {/* Summary Card */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-6">
             <Card variant="elevated" padding="md" className="lg:col-span-1">
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">

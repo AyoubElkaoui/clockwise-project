@@ -24,10 +24,10 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
       <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 overflow-x-hidden">
         <ManagerSidebar collapsed={isCollapsed} onToggle={handleSidebarToggle} />
         <main className={`flex-1 transition-all duration-300 ease-in-out max-w-full overflow-x-hidden ${
-          isCollapsed ? 'ml-20' : 'ml-64'
+          isCollapsed ? 'md:ml-20' : 'md:ml-64'
         }`}>
           <Navbar />
-          <div className="p-6 max-w-full overflow-x-hidden">{children}</div>
+          <div className="p-4 md:p-6 max-w-full overflow-x-hidden">{children}</div>
         </main>
       </div>
     </ManagerRoute>

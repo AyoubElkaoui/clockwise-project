@@ -256,31 +256,33 @@ export default function ManagerReviewTimePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Uren Beoordelen
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Beoordeel en keur uren goed van je teamleden
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 md:gap-3">
           <Button
+            size="sm"
             onClick={handleApprove}
             disabled={selectedEntries.size === 0 || processing}
             className="bg-emerald-600 hover:bg-emerald-700"
           >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Goedkeuren ({selectedEntries.size})
+            <CheckCircle className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Goedkeuren</span> ({selectedEntries.size})
           </Button>
           <Button
+            size="sm"
             onClick={handleRejectClick}
             disabled={selectedEntries.size === 0 || processing}
             variant="destructive"
           >
-            <XCircle className="w-4 h-4 mr-2" />
-            Afkeuren ({selectedEntries.size})
+            <XCircle className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Afkeuren</span> ({selectedEntries.size})
           </Button>
         </div>
       </div>
@@ -327,7 +329,7 @@ export default function ManagerReviewTimePage() {
           </div>
 
           {/* Stats */}
-          <div className="mt-4 flex items-center gap-6 text-sm">
+          <div className="mt-4 flex flex-wrap items-center gap-3 md:gap-6 text-sm">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               <span className="text-slate-900 dark:text-slate-100 font-medium">
@@ -415,7 +417,7 @@ export default function ManagerReviewTimePage() {
                   {employeeEntries.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                      className="flex items-start gap-3 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
                     >
                       <input
                         type="checkbox"

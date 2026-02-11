@@ -137,29 +137,29 @@ export default function RegisterTime(): JSX.Element {
   const totalHours = calculateHours();
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-3 md:p-6 space-y-4 md:space-y-8">
       {/* Header Section */}
-      <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
+      <div className="bg-blue-600 text-white rounded-2xl p-4 md:p-8 shadow-lg">
         <div className="flex items-center gap-3 mb-4">
-          <ClockIcon className="w-8 h-8" />
-          <h1 className="text-4xl font-bold">{t("hours.title")}</h1>
+          <ClockIcon className="w-8 h-8 flex-shrink-0" />
+          <h1 className="text-2xl md:text-4xl font-bold">{t("hours.title")}</h1>
         </div>
-        <p className="text-blue-100 text-lg">{t("register.subtitle")}</p>
+        <p className="text-blue-100 text-base md:text-lg">{t("register.subtitle")}</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-8">
         {/* Main Form */}
         <div className="xl:col-span-2">
           <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-            <div className="card-body p-8">
+            <div className="card-body p-4 md:p-8">
               {/* Project Selection */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <FolderIcon className="w-6 h-6" />
+              <div className="mb-4 md:mb-8">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
+                  <FolderIcon className="w-6 h-6 flex-shrink-0" />
                   {t("register.projectSelection")}
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
@@ -236,13 +236,13 @@ export default function RegisterTime(): JSX.Element {
               </div>
 
               {/* Time Registration */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <CalendarDaysIcon className="w-6 h-6" />
+              <div className="mb-4 md:mb-8">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
+                  <CalendarDaysIcon className="w-6 h-6 flex-shrink-0" />
                   {t("register.timeRegistration")}
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold text-gray-700">
@@ -286,13 +286,13 @@ export default function RegisterTime(): JSX.Element {
               </div>
 
               {/* Additional Info */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <CurrencyEuroIcon className="w-6 h-6" />
+              <div className="mb-4 md:mb-8">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
+                  <CurrencyEuroIcon className="w-6 h-6 flex-shrink-0" />
                   {t("register.additionalInfo")}
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-6">
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold text-gray-700">
@@ -386,7 +386,7 @@ export default function RegisterTime(): JSX.Element {
         {/* Summary Sidebar */}
         <div className="xl:col-span-1">
           <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden sticky top-6">
-            <div className="card-body p-6">
+            <div className="card-body p-3 md:p-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4">
                 {t("register.summaryTitle")}
               </h3>

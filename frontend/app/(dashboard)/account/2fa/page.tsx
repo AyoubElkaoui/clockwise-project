@@ -101,7 +101,7 @@ export default function TwoFactorPage() {
 
   if (showSetup) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
         <Button
           variant="outline"
           onClick={() => {
@@ -118,14 +118,14 @@ export default function TwoFactorPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Shield className="w-8 h-8 text-blue-600" />
+    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+      <div className="flex items-center gap-3 mb-4 md:mb-6">
+        <Shield className="w-8 h-8 text-blue-600 flex-shrink-0" />
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Tweestapsverificatie (2FA)
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400">
             Extra beveiliging voor je account
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function TwoFactorPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       type="text"
                       placeholder="000000 of backup code"

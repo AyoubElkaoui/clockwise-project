@@ -52,10 +52,10 @@ export default function CreateUserPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-4 md:mb-8">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 mb-4 transition-colors"
@@ -63,16 +63,16 @@ export default function CreateUserPage() {
             <ArrowLeft className="w-5 h-5" />
             Terug
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Nieuwe Gebruiker Aanmaken
           </h1>
           <p className="text-gray-600 dark:text-slate-400">Vul de onderstaande gegevens in</p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-8">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 md:p-8">
           {/* Personal Info */}
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-blue-600" />
               Persoonlijke Gegevens
@@ -139,7 +139,7 @@ export default function CreateUserPage() {
           </div>
 
           {/* Login Info */}
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Lock className="w-5 h-5 text-blue-600" />
               Login Gegevens
@@ -195,7 +195,7 @@ export default function CreateUserPage() {
           </div>
 
           {/* Address Info */}
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-600" />
               Adres Gegevens

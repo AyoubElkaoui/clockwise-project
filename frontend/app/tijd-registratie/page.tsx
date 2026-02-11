@@ -165,6 +165,11 @@ export default function TimeRegistrationPage() {
   const [favoriteProjects, setFavoriteProjects] = useState<FavoriteProject[]>([]);
   const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(new Set());
   const [projectMaxHours, setProjectMaxHours] = useState<Record<number, number>>({});
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [selectedMobileDay, setSelectedMobileDay] = useState(() => {
+    const today = new Date().getDay();
+    return today === 0 ? 6 : today - 1; // 0=Mon, 6=Sun
+  });
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -942,17 +947,17 @@ export default function TimeRegistrationPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-30">
+            <div className="px-3 md:px-6 py-3 md:py-4 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                <h1 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
                   Uren Registreren
                 </h1>
 
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode("week")}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-sm font-medium transition-colors ${
                       viewMode === "week"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -962,7 +967,7 @@ export default function TimeRegistrationPage() {
                   </button>
                   <button
                     onClick={() => setViewMode("month")}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-sm font-medium transition-colors ${
                       viewMode === "month"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -972,7 +977,7 @@ export default function TimeRegistrationPage() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => {
                       const d = new Date(currentWeek);
@@ -983,11 +988,11 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
                   </button>
-                  <div className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="px-2 md:px-4 py-1 md:py-2 font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 min-w-[80px] text-center">
                     {viewMode === "week"
                       ? `Week ${weekNumber}`
                       : monthNames[currentWeek.getMonth()]}
@@ -1002,13 +1007,13 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
                   </button>
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="hidden md:flex gap-3">
                 <button
                   onClick={saveAll}
                   disabled={saving}
@@ -1027,8 +1032,139 @@ export default function TimeRegistrationPage() {
             </div>
           </div>
 
-          <div className="flex h-[calc(100vh-5rem)]">
-            <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
+          <div className="flex flex-col md:flex-row md:h-[calc(100vh-5rem)]">
+            {/* Mobile Project Picker Overlay */}
+            {showProjectPicker && (
+              <div className="fixed inset-0 z-50 md:hidden">
+                <div className="absolute inset-0 bg-black/60" onClick={() => setShowProjectPicker(false)} />
+                <div className="absolute top-0 left-0 h-full w-80 max-w-[85vw] bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto">
+                  <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">Project kiezen</h3>
+                    <button
+                      onClick={() => setShowProjectPicker(false)}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                    >
+                      <span className="text-xl text-slate-500">&times;</span>
+                    </button>
+                  </div>
+                  <div className="p-4 space-y-1">
+                    {/* Favoriete Projecten sectie */}
+                    {favoriteProjects.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
+                          <Star className="w-4 h-4 fill-current" />
+                          <span>Favorieten</span>
+                        </div>
+                        <div className="space-y-1">
+                          {favoriteProjects.map((favorite) => (
+                            <div
+                              key={`mob-fav-${favorite.projectGcId}`}
+                              className="flex items-center gap-2 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
+                                }}
+                                className="text-amber-500 hover:text-amber-600"
+                              >
+                                <Star className="w-4 h-4 fill-current" />
+                              </button>
+                              <span
+                                onClick={() => { addFavoriteToRows(favorite); setShowProjectPicker(false); }}
+                                className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
+                              >
+                                {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
+                              </span>
+                              <Plus
+                                onClick={() => { addFavoriteToRows(favorite); setShowProjectPicker(false); }}
+                                className="w-4 h-4 text-emerald-600 cursor-pointer"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
+                      </div>
+                    )}
+
+                    {/* Bedrijven en projecten (mobile overlay) */}
+                    {companies.map((company) => (
+                      <div key={`mob-${company.id}`}>
+                        <div
+                          onClick={() => toggleCompany(company.id)}
+                          className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                        >
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
+                          />
+                          <span className="font-medium group-hover:text-blue-600">
+                            {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
+                          </span>
+                        </div>
+                        {expandedCompanies.includes(company.id) && (
+                          <div className="ml-5 space-y-1">
+                            {projectGroups[company.id]?.filter(group =>
+                              assignedGroupIds === null || assignedGroupIds.has(group.id)
+                            ).map((group, index) => (
+                              <div key={group.id || `mob-group-${index}`}>
+                                <div
+                                  onClick={() => toggleGroup(group.id)}
+                                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-timr-orange-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                                >
+                                  <ChevronDown
+                                    className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-timr-orange ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                                  />
+                                  <span className="text-sm group-hover:text-timr-orange">
+                                    {group.name}
+                                  </span>
+                                </div>
+                                {expandedGroups.includes(group.id) && (
+                                  <div className="ml-5 space-y-1">
+                                    {getVisibleProjects(group.id).map((project) => (
+                                      <div
+                                        key={`mob-proj-${project.id}`}
+                                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                                      >
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleFavorite(project.id, project.name);
+                                          }}
+                                          className={`transition-colors ${
+                                            favoriteProjectIds.has(project.id)
+                                              ? "text-amber-500"
+                                              : "text-slate-300 hover:text-amber-400"
+                                          }`}
+                                        >
+                                          <Star className={`w-4 h-4 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
+                                        </button>
+                                        <span
+                                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
+                                          className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 cursor-pointer flex-1"
+                                        >
+                                          {project.name}
+                                        </span>
+                                        <Plus
+                                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
+                                          className="w-4 h-4 text-emerald-600 cursor-pointer"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Desktop Sidebar */}
+            <div className="hidden md:block w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
               <div className="p-4 space-y-1">
                 {/* Favoriete Projecten sectie */}
                 {favoriteProjects.length > 0 && (
@@ -1143,21 +1279,32 @@ export default function TimeRegistrationPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-3 md:p-6">
+              {/* Mobile: Add project button */}
+              <div className="md:hidden mb-3">
+                <button
+                  onClick={() => setShowProjectPicker(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  Project toevoegen
+                </button>
+              </div>
+
               {projectRows.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
+                <div className="h-full flex items-center justify-center py-12">
                   <div className="text-center">
                     <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold mb-2">
                       Geen projecten geselecteerd
                     </h3>
-                    <p className="text-slate-600">
-                      Selecteer een project in de sidebar
+                    <p className="text-slate-600 dark:text-slate-400">
+                      Selecteer een project {typeof window !== 'undefined' && window.innerWidth < 768 ? 'via de knop hierboven' : 'in de sidebar'}
                     </p>
                   </div>
                 </div>
               ) : viewMode === "month" ? (
-                <div className="space-y-6">
+                <div className="space-y-6 overflow-x-auto">
                   {monthWeeks.map((weekStart, idx) => {
                     const weekDaysForWeek = getWeekDays(weekStart);
                     const currentMonth = currentWeek.getMonth();
@@ -1166,7 +1313,7 @@ export default function TimeRegistrationPage() {
                     return (
                       <div
                         key={`week-${weekStart.toISOString()}`}
-                        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden min-w-[900px]"
                       >
                         <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
                           <div className="font-semibold text-slate-900">
@@ -1577,7 +1724,294 @@ export default function TimeRegistrationPage() {
                   })}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <>
+                {/* ===== MOBILE DAY-BY-DAY VIEW ===== */}
+                <div className="md:hidden space-y-3">
+                  {/* Day selector tabs */}
+                  <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                    {weekDays.map((day, i) => {
+                      const isToday = formatDate(day) === formatDate(new Date());
+                      const isSelected = selectedMobileDay === i;
+                      const dayTotal = getTotalDay(formatDate(day));
+                      const isClosed = isClosedDay(formatDate(day));
+                      const isWeekendDay = isWeekend(day);
+                      return (
+                        <button
+                          key={`mob-day-${i}`}
+                          onClick={() => setSelectedMobileDay(i)}
+                          className={`flex-1 min-w-[48px] py-2 px-1 rounded-xl text-center transition-all ${
+                            isSelected
+                              ? "bg-blue-600 text-white shadow-md"
+                              : isToday
+                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
+                              : isClosed || isWeekendDay
+                              ? "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          <div className="text-[10px] font-medium uppercase">{dayNames[i]}</div>
+                          <div className="text-lg font-bold">{day.getDate()}</div>
+                          {dayTotal > 0 && (
+                            <div className={`text-[10px] font-semibold ${isSelected ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
+                              {dayTotal}u
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Week total summary */}
+                  <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Weektotaal</span>
+                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{getTotalWeek()}u</span>
+                  </div>
+
+                  {/* Project cards for selected day */}
+                  {(() => {
+                    const day = weekDays[selectedMobileDay];
+                    const date = formatDate(day);
+                    const isClosed = isClosedDay(date);
+                    const isWeekendDay = isWeekend(day);
+
+                    if (isClosed) {
+                      return (
+                        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                          <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p className="font-medium">Gesloten dag</p>
+                        </div>
+                      );
+                    }
+                    if (isWeekendDay) {
+                      return (
+                        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                          <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p className="font-medium">Weekend</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {projectRows.map((row) => {
+                          const key = `${date}-${row.projectId}`;
+                          const entry = entries[key] || {
+                            date,
+                            projectId: row.projectId,
+                            hours: 0,
+                            taskType: getDefaultTaskType(),
+                            distanceKm: 0,
+                            travelCosts: 0,
+                            otherExpenses: 0,
+                            notes: "",
+                            status: "opgeslagen",
+                          };
+                          const entryEditable = isEditable(entry.status);
+                          const maxInfo = getProjectMaxInfo(row.projectId);
+                          const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                          const isDisabled = !entryEditable || isAtMaxHours;
+
+                          return (
+                            <div
+                              key={`mob-entry-${row.projectId}`}
+                              className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm ${getEntryClassName(entry.status)} ${isAtMaxHours ? "opacity-50" : ""}`}
+                            >
+                              {/* Project header */}
+                              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                    {row.companyName}{row.projectGroupName && ` › ${row.projectGroupName}`}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{row.projectName}</span>
+                                    {maxInfo.hasMax && (
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${maxInfo.isAtMax ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
+                                        {maxInfo.currentHours}/{maxInfo.maxHours}u
+                                      </span>
+                                    )}
+                                  </div>
+                                  {/* Status badge */}
+                                  {entry.status === "SUBMITTED" && (
+                                    <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">Ingeleverd</span>
+                                  )}
+                                  {entry.status === "APPROVED" && (
+                                    <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">Goedgekeurd</span>
+                                  )}
+                                  {entry.status === "REJECTED" && (
+                                    <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded font-medium">Afgekeurd</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <button
+                                    onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                    className="p-1.5"
+                                  >
+                                    <Heart className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
+                                  </button>
+                                  <button
+                                    onClick={() => removeProject(row.projectId)}
+                                    className="p-1.5 text-red-500"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Entry fields */}
+                              <div className="p-4 space-y-3">
+                                {/* Task type */}
+                                {shouldShowTaskDropdown() && !isDisabled && (
+                                  <select
+                                    value={entry.taskType || getDefaultTaskType()}
+                                    onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as 'MONTAGE' | 'TEKENKAMER')}
+                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                  >
+                                    <option value="MONTAGE">Montage</option>
+                                    <option value="TEKENKAMER">Tekenkamer</option>
+                                  </select>
+                                )}
+
+                                {/* Uren + Avond/Nacht */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.5"
+                                      min="0"
+                                      max="24"
+                                      value={entry.hours || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                      <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                    </label>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.5"
+                                      min="0"
+                                      max="24"
+                                      value={entry.eveningNightHours || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Reisuren + KM */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-blue-500" /> Reisuren
+                                    </label>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.5"
+                                      min="0"
+                                      value={entry.travelHours || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                      <Car className="w-3 h-3 text-green-500" /> Kilometers
+                                    </label>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="1"
+                                      min="0"
+                                      value={entry.distanceKm || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Reiskosten + Onkosten */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                      <Ticket className="w-3 h-3 text-yellow-500" /> Reiskosten
+                                    </label>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.01"
+                                      min="0"
+                                      value={entry.travelCosts || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="€0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                      <Euro className="w-3 h-3 text-orange-500" /> Onkosten
+                                    </label>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step="0.01"
+                                      min="0"
+                                      value={entry.otherExpenses || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="€0"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Opmerkingen */}
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <FileText className="w-3 h-3 text-slate-500" /> Opmerkingen
+                                  </label>
+                                  <textarea
+                                    value={entry.notes || ""}
+                                    onChange={(e) => updateEntry(row.projectId, date, "notes", e.target.value)}
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm resize-none bg-white dark:bg-slate-700", entry.status)}
+                                    placeholder="Opmerkingen..."
+                                    rows={2}
+                                  />
+                                </div>
+
+                                {/* Rejection reason */}
+                                {entry.status === "REJECTED" && entry.rejectionReason && (
+                                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <p className="text-xs font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                    <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">{entry.rejectionReason}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* ===== DESKTOP WEEK VIEW ===== */}
+                <div className="hidden md:block space-y-4">
                   <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
                       <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
@@ -1907,7 +2341,28 @@ export default function TimeRegistrationPage() {
                     </div>
                   </div>
                 </div>
+                </>
               )}
+
+              {/* Mobile floating action buttons */}
+              <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-3 py-3 flex gap-2 safe-area-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+                <button
+                  onClick={saveAll}
+                  disabled={saving}
+                  className="flex-1 py-3 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
+                >
+                  <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
+                </button>
+                <button
+                  onClick={submitAll}
+                  disabled={saving}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
+                >
+                  <Send className="w-4 h-4" /> Inleveren
+                </button>
+              </div>
+              {/* Spacer to prevent content behind floating buttons on mobile */}
+              <div className="md:hidden h-20" />
             </div>
           </div>
         </div>

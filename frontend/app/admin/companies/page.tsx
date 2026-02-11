@@ -224,11 +224,11 @@ export default function AdminCompaniesPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             {t("admin.companies.title")}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -238,17 +238,17 @@ export default function AdminCompaniesPage() {
         <div className="flex gap-3">
           <Button variant="outline" onClick={exportCompanies}>
             <Download className="w-4 h-4 mr-2" />
-            {t("admin.users.export")}
+            <span className="hidden md:inline">{t("admin.users.export")}</span>
           </Button>
           <Button onClick={() => router.push("/admin/companies/create")}>
             <Plus className="w-4 h-4 mr-2" />
-            {t("admin.companies.createCompany")}
+            <span className="hidden md:inline">{t("admin.companies.createCompany")}</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -416,7 +416,7 @@ export default function AdminCompaniesPage() {
                     className="hover:shadow-md transition-shadow"
                   >
                     <CardContent className="pt-6">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 md:gap-4">
                         <Checkbox
                           checked={selectedCompanies.has(company.id)}
                           onCheckedChange={() =>
@@ -425,14 +425,14 @@ export default function AdminCompaniesPage() {
                         />
 
                         {/* Company Logo/Avatar */}
-                        <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
                           {(company.name || "C").charAt(0).toUpperCase()}
                         </div>
 
                         {/* Company Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
+                            <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
                               {company.name}
                             </h3>
                             <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
@@ -441,21 +441,21 @@ export default function AdminCompaniesPage() {
                                 : t("status.inactive")}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-sm text-slate-600 dark:text-slate-400">
                             {company.email && (
-                              <div className="flex items-center gap-1">
-                                <Mail className="w-4 h-4" />
-                                <span>{company.email}</span>
+                              <div className="flex items-center gap-1 truncate">
+                                <Mail className="w-4 h-4 shrink-0" />
+                                <span className="truncate">{company.email}</span>
                               </div>
                             )}
                             {company.phone && (
-                              <div className="flex items-center gap-1">
+                              <div className="hidden md:flex items-center gap-1">
                                 <Phone className="w-4 h-4" />
                                 <span>{company.phone}</span>
                               </div>
                             )}
                             {company.address && (
-                              <div className="flex items-center gap-1">
+                              <div className="hidden md:flex items-center gap-1">
                                 <MapPin className="w-4 h-4" />
                                 <span>{company.address}</span>
                               </div>

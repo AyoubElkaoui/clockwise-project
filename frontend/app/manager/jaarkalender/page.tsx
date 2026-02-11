@@ -263,16 +263,16 @@ export default function JaarkalenderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Jaarkalender
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Beheer feestdagen en gesloten dagen
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <Button
             variant="outline"
             size="sm"
@@ -280,7 +280,7 @@ export default function JaarkalenderPage() {
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <span className="text-xl font-bold min-w-[100px] text-center">
+          <span className="text-lg md:text-xl font-bold min-w-[60px] md:min-w-[100px] text-center">
             {currentYear}
           </span>
           <Button
@@ -294,18 +294,18 @@ export default function JaarkalenderPage() {
             variant="default"
             size="sm"
             onClick={handleGenerateHolidays}
-            className="ml-4"
+            className="ml-2 md:ml-4"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Feestdagen Genereren
+            <Plus className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Feestdagen Genereren</span>
           </Button>
         </div>
       </div>
 
       {/* Legend */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4 items-center">
+        <CardContent className="p-3 md:pt-6 md:p-6">
+          <div className="flex flex-wrap gap-3 md:gap-4 items-center">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 rounded"></div>
               <span className="text-sm">Nationale feestdag</span>

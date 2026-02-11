@@ -264,11 +264,11 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             {t("admin.users.title")}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -278,17 +278,17 @@ export default function AdminUsersPage() {
         <div className="flex gap-3">
           <Button variant="outline" onClick={exportUsers}>
             <Download className="w-4 h-4 mr-2" />
-            {t("admin.users.export")}
+            <span className="hidden md:inline">{t("admin.users.export")}</span>
           </Button>
           <Button onClick={() => router.push("/admin/users/create")}>
             <UserPlus className="w-4 h-4 mr-2" />
-            {t("admin.users.createUser")}
+            <span className="hidden md:inline">{t("admin.users.createUser")}</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -512,33 +512,33 @@ export default function AdminUsersPage() {
                     className="hover:shadow-md transition-shadow"
                   >
                     <CardContent className="pt-6">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 md:gap-4">
                         <Checkbox
                           checked={selectedUsers.has(user.id)}
                           onCheckedChange={() => handleSelectUser(user.id)}
                         />
 
                         {/* Avatar */}
-                        <div className="w-12 h-12 rounded-full bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white font-semibold">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white font-semibold text-sm md:text-base shrink-0">
                           {user.firstName?.charAt(0)}
                           {user.lastName?.charAt(0)}
                         </div>
 
                         {/* User Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
+                            <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
                               {user.firstName} {user.lastName}
                             </h3>
                             {getRoleBadge(user.rank || "user")}
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-4 h-4" />
-                              <span>{user.email}</span>
+                          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-sm text-slate-600 dark:text-slate-400">
+                            <div className="flex items-center gap-1 truncate">
+                              <Mail className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{user.email}</span>
                             </div>
                             {user.function && (
-                              <div className="flex items-center gap-1">
+                              <div className="hidden md:flex items-center gap-1">
                                 <Building className="w-4 h-4" />
                                 <span>{user.function}</span>
                               </div>
@@ -547,7 +547,7 @@ export default function AdminUsersPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <Button
                             variant="ghost"
                             size="sm"

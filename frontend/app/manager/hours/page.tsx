@@ -659,17 +659,17 @@ export default function ManagerTeamHoursPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Team Uren Analytics
           </h1>
-          <p className="text-slate-700 dark:text-slate-300 mt-1">
+          <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 mt-1">
             Uitgebreide analyse van team prestaties, urenverdeling en efficiency
             - geen goedkeuringen
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 md:gap-3">
           <Button
             onClick={() =>
               setEntriesViewMode(
@@ -677,33 +677,36 @@ export default function ManagerTeamHoursPage() {
               )
             }
             variant="outline"
+            size="sm"
           >
             {entriesViewMode === "cards" ? (
               <>
-                <Table className="w-4 h-4 mr-2" />
-                Tabel
+                <Table className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Tabel</span>
               </>
             ) : (
               <>
-                <List className="w-4 h-4 mr-2" />
-                Kaarten
+                <List className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Kaarten</span>
               </>
             )}
           </Button>
           <Button
             onClick={exportToExcel}
             disabled={filteredEntries.length === 0}
+            size="sm"
           >
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            Excel
+            <FileSpreadsheet className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Excel</span>
           </Button>
           <Button
             onClick={exportToPDF}
             disabled={filteredEntries.length === 0}
             variant="outline"
+            size="sm"
           >
-            <FileText className="w-4 h-4 mr-2" />
-            PDF
+            <FileText className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">PDF</span>
           </Button>
         </div>
       </div>
@@ -711,19 +714,19 @@ export default function ManagerTeamHoursPage() {
       {/* Period Navigation */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <Button variant="outline" size="sm" onClick={handlePrev}>
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Vorige
+              <ChevronLeft className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Vorige</span>
             </Button>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <Button variant="ghost" size="sm" onClick={handleToday}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Vandaag
+                <Calendar className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Vandaag</span>
               </Button>
-              <div className="text-center min-w-[280px]">
-                <p className="font-semibold text-slate-900 dark:text-slate-100">
+              <div className="text-center min-w-0 md:min-w-[280px]">
+                <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100">
                   {periodLabel}
                 </p>
               </div>
@@ -733,15 +736,15 @@ export default function ManagerTeamHoursPage() {
             </div>
 
             <Button variant="outline" size="sm" onClick={handleNext}>
-              Volgende
-              <ChevronRight className="w-4 h-4 ml-1" />
+              <span className="hidden sm:inline">Volgende</span>
+              <ChevronRight className="w-4 h-4 sm:ml-1" />
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -849,7 +852,7 @@ export default function ManagerTeamHoursPage() {
       </div>
 
       {/* Detailed Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
         {/* Project Distribution */}
         <Card>
           <CardHeader>
@@ -1074,7 +1077,7 @@ export default function ManagerTeamHoursPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
@@ -1112,9 +1115,9 @@ export default function ManagerTeamHoursPage() {
               {filteredEntries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition"
                 >
-                  <div className="flex items-center gap-4 flex-1">
+                  <div className="flex items-center gap-3 md:gap-4 flex-1">
                     <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                       <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                         {entry.user?.firstName?.charAt(0)}

@@ -221,40 +221,42 @@ export default function VacationCalendarPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Vakantie Kaart
           </h1>
-          <p className="text-slate-700 dark:text-slate-300 mt-1">
+          <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 mt-1">
             Excel-achtige vakantie overzicht per maand
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 md:gap-3 items-center">
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setCurrentYear(currentYear - 1)}
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Vorig Jaar
+            <ChevronLeft className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">Vorig Jaar</span>
           </Button>
-          <div className="text-center min-w-[100px]">
+          <div className="text-center min-w-[60px] md:min-w-[100px]">
             <p className="font-semibold text-slate-900 dark:text-slate-100">
               {currentYear}
             </p>
           </div>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => setCurrentYear(currentYear + 1)}
           >
-            Volgend Jaar
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <span className="hidden sm:inline">Volgend Jaar</span>
+            <ChevronRight className="w-4 h-4 sm:ml-1" />
           </Button>
         </div>
       </div>
 
       {/* Month Selector */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-1 md:gap-2 mb-4">
         {months.map((month, index) => (
           <Button
             key={index}
@@ -276,7 +278,7 @@ export default function VacationCalendarPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-blue-500 rounded"></div>
               <span>Vakantie (V)</span>
@@ -467,7 +469,7 @@ export default function VacationCalendarPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <Button
               onClick={() => {
                 // Export current month as CSV

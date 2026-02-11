@@ -317,10 +317,10 @@ export default function AdminTimeEntriesPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
                 Uren Beheer
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -329,15 +329,15 @@ export default function AdminTimeEntriesPage() {
             </div>
             <Button onClick={exportEntries} variant="outline">
               <Download className="w-4 h-4 mr-2" />
-              Exporteren
+              <span className="hidden md:inline">Exporteren</span>
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
           <Card className="border-l-4 border-l-blue-500">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -412,7 +412,7 @@ export default function AdminTimeEntriesPage() {
         </div>
 
         {/* Filters */}
-        <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 mb-8">
+        <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 mb-4 md:mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-slate-600" />
@@ -420,7 +420,7 @@ export default function AdminTimeEntriesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Startdatum
@@ -690,8 +690,8 @@ export default function AdminTimeEntriesPage() {
                   Urenregistratie Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-4 md:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Gebruiker
@@ -788,7 +788,7 @@ export default function AdminTimeEntriesPage() {
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Aanvullende Kosten
                     </label>
-                    <div className="grid grid-cols-2 gap-4 mt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
                       {selectedEntry.distanceKm && (
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
                           <span className="text-xs text-slate-500">

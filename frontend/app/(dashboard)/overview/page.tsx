@@ -237,94 +237,94 @@ export default function UrenOverzicht(): JSX.Element {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-3 md:p-6 space-y-4 md:space-y-6">
       {/* Header Section */}
-      <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <CheckCircleIcon className="w-8 h-8" />
-          <h1 className="text-4xl font-bold">{t("overview.title")}</h1>
+      <div className="bg-blue-600 text-white rounded-xl md:rounded-2xl p-4 md:p-8 shadow-lg">
+        <div className="flex items-center gap-3 mb-2 md:mb-4">
+          <CheckCircleIcon className="w-6 h-6 md:w-8 md:h-8" />
+          <h1 className="text-2xl md:text-4xl font-bold">{t("overview.title")}</h1>
         </div>
-        <p className="text-blue-100 text-lg">
+        <p className="text-blue-100 text-sm md:text-lg">
           {t("overview.subtitle")}
         </p>
       </div>
 
       {/* Statistics Cards - ONLY APPROVED HOURS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-success text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="bg-gradient-success text-white rounded-xl p-4 md:p-6 shadow-lg hover:shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">
+              <p className="text-green-100 text-xs md:text-sm font-medium">
                 {t("overview.approved")}
               </p>
-              <p className="text-3xl font-bold">{safeToFixed(totalHours)}</p>
+              <p className="text-2xl md:text-3xl font-bold">{safeToFixed(totalHours)}</p>
             </div>
-            <ClockIcon className="w-12 h-12 text-green-200" />
+            <ClockIcon className="w-8 h-8 md:w-12 md:h-12 text-green-200" />
           </div>
         </div>
 
-        <div className="bg-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+        <div className="bg-purple-600 text-white rounded-xl p-4 md:p-6 shadow-lg hover:shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">
+              <p className="text-purple-100 text-xs md:text-sm font-medium">
                 {t("overview.totalDays")}
               </p>
-              <p className="text-3xl font-bold">{totalDays}</p>
+              <p className="text-2xl md:text-3xl font-bold">{totalDays}</p>
             </div>
-            <CalendarDaysIcon className="w-12 h-12 text-purple-200" />
+            <CalendarDaysIcon className="w-8 h-8 md:w-12 md:h-12 text-purple-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-warning text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+        <div className="bg-gradient-warning text-white rounded-xl p-4 md:p-6 shadow-lg hover:shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-100 text-sm font-medium">{t("overview.expenses")}</p>
-              <p className="text-3xl font-bold">
+              <p className="text-yellow-100 text-xs md:text-sm font-medium">{t("overview.expenses")}</p>
+              <p className="text-2xl md:text-3xl font-bold">
                 €{safeToFixed(totalExpenses)}
               </p>
             </div>
-            <CurrencyEuroIcon className="w-12 h-12 text-yellow-200" />
+            <CurrencyEuroIcon className="w-8 h-8 md:w-12 md:h-12 text-yellow-200" />
           </div>
         </div>
 
-        <div className="bg-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl">
+        <div className="bg-blue-600 text-white rounded-xl p-4 md:p-6 shadow-lg hover:shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-indigo-100 text-sm font-medium">
+              <p className="text-indigo-100 text-xs md:text-sm font-medium">
                 {t("overview.distance")}
               </p>
-              <p className="text-3xl font-bold">
+              <p className="text-2xl md:text-3xl font-bold">
                 {safeToFixed(totalDistance, 0)}
               </p>
             </div>
-            <ChartBarIcon className="w-12 h-12 text-indigo-200" />
+            <ChartBarIcon className="w-8 h-8 md:w-12 md:h-12 text-indigo-200" />
           </div>
         </div>
       </div>
 
       {/* Filters Section */}
-      <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-        <div className="card-body p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <FunnelIcon className="w-6 h-6 text-elmar-primary" />
-            <h2 className="text-2xl font-bold text-gray-800">
+      <div className="card bg-white dark:bg-slate-800 shadow-lg border-0 rounded-xl md:rounded-2xl overflow-hidden">
+        <div className="card-body p-4 md:p-8">
+          <div className="flex items-center gap-3 mb-4 md:mb-6">
+            <FunnelIcon className="w-5 h-5 md:w-6 md:h-6 text-elmar-primary" />
+            <h2 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-slate-100">
               {t("overview.filters")}
             </h2>
-            <span className="badge badge-success">
+            <span className="badge badge-success text-xs">
               {t("overview.onlyApproved")}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold text-gray-700">
-                  {t("overview.date")} {t("overview.startDate")}
+                <span className="label-text font-semibold text-gray-700 dark:text-slate-300 text-xs md:text-sm">
+                  {t("overview.startDate")}
                 </span>
               </label>
               <input
                 type="date"
-                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                className="input input-bordered input-sm md:input-md border-2 border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-lg md:rounded-xl"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -332,13 +332,13 @@ export default function UrenOverzicht(): JSX.Element {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold text-gray-700">
-                  Datum Einddatum
+                <span className="label-text font-semibold text-gray-700 dark:text-slate-300 text-xs md:text-sm">
+                  {t("overview.endDate") || "Einddatum"}
                 </span>
               </label>
               <input
                 type="date"
-                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                className="input input-bordered input-sm md:input-md border-2 border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-lg md:rounded-xl"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
@@ -346,12 +346,12 @@ export default function UrenOverzicht(): JSX.Element {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold text-gray-700">
-                  🏢 Bedrijf
+                <span className="label-text font-semibold text-gray-700 dark:text-slate-300 text-xs md:text-sm">
+                  Bedrijf
                 </span>
               </label>
               <select
-                className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                className="select select-bordered select-sm md:select-md border-2 border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-lg md:rounded-xl"
                 value={selectedCompany}
                 onChange={(e) => setSelectedCompany(e.target.value)}
               >
@@ -366,12 +366,12 @@ export default function UrenOverzicht(): JSX.Element {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold text-gray-700">
-                  📁 Project
+                <span className="label-text font-semibold text-gray-700 dark:text-slate-300 text-xs md:text-sm">
+                  Project
                 </span>
               </label>
               <select
-                className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                className="select select-bordered select-sm md:select-md border-2 border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-lg md:rounded-xl"
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
               >
@@ -386,26 +386,21 @@ export default function UrenOverzicht(): JSX.Element {
           </div>
 
           {/* Search Bar */}
-          <div className="form-control mt-6">
-            <label className="label">
-              <span className="label-text font-semibold text-gray-700">
-                Zoeken
-              </span>
-            </label>
+          <div className="form-control mt-4 md:mt-6">
             <div className="relative">
               <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Zoek op project, bedrijf of notities..."
-                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl pl-10 w-full"
+                className="input input-bordered input-sm md:input-md border-2 border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-lg md:rounded-xl pl-10 w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-6">
-            <div className="text-sm text-gray-600">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-4 md:mt-6">
+            <div className="text-xs md:text-sm text-gray-600 dark:text-slate-400">
               <span className="font-semibold">{filteredEntries.length}</span>{" "}
               goedgekeurde entries van{" "}
               <span className="font-semibold">
@@ -414,7 +409,7 @@ export default function UrenOverzicht(): JSX.Element {
               totaal
             </div>
             <button
-              className="btn btn-outline btn-primary rounded-xl"
+              className="btn btn-outline btn-primary btn-sm rounded-lg md:rounded-xl"
               onClick={resetFilters}
             >
               Reset Filters
@@ -423,36 +418,94 @@ export default function UrenOverzicht(): JSX.Element {
         </div>
       </div>
 
-      {/* Enhanced Table */}
-      <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
+      {/* Mobile Card View + Desktop Table */}
+      <div className="card bg-white dark:bg-slate-800 shadow-lg border-0 rounded-xl md:rounded-2xl overflow-hidden">
         <div className="card-body p-0">
-          <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100">
+          <div className="bg-gradient-to-r from-gray-50 dark:from-slate-700 to-white dark:to-slate-800 p-4 md:p-6 border-b border-gray-100 dark:border-slate-700">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <EyeIcon className="w-6 h-6 text-elmar-primary" />
-                <h2 className="text-2xl font-bold text-gray-800">
+              <div className="flex items-center gap-2 md:gap-3">
+                <EyeIcon className="w-5 h-5 md:w-6 md:h-6 text-elmar-primary" />
+                <h2 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-slate-100">
                   {t("overview.approved")}registraties
                 </h2>
               </div>
-              <button className="btn btn-primary rounded-xl">
-                <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                Exporteren
+              <button className="btn btn-primary btn-sm rounded-lg md:rounded-xl">
+                <ArrowDownTrayIcon className="w-4 h-4 md:w-5 md:h-5 md:mr-2" />
+                <span className="hidden md:inline">Exporteren</span>
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile: Card layout */}
+          <div className="md:hidden divide-y divide-gray-100 dark:divide-slate-700">
+            {pageEntries.map((entry, index) => {
+              try {
+                const start = dayjs(entry.startTime);
+                const end = dayjs(entry.endTime);
+                const diffMin = end.diff(start, "minute") - (entry.breakMinutes || 0);
+                const hours = diffMin > 0 ? diffMin / 60 : 0;
+
+                return (
+                  <div key={entry.id || index} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
+                        {start.format("DD-MM-YYYY")}
+                      </span>
+                      <span className="badge badge-success badge-sm font-semibold">
+                        {safeToFixed(hours)} uur
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-1">
+                      <span>{start.format("HH:mm")} - {end.format("HH:mm")}</span>
+                    </div>
+                    <p className="text-sm font-medium text-elmar-primary truncate">
+                      {entry.project?.name || "Onbekend project"}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 truncate">
+                      {entry.project?.projectGroup?.company?.name || "Onbekend bedrijf"}
+                    </p>
+                    {entry.notes && (
+                      <p className="text-xs text-gray-500 dark:text-slate-400 italic mt-1 truncate">
+                        {entry.notes}
+                      </p>
+                    )}
+                  </div>
+                );
+              } catch {
+                return (
+                  <div key={index} className="p-4 text-center text-red-500 text-sm">
+                    Error loading entry
+                  </div>
+                );
+              }
+            })}
+
+            {pageEntries.length === 0 && (
+              <div className="text-center py-12 px-4">
+                <div className="text-4xl mb-3">[OK]</div>
+                <div className="text-base font-semibold text-gray-600 dark:text-slate-400">
+                  Geen goedgekeurde uren gevonden
+                </div>
+                <div className="text-sm text-gray-500 dark:text-slate-500 mt-1">
+                  Probeer je filters aan te passen
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: Table layout */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="table w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-slate-700">
                 <tr>
-                  <th className="text-gray-700 font-semibold">{t("overview.date")}</th>
-                  <th className="text-gray-700 font-semibold">{t("overview.startTime")}</th>
-                  <th className="text-gray-700 font-semibold">{t("overview.endTime")}</th>
-                  <th className="text-gray-700 font-semibold">{t("overview.hours")}</th>
-                  <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
-                  <th className="text-gray-700 font-semibold">📁 Project</th>
-                  <th className="text-gray-700 font-semibold">Notities</th>
-                  <th className="text-gray-700 font-semibold">Status</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">{t("overview.date")}</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">{t("overview.startTime")}</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">{t("overview.endTime")}</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">{t("overview.hours")}</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">Bedrijf</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">Project</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">Notities</th>
+                  <th className="text-gray-700 dark:text-slate-300 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -467,7 +520,7 @@ export default function UrenOverzicht(): JSX.Element {
                     return (
                       <tr
                         key={entry.id || index}
-                        className="hover:bg-gray-50 transition-colors duration-150"
+                        className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors duration-150"
                       >
                         <td className="font-medium">
                           {start.format("DD-MM-YYYY")}
@@ -479,14 +532,14 @@ export default function UrenOverzicht(): JSX.Element {
                             {safeToFixed(hours)} uur
                           </span>
                         </td>
-                        <td className="font-medium text-gray-800">
+                        <td className="font-medium text-gray-800 dark:text-slate-200">
                           {entry.project?.projectGroup?.company?.name ||
                             "Onbekend bedrijf"}
                         </td>
                         <td className="font-medium text-elmar-primary">
                           {entry.project?.name || "Onbekend project"}
                         </td>
-                        <td className="text-gray-600 italic">
+                        <td className="text-gray-600 dark:text-slate-400 italic">
                           {entry.notes || "Geen notities"}
                         </td>
                         <td>
@@ -496,8 +549,7 @@ export default function UrenOverzicht(): JSX.Element {
                         </td>
                       </tr>
                     );
-                  } catch (error) {
-                    
+                  } catch {
                     return (
                       <tr key={index}>
                         <td colSpan={8} className="text-center text-error">
@@ -513,10 +565,10 @@ export default function UrenOverzicht(): JSX.Element {
                     <td colSpan={8} className="text-center py-12">
                       <div className="flex flex-col items-center gap-4">
                         <div className="text-6xl">[OK]</div>
-                        <div className="text-xl font-semibold text-gray-600">
+                        <div className="text-xl font-semibold text-gray-600 dark:text-slate-400">
                           Geen goedgekeurde uren gevonden
                         </div>
-                        <div className="text-gray-500">
+                        <div className="text-gray-500 dark:text-slate-500">
                           Probeer je filters aan te passen of wacht tot uren
                           zijn goedgekeurd
                         </div>
@@ -528,19 +580,19 @@ export default function UrenOverzicht(): JSX.Element {
             </table>
           </div>
 
-          {/* Enhanced {t("overview.page")}tion */}
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
-              <div className="flex justify-center items-center gap-4">
+            <div className="bg-gray-50 dark:bg-slate-700/50 px-4 md:px-6 py-3 md:py-4 border-t border-gray-100 dark:border-slate-700">
+              <div className="flex justify-center items-center gap-2 md:gap-4">
                 <button
-                  className="btn btn-outline btn-primary rounded-xl disabled:opacity-50"
+                  className="btn btn-outline btn-primary btn-sm rounded-lg md:rounded-xl disabled:opacity-50"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   {t("overview.previous")}
                 </button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum: number;
                     if (totalPages <= 5) {
@@ -570,7 +622,7 @@ export default function UrenOverzicht(): JSX.Element {
                 </div>
 
                 <button
-                  className="btn btn-outline btn-primary rounded-xl disabled:opacity-50"
+                  className="btn btn-outline btn-primary btn-sm rounded-lg md:rounded-xl disabled:opacity-50"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
@@ -578,7 +630,7 @@ export default function UrenOverzicht(): JSX.Element {
                 </button>
               </div>
 
-              <div className="text-center mt-3 text-sm text-gray-600">
+              <div className="text-center mt-2 md:mt-3 text-xs md:text-sm text-gray-600 dark:text-slate-400">
                 {t("overview.page")} <span className="font-semibold">{currentPage}</span> van{" "}
                 <span className="font-semibold">{totalPages}</span>
               </div>

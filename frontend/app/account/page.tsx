@@ -239,10 +239,10 @@ export default function AccountPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="animate-fade-in w-full px-6 md:px-12 lg:px-20 space-y-6">
+        <div className="animate-fade-in w-full px-3 md:px-12 lg:px-20 space-y-4 md:space-y-6">
           {/* Page Header */}
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
               {t("account.title")}
             </h1>
             <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -251,7 +251,7 @@ export default function AccountPage() {
           </div>
 
           {/* GRID: Profiel + Beveiliging + Theme + Taal */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 items-start">
             {/* Profiel Informatie */}
             <Card variant="elevated" padding="lg" className="h-full w-full lg:row-span-2">
               <CardHeader>
@@ -267,8 +267,8 @@ export default function AccountPage() {
 
               <CardContent>
                 {/* Avatar + Naam */}
-                <div className="flex items-center gap-6 mb-6">
-                  <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                <div className="flex items-center gap-4 md:gap-6 mb-6">
+                  <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-bold flex-shrink-0">
                     {userData.firstName.charAt(0)}
                     {userData.lastName.charAt(0)}
                   </div>
@@ -292,7 +292,7 @@ export default function AccountPage() {
                 </div>
 
                 {/* Form Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
                   <InputField
                     label="Voornaam"
                     icon={<User className="w-4 h-4" />}
@@ -329,7 +329,7 @@ export default function AccountPage() {
                       <MapPin className="w-4 h-4" />
                       Adres
                     </label>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Input
                         value={userData.address || ""}
                         onChange={(e) =>

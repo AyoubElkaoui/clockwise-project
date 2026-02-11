@@ -148,10 +148,10 @@ export default function EditUserPage(): JSX.Element {
 
     return (
         <AdminRoute>
-            <div className="space-y-8">
+            <div className="space-y-4 md:space-y-8">
                 {/* Header Section */}
-                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
-                    <div className="flex items-center justify-between">
+                <div className="bg-blue-600 text-white rounded-2xl p-4 md:p-8 shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <div className="flex items-center gap-3 mb-4">
                                 <button
@@ -161,7 +161,7 @@ export default function EditUserPage(): JSX.Element {
                                     <ArrowLeftIcon className="w-5 h-5" />
                                 </button>
                                 <UserCircleIcon className="w-8 h-8" />
-                                <h1 className="text-4xl font-bold">Gebruiker Bewerken</h1>
+                                <h1 className="text-2xl md:text-4xl font-bold">Gebruiker Bewerken</h1>
                             </div>
                             <p className="text-blue-100 text-lg">Bewerk gegevens van {firstName} {lastName}</p>
                         </div>
@@ -177,11 +177,11 @@ export default function EditUserPage(): JSX.Element {
 
                 {/* Main Form */}
                 <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-8">
                         {/* User Info Card */}
                         <div className="xl:col-span-1">
                             <div className="card bg-white shadow-lg border-0 rounded-2xl">
-                                <div className="card-body p-8">
+                                <div className="card-body p-4 md:p-8">
                                     <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                                         <UserCircleIcon className="w-6 h-6" />
                                         Gebruiker Info
@@ -231,16 +231,16 @@ export default function EditUserPage(): JSX.Element {
                         {/* Edit Form */}
                         <div className="xl:col-span-2">
                             <div className="card bg-white shadow-lg border-0 rounded-2xl">
-                                <div className="card-body p-8">
+                                <div className="card-body p-4 md:p-8">
                                     <h2 className="text-2xl font-bold text-gray-800 mb-8">Gegevens Bewerken</h2>
 
                                     {/* Personal Info */}
-                                    <div className="mb-8">
+                                    <div className="mb-4 md:mb-8">
                                         <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                                             <UserCircleIcon className="w-5 h-5" />
                                             Persoonlijke Gegevens
                                         </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
                                             <div className="form-control">
                                                 <label className="label">
                                                     <span className="label-text font-semibold text-gray-700">Voornaam *</span>
@@ -269,7 +269,7 @@ export default function EditUserPage(): JSX.Element {
                                     </div>
 
                                     {/* Contact Info */}
-                                    <div className="mb-8">
+                                    <div className="mb-4 md:mb-8">
                                         <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                                             <EnvelopeIcon className="w-5 h-5" />
                                             Contact Gegevens
@@ -289,7 +289,7 @@ export default function EditUserPage(): JSX.Element {
                                     </div>
 
                                     {/* Address Info */}
-                                    <div className="mb-8">
+                                    <div className="mb-4 md:mb-8">
                                         <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                                             <MapPinIcon className="w-5 h-5" />
                                             Adres Gegevens
@@ -345,12 +345,12 @@ export default function EditUserPage(): JSX.Element {
                                     </div>
 
                                     {/* Login Info */}
-                                    <div className="mb-8">
+                                    <div className="mb-4 md:mb-8">
                                         <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                                             <KeyIcon className="w-5 h-5" />
                                             Login & Beveiliging
                                         </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
                                             <div className="form-control">
                                                 <label className="label">
                                                     <span className="label-text font-semibold text-gray-700">Inlognaam *</span>

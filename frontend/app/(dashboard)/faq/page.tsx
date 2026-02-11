@@ -101,23 +101,23 @@ export default function FAQPage() {
   const faqs = getFaqs(t);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-8">
-        <HelpCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+    <div className="p-3 md:p-6 max-w-7xl mx-auto">
+      <div className="flex items-center gap-3 mb-4 md:mb-8">
+        <HelpCircle className="h-8 w-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             {t("faq.title")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             {t("faq.subtitle")}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
         {faqs.map((section, idx) => (
           <Card key={idx} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
                 {section.category}
               </h2>

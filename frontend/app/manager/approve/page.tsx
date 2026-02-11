@@ -684,25 +684,25 @@ export default function ManagerApprovePage() {
     filteredEntries.filter((e) => e.status === "SUBMITTED").length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Team Goedkeuringen
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Beheer en keur tijdregistraties van je team goed
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2 md:gap-3">
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center gap-2"
           >
             <Filter className="w-4 h-4" />
-            Filters
+            <span className="hidden md:inline">Filters</span>
             <ChevronDown
               className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
             />
@@ -713,7 +713,7 @@ export default function ManagerApprovePage() {
             className="flex items-center gap-2"
           >
             <FileText className="w-4 h-4" />
-            CSV
+            <span className="hidden md:inline">CSV</span>
           </Button>
           <Button
             variant="outline"
@@ -721,7 +721,7 @@ export default function ManagerApprovePage() {
             className="flex items-center gap-2"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            Excel
+            <span className="hidden md:inline">Excel</span>
           </Button>
           <Button
             onClick={loadEntries}
@@ -729,13 +729,13 @@ export default function ManagerApprovePage() {
             className="flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Vernieuwen
+            <span className="hidden md:inline">Vernieuwen</span>
           </Button>
         </div>
       </div>
 
       {/* Statistics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-amber-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -888,7 +888,7 @@ export default function ManagerApprovePage() {
       {canSelectAll && (
         <Card className="border-amber-200 dark:border-amber-800">
           <CardContent className="pt-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Checkbox
                   checked={
@@ -1123,11 +1123,11 @@ export default function ManagerApprovePage() {
       {activeFilter.type && (
         <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
           <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Filter className="w-5 h-5 text-blue-600" />
                 <div>
-                  <p className="font-semibold text-blue-900 dark:text-blue-100">
+                  <p className="font-semibold text-blue-900 dark:text-blue-100 text-sm md:text-base">
                     Actief Filter:{" "}
                     {activeFilter.type === "user"
                       ? "Medewerker"

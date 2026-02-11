@@ -155,9 +155,9 @@ export default function KalenderPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="flex gap-6">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-6">
           {/* Sidebar met Mini Kalender */}
-          <div className="w-80 flex-shrink-0">
+          <div className="w-full md:w-80 md:flex-shrink-0">
             <Card className="sticky top-6">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-4">
@@ -287,9 +287,9 @@ export default function KalenderPage() {
           <div className="flex-1">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 capitalize">
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 capitalize">
                       {monthName}
                     </h1>
                     <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -321,12 +321,12 @@ export default function KalenderPage() {
                 ) : (
                   <>
                     {/* Weekdag headers */}
-                    <div className="grid grid-cols-7 gap-4 mb-4">
-                      {["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"].map(
+                    <div className="grid grid-cols-7 gap-1 md:gap-4 mb-4">
+                      {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(
                         (day) => (
                           <div
                             key={day}
-                            className="text-center text-sm font-semibold text-slate-700 dark:text-slate-300 py-2"
+                            className="text-center text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300 py-2"
                           >
                             {day}
                           </div>
@@ -335,7 +335,7 @@ export default function KalenderPage() {
                     </div>
 
                     {/* Dagen grid */}
-                    <div className="grid grid-cols-7 gap-4">
+                    <div className="grid grid-cols-7 gap-1 md:gap-4">
                       {days.map((day, idx) => {
                         if (day === null) {
                           return <div key={`empty-${idx}`} className="aspect-square" />;
@@ -352,7 +352,7 @@ export default function KalenderPage() {
                           <div
                             key={day}
                             className={`
-                              aspect-square rounded-xl p-3 border transition-all cursor-pointer
+                              aspect-square rounded-lg md:rounded-xl p-1 md:p-3 border transition-all cursor-pointer
                               ${
                                 isToday
                                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"

@@ -138,7 +138,7 @@ export default function AdminVacationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
           Vakantie Aanvragen
         </h1>
         <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -173,28 +173,32 @@ export default function AdminVacationPage() {
       </Card>
 
       {/* Filters */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant={filterStatus === "pending" ? "default" : "outline"}
           onClick={() => setFilterStatus("pending")}
+          size="sm"
         >
           In behandeling
         </Button>
         <Button
           variant={filterStatus === "approved" ? "default" : "outline"}
           onClick={() => setFilterStatus("approved")}
+          size="sm"
         >
           Goedgekeurd
         </Button>
         <Button
           variant={filterStatus === "rejected" ? "default" : "outline"}
           onClick={() => setFilterStatus("rejected")}
+          size="sm"
         >
           Afgekeurd
         </Button>
         <Button
           variant={filterStatus === "all" ? "default" : "outline"}
           onClick={() => setFilterStatus("all")}
+          size="sm"
         >
           Alles
         </Button>
@@ -213,8 +217,8 @@ export default function AdminVacationPage() {
           filteredRequests.map((request) => (
             <Card key={request.id} className="hover:shadow-lg transition">
               <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
+                <div className="flex flex-col md:flex-row items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 md:gap-4 flex-1">
                     <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
                       <User className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>

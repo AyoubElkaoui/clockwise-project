@@ -939,16 +939,16 @@ export default function TimeRegistrationPage() {
           )}
 
           <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40">
-            <div className="px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <div className="px-3 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                <h1 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
                   Uren Registreren
                 </h1>
 
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                <div className="flex items-center gap-1 md:gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode("week")}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                       viewMode === "week"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -958,7 +958,7 @@ export default function TimeRegistrationPage() {
                   </button>
                   <button
                     onClick={() => setViewMode("month")}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors ${
                       viewMode === "month"
                         ? "bg-blue-600 text-white shadow-md"
                         : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -968,7 +968,7 @@ export default function TimeRegistrationPage() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                <div className="flex items-center gap-1 md:gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
                     onClick={() => {
                       const d = new Date(currentWeek);
@@ -979,11 +979,11 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
                   </button>
-                  <div className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="px-2 md:px-4 py-1.5 md:py-2 font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100">
                     {viewMode === "week"
                       ? `Week ${weekNumber}`
                       : monthNames[currentWeek.getMonth()]}
@@ -998,33 +998,33 @@ export default function TimeRegistrationPage() {
                       }
                       setCurrentWeek(d);
                     }}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
                   </button>
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 md:gap-3">
                 <button
                   onClick={saveAll}
                   disabled={saving}
-                  className="px-5 py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                  className="px-3 md:px-5 py-2 md:py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition text-sm md:text-base"
                 >
-                  <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
+                  <Save className="w-4 h-4" /> <span className="hidden md:inline">{saving ? "Bezig..." : "Opslaan"}</span>
                 </button>
                 <button
                   onClick={submitAll}
                   disabled={saving}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                  className="px-3 md:px-5 py-2 md:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition text-sm md:text-base"
                 >
-                  <Send className="w-4 h-4" /> Inleveren
+                  <Send className="w-4 h-4" /> <span className="hidden md:inline">Inleveren</span>
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="flex h-[calc(100vh-5rem)]">
-            <div className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
+          <div className="flex flex-col md:flex-row h-auto md:h-[calc(100vh-5rem)]">
+            <div className="w-full md:w-80 bg-white dark:bg-slate-800 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg max-h-[40vh] md:max-h-none">
               <div className="p-4 space-y-1">
                 {/* Favoriete Projecten sectie */}
                 {favoriteProjects.length > 0 && (
@@ -1139,21 +1139,21 @@ export default function TimeRegistrationPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-3 md:p-6">
               {projectRows.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
+                <div className="h-full flex items-center justify-center p-4">
                   <div className="text-center">
-                    <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">
+                    <Calendar className="w-12 h-12 md:w-16 md:h-16 text-slate-300 mx-auto mb-3 md:mb-4" />
+                    <h3 className="text-lg md:text-xl font-semibold mb-2">
                       Geen projecten geselecteerd
                     </h3>
-                    <p className="text-slate-600">
+                    <p className="text-sm md:text-base text-slate-600">
                       Selecteer een project in de sidebar
                     </p>
                   </div>
                 </div>
               ) : viewMode === "month" ? (
-                <div className="space-y-6">
+                <div className="space-y-4 md:space-y-6">
                   {monthWeeks.map((weekStart, idx) => {
                     const weekDaysForWeek = getWeekDays(weekStart);
                     const currentMonth = currentWeek.getMonth();
@@ -1162,7 +1162,7 @@ export default function TimeRegistrationPage() {
                     return (
                       <div
                         key={`week-${weekStart.toISOString()}`}
-                        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden"
+                        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-x-auto"
                       >
                         <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
                           <div className="font-semibold text-slate-900">
@@ -1175,7 +1175,7 @@ export default function TimeRegistrationPage() {
                         </div>
 
                         <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
-                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4 bg-slate-100 dark:bg-slate-800">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-3 md:p-4 bg-slate-100 dark:bg-slate-800 min-w-[1000px]">
                             <div />
                             <div className="font-bold text-slate-800 dark:text-slate-200">
                               Project
@@ -1219,7 +1219,7 @@ export default function TimeRegistrationPage() {
                               key={`${weekStart.toISOString()}-${row.projectId}`}
                               className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
                             >
-                              <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
+                              <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-3 md:p-4 min-w-[1000px]">
                                 <div />
                                 <div>
                                   <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5 font-medium">
@@ -1514,7 +1514,7 @@ export default function TimeRegistrationPage() {
                         </div>
 
                         <div className="bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
-                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-3 md:p-4 min-w-[1000px]">
                             <div />
                             <div className="font-bold text-slate-800 dark:text-slate-200">
                               Totaal per dag
@@ -1574,9 +1574,9 @@ export default function TimeRegistrationPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 overflow-x-auto">
                     <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
-                      <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
+                      <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3 min-w-[1000px]">
                         <div />
                         <div className="font-semibold text-slate-700">
                           Project
@@ -1603,7 +1603,7 @@ export default function TimeRegistrationPage() {
                           key={row.projectId}
                           className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
                         >
-                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3 min-w-[1000px]">
                             <div />
                             <div>
                               <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5 font-medium">
@@ -1879,7 +1879,7 @@ export default function TimeRegistrationPage() {
                     </div>
 
                     <div className="bg-slate-50 border-t border-slate-200">
-                      <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3">
+                      <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-2 p-3 min-w-[1000px]">
                         <div />
                         <div className="font-semibold text-slate-700">
                           Totaal per dag

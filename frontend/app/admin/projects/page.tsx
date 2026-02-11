@@ -265,11 +265,11 @@ export default function AdminProjectsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             {t("admin.projects.title")}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -279,17 +279,17 @@ export default function AdminProjectsPage() {
         <div className="flex gap-3">
           <Button variant="outline" onClick={exportProjects}>
             <Download className="w-4 h-4 mr-2" />
-            {t("admin.projects.export")}
+            <span className="hidden md:inline">{t("admin.projects.export")}</span>
           </Button>
           <Button onClick={() => router.push("/admin/projects/create")}>
             <Plus className="w-4 h-4 mr-2" />
-            {t("admin.projects.createProject")}
+            <span className="hidden md:inline">{t("admin.projects.createProject")}</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">

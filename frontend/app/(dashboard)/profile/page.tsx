@@ -92,17 +92,17 @@ export default function AccountPage(): JSX.Element {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-black text-white p-6 space-y-6">
+      <div className="min-h-screen bg-black text-white p-3 md:p-6 space-y-4 md:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-semibold mb-2">{t("account.title")}</h1>
-          <p className="text-gray-400">{t("account.subtitle")}</p>
+          <h1 className="text-2xl md:text-3xl font-semibold mb-2">{t("account.title")}</h1>
+          <p className="text-sm md:text-base text-gray-400">{t("account.subtitle")}</p>
         </div>
 
         {/* Grid layout voor profiel + medewerker info */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
           {/* Profiel informatie */}
-          <div className="lg:col-span-2 bg-neutral-900 border border-black rounded-xl p-6 space-y-4">
+          <div className="lg:col-span-2 bg-neutral-900 border border-black rounded-xl p-3 md:p-6 space-y-4">
             <h2 className="text-xl font-semibold">{t("account.profileInfo")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -194,7 +194,7 @@ export default function AccountPage(): JSX.Element {
           </div>
 
           {/* Medewerker Informatie */}
-          <div className="bg-neutral-900 border border-black rounded-xl p-6 text-center">
+          <div className="bg-neutral-900 border border-black rounded-xl p-3 md:p-6 text-center">
             <div className="w-24 h-24 mx-auto rounded-full bg-blue-600 flex items-center justify-center text-white text-3xl font-bold">
               {profileData.firstName.charAt(0)}
               {profileData.lastName.charAt(0)}
@@ -211,9 +211,9 @@ export default function AccountPage(): JSX.Element {
         </div>
 
         {/* Beveiliging + Voorkeuren naast elkaar */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
           {/* Beveiliging */}
-          <div className="bg-neutral-900 border border-black rounded-xl p-6 space-y-4">
+          <div className="bg-neutral-900 border border-black rounded-xl p-3 md:p-6 space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Shield className="w-5 h-5" /> Beveiliging
             </h2>
@@ -243,7 +243,7 @@ export default function AccountPage(): JSX.Element {
           </div>
 
           {/* Voorkeuren */}
-          <div className="bg-neutral-900 border border-black rounded-xl p-6 space-y-4">
+          <div className="bg-neutral-900 border border-black rounded-xl p-3 md:p-6 space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Bell className="w-5 h-5" /> Voorkeuren
             </h2>

@@ -377,35 +377,35 @@ export default function ManagerTeamPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Mijn Team
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Overzicht van alle teamleden en hun prestaties
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline">
-            <Mail className="w-4 h-4 mr-2" />
-            Team E-mail
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="text-xs md:text-sm">
+            <Mail className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Team E-mail</span>
           </Button>
-          <Button variant="outline">
-            <UserCheck className="w-4 h-4 mr-2" />
-            Team Rapport
+          <Button variant="outline" size="sm" className="text-xs md:text-sm">
+            <UserCheck className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Team Rapport</span>
           </Button>
-          <Button onClick={() => setShowAddMember(true)}>
-            <Users className="w-4 h-4 mr-2" />
-            Nieuw Teamlid
+          <Button size="sm" className="text-xs md:text-sm" onClick={() => setShowAddMember(true)}>
+            <Users className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Nieuw Teamlid</span>
           </Button>
         </div>
       </div>
 
       {/* Team Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -561,43 +561,43 @@ export default function ManagerTeamPage() {
 
           return (
             <Card key={member.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="py-6">
-                <div className="flex items-center gap-6">
+              <CardContent className="py-4 md:py-6">
+                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
                   {/* Avatar and Basic Info */}
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-14 h-14 rounded-full bg-timr-orange dark:bg-timr-orange flex items-center justify-center text-white font-semibold text-lg">
+                  <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-timr-orange dark:bg-timr-orange flex items-center justify-center text-white font-semibold text-sm md:text-lg flex-shrink-0">
                       {member.firstName?.charAt(0)}
                       {member.lastName?.charAt(0)}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 md:gap-3">
+                        <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100">
                           {member.firstName} {member.lastName}
                         </h3>
                         <Badge
-                          className={`${activity.bg} ${activity.color} border-0 text-xs`}
+                          className={`${activity.bg} ${activity.color} border-0 text-[10px] md:text-xs`}
                         >
                           {activity.status}
                         </Badge>
                         {member.stats.pendingEntries > 0 && (
-                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-xs">
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-[10px] md:text-xs">
                             {member.stats.pendingEntries} pending
                           </Badge>
                         )}
                         {member.rank === "inactive" && (
-                          <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 text-xs">
+                          <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 text-[10px] md:text-xs">
                             Inactief
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-slate-600 dark:text-slate-400">
-                        <div className="flex items-center gap-1">
-                          <Mail className="w-4 h-4" />
-                          <span>{member.email}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 md:mt-2 text-xs md:text-sm text-slate-600 dark:text-slate-400">
+                        <div className="flex items-center gap-1 truncate">
+                          <Mail className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                          <span className="truncate">{member.email}</span>
                         </div>
                         {member.phone && (
                           <div className="flex items-center gap-1">
-                            <Phone className="w-4 h-4" />
+                            <Phone className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
                             <span>{member.phone}</span>
                           </div>
                         )}
@@ -605,67 +605,82 @@ export default function ManagerTeamPage() {
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  <div className="flex gap-6">
-                    <div className="text-center px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg min-w-[100px]">
-                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {member.stats.weekHours.toFixed(1)}
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Uren deze week
-                      </p>
-                      <div className="flex items-center justify-center gap-1 mt-1">
-                        {trend.icon && (
-                          <trend.icon className={`w-3 h-3 ${trend.color}`} />
-                        )}
-                        <span className={`text-xs ${trend.color}`}>
-                          {trend.change}
-                        </span>
+                  {/* Stats + Actions row on mobile */}
+                  <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6">
+                    {/* Stats */}
+                    <div className="flex gap-2 md:gap-6">
+                      <div className="text-center px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg min-w-[70px] md:min-w-[100px]">
+                        <p className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                          {member.stats.weekHours.toFixed(1)}
+                        </p>
+                        <p className="text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
+                          Uren/week
+                        </p>
+                        <div className="flex items-center justify-center gap-1 mt-0.5">
+                          {trend.icon && (
+                            <trend.icon className={`w-3 h-3 ${trend.color}`} />
+                          )}
+                          <span className={`text-[10px] md:text-xs ${trend.color}`}>
+                            {trend.change}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-center px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg min-w-[70px] md:min-w-[100px]">
+                        <p className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                          {member.stats.utilization.toFixed(0)}%
+                        </p>
+                        <p className="text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
+                          Benutting
+                        </p>
                       </div>
                     </div>
-                    <div className="text-center px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg min-w-[100px]">
-                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {member.stats.utilization.toFixed(0)}%
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Benutting
-                      </p>
-                    </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/manager/hours?userId=${member.id}`)
-                      }
-                      title="Bekijk projecten"
-                    >
-                      <Briefcase className="w-4 h-4 mr-2" />
-                      Projecten
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleEditMember(member)}
-                      title="Teamlid bewerken"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleToggleActive(member)}
-                      title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}
-                    >
-                      {member.rank === "inactive" ? (
-                        <Power className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <PowerOff className="w-4 h-4 text-red-600" />
-                      )}
-                    </Button>
+                    {/* Actions */}
+                    <div className="flex gap-1 md:gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/manager/hours?userId=${member.id}`)
+                        }
+                        title="Bekijk projecten"
+                        className="hidden sm:flex"
+                      >
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        Projecten
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/manager/hours?userId=${member.id}`)
+                        }
+                        title="Bekijk projecten"
+                        className="sm:hidden"
+                      >
+                        <Briefcase className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditMember(member)}
+                        title="Teamlid bewerken"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleToggleActive(member)}
+                        title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}
+                      >
+                        {member.rank === "inactive" ? (
+                          <Power className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <PowerOff className="w-4 h-4 text-red-600" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -781,7 +796,7 @@ export default function ManagerTeamPage() {
             {/* Vakantie gegevens */}
             <div className="border-b border-slate-200 dark:border-slate-700 pb-4">
               <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Vakantiedagen</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
                     Totaal / Jaar
@@ -914,7 +929,7 @@ export default function ManagerTeamPage() {
             {/* Contract gegevens */}
             <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
               <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Contract Gegevens</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
                     Contract Uren

@@ -178,35 +178,36 @@ export default function ManagerNotificatiesPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 p-3 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Notificaties
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Team notificaties en updates
             {unreadCount > 0 && ` • ${unreadCount} ongelezen`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <Users className="w-4 h-4" />
             <span>Team overzicht</span>
           </div>
           <Button
             variant="secondary"
+            size="sm"
             onClick={handleMarkAllRead}
             disabled={unreadCount === 0}
           >
-            <Check className="w-4 h-4 mr-2" />
-            Alles Gelezen
+            <Check className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Alles Gelezen</span>
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-timr-orange">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -345,10 +346,10 @@ export default function ManagerNotificatiesPage() {
                               onClick={() =>
                                 handleMarkRead(notification.id)
                               }
-                              className="flex-shrink-0 ml-4"
+                              className="flex-shrink-0 ml-2 md:ml-4"
                             >
-                              <Check className="w-4 h-4 mr-1" />
-                              Markeren als gelezen
+                              <Check className="w-4 h-4 md:mr-1" />
+                              <span className="hidden md:inline">Markeren als gelezen</span>
                             </Button>
                           )}
                         </div>

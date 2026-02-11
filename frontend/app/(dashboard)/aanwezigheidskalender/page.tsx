@@ -306,11 +306,11 @@ export default function AanwezigheidskalenderPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-4 md:space-y-6 pb-20">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Aanwezigheidskalender
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -339,7 +339,7 @@ export default function AanwezigheidskalenderPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">

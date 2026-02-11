@@ -17,6 +17,11 @@ import {
   Users,
   CheckCircle2,
   LogOut,
+  Building2,
+  FolderKanban,
+  BarChart3,
+  Calendar,
+  FolderPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -101,6 +106,18 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     },
     { icon: Clock, label: "Team Uren", href: "/manager/hours", rank: "manager" },
     {
+      icon: Calendar,
+      label: "Jaarkalender",
+      href: "/manager/jaarkalender",
+      rank: "manager",
+    },
+    {
+      icon: FolderPlus,
+      label: "Project Toewijzing",
+      href: "/manager/project-toewijzing",
+      rank: "manager",
+    },
+    {
       icon: Plane,
       label: "Vakantie Aanvragen",
       href: "/manager/vacation",
@@ -108,11 +125,62 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     },
   ];
 
+  const adminMenuItems: MenuItem[] = [
+    {
+      icon: Shield,
+      label: "Admin Dashboard",
+      href: "/admin",
+      rank: "admin",
+    },
+    {
+      icon: Users,
+      label: "Medewerkers",
+      href: "/admin/employees",
+      rank: "admin",
+    },
+    {
+      icon: Clock,
+      label: "Tijd Registraties",
+      href: "/admin/time-entries",
+      rank: "admin",
+    },
+    {
+      icon: FolderKanban,
+      label: "Projecten",
+      href: "/admin/projects",
+      rank: "admin",
+    },
+    {
+      icon: Building2,
+      label: "Bedrijven",
+      href: "/admin/companies",
+      rank: "admin",
+    },
+    {
+      icon: CheckCircle2,
+      label: "Validaties",
+      href: "/admin/validations",
+      rank: "admin",
+    },
+    {
+      icon: BarChart3,
+      label: "Logs",
+      href: "/admin/logs",
+      rank: "admin",
+    },
+    {
+      icon: Settings,
+      label: "Systeem",
+      href: "/admin/system",
+      rank: "admin",
+    },
+  ];
+
   const menuItems = useMemo(() => {
     let items: MenuItem[] = [...getWerknemerMenuItems()];
 
     if (userRank === "admin") {
-      items = [...managerMenuItems, ...getWerknemerMenuItems()];
+      items = [...adminMenuItems, ...managerMenuItems, ...getWerknemerMenuItems()];
     } else if (userRank === "manager") {
       items = [...managerMenuItems, ...getWerknemerMenuItems()];
     }

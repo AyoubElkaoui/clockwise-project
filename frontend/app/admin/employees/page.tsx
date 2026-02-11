@@ -84,39 +84,40 @@ export default function EmployeesPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
                 Medewerkers
               </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
                 Overzicht van alle medewerkers uit Syntess
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={loadEmployees}
-                className="bg-white/50 dark:bg-slate-800/50"
+                className="bg-white/50 dark:bg-slate-800/50 flex-1 sm:flex-none"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Vernieuwen
+                <RefreshCw className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Vernieuwen</span>
               </Button>
               <Button
+                size="sm"
                 onClick={() => router.push("/admin")}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
               >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Terug naar Dashboard
+                <UserPlus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Filters */}
         <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 mb-6">
           <CardHeader>

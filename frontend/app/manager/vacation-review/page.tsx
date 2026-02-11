@@ -282,19 +282,19 @@ export default function ManagerVacationReviewPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Vakantie Aanvragen Beoordelen
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
             Beoordeel en verwerk vakantie aanvragen van je team
           </p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <Card className="border-l-4 border-l-amber-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -432,9 +432,9 @@ export default function ManagerVacationReviewPage() {
           {filteredRequests.map((request) => (
             <Card key={request.id}>
               <CardContent className="pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="w-12 h-12 bg-timr-orange rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 md:gap-4">
+                  <div className="flex items-start gap-3 md:gap-4 flex-1">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-timr-orange rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
                       {request.user?.firstName?.charAt(0) || "U"}
                       {request.user?.lastName?.charAt(0) || ""}
                     </div>
@@ -472,24 +472,27 @@ export default function ManagerVacationReviewPage() {
                   </div>
 
                   {/* Action Buttons */}
-                  {(request.status?.toUpperCase() === "SUBMITTED" || 
+                  {(request.status?.toUpperCase() === "SUBMITTED" ||
                     request.status?.toUpperCase() === "PENDING") && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <Button
+                        size="sm"
                         onClick={() => handleApprove(request)}
                         disabled={processing}
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        className="bg-emerald-600 hover:bg-emerald-700 flex-1 sm:flex-none"
                       >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Goedkeuren
+                        <CheckCircle className="w-4 h-4 md:mr-2" />
+                        <span className="hidden md:inline">Goedkeuren</span>
                       </Button>
                       <Button
+                        size="sm"
                         onClick={() => handleRejectClick(request)}
                         disabled={processing}
                         variant="destructive"
+                        className="flex-1 sm:flex-none"
                       >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Afkeuren
+                        <XCircle className="w-4 h-4 md:mr-2" />
+                        <span className="hidden md:inline">Afkeuren</span>
                       </Button>
                     </div>
                   )}

@@ -138,9 +138,13 @@ export default function Navbar(): JSX.Element {
           {/* Hamburger menu for mobile */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
           >
-            <Bars3Icon className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+            {mobileMenuOpen ? (
+              <XMarkIcon className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+            ) : (
+              <Bars3Icon className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+            )}
           </button>
 
           <div className="relative flex-1">
@@ -271,20 +275,6 @@ export default function Navbar(): JSX.Element {
             {t("nav.logout")}
           </button>
 
-          {/* Mobile toggle */}
-          <button
-            className="
-              md:hidden text-slate-700 dark:text-slate-300
-              hover:text-blue-500 transition
-            "
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? (
-              <XMarkIcon className="w-6 h-6" />
-            ) : (
-              <Bars3Icon className="w-6 h-6" />
-            )}
-          </button>
         </div>
       </div>
 

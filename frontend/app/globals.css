@@ -239,4 +239,40 @@ html.dark .hover\:bg-slate-50 {
   background-color: #334155 !important;
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Ensure touch targets are at least 44px */
+  button, a, input, select, textarea {
+    min-height: 44px;
+  }
 
+  /* Prevent horizontal overflow */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Better table scrolling on mobile */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Adjust card padding on mobile */
+  .card-enhanced {
+    border-radius: 0.75rem;
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+  }
+
+  /* Smaller container padding on mobile */
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-20 {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}

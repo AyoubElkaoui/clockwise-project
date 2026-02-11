@@ -220,9 +220,9 @@ export default function ValidationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Validaties
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -243,14 +243,14 @@ export default function ValidationsPage() {
           ) : (
             <>
               <RefreshCw className="w-4 h-4 mr-2" />
-              Validaties Uitvoeren
+              <span className="hidden md:inline">Validaties Uitvoeren</span>
             </>
           )}
         </Button>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -334,7 +334,7 @@ export default function ValidationsPage() {
             {validationRules.map((rule) => (
               <div
                 key={rule.id}
-                className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 border border-slate-200 dark:border-slate-700 rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   {getSeverityIcon(rule.severity)}
@@ -368,18 +368,18 @@ export default function ValidationsPage() {
       {/* Current Validations */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <CardTitle>
               Huidige Validaties ({filteredValidations.length})
             </CardTitle>
             <div className="flex gap-2">
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   placeholder="Zoeken..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 sm:w-64"
                 />
               </div>
               <select
