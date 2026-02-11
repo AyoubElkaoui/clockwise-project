@@ -125,14 +125,14 @@ export default function Navbar(): JSX.Element {
             alt="Altum Technical Solutions"
             width={280}
             height={96}
-            className="hidden md:block dark:hidden h-24 w-auto object-contain flex-shrink-0"
+            className="hidden md:block dark:hidden h-16 w-auto object-contain flex-shrink-0"
           />
           <Image
             src="/edited-image-preview-Photoroom.png"
             alt="Altum Technical Solutions"
             width={280}
             height={96}
-            className="hidden md:dark:block h-24 w-auto object-contain flex-shrink-0"
+            className="hidden md:dark:block h-16 w-auto object-contain flex-shrink-0"
           />
 
           {/* Hamburger menu for mobile */}
