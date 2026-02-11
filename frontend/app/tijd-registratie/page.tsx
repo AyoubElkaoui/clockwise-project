@@ -2807,7 +2807,9 @@ export default function TimeRegistrationPage() {
                       Verlof & Indirecte uren
                     </h3>
                   </div>
-                  <div className="overflow-x-auto">
+
+                  {/* Desktop: table layout */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-700">
@@ -2887,6 +2889,82 @@ export default function TimeRegistrationPage() {
                         })}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile: card layout */}
+                  <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {indirectTasks.map((task) => {
+                      const weekTotal = getIndirectTotalForCode(task.code);
+                      const remaining = task.budget - task.used - weekTotal;
+                      const activeDays = viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek);
+                      return (
+                        <div key={task.code} className="p-3">
+                          {/* Code + description + budget */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <code className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex-shrink-0">
+                                {task.code}
+                              </code>
+                              <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                                {task.description}
+                              </span>
+                            </div>
+                            <span className={`text-xs font-bold flex-shrink-0 ml-2 ${
+                              remaining < 0
+                                ? "text-red-600 dark:text-red-400"
+                                : remaining <= task.budget * 0.1
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-green-600 dark:text-green-400"
+                            }`}>
+                              {remaining}/{task.budget}u
+                            </span>
+                          </div>
+                          {/* Day inputs in a row */}
+                          <div className="flex gap-1">
+                            {activeDays.map((day) => {
+                              const dateStr = formatDate(day);
+                              const ie = getIndirectEntry(task.code, dateStr);
+                              const closed = isClosedDay(dateStr);
+                              const dayIdx = day.getDay() === 0 ? 6 : day.getDay() - 1;
+                              return (
+                                <div key={dateStr} className="flex-1 text-center">
+                                  <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">
+                                    {dayNames[dayIdx].substring(0, 2)}
+                                  </div>
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    max="8"
+                                    step="0.5"
+                                    value={ie?.hours || ""}
+                                    placeholder={closed ? "X" : "-"}
+                                    disabled={closed}
+                                    onChange={(e) =>
+                                      updateIndirectEntry(task.taakGcId, task.code, dateStr, parseFloat(e.target.value) || 0)
+                                    }
+                                    className={`w-full h-9 text-center text-sm border rounded-lg ${
+                                      closed
+                                        ? "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : ie?.hours
+                                        ? "border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold"
+                                        : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                    } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+                                  />
+                                </div>
+                              );
+                            })}
+                            {/* Week total */}
+                            <div className="w-10 text-center flex-shrink-0">
+                              <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">Tot</div>
+                              <div className="h-9 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
+                                {weekTotal > 0 ? `${weekTotal}` : "-"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
