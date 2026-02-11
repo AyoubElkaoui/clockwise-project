@@ -134,11 +134,19 @@ export default function Navbar(): JSX.Element {
 
           {/* Company Logo - desktop only */}
           <Image
-            src="/image.png"
-            alt="CLOCKD"
-            width={130}
-            height={26}
-            className="hidden md:block flex-shrink-0"
+            src="/altum-logo-new.png"
+            alt="Altum Technical Solutions"
+            width={150}
+            height={40}
+            className="hidden md:block dark:hidden flex-shrink-0"
+            priority
+          />
+          <Image
+            src="/altum-logo-white.png"
+            alt="Altum Technical Solutions"
+            width={150}
+            height={40}
+            className="hidden dark:md:block flex-shrink-0"
             priority
           />
 
