@@ -15,7 +15,8 @@
       "Bash(where:*)",
       "Bash(npx next build)",
       "Bash(dir:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(node node_modules/.bin/tsc:*)"
     ]
   }
 }

@@ -170,6 +170,7 @@ export default function TimeRegistrationPage() {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1; // 0=Mon, 6=Sun
   });
+  const [selectedMobileWeek, setSelectedMobileWeek] = useState(0);
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -213,6 +214,12 @@ export default function TimeRegistrationPage() {
     loadAssignedProjects();
     loadFavoriteProjects();
   }, [currentWeek, viewMode]);
+
+  // Reset mobile week/day selection when navigating months
+  useEffect(() => {
+    setSelectedMobileWeek(0);
+    setSelectedMobileDay(0);
+  }, [currentWeek]);
 
   useEffect(() => {
     loadClosedDays();
@@ -1304,7 +1311,310 @@ export default function TimeRegistrationPage() {
                   </div>
                 </div>
               ) : viewMode === "month" ? (
-                <div className="space-y-6 overflow-x-auto">
+                <>
+                {/* ===== MOBILE MONTH VIEW ===== */}
+                <div className="md:hidden space-y-3">
+                  {/* Week selector tabs */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                    {monthWeeks.map((ws, i) => {
+                      const wn = getWeekNumber(ws);
+                      const isSelected = selectedMobileWeek === i;
+                      const wdForWeek = getWeekDays(ws);
+                      const weekTotal = wdForWeek.reduce((sum, d) =>
+                        sum + projectRows.reduce((s, row) => {
+                          const k = `${formatDate(d)}-${row.projectId}`;
+                          return s + (entries[k]?.hours || 0);
+                        }, 0), 0
+                      );
+                      return (
+                        <button
+                          key={`mob-week-${i}`}
+                          onClick={() => { setSelectedMobileWeek(i); setSelectedMobileDay(0); }}
+                          className={`flex-1 min-w-[56px] py-2 px-1.5 rounded-xl text-center transition-all ${
+                            isSelected
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          <div className="text-[9px] font-medium uppercase">Week</div>
+                          <div className="text-lg font-bold">{wn}</div>
+                          {weekTotal > 0 && (
+                            <div className={`text-[10px] font-semibold ${isSelected ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
+                              {weekTotal}u
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Day tabs for selected week */}
+                  {(() => {
+                    const selWeekStart = monthWeeks[selectedMobileWeek] || monthWeeks[0];
+                    if (!selWeekStart) return null;
+                    const wdForWeek = getWeekDays(selWeekStart);
+                    const curMonth = currentWeek.getMonth();
+                    const curYear = currentWeek.getFullYear();
+
+                    return (
+                      <>
+                        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                          {wdForWeek.map((day, i) => {
+                            const isToday = formatDate(day) === formatDate(new Date());
+                            const isSel = selectedMobileDay === i;
+                            const dayTotal = getTotalDay(formatDate(day));
+                            const closed = isClosedDay(formatDate(day));
+                            const weekend = isWeekend(day);
+                            const inMonth = day.getMonth() === curMonth && day.getFullYear() === curYear;
+                            return (
+                              <button
+                                key={`mob-mday-${i}`}
+                                onClick={() => setSelectedMobileDay(i)}
+                                className={`flex-1 min-w-[48px] py-2 px-1 rounded-xl text-center transition-all ${
+                                  !inMonth
+                                    ? "opacity-40 bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                    : isSel
+                                    ? "bg-blue-600 text-white shadow-md"
+                                    : isToday
+                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
+                                    : closed || weekend
+                                    ? "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                <div className="text-[10px] font-medium uppercase">{dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}</div>
+                                <div className="text-lg font-bold">{day.getDate()}</div>
+                                {dayTotal > 0 && (
+                                  <div className={`text-[10px] font-semibold ${isSel ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
+                                    {dayTotal}u
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Month total */}
+                        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700">
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Maandtotaal</span>
+                          <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                            {monthWeeks.reduce((total, ws) => {
+                              const wd = getWeekDays(ws);
+                              return total + wd.reduce((sum, d) => {
+                                if (d.getMonth() !== curMonth || d.getFullYear() !== curYear) return sum;
+                                return sum + projectRows.reduce((s, row) => {
+                                  const k = `${formatDate(d)}-${row.projectId}`;
+                                  return s + (entries[k]?.hours || 0);
+                                }, 0);
+                              }, 0);
+                            }, 0)}u
+                          </span>
+                        </div>
+
+                        {/* Project cards for selected day */}
+                        {(() => {
+                          const day = wdForWeek[selectedMobileDay];
+                          if (!day) return null;
+                          const date = formatDate(day);
+                          const inMonth = day.getMonth() === curMonth && day.getFullYear() === curYear;
+                          const closed = isClosedDay(date);
+                          const weekend = isWeekend(day);
+
+                          if (!inMonth) {
+                            return (
+                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="font-medium">Andere maand</p>
+                              </div>
+                            );
+                          }
+                          if (closed) {
+                            return (
+                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="font-medium">Gesloten dag</p>
+                              </div>
+                            );
+                          }
+                          if (weekend) {
+                            return (
+                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="font-medium">Weekend</p>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-3">
+                              {projectRows.map((row) => {
+                                const key = `${date}-${row.projectId}`;
+                                const entry = entries[key] || {
+                                  date,
+                                  projectId: row.projectId,
+                                  hours: 0,
+                                  taskType: getDefaultTaskType(),
+                                  distanceKm: 0,
+                                  travelCosts: 0,
+                                  otherExpenses: 0,
+                                  notes: "",
+                                  status: "opgeslagen",
+                                };
+                                const entryEditable = isEditable(entry.status);
+                                const maxInfo = getProjectMaxInfo(row.projectId);
+                                const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                                const isDisabled = !entryEditable || isAtMaxHours;
+
+                                return (
+                                  <div
+                                    key={`mob-month-entry-${row.projectId}`}
+                                    className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm ${getEntryClassName(entry.status)} ${isAtMaxHours ? "opacity-50" : ""}`}
+                                  >
+                                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                          {row.companyName}{row.projectGroupName && ` › ${row.projectGroupName}`}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{row.projectName}</span>
+                                          {maxInfo.hasMax && (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${maxInfo.isAtMax ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
+                                              {maxInfo.currentHours}/{maxInfo.maxHours}u
+                                            </span>
+                                          )}
+                                        </div>
+                                        {entry.status === "SUBMITTED" && (
+                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">Ingeleverd</span>
+                                        )}
+                                        {entry.status === "APPROVED" && (
+                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">Goedgekeurd</span>
+                                        )}
+                                        {entry.status === "REJECTED" && (
+                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded font-medium">Afgekeurd</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => toggleFavorite(row.projectId, row.projectName)} className="p-1.5">
+                                          <Heart className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
+                                        </button>
+                                        <button onClick={() => removeProject(row.projectId)} className="p-1.5 text-red-500">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="p-4 space-y-3">
+                                      {shouldShowTaskDropdown() && !isDisabled && (
+                                        <select
+                                          value={entry.taskType || getDefaultTaskType()}
+                                          onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as 'MONTAGE' | 'TEKENKAMER')}
+                                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                        >
+                                          <option value="MONTAGE">Montage</option>
+                                          <option value="TEKENKAMER">Tekenkamer</option>
+                                        </select>
+                                      )}
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
+                                          <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
+                                            value={entry.hours || ""} onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
+                                            value={entry.eveningNightHours || ""} onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-blue-500" /> Reisuren
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.5" min="0"
+                                            value={entry.travelHours || ""} onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Car className="w-3 h-3 text-green-500" /> Kilometers
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="1" min="0"
+                                            value={entry.distanceKm || ""} onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Ticket className="w-3 h-3 text-yellow-500" /> Reiskosten
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.01" min="0"
+                                            value={entry.travelCosts || ""} onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="€0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Euro className="w-3 h-3 text-orange-500" /> Onkosten
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.01" min="0"
+                                            value={entry.otherExpenses || ""} onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="€0"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                          <FileText className="w-3 h-3 text-slate-500" /> Opmerkingen
+                                        </label>
+                                        <textarea
+                                          value={entry.notes || ""} onChange={(e) => updateEntry(row.projectId, date, "notes", e.target.value)}
+                                          disabled={isDisabled}
+                                          className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm resize-none bg-white dark:bg-slate-700", entry.status)}
+                                          placeholder="Opmerkingen..." rows={2}
+                                        />
+                                      </div>
+                                      {entry.status === "REJECTED" && entry.rejectionReason && (
+                                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                          <p className="text-xs font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                          <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">{entry.rejectionReason}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* ===== DESKTOP MONTH VIEW ===== */}
+                <div className="hidden md:block space-y-6 overflow-x-auto">
                   {monthWeeks.map((weekStart, idx) => {
                     const weekDaysForWeek = getWeekDays(weekStart);
                     const currentMonth = currentWeek.getMonth();
@@ -1723,6 +2033,7 @@ export default function TimeRegistrationPage() {
                     );
                   })}
                 </div>
+                </>
               ) : (
                 <>
                 {/* ===== MOBILE DAY-BY-DAY VIEW ===== */}
