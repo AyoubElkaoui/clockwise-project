@@ -38,12 +38,12 @@ public class UserHourAllocationsController : ControllerBase
 
             var sql = @"
                 SELECT
-                    id AS ""Id"",
-                    task_code AS ""TaskCode"",
-                    task_description AS ""TaskDescription"",
-                    annual_budget AS ""AnnualBudget"",
-                    used AS ""Used"",
-                    year AS ""Year""
+                    id,
+                    task_code AS ""taskCode"",
+                    task_description AS ""taskDescription"",
+                    annual_budget AS ""annualBudget"",
+                    used,
+                    year
                 FROM user_hour_allocations
                 WHERE user_id = @UserId AND year = @Year
                 ORDER BY task_code";

@@ -42,7 +42,7 @@ public class PostgresUsersController : ControllerBase
                     email,
                     phone,
                     role,
-                    role AS ""rank"",
+                    CASE WHEN is_active = false THEN 'inactive' ELSE role END AS ""rank"",
                     is_active AS ""isActive"",
                     contract_hours AS ""contractHours"",
                     vacation_days AS ""vacationDays"",
@@ -81,6 +81,7 @@ public class PostgresUsersController : ControllerBase
                     email,
                     phone,
                     role,
+                    CASE WHEN is_active = false THEN 'inactive' ELSE role END AS ""rank"",
                     is_active AS ""isActive"",
                     contract_hours AS ""contractHours"",
                     vacation_days AS ""vacationDays"",
@@ -128,12 +129,30 @@ public class PostgresUsersController : ControllerBase
             }
 
             // Determine the role and active status
-            var newRole = request.Rank ?? request.Role;
+            // "inactive" is NOT a valid role - it only means is_active=false
+            string? newRole = null;
             bool? newIsActive = null;
+
             if (request.Rank != null)
-                newIsActive = request.Rank != "inactive";
-            else if (request.IsActive.HasValue)
-                newIsActive = request.IsActive.Value;
+            {
+                if (request.Rank == "inactive")
+                {
+                    // Setting inactive: keep existing role, just deactivate
+                    newIsActive = false;
+                }
+                else
+                {
+                    // Setting active with a role
+                    newRole = request.Rank;
+                    newIsActive = true;
+                }
+            }
+            else
+            {
+                newRole = request.Role;
+                if (request.IsActive.HasValue)
+                    newIsActive = request.IsActive.Value;
+            }
 
             _logger.LogInformation("Update user {MedewGcId}: Role={Role}, IsActive={IsActive}, Rank={Rank}",
                 medewGcId, newRole, newIsActive, request.Rank);
@@ -173,7 +192,7 @@ public class PostgresUsersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating user by medewGcId: {MedewGcId}", medewGcId);
-            return StatusCode(500, new { error = "Fout bij bijwerken gebruiker" });
+            return StatusCode(500, new { error = "Fout bij bijwerken gebruiker", detail = ex.Message });
         }
     }
 

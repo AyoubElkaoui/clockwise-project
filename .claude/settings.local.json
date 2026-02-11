@@ -16,7 +16,10 @@
       "Bash(npx next build)",
       "Bash(dir:*)",
       "Bash(git checkout:*)",
-      "Bash(node node_modules/.bin/tsc:*)"
+      "Bash(node node_modules/.bin/tsc:*)",
+      "Bash(findstr:*)",
+      "Bash(Select-String \"error\")",
+      "Bash(Select-String -NotMatch \"MSB3026|MSB3027|MSB3021|warning\")"
     ]
   }
 }
