@@ -49,10 +49,21 @@ public class AuthController : ControllerBase
                 return Unauthorized(new { message = result.ErrorMessage });
             }
 
-            // Check if 2FA is enabled for this user
+            // Check if user is active
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.OpenAsync();
 
+            var isActive = await connection.QueryFirstOrDefaultAsync<bool?>(
+                "SELECT is_active FROM users WHERE id = @Id",
+                new { Id = result.User!.Id });
+
+            if (isActive == false)
+            {
+                _logger.LogWarning("Login blocked - user is inactive: {UserId}", result.User.Id);
+                return Unauthorized(new { message = "Account is gedeactiveerd. Neem contact op met je manager." });
+            }
+
+            // Check if 2FA is enabled for this user
             var user = await connection.QueryFirstOrDefaultAsync<User>(
                 @"SELECT id AS Id, email AS Email,
                          two_factor_enabled AS TwoFactorEnabled,

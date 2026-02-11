@@ -103,11 +103,14 @@ export default function LoginPage(): JSX.Element {
       } else {
         router.push("/dashboard");
       }
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        setError(requires2FA ? "Ongeldige 2FA code" : "Ongeldige gebruikersnaam of wachtwoord");
+    } catch (e: any) {
+      const serverMessage = e?.response?.data?.message;
+      if (serverMessage) {
+        setError(serverMessage);
+      } else if (requires2FA) {
+        setError("Ongeldige 2FA code");
       } else {
-        setError("Onbekende fout");
+        setError("Ongeldige gebruikersnaam of wachtwoord");
       }
     } finally {
       setIsLoading(false);

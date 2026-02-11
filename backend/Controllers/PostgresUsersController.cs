@@ -127,6 +127,17 @@ public class PostgresUsersController : ControllerBase
                 return NotFound(new { error = "Gebruiker niet gevonden" });
             }
 
+            // Determine the role and active status
+            var newRole = request.Rank ?? request.Role;
+            bool? newIsActive = null;
+            if (request.Rank != null)
+                newIsActive = request.Rank != "inactive";
+            else if (request.IsActive.HasValue)
+                newIsActive = request.IsActive.Value;
+
+            _logger.LogInformation("Update user {MedewGcId}: Role={Role}, IsActive={IsActive}, Rank={Rank}",
+                medewGcId, newRole, newIsActive, request.Rank);
+
             var sql = @"
                 UPDATE users SET
                     first_name = COALESCE(@FirstName, first_name),
@@ -148,8 +159,8 @@ public class PostgresUsersController : ControllerBase
                 LastName = request.LastName,
                 Email = request.Email,
                 Phone = request.Phone,
-                Role = request.Rank ?? request.Role, // Support both 'rank' and 'role'
-                IsActive = request.Rank != null ? request.Rank != "inactive" : (request.IsActive ?? true),
+                Role = newRole,
+                IsActive = newIsActive,
                 ContractHours = request.ContractHours,
                 VacationDays = request.VacationDays,
                 UsedVacationDays = request.UsedVacationDays
@@ -196,6 +207,13 @@ public class PostgresUsersController : ControllerBase
             {
                 _logger.LogWarning("Login failed - user not found for medewGcId: {MedewGcId}", request.MedewGcId);
                 return Unauthorized(new { error = "Invalid MedewGcId" });
+            }
+
+            // Block inactive users from logging in
+            if ((bool?)user.IsActive == false)
+            {
+                _logger.LogWarning("Login blocked - user is inactive: {MedewGcId}", request.MedewGcId);
+                return Unauthorized(new { error = "Account is gedeactiveerd. Neem contact op met je manager." });
             }
 
             _logger.LogInformation("Login successful for user: {Username}", (string)user.Username);
