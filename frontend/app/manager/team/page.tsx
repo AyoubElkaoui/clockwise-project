@@ -264,7 +264,6 @@ export default function ManagerTeamPage() {
     const newStatus = member.rank === "inactive" ? "user" : "inactive";
     try {
       await axios.put(`${API_URL}/users/${member.medewGcId}`, {
-        ...member,
         rank: newStatus,
         isActive: newStatus !== "inactive",
       });
@@ -285,7 +284,6 @@ export default function ManagerTeamPage() {
     try {
       const rank = editFormData.isActive ? editFormData.rank : "inactive";
       const updatedData = {
-        ...editingMember,
         firstName: editFormData.firstName,
         lastName: editFormData.lastName,
         email: editFormData.email,

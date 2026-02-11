@@ -2,6 +2,7 @@ using backend.Models;
 using backend.Repositories;
 using ClockwiseProject.Backend.Repositories;
 using Dapper;
+using System.Data;
 
 namespace backend.Services;
 
@@ -12,17 +13,20 @@ public class WorkflowService
 {
     private readonly IWorkflowRepository _workflowRepo;
     private readonly IFirebirdDataRepository _firebirdRepo;
+    private readonly IDbConnection _db;
     private readonly ILogger<WorkflowService> _logger;
     private readonly IConfiguration _configuration;
 
     public WorkflowService(
         IWorkflowRepository workflowRepo,
         IFirebirdDataRepository firebirdRepo,
+        IDbConnection db,
         ILogger<WorkflowService> logger,
         IConfiguration configuration)
     {
         _workflowRepo = workflowRepo;
         _firebirdRepo = firebirdRepo;
+        _db = db;
         _logger = logger;
         _configuration = configuration;
     }
@@ -77,6 +81,59 @@ public class WorkflowService
                 Success = false,
                 Message = $"Invalid period ID: {request.UrenperGcId}"
             };
+        }
+
+        // Check hour allocation budget for this task code
+        var taakCode = await _firebirdRepo.GetTaakCodeAsync(request.TaakGcId);
+        if (!string.IsNullOrEmpty(taakCode) && (taakCode.StartsWith("I") || taakCode.StartsWith("Z") || taakCode == "SLEEFTIJD"))
+        {
+            try
+            {
+                var userId = await _db.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT id FROM users WHERE medew_gc_id = @MedewGcId",
+                    new { MedewGcId = medewGcId });
+
+                if (userId.HasValue)
+                {
+                    var year = request.Datum.Year;
+                    var allocation = await _db.QueryFirstOrDefaultAsync<dynamic>(
+                        @"SELECT annual_budget, used FROM user_hour_allocations
+                          WHERE user_id = @UserId AND task_code = @TaskCode AND year = @Year",
+                        new { UserId = userId.Value, TaskCode = taakCode.Trim(), Year = year });
+
+                    if (allocation != null && (decimal)allocation.annual_budget > 0)
+                    {
+                        var budget = (decimal)allocation.annual_budget;
+                        var alreadyUsed = (decimal)allocation.used;
+                        var newHours = request.Aantal;
+
+                        // If updating existing entry, subtract old hours
+                        if (request.Id.HasValue && request.Id.Value > 0)
+                        {
+                            var existingEntry = await _workflowRepo.GetByIdAsync(request.Id.Value);
+                            if (existingEntry != null)
+                                newHours -= existingEntry.Aantal;
+                        }
+
+                        if (alreadyUsed + newHours > budget)
+                        {
+                            var remaining = budget - alreadyUsed;
+                            return new DraftResponse
+                            {
+                                Success = false,
+                                Message = $"Budget overschreden voor {taakCode.Trim()}: {remaining:F1} van {budget:F1} resterend"
+                            };
+                        }
+
+                        warnings.Add($"Budget {taakCode.Trim()}: {alreadyUsed + newHours:F1}/{budget:F1} gebruikt");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not check hour allocation budget for task {TaskCode}", taakCode);
+                // Don't block the save if budget check fails
+            }
         }
 
         // Check if we're updating an existing entry (ID provided) or creating new
@@ -327,6 +384,9 @@ public class WorkflowService
                     entry.ReviewedBy = reviewerMedewGcId;
                     entry.FirebirdGcId = firebirdGcId;
 
+                    // Update hour allocation 'used' for I/Z/SLEEFTIJD codes
+                    await UpdateHourAllocationUsedAsync(entry);
+
                     processedCount++;
                 }
                 catch (Exception ex)
@@ -496,6 +556,41 @@ public class WorkflowService
             Message = "Draft deleted",
             ProcessedCount = 1
         };
+    }
+
+    /// <summary>
+    /// Update the 'used' field in user_hour_allocations when an entry is approved
+    /// </summary>
+    private async Task UpdateHourAllocationUsedAsync(TimeEntryWorkflow entry)
+    {
+        try
+        {
+            var taakCode = await _firebirdRepo.GetTaakCodeAsync(entry.TaakGcId);
+            if (string.IsNullOrEmpty(taakCode) ||
+                (!taakCode.StartsWith("I") && !taakCode.StartsWith("Z") && taakCode != "SLEEFTIJD"))
+                return;
+
+            var userId = await _db.QueryFirstOrDefaultAsync<int?>(
+                "SELECT id FROM users WHERE medew_gc_id = @MedewGcId",
+                new { MedewGcId = entry.MedewGcId });
+
+            if (!userId.HasValue) return;
+
+            var year = entry.Datum.Year;
+            await _db.ExecuteAsync(
+                @"UPDATE user_hour_allocations
+                  SET used = used + @Hours, updated_at = CURRENT_TIMESTAMP
+                  WHERE user_id = @UserId AND task_code = @TaskCode AND year = @Year",
+                new { Hours = entry.Aantal, UserId = userId.Value, TaskCode = taakCode.Trim(), Year = year });
+
+            _logger.LogInformation(
+                "Updated hour allocation used: user={UserId}, task={TaskCode}, +{Hours}h",
+                userId.Value, taakCode.Trim(), entry.Aantal);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to update hour allocation used for entry {Id}", entry.Id);
+        }
     }
 
     /// <summary>
