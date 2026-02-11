@@ -134,9 +134,9 @@ export default function LoginPage(): JSX.Element {
               <Image
                 src={theme === "dark" ? "/logo_white.png" : "/logo.png"}
                 alt="Clockd Logo"
-                width={200}
-                height={60}
-                className="h-14 w-auto object-contain"
+                width={300}
+                height={160}
+                className="h-32 w-auto object-contain"
               />
             </div>
             <div className="flex justify-center gap-2 mb-4">
