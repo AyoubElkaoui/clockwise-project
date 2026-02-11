@@ -149,7 +149,7 @@ public class PostgresUsersController : ControllerBase
                 Email = request.Email,
                 Phone = request.Phone,
                 Role = request.Rank ?? request.Role, // Support both 'rank' and 'role'
-                IsActive = request.Rank != "inactive" && request.IsActive != false,
+                IsActive = request.Rank != null ? request.Rank != "inactive" : (request.IsActive ?? true),
                 ContractHours = request.ContractHours,
                 VacationDays = request.VacationDays,
                 UsedVacationDays = request.UsedVacationDays

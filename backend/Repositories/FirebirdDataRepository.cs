@@ -53,7 +53,7 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<IEnumerable<ClockwiseProject.Backend.Models.Project>> GetProjectsByGroupAsync(int groupId)
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId FROM AT_WERK WHERE WERKGRP_GC_ID = @GroupId ORDER BY GC_CODE";
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, WERKGRP_GC_ID AS WerkgrpGcId, GC_OMSCHRIJVING AS Description FROM AT_WERK WHERE WERKGRP_GC_ID = @GroupId ORDER BY GC_CODE";
             return await connection.QueryAsync<BackendProject>(sql, new { GroupId = groupId });
         }
 
@@ -86,6 +86,14 @@ namespace ClockwiseProject.Backend.Repositories
                     new TaskModel { GcId = 7, GcCode = "Z09", Omschrijving = "Opname tijd voor tijd" }
                 };
             }
+        }
+
+        public async Task<IEnumerable<TaskModel>> GetAllTasksAsync()
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = @"SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Omschrijving
+                                 FROM AT_TAAK ORDER BY GC_CODE";
+            return await connection.QueryAsync<TaskModel>(sql);
         }
 
         public async Task<IEnumerable<Period>> GetPeriodsAsync(int count = 50)

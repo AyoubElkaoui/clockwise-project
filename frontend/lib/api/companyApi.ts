@@ -50,7 +50,7 @@ export async function getProjects(projectGroupId: number): Promise<Project[]> {
   );
   return response.data.map((p: any) => ({
     id: p.gcId,
-    name: p.gcCode,
+    name: p.description ? `${p.gcCode} - ${p.description}` : p.gcCode,
     projectGroupId: p.werkgrpGcId,
   }));
 }

@@ -35,6 +35,7 @@ namespace ClockwiseProject.Backend.Repositories
         Task<bool> IsValidUrenperAsync(int urenperGcId, int adminisGcId);
         Task<string> GetWerkCodeAsync(int werkGcId);
     Task<(string Code, string Description)> GetWerkDetailsAsync(int werkGcId);
+        Task<IEnumerable<TaskModel>> GetAllTasksAsync();
         Task<IEnumerable<User>> GetUsersAsync();
         Task<User> GetUserByIdAsync(int id);
         FbConnection GetConnection();

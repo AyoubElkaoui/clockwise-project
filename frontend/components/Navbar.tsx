@@ -133,22 +133,24 @@ export default function Navbar(): JSX.Element {
           </button>
 
           {/* Company Logo - desktop only */}
-          <Image
-            src="/altum-logo-new.png"
-            alt="Altum Technical Solutions"
-            width={150}
-            height={40}
-            className="hidden md:block dark:hidden flex-shrink-0"
-            priority
-          />
-          <Image
-            src="/altum-logo-white.png"
-            alt="Altum Technical Solutions"
-            width={150}
-            height={40}
-            className="hidden dark:md:block flex-shrink-0"
-            priority
-          />
+          <div className="hidden md:block flex-shrink-0">
+            <Image
+              src="/altum-logo-new.png"
+              alt="Altum Technical Solutions"
+              width={150}
+              height={40}
+              className="dark:hidden"
+              priority
+            />
+            <Image
+              src="/altum-logo-white.png"
+              alt="Altum Technical Solutions"
+              width={150}
+              height={40}
+              className="hidden dark:block"
+              priority
+            />
+          </div>
 
           {/* Search bar - desktop only */}
           <div className="relative hidden md:block flex-1 max-w-lg">

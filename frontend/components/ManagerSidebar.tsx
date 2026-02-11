@@ -18,6 +18,7 @@ import {
   UserCheck,
   Calendar,
   FolderPlus,
+  ListChecks,
 } from "lucide-react";
 import { ThemeToggle } from "./ui/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,12 @@ const managerMenuItems = [
     icon: FolderPlus,
     label: "Project Toewijzing",
     href: "/manager/project-toewijzing",
+    badgeKey: null,
+  },
+  {
+    icon: ListChecks,
+    label: "Uurcodes",
+    href: "/manager/uurcodes",
     badgeKey: null,
   },
   {
@@ -171,7 +178,7 @@ export function ManagerSidebar({
                   </h1>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-slate-400">
-                  Elmar Services - Team Beheer
+                  Altum - Team Beheer
                 </p>
               </div>
             )}
