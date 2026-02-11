@@ -12,16 +12,21 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 // Helper function to build API URL consistently
 const buildApiUrl = (endpoint: string) => {
   const baseUrl = API_URL.replace(/\/+$/, ''); // Remove trailing slashes
-  const hasApi = baseUrl.includes('/api');
   const cleanEndpoint = endpoint.replace(/^\/+/, ''); // Remove leading slashes
-  
-  if (hasApi) {
-    // API_URL already contains /api, so just append endpoint
-    return `${baseUrl}/${cleanEndpoint}`;
-  } else {
-    // API_URL doesn't contain /api, add it
-    return `${baseUrl}/api/${cleanEndpoint}`;
+
+  // Check the URL path (not domain) for /api to avoid false positives
+  // e.g. "https://api.clockd.nl" has /api in the domain but NOT in the path
+  try {
+    const url = new URL(baseUrl);
+    const hasApi = url.pathname.includes('/api');
+    if (hasApi) {
+      return `${baseUrl}/${cleanEndpoint}`;
+    }
+  } catch {
+    // If URL parsing fails, fall through to default
   }
+
+  return `${baseUrl}/api/${cleanEndpoint}`;
 };
 
 interface Notification {
@@ -47,23 +52,11 @@ const NotificationBell = () => {
     try {
       setLoading(true);
       const userId = localStorage.getItem("userId");
-      
-      console.log("=== NotificationBell: START fetchNotifications ===");
-      console.log("NotificationBell: API_URL =", API_URL);
-      console.log("NotificationBell: userId from localStorage =", userId);
-      
-      if (!userId) {
-        console.warn("NotificationBell: No userId found in localStorage");
-        return;
-      }
+
+      if (!userId) return;
 
       const url = buildApiUrl('notifications');
-      console.log("NotificationBell: Fetching from URL:", url);
-      console.log("NotificationBell: Headers:", {
-        'X-USER-ID': userId,
-        'ngrok-skip-browser-warning': '1',
-      });
-      
+
       const response = await fetch(url, {
         headers: {
           'X-USER-ID': userId,
@@ -71,28 +64,15 @@ const NotificationBell = () => {
         },
       });
 
-      console.log("NotificationBell: Response status:", response.status);
-      console.log("NotificationBell: Response ok:", response.ok);
-
       if (!response.ok) {
-        console.warn('NotificationBell: API returned non-OK status:', response.status);
-        const errorText = await response.text();
-        console.error('NotificationBell: Error response body:', errorText);
         setNotifications([]);
         return;
       }
 
       const data: Notification[] = await response.json();
-      console.log("NotificationBell: Received notifications count:", data.length);
-      console.log("NotificationBell: Received notifications data:", data);
-      
       setNotifications(data);
-      const unread = data.filter(n => !n.isRead).length;
-      setUnreadCount(unread);
-      console.log("NotificationBell: Unread count:", unread);
-      console.log("=== NotificationBell: END fetchNotifications SUCCESS ===");
+      setUnreadCount(data.filter(n => !n.isRead).length);
     } catch (error) {
-      console.error("=== NotificationBell: END fetchNotifications ERROR ===");
       console.error("NotificationBell: Error fetching notifications:", error);
       setNotifications([]);
       setUnreadCount(0);
@@ -269,7 +249,7 @@ const NotificationBell = () => {
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden z-50 border border-gray-200 dark:border-gray-700 opacity-100">
+        <div className="fixed inset-x-3 top-14 md:absolute md:inset-x-auto md:top-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden z-[60] border border-gray-200 dark:border-gray-700 opacity-100">
           <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <h3 className="font-bold text-lg text-gray-900 dark:text-white">Notificaties</h3>
             <button
