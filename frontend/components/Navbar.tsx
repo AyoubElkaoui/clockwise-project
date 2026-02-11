@@ -117,8 +117,24 @@ export default function Navbar(): JSX.Element {
       "
     >
       <div className="flex items-center justify-between gap-2 md:gap-4">
-        {/* === LEFT: Hamburger + Search === */}
-        <div className="flex items-center gap-2 flex-1 max-w-xs lg:max-w-md">
+        {/* === LEFT: Logo + Hamburger + Search === */}
+        <div className="flex items-center gap-3 flex-1 max-w-xs lg:max-w-lg">
+          {/* Company Logo */}
+          <Image
+            src="/altum-logo.png"
+            alt="Altum"
+            width={140}
+            height={44}
+            className="hidden md:block h-12 w-auto object-contain dark:hidden flex-shrink-0"
+          />
+          <Image
+            src="/altum-logo-white.png"
+            alt="Altum"
+            width={140}
+            height={44}
+            className="hidden md:dark:block h-12 w-auto object-contain flex-shrink-0"
+          />
+
           {/* Hamburger menu for mobile */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -177,25 +193,6 @@ export default function Navbar(): JSX.Element {
 
         {/* === RIGHT SIDE === */}
         <div className="flex items-center gap-3 flex-1 justify-end">
-          {/* Altum Logo */}
-          <div className="hidden lg:flex items-center gap-2">
-            <span className="text-xs text-slate-400 dark:text-slate-500">Powered by</span>
-            <Image
-              src="/altum-logo.png"
-              alt="Altum"
-              width={120}
-              height={40}
-              className="h-10 w-auto object-contain dark:hidden"
-            />
-            <Image
-              src="/altum-logo-white.png"
-              alt="Altum"
-              width={120}
-              height={40}
-              className="h-10 w-auto object-contain hidden dark:block"
-            />
-          </div>
-
           {/* Dark Mode Toggle */}
           <ThemeToggle />
 
@@ -241,7 +238,7 @@ export default function Navbar(): JSX.Element {
           >
             <div
               className="
-                bg-timr-orange dark:bg-timr-orange
+                bg-[#3563E9] dark:bg-[#3563E9]
                 text-white
                 rounded-full w-10 h-10 flex items-center justify-center
               "
