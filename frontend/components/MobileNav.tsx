@@ -162,15 +162,15 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-3">
               <Image
-                src="/image.png"
-                alt="CLOCKD"
+                src="/altum-logo-new.png"
+                alt="Altum Technical Solutions"
                 width={110}
                 height={22}
                 className="dark:hidden"
               />
               <Image
-                src="/white_logo.png"
-                alt="CLOCKD"
+                src="/altum-logo-white.png"
+                alt="Altum Technical Solutions"
                 width={110}
                 height={22}
                 className="hidden dark:block"
