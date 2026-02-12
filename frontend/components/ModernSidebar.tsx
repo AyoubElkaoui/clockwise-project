@@ -270,7 +270,7 @@ export function ModernSidebar({
               aria-label="Ga naar dashboard"
             >
               <Image
-                src="/image.png"
+                src="/clockd-logo.png"
                 alt="CLOCKD"
                 width={collapsed ? 80 : 130}
                 height={collapsed ? 16 : 26}
@@ -278,7 +278,7 @@ export function ModernSidebar({
                 priority
               />
               <Image
-                src="/white_logo.png"
+                src="/clockd-logo-white.png"
                 alt="CLOCKD"
                 width={collapsed ? 80 : 130}
                 height={collapsed ? 16 : 26}
