@@ -35,7 +35,7 @@ services:
       - DOTNET_USE_POLLING_FILE_WATCHER=true
       - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
       - SEED_ON_START=false
-      - ConnectionStrings__PostgreSQL=Host=ep-hidden-thunder-adh5jqva-pooler.c-2.us-east-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=NEON_PASSWORD;SSL Mode=Require;Trust Server Certificate=true
+      - ConnectionStrings__PostgreSQL=Host=ep-hidden-thunder-adh5jqva-pooler.c-2.us-east-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=${NEON_PASSWORD};SSL Mode=Require;Trust Server Certificate=true
       - ConnectionStrings__Firebird=Database=firebird:3050:/firebird/data/atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=1;Pooling=true;ClientLibrary=/usr/lib/x86_64-linux-gnu/libfbclient.so.2
     ports:
       - "5000:5000"
