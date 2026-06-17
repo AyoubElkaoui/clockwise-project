@@ -21,6 +21,4 @@ INSERT INTO system_settings (key, value, description) VALUES
     ('allow_password_reset', 'true', 'Sta wachtwoord reset via email toe')
 ON CONFLICT (key) DO NOTHING;
 
--- Grant permissions
-GRANT ALL ON system_settings TO authenticated;
-GRANT ALL ON system_settings TO anon;
+-- Note: Supabase-specific role grants removed; Neon uses standard Postgres roles.

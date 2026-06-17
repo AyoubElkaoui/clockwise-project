@@ -33,7 +33,10 @@ public class MigrationRunner
     {
         if (args.Length > 0 && args[0] == "migrate")
         {
-            var connectionString = "Host=db.ynajasnxfvgtlbjatlbw.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=Kj9QIapHHgKUlguF;Pooling=true;SSL Mode=Require;Trust Server Certificate=true;";
+            var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSQL")
+                ?? throw new InvalidOperationException(
+                    "Set ConnectionStrings__PostgreSQL env var before running migrations.\n" +
+                    "Example: ConnectionStrings__PostgreSQL=\"Host=...\" dotnet run -- migrate");
 
             try
             {
