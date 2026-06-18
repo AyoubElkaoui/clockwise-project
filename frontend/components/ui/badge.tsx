@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'secondary';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'destructive' | 'info' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -15,6 +15,8 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       danger: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
       secondary: 'bg-timr-blue-light text-timr-blue dark:bg-timr-blue-light/20 dark:text-timr-blue',
+      destructive: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+      outline: 'bg-transparent border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-300',
     };
 
     const sizeClasses = {
@@ -28,7 +30,7 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
         ref={ref}
         className={cn(
           'inline-flex items-center rounded-full font-medium',
-          variantClasses[variant],
+          variantClasses[variant as keyof typeof variantClasses] ?? variantClasses.default,
           sizeClasses[size],
           className
         )}

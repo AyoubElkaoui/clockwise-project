@@ -13,6 +13,7 @@ namespace backend.Repositories
         Task<bool> MarkAsReadAsync(int id, int userId);
         Task<bool> MarkAllAsReadAsync(int userId);
         Task<bool> DeleteAsync(int id, int userId);
+        Task NotifyManagerForEmployeeAsync(int medewGcId, CreateNotificationDto notification);
     }
 
     public class NotificationRepository : INotificationRepository
@@ -186,6 +187,36 @@ namespace backend.Repositories
             {
                 _logger.LogError(ex, "Error deleting notification {Id}", id);
                 return false;
+            }
+        }
+
+        public async Task NotifyManagerForEmployeeAsync(int medewGcId, CreateNotificationDto notification)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            try
+            {
+                var manager = await connection.QueryFirstOrDefaultAsync<(int ManagerId, string FirstName, string LastName)>(
+                    @"SELECT ma.manager_id, u.first_name, u.last_name
+                      FROM manager_assignments ma
+                      JOIN users u ON u.id = ma.employee_id
+                      WHERE ma.employee_id = (SELECT id FROM users WHERE medew_gc_id = @MedewGcId)
+                      LIMIT 1",
+                    new { MedewGcId = medewGcId });
+
+                if (manager.ManagerId == 0) return;
+
+                notification.UserId = manager.ManagerId;
+                notification.Message = notification.Message
+                    .Replace("{firstName}", manager.FirstName)
+                    .Replace("{lastName}", manager.LastName);
+
+                await CreateAsync(notification);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify manager for employee medew_gc_id={MedewGcId}", medewGcId);
             }
         }
     }

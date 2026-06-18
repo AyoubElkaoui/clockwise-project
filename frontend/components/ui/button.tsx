@@ -17,8 +17,14 @@ const buttonVariants = cva(
           "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white",
         danger:
           "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
+        destructive:
+          "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
         success:
           "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md",
+        info:
+          "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+        warning:
+          "bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300",
       },
       size: {
         sm: "h-9 px-3 text-sm",

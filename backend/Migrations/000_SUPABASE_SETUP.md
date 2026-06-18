@@ -1,15 +1,17 @@
 # Supabase Database Setup Instructions
 
+> **HISTORISCH DOCUMENT** — gemigreerd naar Neon. Zie `backend/Scripts/migrate_supabase_to_neon.sh`.
+
 ## Connection Details
-- **Host**: `db.ynajasnxfvgtlbjatlbw.supabase.co`
+- **Host**: `db.<project-ref>.supabase.co`
 - **Database**: `postgres`
 - **Port**: `5432`
 - **User**: `postgres`
-- **Password**: `lG4cRXHLM2gdyZb`
+- **Password**: `[GEROTATEERD — niet in repo opslaan]`
 
 **Connection String**:
 ```
-postgresql://postgres:lG4cRXHLM2gdyZb@db.ynajasnxfvgtlbjatlbw.supabase.co:5432/postgres
+postgresql://postgres:[PASSWORD]@db.<project-ref>.supabase.co:5432/postgres
 ```
 
 ## Migration Order
@@ -125,7 +127,7 @@ Update your `appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "PostgreSQL": "Host=db.ynajasnxfvgtlbjatlbw.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=lG4cRXHLM2gdyZb;SSL Mode=Require;Trust Server Certificate=true",
+    "PostgreSQL": "Host=ep-hidden-thunder-adh5jqva-pooler.c-2.us-east-1.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=NEON_PASSWORD;SSL Mode=Require;Trust Server Certificate=true",
     "Firebird": "your-existing-firebird-connection-string"
   }
 }
@@ -164,7 +166,7 @@ Update your `appsettings.json`:
 ### Connection Issues
 ```bash
 # Test connection from command line
-psql "postgresql://postgres:lG4cRXHLM2gdyZb@db.ynajasnxfvgtlbjatlbw.supabase.co:5432/postgres?sslmode=require"
+psql "postgresql://neondb_owner:NEON_PASSWORD@ep-hidden-thunder-adh5jqva-pooler.c-2.us-east-1.aws.neon.tech:5432/neondb?sslmode=require"
 ```
 
 ### Check Migration Status

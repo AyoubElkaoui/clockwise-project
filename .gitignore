@@ -84,3 +84,7 @@ fb_event*
 # Firebird databases
 *.fdb
 database/*.fdb
+
+# .NET local secrets — nooit committen
+backend/appsettings.Development.json
+backend/appsettings.WindowsServer.json

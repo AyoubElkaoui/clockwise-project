@@ -10,7 +10,9 @@ export interface Company {
 export interface ProjectGroup {
   id: number;
   name: string;
-  companyId: number;
+  companyId?: number;
+  GcId?: number;
+  GcCode?: string;
 }
 
 export interface Project {
@@ -27,18 +29,22 @@ export async function getCompanies(): Promise<Company[]> {
   return response.data;
 }
 
-// Haal project groups op voor een company
+// Haal project groups op, optioneel gefilterd op company
 export async function getProjectGroups(
-  companyId: number,
+  companyId?: number,
 ): Promise<ProjectGroup[]> {
-  const response = await axios.get(
-    `${API_URL}/project-groups/company/${companyId}`,
-    { headers: { "ngrok-skip-browser-warning": "1" } },
-  );
-  return response.data.map((g: any) => ({
-    id: g.gcId,
-    name: g.description || g.gcCode,
+  const url = companyId
+    ? `${API_URL}/project-groups/company/${companyId}`
+    : `${API_URL}/project-groups`;
+  const response = await axios.get(url, {
+    headers: { "ngrok-skip-browser-warning": "1" },
+  });
+  return (response.data || []).map((g: any) => ({
+    id: g.gcId || g.id,
+    name: g.description || g.gcCode || g.name,
     companyId: companyId,
+    GcId: g.gcId,
+    GcCode: g.gcCode,
   }));
 }
 

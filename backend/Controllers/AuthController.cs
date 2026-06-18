@@ -1,8 +1,6 @@
 using backend.Services;
 using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using Dapper;
-using Npgsql;
 using ClockwiseProject.Domain;
 
 namespace backend.Controllers;
@@ -15,20 +13,17 @@ public class AuthController : ControllerBase
     private readonly PostgreSQLUserRepository _userRepository;
     private readonly ITwoFactorService _twoFactorService;
     private readonly ILogger<AuthController> _logger;
-    private readonly string _connectionString;
 
     public AuthController(
         AuthenticationService authService,
         PostgreSQLUserRepository userRepository,
         ITwoFactorService twoFactorService,
-        ILogger<AuthController> logger,
-        IConfiguration configuration)
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _userRepository = userRepository;
         _twoFactorService = twoFactorService;
         _logger = logger;
-        _connectionString = configuration.GetConnectionString("PostgreSQL") ?? throw new InvalidOperationException("PostgreSQL connection string not found");
     }
 
     [HttpPost("login")]
@@ -41,7 +36,6 @@ public class AuthController : ControllerBase
                 return BadRequest(new { message = "Username and password are required" });
             }
 
-            // First, verify username and password
             var result = await _authService.AuthenticateAsync(request.Username, request.Password);
 
             if (!result.IsSuccess)
@@ -49,50 +43,19 @@ public class AuthController : ControllerBase
                 return Unauthorized(new { message = result.ErrorMessage });
             }
 
-            // Check if user is active
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            var isActive = await connection.QueryFirstOrDefaultAsync<bool?>(
-                "SELECT is_active FROM users WHERE id = @Id",
-                new { Id = result.User!.Id });
-
-            if (isActive == false)
-            {
-                _logger.LogWarning("Login blocked - user is inactive: {UserId}", result.User.Id);
-                return Unauthorized(new { message = "Account is gedeactiveerd. Neem contact op met je manager." });
-            }
-
-            // Check if 2FA is enabled for this user
-            var user = await connection.QueryFirstOrDefaultAsync<User>(
-                @"SELECT id AS Id, email AS Email,
-                         two_factor_enabled AS TwoFactorEnabled,
-                         two_factor_method AS TwoFactorMethod,
-                         two_factor_secret AS TwoFactorSecret,
-                         two_factor_email_code AS TwoFactorEmailCode,
-                         two_factor_code_expires_at AS TwoFactorCodeExpiresAt,
-                         two_factor_backup_codes AS TwoFactorBackupCodes
-                  FROM users WHERE id = @Id",
-                new { Id = result.User!.Id });
+            var user = await _userRepository.GetFor2FAAsync(result.User!.Id);
 
             if (user?.TwoFactorEnabled == true)
             {
-                // If 2FA code not provided, request it
                 if (string.IsNullOrEmpty(request.TwoFactorCode))
                 {
                     if (user.TwoFactorMethod == "email")
                     {
-                        // Generate and send email code
                         var code = _twoFactorService.GenerateEmailCode();
                         var expiresAt = DateTime.UtcNow.AddMinutes(10);
-                        
-                        await connection.ExecuteAsync(
-                            @"UPDATE users 
-                              SET two_factor_email_code = @Code,
-                                  two_factor_code_expires_at = @ExpiresAt
-                              WHERE id = @Id",
-                            new { Code = code, ExpiresAt = expiresAt, Id = user.Id });
-                        
+
+                        await _userRepository.UpdateEmailCodeAsync(user.Id, code, expiresAt);
+
                         try
                         {
                             await _twoFactorService.SendEmailCodeAsync(user.Email, code);
@@ -104,20 +67,19 @@ public class AuthController : ControllerBase
                             return StatusCode(500, new { message = "Failed to send verification email" });
                         }
                     }
-                    
-                    return Ok(new 
-                    { 
+
+                    return Ok(new
+                    {
                         requires2FA = true,
                         method = user.TwoFactorMethod,
-                        message = user.TwoFactorMethod == "email" 
-                            ? "Verificatiecode verstuurd naar je email" 
+                        message = user.TwoFactorMethod == "email"
+                            ? "Verificatiecode verstuurd naar je email"
                             : "Voer de code in van je authenticator app"
                     });
                 }
 
-                // Verify 2FA code
                 bool isValid = false;
-                
+
                 if (user.TwoFactorMethod == "totp" && !string.IsNullOrEmpty(user.TwoFactorSecret))
                 {
                     var secret = _twoFactorService.DecryptSecret(user.TwoFactorSecret);
@@ -131,16 +93,11 @@ public class AuthController : ControllerBase
                         request.TwoFactorCode);
                 }
 
-                // Check backup code if primary fails
                 if (!isValid && !string.IsNullOrEmpty(user.TwoFactorBackupCodes))
                 {
                     isValid = _twoFactorService.VerifyBackupCode(user.TwoFactorBackupCodes, request.TwoFactorCode);
-                    
                     if (isValid)
-                    {
                         _logger.LogWarning("User {UserId} used backup code for 2FA login", user.Id);
-                        // TODO: Remove used backup code from database
-                    }
                 }
 
                 if (!isValid)
@@ -152,18 +109,14 @@ public class AuthController : ControllerBase
                 _logger.LogInformation("User {UserId} successfully logged in with 2FA", user.Id);
             }
 
-            // Check if 2FA is required system-wide but user doesn't have it enabled
             bool require2FASetup = false;
-            var require2FASetting = await connection.QueryFirstOrDefaultAsync<string>(
-                "SELECT value FROM system_settings WHERE key = 'require_2fa'");
-
+            var require2FASetting = await _userRepository.GetSystemSettingAsync("require_2fa");
             if (require2FASetting?.ToLower() == "true" && user?.TwoFactorEnabled != true)
             {
                 require2FASetup = true;
                 _logger.LogInformation("User {UserId} needs to setup 2FA (system requirement)", result.User!.Id);
             }
 
-            // Return JWT token and user info
             return Ok(new
             {
                 token = result.Token,
@@ -194,7 +147,6 @@ public class AuthController : ControllerBase
     {
         try
         {
-            // Get medewGcId from HTTP context (set by authentication middleware)
             if (!HttpContext.Items.TryGetValue("MedewGcId", out var medewGcIdObj) || medewGcIdObj is not int medewGcId)
             {
                 return Unauthorized(new { message = "User not authenticated" });

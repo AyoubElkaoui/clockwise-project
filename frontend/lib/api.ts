@@ -142,12 +142,6 @@ export async function getCompanies() {
   }
 }
 
-// Delete not implemented in new backend
-export async function deleteTimeEntry(id: number) {
-  // Dummy
-  return Promise.resolve(null);
-}
-
 export async function getUsers() {
   try {
     const res = await axios.get(`${API_URL}/users`);
@@ -160,8 +154,6 @@ export async function getUsers() {
     return [];
   }
 }
-
-// Update user not implemented
 
 export async function getProjectGroups(companyId?: number) {
   try {
@@ -178,6 +170,8 @@ export async function getProjectGroups(companyId?: number) {
     return [];
   }
 }
+
+export const getAllProjects = () => getProjects();
 
 export async function getProjects(groupId?: number) {
   try {
@@ -342,24 +336,6 @@ export async function getEnrichedTimeEntries(from?: string, to?: string) {
   });
 }
 
-// OLD LOGIN - Deprecated, use @/api/auth.ts instead
-// export async function login(medewGcId: string) {
-//   const response = await axios.post(`${API_URL}/users/login`, {
-//     medewGcId: parseInt(medewGcId),
-//   });
-//   const user = response.data;
-//
-//   // Clear and set localStorage
-//   localStorage.clear();
-//   localStorage.setItem("medewGcId", medewGcId);
-//   localStorage.setItem("userId", user.id.toString());
-//   localStorage.setItem("firstName", user.firstName);
-//   localStorage.setItem("lastName", user.lastName);
-//   localStorage.setItem("userRank", user.rank || "user");
-//
-//   return user;
-// }
-
 export async function registerWorkTimeEntry(
   urenperGcId: number,
   entries: any[],
@@ -400,13 +376,10 @@ export async function registerVacationTimeEntry(
     .then(safeApiResponse);
 }
 
-// Vacation requests not in new backend
 export async function getVacationRequests() {
-  // Dummy
   return [];
 }
 
-// Admin stats not implemented
 export async function getAdminStats() {
   return {
     totalUsers: 0,
@@ -428,17 +401,14 @@ export async function getAdminStats() {
   };
 }
 
-// Admin time entries not implemented
 export async function getAdminTimeEntries() {
   return [];
 }
 
-// Admin vacation requests not implemented
 export async function getAdminVacationRequests() {
   return [];
 }
 
-// System status not implemented
 export async function getSystemStatus() {
   return [
     {
@@ -458,23 +428,22 @@ export async function getSystemStatus() {
   ];
 }
 
-// Process vacation not implemented
 export async function processVacationRequest(id: number, status: string) {
   return Promise.resolve(null);
 }
 
-// Register not implemented
-export async function registerUser(data: any) {
-  // Dummy
-  return Promise.resolve(null);
-}
-
-// Delete project not implemented
 export async function deleteProject(id: number) {
   return Promise.resolve(null);
 }
 
-// Get user not implemented
+export async function deleteCompany(id: number) {
+  return Promise.resolve(null);
+}
+
+export async function registerTimeEntry(data: any) {
+  return Promise.resolve(null);
+}
+
 export async function getUser(id: number) {
   const medewGcId = localStorage.getItem("medewGcId");
   if (!medewGcId) return null;
@@ -495,34 +464,22 @@ export async function updateUser(id: number, data: any) {
     .then(safeApiResponse);
 }
 
-// Update not needed for new backend
 export async function updateTimeEntry(id: number, data: any) {
-  // Dummy for compatibility
   return Promise.resolve(null);
 }
 
-// Delete user not implemented
 export async function deleteUser(id: number) {
   return Promise.resolve(null);
 }
 
-// Time entry details not implemented
 export async function getTimeEntryDetails(id: number) {
   return Promise.resolve(null);
 }
 
-// Submit not separate in new backend
-export async function submitTimeEntry(id: number) {
-  // Dummy
-  return Promise.resolve(null);
-}
-
-// Approve not implemented
 export async function approveTimeEntry(id: number) {
   return Promise.resolve(null);
 }
 
-// Reject time entry not implemented
 export async function rejectTimeEntry(id: number) {
   return Promise.resolve(null);
 }
