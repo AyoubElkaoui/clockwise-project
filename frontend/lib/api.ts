@@ -436,6 +436,14 @@ export async function deleteProject(id: number) {
   return Promise.resolve(null);
 }
 
+export async function deleteCompany(id: number) {
+  return Promise.resolve(null);
+}
+
+export async function registerTimeEntry(data: any) {
+  return Promise.resolve(null);
+}
+
 export async function getUser(id: number) {
   const medewGcId = localStorage.getItem("medewGcId");
   if (!medewGcId) return null;

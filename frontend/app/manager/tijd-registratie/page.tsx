@@ -45,7 +45,7 @@ interface Company {
 interface ProjectGroup {
   id: number;
   name: string;
-  companyId: number;
+  companyId?: number;
 }
 interface Project {
   id: number;
@@ -64,16 +64,18 @@ interface TimeEntry {
   date: string;
   projectId: number;
   hours: number;
-  taskType?: 'MONTAGE' | 'TEKENKAMER'; // User's choice of task type
+  taskType?: 'MONTAGE' | 'TEKENKAMER';
   eveningNightHours?: number;
   travelHours?: number;
   distanceKm?: number;
+  km?: number;
   travelCosts?: number;
   otherExpenses?: number;
+  expenses?: number;
   notes?: string;
   status?: string;
   rejectionReason?: string | null;
-  id?: number; // Workflow entry ID from database
+  id?: number;
 }
 
 interface ClosedDay {
@@ -528,8 +530,8 @@ export default function TimeRegistrationPage() {
     if (
       !entry ||
       (entry.hours === 0 &&
-        entry.km === 0 &&
-        entry.expenses === 0 &&
+        (entry.distanceKm ?? 0) === 0 &&
+        (entry.otherExpenses ?? 0) === 0 &&
         !entry.notes)
     ) {
       showToast("Geen data om te kopiëren", "error");
@@ -632,13 +634,13 @@ export default function TimeRegistrationPage() {
   ) => {
     const key = `${date}-${projectId}`;
     setEntries((prev) => {
-      const existingEntry = prev[key] || {};
-      const updatedEntry = {
-        ...existingEntry,
+      const existingEntry = (prev[key] || {}) as Partial<TimeEntry>;
+      const updatedEntry: TimeEntry = {
         date,
         projectId,
+        hours: existingEntry.hours ?? 0,
+        ...existingEntry,
         [field]: value,
-        // Ensure taskType is always set based on user's allowed tasks
         taskType: existingEntry.taskType || getDefaultTaskType(),
       };
       return {

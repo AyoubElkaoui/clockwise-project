@@ -21,13 +21,14 @@ function filterResponseHeaders(headers: Headers) {
   return out;
 }
 
-async function proxy(req: NextRequest, params: { path: string[] }) {
+async function proxy(req: NextRequest, params: { path: string[] } | Promise<{ path: string[] }>) {
   if (!RAW_BACKEND) {
     return NextResponse.json({ error: "Configuration error" }, { status: 500 });
   }
 
+  const resolvedParams = await Promise.resolve(params);
   const base = normalizeBase(RAW_BACKEND);
-  const path = params.path?.join("/") ?? "";
+  const path = resolvedParams.path?.join("/") ?? "";
   const search = new URL(req.url).search; // includes ?...
   const upstreamUrl = `${base}/api/${path}${search}`;
 
@@ -68,18 +69,18 @@ async function proxy(req: NextRequest, params: { path: string[] }) {
   });
 }
 
-export async function GET(req: NextRequest, ctx: { params: { path: string[] } }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   return proxy(req, ctx.params);
 }
-export async function POST(req: NextRequest, ctx: { params: { path: string[] } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   return proxy(req, ctx.params);
 }
-export async function PUT(req: NextRequest, ctx: { params: { path: string[] } }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   return proxy(req, ctx.params);
 }
-export async function PATCH(req: NextRequest, ctx: { params: { path: string[] } }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   return proxy(req, ctx.params);
 }
-export async function DELETE(req: NextRequest, ctx: { params: { path: string[] } }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   return proxy(req, ctx.params);
 }

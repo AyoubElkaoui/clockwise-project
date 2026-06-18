@@ -60,7 +60,7 @@ export default function AdminProjectsPage() {
 
   const loadData = async () => {
     try {
-      const [projectsData, companiesData] = await Promise.all([
+      const [projectsData, companiesData]: [any, any] = await Promise.all([
         getAllProjects(),
         getCompanies(),
       ]);

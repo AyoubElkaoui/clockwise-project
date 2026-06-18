@@ -143,6 +143,13 @@ export interface WorkflowEntry {
   taakDescription?: string;
   werkCode?: string;
   werkDescription?: string;
+  // Extended fields from legacy approve page
+  user?: { id: number; firstName?: string; lastName?: string; [key: string]: any };
+  project?: { id: number; name?: string; code?: string; [key: string]: any };
+  startTime?: string;
+  endTime?: string;
+  breakMinutes?: number;
+  notes?: string;
 }
 
 export interface WorkflowEntriesResponse {
