@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun } from "lucide-react";
+import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -129,17 +130,10 @@ export default function ManagerSettingsPage() {
 
   return (
     <ManagerLayout>
-      <div className="p-3 md:p-6 max-w-6xl mx-auto">
-        <div className="mb-4 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Instellingen
-          </h1>
-          <p className="text-sm md:text-base text-gray-600 dark:text-slate-400">
-            Manager voorkeuren en account beheer
-          </p>
-        </div>
+      <div className="space-y-6 animate-fadeIn">
+        <PageHeader title="Instellingen" description="Manager voorkeuren en account beheer" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Language Settings */}
           <Card>
             <CardHeader>
