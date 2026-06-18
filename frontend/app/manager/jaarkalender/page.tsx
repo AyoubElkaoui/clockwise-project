@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
@@ -227,7 +228,7 @@ export default function JaarkalenderPage() {
       months.push(
         <Card key={month} className="flex-1 min-w-[280px]">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
+            <CardTitle className="text-base font-semibold">
               {firstDay.format("MMMM YYYY")}
             </CardTitle>
           </CardHeader>
@@ -261,46 +262,42 @@ export default function JaarkalenderPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 animate-fadeIn pb-20">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Jaarkalender
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Beheer feestdagen en gesloten dagen
-          </p>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentYear(currentYear - 1)}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <span className="text-lg md:text-xl font-bold min-w-[60px] md:min-w-[100px] text-center">
-            {currentYear}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentYear(currentYear + 1)}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleGenerateHolidays}
-            className="ml-2 md:ml-4"
-          >
-            <Plus className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Feestdagen Genereren</span>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Jaarkalender"
+        description="Beheer feestdagen en gesloten dagen"
+        actions={
+          <div className="flex items-center gap-2 md:gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentYear(currentYear - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-lg md:text-xl font-bold min-w-[60px] md:min-w-[100px] text-center">
+              {currentYear}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentYear(currentYear + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleGenerateHolidays}
+              className="ml-2 md:ml-4"
+            >
+              <Plus className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Feestdagen Genereren</span>
+            </Button>
+          </div>
+        }
+      />
 
       {/* Legend */}
       <Card>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
 import authUtils from "@/lib/auth-utils";
 import {
   Calendar,
@@ -84,11 +85,11 @@ export default function VacationCalendarPage() {
       showToast("Start datum moet voor eind datum liggen", "error");
       return;
     }
-    
+
     // Temporarily disabled - backend endpoint not yet implemented
     showToast("Deze functie is nog niet beschikbaar", "error");
     return;
-    
+
     /* TODO: Implement when backend endpoint is ready
     fetch(`${API_URL}/holidays/closed`, {
       method: "POST",
@@ -171,7 +172,7 @@ export default function VacationCalendarPage() {
         reason: h.name,
         type: "national" as const,
       }));
-      
+
       // Try to load custom closed days, but don't fail if endpoint doesn't exist
       let customClosedDays: any[] = [];
       try {
@@ -184,7 +185,7 @@ export default function VacationCalendarPage() {
       } catch (error) {
         // Endpoint doesn't exist yet, use only national holidays
       }
-      
+
       const allClosedDays = [
         ...nationalClosedDays,
         ...customClosedDays.map((c: any) => ({
@@ -219,41 +220,36 @@ export default function VacationCalendarPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Vakantie Kaart
-          </h1>
-          <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 mt-1">
-            Excel-achtige vakantie overzicht per maand
-          </p>
-        </div>
-        <div className="flex gap-2 md:gap-3 items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentYear(currentYear - 1)}
-          >
-            <ChevronLeft className="w-4 h-4 sm:mr-1" />
-            <span className="hidden sm:inline">Vorig Jaar</span>
-          </Button>
-          <div className="text-center min-w-[60px] md:min-w-[100px]">
-            <p className="font-semibold text-slate-900 dark:text-slate-100">
-              {currentYear}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentYear(currentYear + 1)}
-          >
-            <span className="hidden sm:inline">Volgend Jaar</span>
-            <ChevronRight className="w-4 h-4 sm:ml-1" />
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Vakantie Kaart"
+        description="Excel-achtige vakantie overzicht per maand"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentYear(currentYear - 1)}
+            >
+              <ChevronLeft className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Vorig Jaar</span>
+            </Button>
+            <div className="text-center min-w-[60px] md:min-w-[100px]">
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                {currentYear}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentYear(currentYear + 1)}
+            >
+              <span className="hidden sm:inline">Volgend Jaar</span>
+              <ChevronRight className="w-4 h-4 sm:ml-1" />
+            </Button>
+          </>
+        }
+      />
 
       {/* Month Selector */}
       <div className="flex flex-wrap gap-1 md:gap-2 mb-4">
@@ -271,8 +267,8 @@ export default function VacationCalendarPage() {
 
       {/* Color Legend */}
       <Card className="shadow-lg mb-4">
-        <CardHeader className="bg-slate-50 dark:bg-slate-800">
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3 bg-slate-50 dark:bg-slate-800">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Settings className="w-5 h-5" />
             Legenda
           </CardTitle>
@@ -297,17 +293,17 @@ export default function VacationCalendarPage() {
 
       {/* Vacation Table */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-slate-50 dark:bg-slate-800">
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3 bg-slate-50 dark:bg-slate-800">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Vakantie Overzicht - {selectedMonthObj.format("MMMM YYYY")}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full table-auto border-collapse">
+            <table className="w-full text-sm table-auto border-collapse">
               <thead>
-                <tr className="bg-slate-100 dark:bg-slate-700">
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                   <th className="border border-slate-300 p-3 text-left font-semibold">
                     Medewerker
                   </th>
@@ -342,15 +338,11 @@ export default function VacationCalendarPage() {
                   })}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                 {teamMembers.map((member, index) => (
                   <tr
                     key={member.id}
-                    className={
-                      index % 2 === 0
-                        ? "bg-white dark:bg-slate-900"
-                        : "bg-slate-50 dark:bg-slate-800"
-                    }
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <td className="border border-slate-300 p-3 font-medium">
                       {member.firstName} {member.lastName}
@@ -395,8 +387,8 @@ export default function VacationCalendarPage() {
 
       {/* Closed Days Management */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Settings className="w-5 h-5" />
             Gesloten Dagen Beheer
           </CardTitle>
@@ -462,8 +454,8 @@ export default function VacationCalendarPage() {
 
       {/* Quick Actions */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-slate-50 dark:bg-slate-800">
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3 bg-slate-50 dark:bg-slate-800">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Settings className="w-5 h-5" />
             Snelle Acties
           </CardTitle>

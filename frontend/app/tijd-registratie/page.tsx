@@ -1169,7 +1169,7 @@ export default function TimeRegistrationPage() {
                 <button
                   onClick={saveAll}
                   disabled={saving}
-                  className="px-5 py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
                 >
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>
@@ -1261,12 +1261,12 @@ export default function TimeRegistrationPage() {
                               <div key={group.id || `mob-group-${index}`}>
                                 <div
                                   onClick={() => toggleGroup(group.id)}
-                                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-timr-orange-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-600-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
                                 >
                                   <ChevronDown
-                                    className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-timr-orange ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                                    className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
                                   />
-                                  <span className="text-sm group-hover:text-timr-orange">
+                                  <span className="text-sm group-hover:text-blue-600">
                                     {group.name}
                                   </span>
                                 </div>
@@ -1379,12 +1379,12 @@ export default function TimeRegistrationPage() {
                           <div key={group.id || `group-${index}`}>
                             <div
                               onClick={() => toggleGroup(group.id)}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-timr-orange-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-blue-600-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
                             >
                               <ChevronDown
-                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-timr-orange ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
                               />
-                              <span className="text-sm group-hover:text-timr-orange">
+                              <span className="text-sm group-hover:text-blue-600">
                                 {group.name}
                               </span>
                             </div>
@@ -2976,7 +2976,7 @@ export default function TimeRegistrationPage() {
                 <button
                   onClick={saveAll}
                   disabled={saving}
-                  className="flex-1 py-3 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
                 >
                   <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
                 </button>

@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ToastContainer } from "@/components/Toast";
 import type { ToastType } from "@/components/Toast";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 
 interface ToastMessage {
   id: string;
@@ -85,73 +87,45 @@ export default function VacationOverviewPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
-              Jaaroverzicht Vakantiedagen
-            </h1>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700"
-            >
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="space-y-6 animate-fadeIn">
+          <PageHeader
+            title="Jaaroverzicht Vakantiedagen"
+            description={`Overzicht voor ${selectedYear}`}
+            actions={
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm"
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            }
+          />
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card variant="elevated" padding="lg">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Totaal Vakantiedagen
-                    </p>
-                    <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                      {totalDays.toFixed(1)}
-                    </p>
-                  </div>
-                  <Calendar className="w-12 h-12 text-indigo-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card variant="elevated" padding="lg">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Gemiddeld per Medewerker
-                    </p>
-                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                      {avgDaysPerUser.toFixed(1)}
-                    </p>
-                  </div>
-                  <Users className="w-12 h-12 text-green-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card variant="elevated" padding="lg">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Totaal Aanvragen
-                    </p>
-                    <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                      {totalRequests}
-                    </p>
-                  </div>
-                  <TrendingUp className="w-12 h-12 text-orange-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard
+              title="Totaal Vakantiedagen"
+              value={totalDays.toFixed(1)}
+              icon={Calendar}
+              color="indigo"
+            />
+            <StatCard
+              title="Gemiddeld per Medewerker"
+              value={avgDaysPerUser.toFixed(1)}
+              icon={Users}
+              color="emerald"
+            />
+            <StatCard
+              title="Totaal Aanvragen"
+              value={totalRequests}
+              icon={TrendingUp}
+              color="amber"
+            />
           </div>
 
           {loading ? (
@@ -159,63 +133,54 @@ export default function VacationOverviewPage() {
               <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
             </div>
           ) : (
-            <Card variant="elevated" padding="lg">
-              <CardHeader>
-                <CardTitle>Overzicht per Medewerker</CardTitle>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Users className="w-4 h-4 text-slate-500" />
+                  Overzicht per Medewerker
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-700">
-                        <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                          Naam
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                          Email
-                        </th>
-                        <th className="text-center py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                          Vakantiedagen
-                        </th>
-                        <th className="text-center py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                          Uren
-                        </th>
-                        <th className="text-center py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                          Aanvragen
-                        </th>
-                        <th className="text-center py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                          Details
-                        </th>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Naam</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Vakantiedagen</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Aanvragen</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Details</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                       {data?.overview.map((user) => (
                         <>
                           <tr
                             key={user.userId}
-                            className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                           >
-                            <td className="py-3 px-4 font-medium">{user.userName}</td>
-                            <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                            <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{user.userName}</td>
+                            <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                               {user.email}
                             </td>
-                            <td className="py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                            <td className="px-4 py-3 font-bold text-indigo-600 dark:text-indigo-400">
                               {user.totalVacationDays.toFixed(1)}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                               {user.totalVacationHours}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                               {user.approvedRequests}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="px-4 py-3">
                               <button
                                 onClick={() =>
                                   setExpandedUser(
                                     expandedUser === user.userId ? null : user.userId
                                   )
                                 }
-                                className="text-blue-600 hover:text-blue-800 text-sm"
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
                               >
                                 {expandedUser === user.userId ? "Verberg" : "Toon"}
                               </button>
@@ -223,9 +188,9 @@ export default function VacationOverviewPage() {
                           </tr>
                           {expandedUser === user.userId && (
                             <tr>
-                              <td colSpan={6} className="bg-slate-50 dark:bg-slate-900 p-4">
+                              <td colSpan={6} className="bg-slate-50 dark:bg-slate-900 px-4 py-4">
                                 <div className="space-y-2">
-                                  <h4 className="font-semibold text-sm mb-2">
+                                  <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-2">
                                     Vakantie Aanvragen:
                                   </h4>
                                   {user.requests.map((req) => (
@@ -234,7 +199,7 @@ export default function VacationOverviewPage() {
                                       className="flex justify-between items-center bg-white dark:bg-slate-800 p-3 rounded-md text-sm"
                                     >
                                       <div>
-                                        <span className="font-medium">
+                                        <span className="font-medium text-slate-900 dark:text-slate-100">
                                           {new Date(req.startDate).toLocaleDateString("nl-NL")} -{" "}
                                           {new Date(req.endDate).toLocaleDateString("nl-NL")}
                                         </span>
@@ -245,7 +210,7 @@ export default function VacationOverviewPage() {
                                         )}
                                       </div>
                                       <div className="text-right">
-                                        <span className="font-bold text-indigo-600">
+                                        <span className="font-bold text-indigo-600 dark:text-indigo-400">
                                           {req.days} dagen
                                         </span>
                                         <span className="text-slate-500 ml-2">
@@ -263,8 +228,12 @@ export default function VacationOverviewPage() {
                     </tbody>
                   </table>
                   {data?.overview.length === 0 && (
-                    <div className="text-center py-8 text-slate-500">
-                      Geen gegevens gevonden voor {selectedYear}
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                        <Calendar className="w-7 h-7 text-slate-400" />
+                      </div>
+                      <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen data</p>
+                      <p className="text-sm text-slate-500 mt-1">Geen gegevens gevonden voor {selectedYear}.</p>
                     </div>
                   )}
                 </div>

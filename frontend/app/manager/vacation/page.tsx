@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
 import authUtils from "@/lib/auth-utils";
 import {
   CheckCircle,
@@ -146,12 +147,24 @@ export default function ManagerVacationPage() {
     const lowerStatus = status?.toLowerCase();
     switch (lowerStatus) {
       case "approved":
-        return <Badge className="bg-green-500">Goedgekeurd</Badge>;
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+            Goedgekeurd
+          </Badge>
+        );
       case "submitted":
       case "pending":
-        return <Badge className="bg-yellow-500">In afwachting</Badge>;
+        return (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+            In afwachting
+          </Badge>
+        );
       case "rejected":
-        return <Badge className="bg-red-500">Afgekeurd</Badge>;
+        return (
+          <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800">
+            Afgekeurd
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -162,29 +175,15 @@ export default function ManagerVacationPage() {
   ).length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {filteredUser
-              ? `Vakantie - ${filteredUser.firstName} ${filteredUser.lastName}`
-              : "Vakantie Verzoeken"}
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            {filteredUser
-              ? `${pendingCount} verzoeken wachten op goedkeuring`
-              : `${pendingCount} verzoeken wachten op goedkeuring`}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={filteredUser ? `Vakantie - ${filteredUser.firstName} ${filteredUser.lastName}` : "Vakantie Verzoeken"}
+        description={`${pendingCount} verzoeken wachten op goedkeuring`}
+      />
 
       <Card>
         <CardContent className="pt-4 md:pt-6">
@@ -237,11 +236,14 @@ export default function ManagerVacationPage() {
 
       {filteredRequests.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 dark:text-slate-400">
-              Geen vakantie verzoeken gevonden
-            </p>
+          <CardContent className="p-0">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen verzoeken</p>
+              <p className="text-sm text-slate-500 mt-1">Geen vakantie verzoeken gevonden voor de geselecteerde filters</p>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -252,8 +254,8 @@ export default function ManagerVacationPage() {
                 <div className="space-y-3 md:space-y-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3 md:gap-4">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-timr-orange-light dark:bg-timr-orange-light/20 flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 md:w-6 md:h-6 text-timr-orange dark:text-timr-orange" />
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {request.userFirstName?.charAt(0)}{request.userLastName?.charAt(0)}
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -292,7 +294,7 @@ export default function ManagerVacationPage() {
                       <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
                         Aantal Dagen
                       </p>
-                      <p className="font-medium text-timr-orange dark:text-timr-orange">
+                      <p className="font-medium text-blue-600 dark:text-blue-400">
                         {calculateDays(request.startDate, request.endDate)}{" "}
                         dagen
                       </p>

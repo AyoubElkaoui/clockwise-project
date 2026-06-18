@@ -4,6 +4,9 @@ import { API_URL } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, User, Mail, Lock, MapPin, Home } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function CreateUserPage() {
   const router = useRouter();
@@ -52,36 +55,31 @@ export default function CreateUserPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-4 md:mb-8">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Nieuwe Gebruiker Aanmaken"
+        description="Vul de onderstaande gegevens in"
+        actions={
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Terug
-          </button>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Nieuwe Gebruiker Aanmaken
-          </h1>
-          <p className="text-gray-600 dark:text-slate-400">Vul de onderstaande gegevens in</p>
-        </div>
+          </Button>
+        }
+      />
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-4 md:p-8">
-          {/* Personal Info */}
-          <div className="mb-4 md:mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Personal Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
               <User className="w-5 h-5 text-blue-600" />
               Persoonlijke Gegevens
-            </h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Voornaam *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Voornaam *</label>
                 <input
                   type="text"
                   name="firstName"
@@ -92,10 +90,8 @@ export default function CreateUserPage() {
                   placeholder="John"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Achternaam *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Achternaam *</label>
                 <input
                   type="text"
                   name="lastName"
@@ -106,10 +102,8 @@ export default function CreateUserPage() {
                   placeholder="Doe"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Functie
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Functie</label>
                 <input
                   type="text"
                   name="function"
@@ -119,10 +113,8 @@ export default function CreateUserPage() {
                   placeholder="Developer"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Rank *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Rank *</label>
                 <select
                   name="rank"
                   value={formData.rank}
@@ -136,19 +128,21 @@ export default function CreateUserPage() {
                 </select>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Login Info */}
-          <div className="mb-4 md:mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        {/* Login Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Lock className="w-5 h-5 text-blue-600" />
               Login Gegevens
-            </h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Email *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email *</label>
                 <input
                   type="email"
                   name="email"
@@ -159,10 +153,8 @@ export default function CreateUserPage() {
                   placeholder="john.doe@example.com"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Gebruikersnaam *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gebruikersnaam *</label>
                 <input
                   type="text"
                   name="loginName"
@@ -173,10 +165,8 @@ export default function CreateUserPage() {
                   placeholder="johndoe"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Wachtwoord *
-                </label>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Wachtwoord *</label>
                 <input
                   type="password"
                   name="password"
@@ -187,24 +177,26 @@ export default function CreateUserPage() {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-white"
                   placeholder="••••••••"
                 />
-                <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Minimaal 6 karakters
                 </p>
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Address Info */}
-          <div className="mb-4 md:mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        {/* Address Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-600" />
               Adres Gegevens
-            </h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Straatnaam *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Straatnaam *</label>
                 <input
                   type="text"
                   name="address"
@@ -215,10 +207,8 @@ export default function CreateUserPage() {
                   placeholder="Hoofdstraat"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Huisnummer *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Huisnummer *</label>
                 <input
                   type="text"
                   name="houseNumber"
@@ -229,10 +219,8 @@ export default function CreateUserPage() {
                   placeholder="123"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Postcode *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Postcode *</label>
                 <input
                   type="text"
                   name="postalCode"
@@ -243,10 +231,8 @@ export default function CreateUserPage() {
                   placeholder="1234 AB"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  Plaats *
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Plaats *</label>
                 <input
                   type="text"
                   name="city"
@@ -258,37 +244,38 @@ export default function CreateUserPage() {
                 />
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Actions */}
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-            >
-              Annuleren
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Aanmaken...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Gebruiker Aanmaken
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Actions */}
+        <div className="flex gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            onClick={() => router.back()}
+          >
+            Annuleren
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-blue-600 hover:bg-blue-700"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Aanmaken...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5 mr-2" />
+                Gebruiker Aanmaken
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

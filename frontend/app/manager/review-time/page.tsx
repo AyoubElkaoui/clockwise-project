@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
 import authUtils from "@/lib/auth-utils";
 import {
   CheckCircle,
@@ -65,7 +66,7 @@ export default function ManagerReviewTimePage() {
         router.push("/tijd-registratie");
         return;
       }
-      
+
       try {
         const periodId = await getCurrentPeriodId();
         setCurrentPeriod(periodId);
@@ -87,18 +88,18 @@ export default function ManagerReviewTimePage() {
       setLoading(true);
       const period = periodId || currentPeriod;
       console.log("Period ID:", period);
-      
+
       if (!period) {
         console.error("No period available");
         showToast("Geen periode beschikbaar", "error");
         return;
       }
-      
+
       console.log("Calling getPendingReview with period:", period);
       const response = await getPendingReview(period);
       console.log("getPendingReview response:", response);
       console.log("Entries count:", response.entries?.length);
-      
+
       setEntries(response.entries);
       console.log("=== loadPendingEntries END ===");
     } catch (error) {
@@ -254,43 +255,38 @@ export default function ManagerReviewTimePage() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Uren Beoordelen
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Beoordeel en keur uren goed van je teamleden
-          </p>
-        </div>
-        <div className="flex gap-2 md:gap-3">
-          <Button
-            size="sm"
-            onClick={handleApprove}
-            disabled={selectedEntries.size === 0 || processing}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            <CheckCircle className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Goedkeuren</span> ({selectedEntries.size})
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleRejectClick}
-            disabled={selectedEntries.size === 0 || processing}
-            variant="destructive"
-          >
-            <XCircle className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Afkeuren</span> ({selectedEntries.size})
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Uren Beoordelen"
+        description="Beoordeel en keur uren goed van je teamleden"
+        actions={
+          <>
+            <Button
+              size="sm"
+              onClick={handleApprove}
+              disabled={selectedEntries.size === 0 || processing}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <CheckCircle className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Goedkeuren</span> ({selectedEntries.size})
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleRejectClick}
+              disabled={selectedEntries.size === 0 || processing}
+              variant="destructive"
+            >
+              <XCircle className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Afkeuren</span> ({selectedEntries.size})
+            </Button>
+          </>
+        }
+      />
 
       {/* Snelle Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Filter className="w-5 h-5" />
             Snelle Filters
           </CardTitle>
@@ -357,16 +353,18 @@ export default function ManagerReviewTimePage() {
       {/* Entries Grouped by Employee */}
       {groupedEntries.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-              Geen ingediende uren
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              {entries.length === 0
-                ? "Er zijn momenteel geen uren om te beoordelen."
-                : "Geen resultaten gevonden met de huidige filters."}
-            </p>
+          <CardContent className="p-0">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen ingediende uren</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {entries.length === 0
+                  ? "Er zijn momenteel geen uren om te beoordelen."
+                  : "Geen resultaten gevonden met de huidige filters."}
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -377,7 +375,7 @@ export default function ManagerReviewTimePage() {
 
           return (
             <Card key={employeeName}>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <input
@@ -395,7 +393,7 @@ export default function ManagerReviewTimePage() {
                       className="w-5 h-5 rounded border-slate-300 dark:border-slate-600"
                     />
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-timr-orange rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
                         {employeeName
                           .split(" ")
                           .map((n) => n[0])
@@ -403,7 +401,7 @@ export default function ManagerReviewTimePage() {
                           .substring(0, 2)}
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{employeeName}</CardTitle>
+                        <CardTitle className="text-base font-semibold">{employeeName}</CardTitle>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
                           {employeeEntries.length} registratie(s) • {employeeHours.toFixed(1)}u
                         </p>

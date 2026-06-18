@@ -11,6 +11,8 @@ import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { User } from "@/lib/types";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   Users,
   UserPlus,
@@ -72,7 +74,7 @@ export default function AdminUsersPage() {
       }
       setUsers(safeData);
     } catch (error) {
-      
+
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);
@@ -264,120 +266,56 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {t("admin.users.title")}
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {t("admin.users.subtitle")}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={exportUsers}>
-            <Download className="w-4 h-4 mr-2" />
-            <span className="hidden md:inline">{t("admin.users.export")}</span>
-          </Button>
-          <Button onClick={() => router.push("/admin/users/create")}>
-            <UserPlus className="w-4 h-4 mr-2" />
-            <span className="hidden md:inline">{t("admin.users.createUser")}</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("admin.users.title")}
+        description={t("admin.users.subtitle")}
+        actions={
+          <>
+            <Button variant="outline" onClick={exportUsers}>
+              <Download className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">{t("admin.users.export")}</span>
+            </Button>
+            <Button onClick={() => router.push("/admin/users/create")}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">{t("admin.users.createUser")}</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.totalUsers")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.total}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.activeUsers")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.active}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("common.admins")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.admins}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("common.managers")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.managers}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-indigo-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("common.employees")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.employees}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+        <StatCard
+          title={t("admin.dashboard.totalUsers")}
+          value={stats.total}
+          icon={Users}
+          color="blue"
+        />
+        <StatCard
+          title={t("admin.dashboard.activeUsers")}
+          value={stats.active}
+          icon={UserCheck}
+          color="emerald"
+        />
+        <StatCard
+          title={t("common.admins")}
+          value={stats.admins}
+          icon={Shield}
+          color="rose"
+        />
+        <StatCard
+          title={t("common.managers")}
+          value={stats.managers}
+          icon={UserCheck}
+          color="amber"
+        />
+        <StatCard
+          title={t("common.employees")}
+          value={stats.employees}
+          icon={Users}
+          color="indigo"
+        />
       </div>
 
       {/* Filters and Search */}
@@ -471,108 +409,112 @@ export default function AdminUsersPage() {
           )}
 
           {/* Users Table */}
-          <div className="space-y-4">
-            {/* Table Header */}
-            <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <Checkbox
-                checked={
-                  selectedUsers.size === filteredAndSortedUsers.length &&
-                  filteredAndSortedUsers.length > 0
-                }
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
-                {filteredAndSortedUsers.length} {t("common.user")}
-                {filteredAndSortedUsers.length !== 1 ? "s" : ""}
-              </span>
+          {filteredAndSortedUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Users className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">{t("admin.users.noUsers")}</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {searchQuery || filterRole !== "all" || filterStatus !== "all"
+                  ? t("admin.users.tryFilters")
+                  : t("common.noData")}
+              </p>
             </div>
-
-            {/* Users List */}
-            {filteredAndSortedUsers.length === 0 ? (
+          ) : (
+            <>
+              {/* Select-all row */}
+              <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                <Checkbox
+                  checked={
+                    selectedUsers.size === filteredAndSortedUsers.length &&
+                    filteredAndSortedUsers.length > 0
+                  }
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
+                  {filteredAndSortedUsers.length} {t("common.user")}
+                  {filteredAndSortedUsers.length !== 1 ? "s" : ""}
+                </span>
+              </div>
               <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                    {t("admin.users.noUsers")}
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    {searchQuery ||
-                    filterRole !== "all" ||
-                    filterStatus !== "all"
-                      ? t("admin.users.tryFilters")
-                      : t("common.noData")}
-                  </p>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                          <th className="px-4 py-3 text-left w-10"></th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.name")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("common.email")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.role")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("common.function")}</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        {filteredAndSortedUsers.map((user) => (
+                          <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={selectedUsers.has(user.id)}
+                                onCheckedChange={() => handleSelectUser(user.id)}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                  {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                                </div>
+                                <span className="font-medium text-slate-900 dark:text-slate-100">
+                                  {user.firstName} {user.lastName}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                              <div className="flex items-center gap-1">
+                                <Mail className="w-4 h-4 shrink-0" />
+                                <span className="truncate">{user.email}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              {getRoleBadge(user.rank || "user")}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                              {user.function && (
+                                <div className="flex items-center gap-1">
+                                  <Building className="w-4 h-4" />
+                                  <span>{user.function}</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => router.push(`/admin/users/edit/${user.id}`)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteUser(user)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-3">
-                {filteredAndSortedUsers.map((user) => (
-                  <Card
-                    key={user.id}
-                    className="hover:shadow-md transition-shadow"
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-3 md:gap-4">
-                        <Checkbox
-                          checked={selectedUsers.has(user.id)}
-                          onCheckedChange={() => handleSelectUser(user.id)}
-                        />
-
-                        {/* Avatar */}
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white font-semibold text-sm md:text-base shrink-0">
-                          {user.firstName?.charAt(0)}
-                          {user.lastName?.charAt(0)}
-                        </div>
-
-                        {/* User Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
-                            <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-                              {user.firstName} {user.lastName}
-                            </h3>
-                            {getRoleBadge(user.rank || "user")}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            <div className="flex items-center gap-1 truncate">
-                              <Mail className="w-4 h-4 shrink-0" />
-                              <span className="truncate">{user.email}</span>
-                            </div>
-                            {user.function && (
-                              <div className="hidden md:flex items-center gap-1">
-                                <Building className="w-4 h-4" />
-                                <span>{user.function}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              router.push(`/admin/users/edit/${user.id}`)
-                            }
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteUser(user)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

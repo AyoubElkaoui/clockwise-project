@@ -17,6 +17,8 @@ import {
   DocumentTextIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function RegisterTime(): JSX.Element {
   const { t } = useTranslation();
@@ -137,307 +139,283 @@ export default function RegisterTime(): JSX.Element {
   const totalHours = calculateHours();
 
   return (
-    <div className="container mx-auto p-3 md:p-6 space-y-4 md:space-y-8">
-      {/* Header Section */}
-      <div className="bg-blue-600 text-white rounded-2xl p-4 md:p-8 shadow-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <ClockIcon className="w-8 h-8 flex-shrink-0" />
-          <h1 className="text-2xl md:text-4xl font-bold">{t("hours.title")}</h1>
-        </div>
-        <p className="text-blue-100 text-base md:text-lg">{t("register.subtitle")}</p>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("hours.title")}
+        description={t("register.subtitle")}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-8">
         {/* Main Form */}
-        <div className="xl:col-span-2">
-          <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-            <div className="card-body p-4 md:p-8">
-              {/* Project Selection */}
-              <div className="mb-4 md:mb-8">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
-                  <FolderIcon className="w-6 h-6 flex-shrink-0" />
-                  {t("register.projectSelection")}
-                </h2>
+        <div className="xl:col-span-2 space-y-4">
+          {/* Project Selection */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <FolderIcon className="w-4 h-4 text-blue-600" />
+                {t("register.projectSelection")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <BuildingOfficeIcon className="w-4 h-4" />
+                    {t("register.company")}
+                  </label>
+                  <select
+                    value={selectedCompany ?? ""}
+                    onChange={(e) => setSelectedCompany(Number(e.target.value))}
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="">{t("register.selectCompany")}</option>
+                    {companies.map((comp: Company) => (
+                      <option key={comp.id} value={comp.id}>
+                        {comp.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
-                        <BuildingOfficeIcon className="w-4 h-4" />
-                        {t("register.company")}
-                      </span>
+                {selectedCompany && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {t("register.projectGroup")}
                     </label>
                     <select
-                      value={selectedCompany ?? ""}
-                      onChange={(e) =>
-                        setSelectedCompany(Number(e.target.value))
-                      }
-                      className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
+                      value={selectedProjectGroup ?? ""}
+                      onChange={(e) => setSelectedProjectGroup(Number(e.target.value))}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
                     >
-                      <option value="">{t("register.selectCompany")}</option>
-                      {companies.map((comp: Company) => (
-                        <option key={comp.id} value={comp.id}>
-                          {comp.name}
+                      <option value="">{t("register.selectProjectGroup")}</option>
+                      {projectGroups.map((pg: ProjectGroup) => (
+                        <option key={pg.id} value={pg.id}>
+                          {pg.name}
                         </option>
                       ))}
                     </select>
                   </div>
+                )}
 
-                  {selectedCompany && (
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text font-semibold text-gray-700">
-                          {t("register.projectGroup")}
-                        </span>
-                      </label>
-                      <select
-                        value={selectedProjectGroup ?? ""}
-                        onChange={(e) =>
-                          setSelectedProjectGroup(Number(e.target.value))
-                        }
-                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      >
-                        <option value="">
-                          {t("register.selectProjectGroup")}
+                {selectedProjectGroup && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {t("register.project")}
+                    </label>
+                    <select
+                      value={selectedProject ?? ""}
+                      onChange={(e) => setSelectedProject(Number(e.target.value))}
+                      className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    >
+                      <option value="">{t("register.selectProject")}</option>
+                      {projects.map((p: Project) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
                         </option>
-                        {projectGroups.map((pg: ProjectGroup) => (
-                          <option key={pg.id} value={pg.id}>
-                            {pg.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {selectedProjectGroup && (
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text font-semibold text-gray-700">
-                          {t("register.project")}
-                        </span>
-                      </label>
-                      <select
-                        value={selectedProject ?? ""}
-                        onChange={(e) =>
-                          setSelectedProject(Number(e.target.value))
-                        }
-                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      >
-                        <option value="">{t("register.selectProject")}</option>
-                        {projects.map((p: Project) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Time Registration */}
-              <div className="mb-4 md:mb-8">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
-                  <CalendarDaysIcon className="w-6 h-6 flex-shrink-0" />
-                  {t("register.timeRegistration")}
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700">
-                        {t("register.startTime")}
-                      </span>
-                    </label>
-                    <input
-                      type="time"
-                      className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700">
-                        {t("register.endTime")}
-                      </span>
-                    </label>
-                    <input
-                      type="time"
-                      className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700">
-                        {t("register.breakMinutes")}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      value={breakMinutes}
-                      onChange={(e) => setBreakMinutes(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Info */}
-              <div className="mb-4 md:mb-8">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2">
-                  <CurrencyEuroIcon className="w-6 h-6 flex-shrink-0" />
-                  {t("register.additionalInfo")}
-                </h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-6">
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700">
-                        {t("register.distanceKm")}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      value={distanceKm}
-                      onChange={(e) => setDistanceKm(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700">
-                        {t("register.travelCosts")}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      value={travelCosts}
-                      onChange={(e) => setTravelCosts(Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold text-gray-700">
-                        {t("register.expenses")}
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                      value={expenses}
-                      onChange={(e) => setExpenses(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
-                      <DocumentTextIcon className="w-4 h-4" />
-                      {t("register.notes")}
-                    </span>
+          {/* Time Registration */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CalendarDaysIcon className="w-4 h-4 text-blue-600" />
+                {t("register.timeRegistration")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t("register.startTime")}
                   </label>
-                  <textarea
-                    className="textarea textarea-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl h-24"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder={t("register.notesPlaceholder")}
+                  <input
+                    type="time"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t("register.endTime")}
+                  </label>
+                  <input
+                    type="time"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t("register.breakMinutes")}
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    value={breakMinutes}
+                    onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Additional Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <CurrencyEuroIcon className="w-4 h-4 text-blue-600" />
+                {t("register.additionalInfo")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t("register.distanceKm")}
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    value={distanceKm}
+                    onChange={(e) => setDistanceKm(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t("register.travelCosts")}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    value={travelCosts}
+                    onChange={(e) => setTravelCosts(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t("register.expenses")}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    value={expenses}
+                    onChange={(e) => setExpenses(Number(e.target.value))}
                   />
                 </div>
               </div>
 
-              {/* Message */}
-              {message && (
-                <div
-                  className={`alert ${isSuccess ? "alert-success" : "alert-error"} rounded-xl mb-6 animate-slide-up`}
-                >
-                  <span>{message}</span>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <DocumentTextIcon className="w-4 h-4" />
+                  {t("register.notes")}
+                </label>
+                <textarea
+                  className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none h-24"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t("register.notesPlaceholder")}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Submit Button */}
-              <button
-                onClick={handleSubmit}
-                disabled={!selectedProject || isLoading}
-                className="btn bg-blue-600 border-0 text-white rounded-xl w-full py-4 h-auto min-h-0 hover:shadow-xl disabled:opacity-50 disabled:transform-none"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <span className="loading loading-spinner loading-sm"></span>
-                    {t("register.saving")}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-6 h-6" />
-                    {t("register.saveHours")}
-                  </div>
-                )}
-              </button>
+          {/* Message */}
+          {message && (
+            <div
+              className={`p-4 rounded-lg flex items-center gap-3 text-sm font-medium ${
+                isSuccess
+                  ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                  : "bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
+              }`}
+            >
+              <span>{message}</span>
             </div>
-          </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            onClick={handleSubmit}
+            disabled={!selectedProject || isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 transition disabled:opacity-50"
+          >
+            {isLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {t("register.saving")}
+              </>
+            ) : (
+              <>
+                <CheckCircleIcon className="w-5 h-5" />
+                {t("register.saveHours")}
+              </>
+            )}
+          </button>
         </div>
 
         {/* Summary Sidebar */}
         <div className="xl:col-span-1">
-          <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden sticky top-6">
-            <div className="card-body p-3 md:p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">
+          <Card className="sticky top-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
                 {t("register.summaryTitle")}
-              </h3>
-
-              <div className="space-y-4">
-                <div className="bg-blue-100 rounded-xl p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t("register.totalHours")}:
-                    </span>
-                    <span className="text-2xl font-bold text-elmar-primary">
-                      {totalHours.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-blue-100 rounded-xl p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t("register.totalCosts")}:
-                    </span>
-                    <span className="text-xl font-bold text-green-600">
-                      €{(travelCosts + expenses).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-blue-100 rounded-xl p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-600">
-                      {t("register.distance")}:
-                    </span>
-                    <span className="text-xl font-bold text-purple-600">
-                      {distanceKm} km
-                    </span>
-                  </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {t("register.totalHours")}:
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {totalHours.toFixed(2)}
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h4 className="font-semibold text-gray-700 mb-3">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {t("register.totalCosts")}:
+                  </span>
+                  <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                    €{(travelCosts + expenses).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    {t("register.distance")}:
+                  </span>
+                  <span className="text-xl font-bold text-violet-600 dark:text-violet-400">
+                    {distanceKm} km
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   {t("register.tips")}
                 </h4>
-                <div className="space-y-2 text-sm text-gray-600">
+                <div className="space-y-1.5 text-sm text-slate-500 dark:text-slate-400">
                   <p>• {t("register.tip1")}</p>
                   <p>• {t("register.tip2")}</p>
                   <p>• {t("register.tip3")}</p>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

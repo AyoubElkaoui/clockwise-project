@@ -23,6 +23,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { getEnrichedTimeEntries } from "@/lib/api";
 import { getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import dayjs from "dayjs";
@@ -45,9 +47,9 @@ interface TimeEntryWithDetails {
   projectCode?: string;
   projectName?: string;
   taskName?: string;
-  companyId?: number;
+  companyId: number;
   companyName?: string;
-  projectGroupId?: number;
+  projectGroupId: number;
   projectGroupName?: string;
   hours: number;
   km: number;
@@ -320,12 +322,9 @@ export default function UrenOverzichtPage() {
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
     link.href = url;
     link.download = `uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.csv`;
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
@@ -394,27 +393,21 @@ export default function UrenOverzichtPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-3 md:space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Uren Overzicht
-              </h1>
-              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-                Bekijk en beheer al je tijdregistraties
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={exportToCSV}
-              disabled={filteredEntries.length === 0}
-              className="w-full sm:w-auto"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Exporteren
-            </Button>
-          </div>
+        <div className="space-y-6 animate-fadeIn">
+          <PageHeader
+            title="Uren Overzicht"
+            description="Bekijk en beheer al je tijdregistraties"
+            actions={
+              <Button
+                size="sm"
+                onClick={exportToCSV}
+                disabled={filteredEntries.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exporteren
+              </Button>
+            }
+          />
 
           {/* Period Navigation */}
           <Card variant="elevated" padding="md">
@@ -482,44 +475,24 @@ export default function UrenOverzichtPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 md:gap-6">
-            {[
-              { label: "Totaal", fullLabel: "Totaal Uren", value: stats.total, color: "blue" },
-              { label: "Goedgekeurd", fullLabel: "Goedgekeurd", value: stats.approved, color: "green" },
-              { label: "Pending", fullLabel: "In Behandeling", value: stats.pending, color: "orange" },
-            ].map((stat) => (
-              <Card key={stat.label} variant="elevated" padding="md">
-                <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
-                  <div
-                    className={`hidden sm:flex w-12 h-12 rounded-lg items-center justify-center ${
-                      stat.color === "blue"
-                        ? "bg-blue-100 dark:bg-blue-900/30"
-                        : stat.color === "green"
-                          ? "bg-green-100 dark:bg-green-900/30"
-                          : "bg-orange-100 dark:bg-orange-900/30"
-                    }`}
-                  >
-                    <Clock
-                      className={`w-6 h-6 ${
-                        stat.color === "blue"
-                          ? "text-blue-600 dark:text-blue-400"
-                          : stat.color === "green"
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-orange-600 dark:text-orange-400"
-                      }`}
-                    />
-                  </div>
-                  <div className="text-center sm:text-left">
-                    <p className="text-[11px] sm:text-sm text-slate-600 dark:text-slate-400">
-                      <span className="sm:hidden">{stat.label}</span>
-                      <span className="hidden sm:inline">{stat.fullLabel}</span>
-                    </p>
-                    <p className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {loading ? "..." : `${stat.value.toFixed(1)}u`}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+            <StatCard
+              title="Totaal Uren"
+              value={loading ? "..." : `${stats.total.toFixed(1)}u`}
+              icon={Clock}
+              color="blue"
+            />
+            <StatCard
+              title="Goedgekeurd"
+              value={loading ? "..." : `${stats.approved.toFixed(1)}u`}
+              icon={Clock}
+              color="emerald"
+            />
+            <StatCard
+              title="In Behandeling"
+              value={loading ? "..." : `${stats.pending.toFixed(1)}u`}
+              icon={Clock}
+              color="amber"
+            />
           </div>
 
           {/* Filters */}
@@ -584,8 +557,8 @@ export default function UrenOverzichtPage() {
 
           {/* Chart */}
           <Card variant="elevated" padding="md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
                 Uren per Dag
               </CardTitle>
@@ -617,9 +590,9 @@ export default function UrenOverzichtPage() {
 
             {/* Entries */}
             <Card variant="elevated" padding="md" className="lg:col-span-3">
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base md:text-lg">Registraties ({filteredEntries.length})</CardTitle>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">Registraties ({filteredEntries.length})</CardTitle>
                   <div className="hidden md:flex items-center gap-2">
                     <Button
                       variant={displayView === "cards" ? "default" : "outline"}
@@ -659,16 +632,13 @@ export default function UrenOverzichtPage() {
                     </span>
                   </div>
                 ) : filteredEntries.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">
-                      Geen registraties
-                    </p>
-                    <p className="text-sm">
-                      {searchQuery ||
-                      statusFilter !== "all" ||
-                      startDate ||
-                      endDate
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                      <Calendar className="w-7 h-7 text-slate-400" />
+                    </div>
+                    <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen registraties</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {searchQuery || statusFilter !== "all" || startDate || endDate
                         ? "Probeer andere filters"
                         : "Start met het registreren van je uren"}
                     </p>
@@ -732,45 +702,33 @@ export default function UrenOverzichtPage() {
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-700">
-                              <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                                Datum
-                              </th>
-                              <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                                Uren
-                              </th>
-                              <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                                Projectcode
-                              </th>
-                              <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                                Projectnaam
-                              </th>
-                              <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                                Taak
-                              </th>
+                            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectcode</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectnaam</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Taak</th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                             {paginatedEntries.map((entry) => (
                               <tr
                                 key={entry.id}
-                                className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                               >
-                                <td className="py-3 px-4 text-slate-900 dark:text-slate-100">
-                                  {dayjs(entry.date || entry.startTime).format(
-                                    "DD/MM/YYYY",
-                                  )}
+                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                                  {dayjs(entry.date || entry.startTime).format("DD/MM/YYYY")}
                                 </td>
-                                <td className="py-3 px-4 text-center font-semibold text-blue-600 dark:text-blue-400">
+                                <td className="px-4 py-3 font-semibold text-blue-600 dark:text-blue-400">
                                   {entry.hours}u
                                 </td>
-                                <td className="py-3 px-4 text-slate-900 dark:text-slate-100">
+                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
                                   {entry.projectCode}
                                 </td>
-                                <td className="py-3 px-4 text-slate-900 dark:text-slate-100">
+                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
                                   {entry.projectName}
                                 </td>
-                                <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                                   {entry.taskName}
                                 </td>
                               </tr>

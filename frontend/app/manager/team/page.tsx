@@ -5,6 +5,8 @@ import { getAllUsers, getAllWorkflowEntries, getCurrentPeriodId } from "@/lib/ma
 import axios from "axios";
 import { API_URL } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -378,118 +380,26 @@ export default function ManagerTeamPage() {
   });
 
   return (
-    <div className="space-y-4 md:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Mijn Team
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Overzicht van alle teamleden en hun prestaties
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="text-xs md:text-sm">
-            <Mail className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Team E-mail</span>
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs md:text-sm">
-            <UserCheck className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Team Rapport</span>
-          </Button>
-          <Button size="sm" className="text-xs md:text-sm" onClick={() => setShowAddMember(true)}>
-            <Users className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Nieuw Teamlid</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Mijn Team"
+        description="Overzicht van alle teamleden en hun prestaties"
+        actions={
+          <>
+            <Button size="sm" variant="outline" onClick={() => setShowAddMember(true)}>
+              <Users className="w-4 h-4 mr-2" />
+              Nieuw Teamlid
+            </Button>
+          </>
+        }
+      />
 
-      {/* Team Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Teamleden
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {teamStats.totalMembers}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {teamStats.activeMembers} actief deze week
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Totaal Uren
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {teamStats.totalWeekHours?.toFixed(1)}u
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Deze week
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-indigo-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Gemiddeld
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {teamStats.avgHoursPerMember?.toFixed(1)}u
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Per teamlid
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
-                <Target className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Te Behandelen
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {teamStats.totalPending}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Uren registraties
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                <Activity className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Teamleden" value={teamStats.totalMembers ?? 0} subtitle={`${teamStats.activeMembers ?? 0} actief deze week`} icon={Users} color="blue" />
+        <StatCard title="Totaal Uren" value={`${teamStats.totalWeekHours?.toFixed(1) ?? "0.0"}u`} subtitle="Deze week" icon={Clock} color="emerald" />
+        <StatCard title="Gemiddeld" value={`${teamStats.avgHoursPerMember?.toFixed(1) ?? "0.0"}u`} subtitle="Per teamlid" icon={Target} color="indigo" />
+        <StatCard title="Te Behandelen" value={teamStats.totalPending ?? 0} subtitle="Uren registraties" icon={Activity} color="amber" />
       </div>
 
       {/* Search and Filter Section */}
@@ -551,160 +461,111 @@ export default function ManagerTeamPage() {
         </CardContent>
       </Card>
 
-      {/* Team Members Vertical List */}
-      <div className="space-y-4">
-        {filteredTeamMembers.map((member) => {
-          const trend = getTrendIndicator(
-            member.stats.weekHours,
-            member.stats.lastWeekHours,
-          );
-          const activity = getActivityStatus(member.stats.lastActivity);
-
-          return (
-            <Card key={member.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="py-4 md:py-6">
-                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-                  {/* Avatar and Basic Info */}
-                  <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-timr-orange dark:bg-timr-orange flex items-center justify-center text-white font-semibold text-sm md:text-lg flex-shrink-0">
-                      {member.firstName?.charAt(0)}
-                      {member.lastName?.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 md:gap-3">
-                        <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100">
-                          {member.firstName} {member.lastName}
-                        </h3>
-                        <Badge
-                          className={`${activity.bg} ${activity.color} border-0 text-[10px] md:text-xs`}
-                        >
-                          {activity.status}
-                        </Badge>
-                        {member.stats.pendingEntries > 0 && (
-                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-[10px] md:text-xs">
-                            {member.stats.pendingEntries} pending
-                          </Badge>
-                        )}
-                        {member.rank === "inactive" && (
-                          <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 text-[10px] md:text-xs">
-                            Inactief
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 md:mt-2 text-xs md:text-sm text-slate-600 dark:text-slate-400">
-                        <div className="flex items-center gap-1 truncate">
-                          <Mail className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-                          <span className="truncate">{member.email}</span>
-                        </div>
-                        {member.phone && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-                            <span>{member.phone}</span>
+      {/* Team Members Table */}
+      <Card>
+        <CardContent className="p-0">
+          {filteredTeamMembers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Users className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen teamleden gevonden</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {searchQuery || roleFilter !== "all" || statusFilter !== "all"
+                  ? "Pas de filters aan om meer resultaten te zien"
+                  : "Er zijn nog geen teamleden aan jou toegewezen"}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Medewerker</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">Contact</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Uren/week</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 hidden sm:table-cell">Benutting</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {filteredTeamMembers.map((member) => {
+                    const trend = getTrendIndicator(member.stats.weekHours, member.stats.lastWeekHours);
+                    const activity = getActivityStatus(member.stats.lastActivity);
+                    return (
+                      <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                              {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{member.firstName} {member.lastName}</p>
+                              <p className="text-xs text-slate-500 capitalize">{member.rank === "manager" ? "Manager" : "Medewerker"}</p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stats + Actions row on mobile */}
-                  <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6">
-                    {/* Stats */}
-                    <div className="flex gap-2 md:gap-6">
-                      <div className="text-center px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg min-w-[70px] md:min-w-[100px]">
-                        <p className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {member.stats.weekHours.toFixed(1)}
-                        </p>
-                        <p className="text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
-                          Uren/week
-                        </p>
-                        <div className="flex items-center justify-center gap-1 mt-0.5">
-                          {trend.icon && (
-                            <trend.icon className={`w-3 h-3 ${trend.color}`} />
-                          )}
-                          <span className={`text-[10px] md:text-xs ${trend.color}`}>
-                            {trend.change}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 text-xs">
+                              <Mail className="w-3 h-3" />{member.email}
+                            </div>
+                            {member.phone && (
+                              <div className="flex items-center gap-1 text-slate-500 text-xs">
+                                <Phone className="w-3 h-3" />{member.phone}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div>
+                            <p className="text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums">{member.stats.weekHours.toFixed(1)}u</p>
+                            <p className={`text-xs font-medium ${trend.color}`}>{trend.change}</p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center hidden sm:table-cell">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{member.stats.utilization.toFixed(0)}%</span>
+                            <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(member.stats.utilization, 100)}%` }} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${activity.bg} ${activity.color}`}>
+                            {activity.status}
                           </span>
-                        </div>
-                      </div>
-                      <div className="text-center px-3 md:px-4 py-1.5 md:py-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg min-w-[70px] md:min-w-[100px]">
-                        <p className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
-                          {member.stats.utilization.toFixed(0)}%
-                        </p>
-                        <p className="text-[10px] md:text-xs text-slate-600 dark:text-slate-400">
-                          Benutting
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-1 md:gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/manager/hours?userId=${member.id}`)
-                        }
-                        title="Bekijk projecten"
-                        className="hidden sm:flex"
-                      >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Projecten
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          router.push(`/manager/hours?userId=${member.id}`)
-                        }
-                        title="Bekijk projecten"
-                        className="sm:hidden"
-                      >
-                        <Briefcase className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditMember(member)}
-                        title="Teamlid bewerken"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleActive(member)}
-                        title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}
-                      >
-                        {member.rank === "inactive" ? (
-                          <Power className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <PowerOff className="w-4 h-4 text-red-600" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {filteredTeamMembers.length === 0 && (
-        <Card>
-          <CardContent className="pt-12 pb-12 text-center">
-            <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-              Geen teamleden gevonden
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              {searchQuery || roleFilter !== "all" || statusFilter !== "all" 
-                ? "Probeer je filters aan te passen om meer resultaten te zien."
-                : "Er zijn nog geen teamleden aan jou toegewezen."}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+                          {member.stats.pendingEntries > 0 && (
+                            <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                              {member.stats.pendingEntries}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => router.push(`/manager/hours?userId=${member.id}`)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors" title="Uren bekijken">
+                              <Briefcase className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleEditMember(member)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors" title="Bewerken">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleToggleActive(member)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}>
+                              {member.rank === "inactive"
+                                ? <Power className="w-4 h-4 text-emerald-600" />
+                                : <PowerOff className="w-4 h-4 text-rose-500" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Edit Member Dialog */}
       <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>

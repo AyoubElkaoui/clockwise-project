@@ -4,6 +4,7 @@ import { HelpCircle } from "lucide-react";
 import FaqAccordion from "./FaqAccordion";
 import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { useTranslation } from "react-i18next";
 
 function getFaqs(t: (key: string) => string) {
@@ -101,36 +102,25 @@ export default function FAQPage() {
   const faqs = getFaqs(t);
 
   return (
-    <div className="p-3 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-4 md:mb-8">
-        <HelpCircle className="h-8 w-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-            {t("faq.title")}
-          </h1>
-          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-            {t("faq.subtitle")}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader title={t("faq.title")} description={t("faq.subtitle")} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {faqs.map((section, idx) => (
-          <Card key={idx} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-3 md:p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <Card key={idx} className="card-hover">
+            <CardContent className="p-6">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 pb-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-blue-600" />
                 {section.category}
               </h2>
               <div className="space-y-4">
                 {section.items.map((item, itemIdx) => (
                   <div key={itemIdx}>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2 flex items-start gap-2">
-                      <span className="text-blue-600 dark:text-blue-400 mt-0.5">
-                        •
-                      </span>
+                    <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1 flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">•</span>
                       {item.q}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 ml-4">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 ml-4">
                       {item.a}
                     </p>
                   </div>

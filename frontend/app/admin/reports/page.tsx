@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
+import { PageHeader } from "@/components/ui/page-header";
 import { getUsers } from "@/lib/api";
 import { getCompanies } from "@/lib/api";
 import { getTimeEntries } from "@/lib/api";
@@ -189,20 +190,14 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-          {t("admin.reports.title")}
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          {t("admin.reports.subtitle")}
-        </p>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("admin.reports.title")}
+        description={t("admin.reports.subtitle")}
+      />
 
-      {/* Reports Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="card-hover">
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -239,7 +234,7 @@ export default function AdminReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="card-hover">
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -276,7 +271,7 @@ export default function AdminReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card className="card-hover">
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">

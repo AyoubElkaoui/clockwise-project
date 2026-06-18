@@ -45,6 +45,8 @@ import {
 } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import authUtils from "@/lib/auth-utils";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -684,141 +686,82 @@ export default function ManagerApprovePage() {
     filteredEntries.filter((e) => e.status === "SUBMITTED").length > 0;
 
   return (
-    <div className="space-y-4 md:space-y-8">
+    <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Team Goedkeuringen
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Beheer en keur tijdregistraties van je team goed
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 md:gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            <span className="hidden md:inline">Filters</span>
-            <ChevronDown
-              className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
-            />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={exportToCSV}
-            className="flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" />
-            <span className="hidden md:inline">CSV</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={exportToExcel}
-            className="flex items-center gap-2"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span className="hidden md:inline">Excel</span>
-          </Button>
-          <Button
-            onClick={loadEntries}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span className="hidden md:inline">Vernieuwen</span>
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Team Goedkeuringen"
+        description="Beheer en keur tijdregistraties van je team goed"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden md:inline">Filters</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
+              />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={exportToCSV}
+              className="flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="hidden md:inline">CSV</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={exportToExcel}
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden md:inline">Excel</span>
+            </Button>
+            <Button
+              onClick={loadEntries}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden md:inline">Vernieuwen</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Statistics Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Te Behandelen
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.pending}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Wachten op actie
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Goedgekeurd
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.approved}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Deze periode
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Afgekeurd
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.rejected}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Vereist aandacht
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Totaal Uren
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.totalHours.toFixed(1)}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Alle registraties
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={AlertCircle}
+          title="Te Behandelen"
+          value={stats.pending}
+          subtitle="Wachten op actie"
+          color="amber"
+        />
+        <StatCard
+          icon={CheckCircle}
+          title="Goedgekeurd"
+          value={stats.approved}
+          subtitle="Deze periode"
+          color="emerald"
+        />
+        <StatCard
+          icon={XCircle}
+          title="Afgekeurd"
+          value={stats.rejected}
+          subtitle="Vereist aandacht"
+          color="rose"
+        />
+        <StatCard
+          icon={Clock}
+          title="Totaal Uren"
+          value={stats.totalHours.toFixed(1)}
+          subtitle="Alle registraties"
+          color="blue"
+        />
       </div>
 
       {/* Filters Panel */}
@@ -1180,36 +1123,37 @@ export default function ManagerApprovePage() {
       {/* Entries Display */}
       {filteredEntries.length === 0 ? (
         <Card>
-          <CardContent className="py-16 text-center">
-            <AlertCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-              Geen resultaten gevonden
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
-              Probeer andere zoekcriteria of filters aan te passen
-            </p>
-            <Button
-              onClick={() => {
-                setSearchQuery("");
-                setFilterStatus("SUBMITTED");
-                setDateRange("all");
-                setGroupBy("none");
-              }}
-              variant="outline"
-            >
-              Filters wissen
-            </Button>
+          <CardContent className="p-0">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen resultaten gevonden</p>
+              <p className="text-sm text-slate-500 mt-1">Probeer andere zoekcriteria of filters aan te passen</p>
+              <Button
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilterStatus("SUBMITTED");
+                  setDateRange("all");
+                  setGroupBy("none");
+                }}
+                variant="outline"
+                className="mt-4"
+              >
+                Filters wissen
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : viewMode === "table" ? (
         /* Table View */
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       <Checkbox
                         checked={
                           selectedEntries.size ===
@@ -1220,33 +1164,33 @@ export default function ManagerApprovePage() {
                         onCheckedChange={toggleSelectAll}
                       />
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Medewerker
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Project
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Datum & Tijd
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Uren
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Snelle Acties
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                   {filteredEntries.map((entry) => (
                     <tr
                       key={entry.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                     >
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         {entry.status === "SUBMITTED" && (
                           <Checkbox
                             checked={selectedEntries.has(entry.id)}
@@ -1256,20 +1200,18 @@ export default function ManagerApprovePage() {
                           />
                         )}
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                              {entry.user?.firstName?.charAt(0)}
-                              {entry.user?.lastName?.charAt(0)}
-                            </span>
+                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                            {entry.user?.firstName?.charAt(0)}
+                            {entry.user?.lastName?.charAt(0)}
                           </div>
                           <span className="font-medium text-slate-900 dark:text-slate-100">
                             {entry.user?.firstName} {entry.user?.lastName}
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         <div>
                           <p className="font-medium text-slate-900 dark:text-slate-100">
                             {entry.project?.name}
@@ -1279,7 +1221,7 @@ export default function ManagerApprovePage() {
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         <div>
                           <p className="font-medium text-slate-900 dark:text-slate-100">
                             {dayjs(entry.startTime).format("DD MMM YYYY")}
@@ -1290,7 +1232,7 @@ export default function ManagerApprovePage() {
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                           {calculateHours(entry).toFixed(2)}u
                         </span>
@@ -1300,10 +1242,10 @@ export default function ManagerApprovePage() {
                           </p>
                         )}
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         {getStatusBadge(entry.status)}
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="px-4 py-3">
                         {entry.status === "SUBMITTED" && (
                           <div className="flex gap-2">
                             <Button

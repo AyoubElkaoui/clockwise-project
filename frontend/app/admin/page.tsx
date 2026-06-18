@@ -33,6 +33,8 @@ import {
   Monitor,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -400,106 +402,11 @@ export default function AdminDashboardPage() {
         {activeView === "overview" && (
           <div className="space-y-6 md:space-y-8">
             {/* Hero Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-              <Card className="border-l-4 border-l-blue-500">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                        Totaal Gebruikers
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                          {stats.totalUsers}
-                        </p>
-                        <usersTrend.icon
-                          className={`w-5 h-5 ${usersTrend.color}`}
-                        />
-                      </div>
-                      <p className={`text-xs mt-1 ${usersTrend.color}`}>
-                        {usersTrend.change} vs vorige week
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                      <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-emerald-500">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                        Uren Deze Maand
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                          {stats.totalHoursThisMonth.toFixed(0)}
-                        </p>
-                        <hoursTrend.icon
-                          className={`w-5 h-5 ${hoursTrend.color}`}
-                        />
-                      </div>
-                      <p className={`text-xs mt-1 ${hoursTrend.color}`}>
-                        {hoursTrend.change} vs vorige week
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-purple-500">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                        Totaal Projecten
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                          {stats.totalProjects}
-                        </p>
-                        <projectsTrend.icon
-                          className={`w-5 h-5 ${projectsTrend.color}`}
-                        />
-                      </div>
-                      <p className={`text-xs mt-1 ${projectsTrend.color}`}>
-                        {projectsTrend.change} vs vorige week
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-                      <Briefcase className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-amber-500">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                        Signaleringen
-                      </p>
-                      <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                        {alerts.length}
-                      </p>
-                      <p className="text-xs mt-1 text-slate-500 dark:text-slate-400">
-                        {alerts.filter((a) => a.severity === "error").length}{" "}
-                        kritiek
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard title="Totaal Gebruikers" value={stats.totalUsers} icon={Users} color="blue" trend={stats.lastWeekUsers > 0 ? { value: usersTrend.change, isPositive: stats.totalUsers >= stats.lastWeekUsers } : undefined} subtitle="vs vorige week" onClick={() => router.push("/admin/users")} />
+              <StatCard title="Uren Deze Maand" value={stats.totalHoursThisMonth.toFixed(0)} icon={Clock} color="emerald" trend={stats.lastWeekHours > 0 ? { value: hoursTrend.change, isPositive: stats.totalHoursThisMonth >= stats.lastWeekHours } : undefined} subtitle="vs vorige week" />
+              <StatCard title="Totaal Projecten" value={stats.totalProjects} icon={Briefcase} color="violet" trend={stats.lastWeekProjects > 0 ? { value: projectsTrend.change, isPositive: stats.totalProjects >= stats.lastWeekProjects } : undefined} subtitle="vs vorige week" />
+              <StatCard title="Signaleringen" value={alerts.length} icon={AlertTriangle} color="amber" subtitle={`${alerts.filter((a) => a.severity === "error").length} kritiek`} />
             </div>
 
             {/* Alerts Section */}
