@@ -1010,7 +1010,7 @@ export default function TimeRegistrationPage() {
                 <button
                   onClick={saveAll}
                   disabled={saving}
-                  className="px-3 md:px-5 py-2 md:py-2.5 bg-timr-orange hover:bg-timr-orange-hover text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition text-sm md:text-base"
+                  className="px-3 md:px-5 py-2 md:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition text-sm md:text-base"
                 >
                   <Save className="w-4 h-4" /> <span className="hidden md:inline">{saving ? "Bezig..." : "Opslaan"}</span>
                 </button>
@@ -1089,12 +1089,12 @@ export default function TimeRegistrationPage() {
                           <div key={group.id || `group-${index}`}>
                             <div
                               onClick={() => toggleGroup(group.id)}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-timr-orange-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
                             >
                               <ChevronDown
-                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-timr-orange ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
                               />
-                              <span className="text-sm group-hover:text-timr-orange">
+                              <span className="text-sm group-hover:text-blue-600">
                                 {group.name}
                               </span>
                             </div>

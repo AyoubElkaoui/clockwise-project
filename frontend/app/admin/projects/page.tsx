@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { Project, Company, ProjectGroup } from "@/lib/types";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   Briefcase,
   Plus,
@@ -60,7 +62,7 @@ export default function AdminProjectsPage() {
 
   const loadData = async () => {
     try {
-      const [projectsData, companiesData]: [any, any] = await Promise.all([
+      const [projectsData, companiesData] = await Promise.all([
         getAllProjects(),
         getCompanies(),
       ]);
@@ -108,7 +110,7 @@ export default function AdminProjectsPage() {
       const allGroups = groupsArrays.flat();
       setProjectGroups(allGroups);
     } catch (error) {
-      
+
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);
@@ -265,84 +267,44 @@ export default function AdminProjectsPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {t("admin.projects.title")}
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {t("admin.projects.subtitle")}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={exportProjects}>
-            <Download className="w-4 h-4 mr-2" />
-            <span className="hidden md:inline">{t("admin.projects.export")}</span>
-          </Button>
-          <Button onClick={() => router.push("/admin/projects/create")}>
-            <Plus className="w-4 h-4 mr-2" />
-            <span className="hidden md:inline">{t("admin.projects.createProject")}</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("admin.projects.title")}
+        description={t("admin.projects.subtitle")}
+        actions={
+          <>
+            <Button variant="outline" onClick={exportProjects}>
+              <Download className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">{t("admin.projects.export")}</span>
+            </Button>
+            <Button onClick={() => router.push("/admin/projects/create")}>
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">{t("admin.projects.createProject")}</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.totalProjects")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.total}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.activeUsers")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.active}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-indigo-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.companies.company")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {companies.length}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <StatCard
+          title={t("admin.dashboard.totalProjects")}
+          value={stats.total}
+          icon={Briefcase}
+          color="blue"
+        />
+        <StatCard
+          title={t("admin.dashboard.activeUsers")}
+          value={stats.active}
+          icon={Users}
+          color="emerald"
+        />
+        <StatCard
+          title={t("admin.companies.company")}
+          value={companies.length}
+          icon={Building2}
+          color="indigo"
+        />
       </div>
 
       {/* Filters and Search */}
@@ -411,104 +373,108 @@ export default function AdminProjectsPage() {
           )}
 
           {/* Projects Table */}
-          <div className="space-y-4">
-            {/* Table Header */}
-            <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <Checkbox
-                checked={
-                  selectedProjects.size === filteredAndSortedProjects.length &&
-                  filteredAndSortedProjects.length > 0
-                }
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
-                {filteredAndSortedProjects.length} {t("admin.projects.project")}
-                {filteredAndSortedProjects.length !== 1 ? "s" : ""}
-              </span>
+          {filteredAndSortedProjects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Briefcase className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">{t("admin.projects.noProjects")}</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {searchQuery
+                  ? t("admin.projects.tryFilters")
+                  : t("admin.projects.noProjectsDesc")}
+              </p>
             </div>
-
-            {/* Projects List */}
-            {filteredAndSortedProjects.length === 0 ? (
+          ) : (
+            <>
+              {/* Select-all row */}
+              <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                <Checkbox
+                  checked={
+                    selectedProjects.size === filteredAndSortedProjects.length &&
+                    filteredAndSortedProjects.length > 0
+                  }
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
+                  {filteredAndSortedProjects.length} {t("admin.projects.project")}
+                  {filteredAndSortedProjects.length !== 1 ? "s" : ""}
+                </span>
+              </div>
               <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Briefcase className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                    {t("admin.projects.noProjects")}
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    {searchQuery
-                      ? t("admin.projects.tryFilters")
-                      : t("admin.projects.noProjectsDesc")}
-                  </p>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                          <th className="px-4 py-3 text-left w-10"></th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.name")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("admin.companies.company")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("admin.projects.group")}</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        {filteredAndSortedProjects.map((project) => (
+                          <tr key={project.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={selectedProjects.has(project.id)}
+                                onCheckedChange={() => handleSelectProject(project.id)}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                  {(project.name || "P").charAt(0).toUpperCase()}
+                                </div>
+                                <span className="font-medium text-slate-900 dark:text-slate-100">
+                                  {project.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                              <div className="flex items-center gap-1">
+                                <Building2 className="w-4 h-4" />
+                                <span>{project.companyName}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                              <div className="flex items-center gap-1">
+                                <Filter className="w-4 h-4" />
+                                <span>{project.projectGroupName}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    router.push(`/admin/projects/${project.id}`)
+                                  }
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteProject(project)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-3">
-                {filteredAndSortedProjects.map((project) => (
-                  <Card
-                    key={project.id}
-                    className="hover:shadow-md transition-shadow"
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-4">
-                        <Checkbox
-                          checked={selectedProjects.has(project.id)}
-                          onCheckedChange={() =>
-                            handleSelectProject(project.id)
-                          }
-                        />
-
-                        {/* Project Logo/Avatar */}
-                        <div className="w-12 h-12 rounded-lg bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white font-semibold">
-                          {(project.name || "P").charAt(0).toUpperCase()}
-                        </div>
-
-                        {/* Project Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                              {project.name}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            <div className="flex items-center gap-1">
-                              <Building2 className="w-4 h-4" />
-                              <span>{project.companyName}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Filter className="w-4 h-4" />
-                              <span>{project.projectGroupName}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              router.push(`/admin/projects/${project.id}`)
-                            }
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteProject(project)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

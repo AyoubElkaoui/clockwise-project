@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import authUtils from "@/lib/auth-utils";
 import {
   CheckCircle,
@@ -76,7 +78,7 @@ export default function ManagerVacationReviewPage() {
     try {
       setLoading(true);
       const medewGcId = authUtils.getMedewGcId();
-      
+
       const response = await fetch(`${API_URL}/api/vacation/all`, {
         headers: {
           "X-MEDEW-GC-ID": medewGcId?.toString() || "",
@@ -102,7 +104,7 @@ export default function ManagerVacationReviewPage() {
 
     // Status filter
     if (statusFilter !== "ALL") {
-      filtered = filtered.filter((r) => 
+      filtered = filtered.filter((r) =>
         r.status?.toUpperCase() === statusFilter ||
         (statusFilter === "SUBMITTED" && r.status?.toUpperCase() === "PENDING")
       );
@@ -172,7 +174,7 @@ export default function ManagerVacationReviewPage() {
 
   const handleRejectConfirm = async () => {
     if (!selectedRequest) return;
-    
+
     if (!rejectionComment.trim()) {
       showToast("⚠️ Geef een duidelijke reden waarom de vakantie wordt afgekeurd", "warning");
       return;
@@ -254,7 +256,7 @@ export default function ManagerVacationReviewPage() {
   };
 
   const calculateStats = () => {
-    const pending = requests.filter((r) => 
+    const pending = requests.filter((r) =>
       r.status?.toUpperCase() === "SUBMITTED" || r.status?.toUpperCase() === "PENDING"
     );
     const approved = requests.filter((r) => r.status?.toUpperCase() === "APPROVED");
@@ -280,101 +282,45 @@ export default function ManagerVacationReviewPage() {
   const stats = calculateStats();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Vakantie Aanvragen Beoordelen
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Beoordeel en verwerk vakantie aanvragen van je team
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Vakantie Aanvragen Beoordelen"
+        description="Beoordeel en verwerk vakantie aanvragen van je team"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Te Behandelen
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.pending}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {stats.pendingDays} dagen
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Goedgekeurd
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.approved}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Afgekeurd
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.rejected}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Totaal Aanvragen
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.total}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <CalendarDays className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={Clock}
+          title="Te Behandelen"
+          value={stats.pending}
+          subtitle={`${stats.pendingDays} dagen`}
+          color="amber"
+        />
+        <StatCard
+          icon={CheckCircle}
+          title="Goedgekeurd"
+          value={stats.approved}
+          color="emerald"
+        />
+        <StatCard
+          icon={XCircle}
+          title="Afgekeurd"
+          value={stats.rejected}
+          color="rose"
+        />
+        <StatCard
+          icon={CalendarDays}
+          title="Totaal Aanvragen"
+          value={stats.total}
+          color="blue"
+        />
       </div>
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Filter className="w-5 h-5" />
             Filters
           </CardTitle>
@@ -415,16 +361,18 @@ export default function ManagerVacationReviewPage() {
       {/* Vacation Requests */}
       {filteredRequests.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-              Geen vakantie aanvragen
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              {requests.length === 0
-                ? "Er zijn momenteel geen vakantie aanvragen."
-                : "Geen resultaten gevonden met de huidige filters."}
-            </p>
+          <CardContent className="p-0">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen vakantie aanvragen</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {requests.length === 0
+                  ? "Er zijn momenteel geen vakantie aanvragen."
+                  : "Geen resultaten gevonden met de huidige filters."}
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -434,7 +382,7 @@ export default function ManagerVacationReviewPage() {
               <CardContent className="pt-6">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 md:gap-4">
                   <div className="flex items-start gap-3 md:gap-4 flex-1">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-timr-orange rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                       {request.user?.firstName?.charAt(0) || "U"}
                       {request.user?.lastName?.charAt(0) || ""}
                     </div>

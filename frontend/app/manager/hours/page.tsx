@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import authUtils from "@/lib/auth-utils";
 import {
   Clock,
@@ -642,11 +644,23 @@ export default function ManagerTeamHoursPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "APPROVED":
-        return <Badge className="bg-green-500">Goedgekeurd</Badge>;
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+            Goedgekeurd
+          </Badge>
+        );
       case "SUBMITTED":
-        return <Badge className="bg-yellow-500">In behandeling</Badge>;
+        return (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+            In behandeling
+          </Badge>
+        );
       case "REJECTED":
-        return <Badge className="bg-red-500">Afgekeurd</Badge>;
+        return (
+          <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800">
+            Afgekeurd
+          </Badge>
+        );
       default:
         return <Badge variant="secondary">Concept</Badge>;
     }
@@ -658,58 +672,53 @@ export default function ManagerTeamHoursPage() {
       : currentPeriod.format("MMMM YYYY");
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Team Uren Analytics
-          </h1>
-          <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 mt-1">
-            Uitgebreide analyse van team prestaties, urenverdeling en efficiency
-            - geen goedkeuringen
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 md:gap-3">
-          <Button
-            onClick={() =>
-              setEntriesViewMode(
-                entriesViewMode === "cards" ? "table" : "cards",
-              )
-            }
-            variant="outline"
-            size="sm"
-          >
-            {entriesViewMode === "cards" ? (
-              <>
-                <Table className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Tabel</span>
-              </>
-            ) : (
-              <>
-                <List className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Kaarten</span>
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={exportToExcel}
-            disabled={filteredEntries.length === 0}
-            size="sm"
-          >
-            <FileSpreadsheet className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Excel</span>
-          </Button>
-          <Button
-            onClick={exportToPDF}
-            disabled={filteredEntries.length === 0}
-            variant="outline"
-            size="sm"
-          >
-            <FileText className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">PDF</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Team Uren Analytics"
+        description="Uitgebreide analyse van team prestaties, urenverdeling en efficiency - geen goedkeuringen"
+        actions={
+          <>
+            <Button
+              onClick={() =>
+                setEntriesViewMode(
+                  entriesViewMode === "cards" ? "table" : "cards",
+                )
+              }
+              variant="outline"
+              size="sm"
+            >
+              {entriesViewMode === "cards" ? (
+                <>
+                  <Table className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Tabel</span>
+                </>
+              ) : (
+                <>
+                  <List className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Kaarten</span>
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={exportToExcel}
+              disabled={filteredEntries.length === 0}
+              size="sm"
+            >
+              <FileSpreadsheet className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Excel</span>
+            </Button>
+            <Button
+              onClick={exportToPDF}
+              disabled={filteredEntries.length === 0}
+              variant="outline"
+              size="sm"
+            >
+              <FileText className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">PDF</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Period Navigation */}
       <Card>
@@ -744,111 +753,35 @@ export default function ManagerTeamHoursPage() {
       </Card>
 
       {/* Analytics Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Totaal Uren
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {analytics.total.toFixed(1)}
-                  </p>
-                  {analytics.prevTotal > 0 &&
-                    (() => {
-                      const trend = getTrendIndicator(
-                        analytics.total,
-                        analytics.prevTotal,
-                      );
-                      return trend.icon ? (
-                        <trend.icon className={`w-5 h-5 ${trend.color}`} />
-                      ) : null;
-                    })()}
-                </div>
-                <p
-                  className={`text-xs mt-1 ${getTrendIndicator(analytics.total, analytics.prevTotal).color}`}
-                >
-                  {
-                    getTrendIndicator(analytics.total, analytics.prevTotal)
-                      .change
-                  }{" "}
-                  vs vorige periode
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Benutting
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {analytics.utilizationRate.toFixed(0)}%
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Verwacht: {analytics.expectedHours.toFixed(0)}u
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <Target className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Gemiddeld per Dag
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {analytics.avgHoursPerDay.toFixed(1)}u
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Over {analytics.periodDays} dagen
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-timr-blue-light dark:bg-timr-blue-light/20 flex items-center justify-center">
-                <Timer className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Goedgekeurd
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {analytics.approved.toFixed(1)}u
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {analytics.total > 0
-                    ? ((analytics.approved / analytics.total) * 100).toFixed(0)
-                    : 0}
-                  % van totaal
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <Activity className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Clock}
+          title="Totaal Uren"
+          value={analytics.total.toFixed(1)}
+          subtitle={`${getTrendIndicator(analytics.total, analytics.prevTotal).change} vs vorige periode`}
+          color="blue"
+        />
+        <StatCard
+          icon={Target}
+          title="Benutting"
+          value={`${analytics.utilizationRate.toFixed(0)}%`}
+          subtitle={`Verwacht: ${analytics.expectedHours.toFixed(0)}u`}
+          color="emerald"
+        />
+        <StatCard
+          icon={Timer}
+          title="Gemiddeld per Dag"
+          value={`${analytics.avgHoursPerDay.toFixed(1)}u`}
+          subtitle={`Over ${analytics.periodDays} dagen`}
+          color="indigo"
+        />
+        <StatCard
+          icon={Activity}
+          title="Goedgekeurd"
+          value={`${analytics.approved.toFixed(1)}u`}
+          subtitle={`${analytics.total > 0 ? ((analytics.approved / analytics.total) * 100).toFixed(0) : 0}% van totaal`}
+          color="emerald"
+        />
       </div>
 
       {/* Detailed Analytics */}
@@ -1163,49 +1096,47 @@ export default function ManagerTeamHoursPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="text-left p-4 font-medium text-slate-900 dark:text-slate-100">
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Medewerker
                     </th>
-                    <th className="text-left p-4 font-medium text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Project
                     </th>
-                    <th className="text-left p-4 font-medium text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Datum & Tijd
                     </th>
-                    <th className="text-left p-4 font-medium text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Uren
                     </th>
-                    <th className="text-left p-4 font-medium text-slate-900 dark:text-slate-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                   {filteredEntries.map((entry) => (
                     <tr
                       key={entry.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                     >
-                      <td className="p-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                              {entry.user?.firstName?.charAt(0)}
-                              {entry.user?.lastName?.charAt(0)}
-                            </span>
+                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                            {entry.user?.firstName?.charAt(0)}
+                            {entry.user?.lastName?.charAt(0)}
                           </div>
                           <span className="font-medium text-slate-900 dark:text-slate-100">
                             {entry.user?.firstName} {entry.user?.lastName}
                           </span>
                         </div>
                       </td>
-                      <td className="p-4 text-slate-600 dark:text-slate-400">
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                         {entry.project?.name}
                       </td>
-                      <td className="p-4 text-slate-600 dark:text-slate-400">
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                         <div>
                           <div>
                             {dayjs(entry.startTime).format("DD MMM YYYY")}
@@ -1216,7 +1147,7 @@ export default function ManagerTeamHoursPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="px-4 py-3">
                         <div>
                           <span className="font-medium text-slate-900 dark:text-slate-100">
                             {(
@@ -1236,7 +1167,7 @@ export default function ManagerTeamHoursPage() {
                           )}
                         </div>
                       </td>
-                      <td className="p-4">{getStatusBadge(entry.status)}</td>
+                      <td className="px-4 py-3">{getStatusBadge(entry.status)}</td>
                     </tr>
                   ))}
                 </tbody>

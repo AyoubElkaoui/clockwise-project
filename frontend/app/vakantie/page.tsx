@@ -17,6 +17,8 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { getVacationRequests } from "@/lib/api";
 import { registerVacationRequest } from "@/lib/api/vacationApi";
 import dayjs from "dayjs";
@@ -359,151 +361,77 @@ export default function VakantiePage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-                {t("vacation.title")}
-              </h1>
-              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-                {t("vacation.subtitle")}
-              </p>
-            </div>
-            <Button onClick={() => setShowModal(true)} size="sm" className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              {t("vacation.request")}
-            </Button>
-          </div>
+        <div className="space-y-6 animate-fadeIn">
+          <PageHeader
+            title={t("vacation.title")}
+            description={t("vacation.subtitle")}
+            actions={
+              <Button onClick={() => setShowModal(true)} size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                {t("vacation.request")}
+              </Button>
+            }
+          />
 
           {/* Balance Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
-            <Card className="border-l-4 border-l-blue-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {t("vacation.totalRequested")}
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : Math.round(stats.totalDays)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t("vacation.vacationDays")}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-emerald-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {t("status.approved")}
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : Math.round(stats.approvedDays)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t("vacation.used")}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-amber-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {t("status.pending")}
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : Math.round(stats.pendingDays)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t("vacation.waitingAction")}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-red-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {t("status.rejected")}
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : Math.round(stats.rejectedDays)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t("vacation.thisYear")}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                    <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-timr-blue">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      {t("vacation.available")}
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading
-                        ? "..."
-                        : Math.max(0, Math.round(stats.availableDays))}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {t("vacation.remainingYear")}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-timr-blue-light dark:bg-timr-blue-light/20 flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-timr-blue dark:text-timr-blue" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard
+              title={t("vacation.totalRequested")}
+              value={loading ? "..." : Math.round(stats.totalDays)}
+              subtitle={t("vacation.vacationDays")}
+              icon={Calendar}
+              color="blue"
+            />
+            <StatCard
+              title={t("status.approved")}
+              value={loading ? "..." : Math.round(stats.approvedDays)}
+              subtitle={t("vacation.used")}
+              icon={CheckCircle}
+              color="emerald"
+            />
+            <StatCard
+              title={t("status.pending")}
+              value={loading ? "..." : Math.round(stats.pendingDays)}
+              subtitle={t("vacation.waitingAction")}
+              icon={Clock}
+              color="amber"
+            />
+            <StatCard
+              title={t("status.rejected")}
+              value={loading ? "..." : Math.round(stats.rejectedDays)}
+              subtitle={t("vacation.thisYear")}
+              icon={XCircle}
+              color="rose"
+            />
+            <StatCard
+              title={t("vacation.available")}
+              value={loading ? "..." : Math.max(0, Math.round(stats.availableDays))}
+              subtitle={t("vacation.remainingYear")}
+              icon={AlertCircle}
+              color="indigo"
+            />
           </div>
 
           {/* Vacation Requests */}
           <Card variant="elevated" padding="lg">
-            <CardHeader>
-              <CardTitle>{t("vacation.myRequests")}</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">{t("vacation.myRequests")}</CardTitle>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-timr-orange" />
+                  <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
                   <span className="ml-2 text-slate-600">
                     {t("common.loading")}
                   </span>
                 </div>
               ) : requests.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-600 dark:text-slate-400">
-                    {t("vacation.noRequests")}
-                  </p>
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <Calendar className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen aanvragen</p>
+                  <p className="text-sm text-slate-500 mt-1">{t("vacation.noRequests")}</p>
                   <Button className="mt-4" onClick={() => setShowModal(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     {t("vacation.request")}
@@ -583,8 +511,8 @@ export default function VakantiePage() {
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                           {t("vacation.startDate")}
                         </label>
                         <Input
@@ -599,8 +527,8 @@ export default function VakantiePage() {
                           }
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                           {t("vacation.endDate")}
                         </label>
                         <Input
@@ -674,8 +602,8 @@ export default function VakantiePage() {
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                         Type Verlof
                       </label>
                       <select
@@ -686,7 +614,7 @@ export default function VakantiePage() {
                             vacationType: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-timr-orange focus:border-transparent"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                       >
                         {vacationTypes.length > 0 ? (
                           vacationTypes.map((type: VacationType) => (
@@ -708,8 +636,8 @@ export default function VakantiePage() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                         Reden / Opmerking <span className="text-red-500">*</span>
                       </label>
                       <textarea
@@ -718,7 +646,7 @@ export default function VakantiePage() {
                         onChange={(e) =>
                           setFormData({ ...formData, notes: e.target.value })
                         }
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-timr-orange focus:border-transparent resize-none"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
                         rows={3}
                         placeholder="Voeg een reden toe voor je verlofaanvraag..."
                       />
@@ -734,8 +662,8 @@ export default function VakantiePage() {
                     )}
 
                     {formData.startDate && formData.endDate && (
-                      <div className="bg-timr-orange-light dark:bg-timr-orange/10 border border-timr-orange/30 dark:border-timr-orange/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 text-timr-orange dark:text-timr-orange mb-2">
+                      <div className="bg-amber-50 dark:bg-blue-600/10 border border-amber-400/30 dark:border-amber-400/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-600 mb-2">
                           <Calendar className="w-4 h-4" />
                           <span className="font-medium">
                             Samenvatting
@@ -795,7 +723,7 @@ export default function VakantiePage() {
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <Card className="w-full max-w-md">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-timr-orange">
+                  <CardTitle className="flex items-center gap-2 text-amber-600">
                     <AlertCircle className="w-5 h-5" />
                     Bevestig je aanvraag
                   </CardTitle>

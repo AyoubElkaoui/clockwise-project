@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   getTimeEntries,
   getTimeEntryDetails,
@@ -314,541 +316,443 @@ export default function AdminTimeEntriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Uren Beheer
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
-                Beheer en keur urenregistraties goed
-              </p>
-            </div>
-            <Button onClick={exportEntries} variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Exporteren</span>
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Uren Beheer"
+        description="Beheer en keur urenregistraties goed"
+        actions={
+          <Button onClick={exportEntries} variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            <span className="hidden md:inline">Exporteren</span>
+          </Button>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <StatCard title="Totaal" value={stats.total} icon={Clock} color="blue" />
+        <StatCard title="Te Behandelen" value={stats.pending} icon={AlertTriangle} color="amber" />
+        <StatCard title="Goedgekeurd" value={stats.approved} icon={CheckCircle} color="emerald" />
+        <StatCard title="Afgekeurd" value={stats.rejected} icon={XCircle} color="rose" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    Totaal
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {stats.total}
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-amber-500">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    Te Behandelen
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {stats.pending}
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-emerald-500">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    Goedgekeurd
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {stats.approved}
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-red-500">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                    Afgekeurd
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {stats.rejected}
-                  </p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                  <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 mb-4 md:mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-slate-600" />
-              Filters & Zoeken
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Startdatum
-                </label>
+      {/* Filters */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-500" />
+            Filters &amp; Zoeken
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Startdatum
+              </label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Einddatum
+              </label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Gebruiker
+              </label>
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-sm"
+              >
+                <option value="">Alle gebruikers</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Project
+              </label>
+              <select
+                value={selectedProject}
+                onChange={(e) => setSelectedProject(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-sm"
+              >
+                <option value="">Alle projecten</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Zoeken
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="mt-1"
+                  placeholder="Naam, project of notities..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Einddatum
-                </label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Gebruiker
-                </label>
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                >
-                  <option value="">Alle gebruikers</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Project
-                </label>
-                <select
-                  value={selectedProject}
-                  onChange={(e) => setSelectedProject(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800"
-                >
-                  <option value="">Alle projecten</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="md:col-span-2 lg:col-span-1">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Zoeken
-                </label>
-                <div className="relative mt-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    placeholder="Naam, project of notities..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
               </div>
             </div>
-            <Button onClick={resetFilters} variant="outline">
-              Reset Filters
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+          <Button onClick={resetFilters} variant="outline" size="sm">
+            Reset Filters
+          </Button>
+        </CardContent>
+      </Card>
 
-        {/* Table */}
-        <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="w-5 h-5 text-slate-600" />
-              Urenregistraties ({filteredEntries.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {currentEntries.length === 0 ? (
-              <div className="text-center py-12">
-                <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                  Geen registraties gevonden
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Probeer andere filters of voeg nieuwe registraties toe.
-                </p>
+      {/* Table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Info className="w-4 h-4 text-slate-500" />
+            Urenregistraties ({filteredEntries.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {currentEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Clock className="w-7 h-7 text-slate-400" />
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-700">
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Datum
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Gebruiker
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Bedrijf
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Project
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Tijd
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Uren
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Status
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                        Acties
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentEntries.map((entry) => {
-                      const hours = (
-                        (dayjs(entry.endTime).diff(
-                          dayjs(entry.startTime),
-                          "minute",
-                        ) -
-                          (entry.breakMinutes || 0)) /
-                        60
-                      ).toFixed(2);
-                      const userName =
-                        entry.user?.fullName ||
-                        `${entry.user?.firstName || ""} ${entry.user?.lastName || ""}`.trim() ||
-                        "Onbekend";
-                      const companyName =
-                        entry.project?.projectGroup?.company?.name ||
-                        "Onbekend";
-                      const projectName = entry.project?.name || "Onbekend";
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen registraties gevonden</p>
+              <p className="text-sm text-slate-500 mt-1">Probeer andere filters of voeg nieuwe registraties toe.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Gebruiker</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Bedrijf</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Project</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Tijd</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {currentEntries.map((entry) => {
+                    const hours = (
+                      (dayjs(entry.endTime).diff(
+                        dayjs(entry.startTime),
+                        "minute",
+                      ) -
+                        (entry.breakMinutes || 0)) /
+                      60
+                    ).toFixed(2);
+                    const userName =
+                      entry.user?.fullName ||
+                      `${entry.user?.firstName || ""} ${entry.user?.lastName || ""}`.trim() ||
+                      "Onbekend";
+                    const companyName =
+                      entry.project?.projectGroup?.company?.name ||
+                      "Onbekend";
+                    const projectName = entry.project?.name || "Onbekend";
 
-                      return (
-                        <tr
-                          key={entry.id}
-                          className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        >
-                          <td className="py-3 px-4">
-                            {dayjs(entry.startTime).format("DD-MM-YYYY")}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-700 flex items-center justify-center text-white text-xs font-bold">
-                                {userName
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .substring(0, 2)}
-                              </div>
-                              <span className="font-medium">{userName}</span>
+                    return (
+                      <tr
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                          {dayjs(entry.startTime).format("DD-MM-YYYY")}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                              {userName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)}
                             </div>
-                          </td>
-                          <td className="py-3 px-4">{companyName}</td>
-                          <td className="py-3 px-4 font-medium text-slate-900 dark:text-slate-100">
-                            {projectName}
-                          </td>
-                          <td className="py-3 px-4">
-                            {dayjs(entry.startTime).format("HH:mm")} -{" "}
-                            {dayjs(entry.endTime).format("HH:mm")}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge variant="outline">{hours}u</Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            {getStatusBadge(entry.status)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleViewDetails(entry.id)}
-                              >
-                                <Info className="w-4 h-4" />
-                              </Button>
-                              {entry.status !== "goedgekeurd" &&
-                                entry.status !== "afgekeurd" && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-emerald-600 hover:text-emerald-700"
-                                      onClick={() => handleApprove(entry.id)}
-                                    >
-                                      <CheckCircle className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-red-600 hover:text-red-700"
-                                      onClick={() => handleReject(entry.id)}
-                                    >
-                                      <XCircle className="w-4 h-4" />
-                                    </Button>
-                                  </>
-                                )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                            <span className="font-medium text-slate-900 dark:text-slate-100">{userName}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{companyName}</td>
+                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                          {projectName}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                          {dayjs(entry.startTime).format("HH:mm")} -{" "}
+                          {dayjs(entry.endTime).format("HH:mm")}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline">{hours}u</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          {getStatusBadge(entry.status)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewDetails(entry.id)}
+                            >
+                              <Info className="w-4 h-4" />
+                            </Button>
+                            {entry.status !== "goedgekeurd" &&
+                              entry.status !== "afgekeurd" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-emerald-600 hover:text-emerald-700"
+                                    onClick={() => handleApprove(entry.id)}
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-rose-600 hover:text-rose-700"
+                                    onClick={() => handleReject(entry.id)}
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-200 dark:border-slate-700">
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Pagina {currentPage} van {totalPages}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Vorige
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setCurrentPage(Math.min(totalPages, currentPage + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                  >
-                    Volgende
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                Pagina {currentPage} van {totalPages}
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Vorige
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Volgende
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Details Modal */}
-        {showDetailsModal && selectedEntry && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDetailsModal(false)}
+      {/* Details Modal */}
+      {showDetailsModal && selectedEntry && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowDetailsModal(false)}
+        >
+          <Card
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Card
-              className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Info className="w-5 h-5 text-slate-600" />
-                  Urenregistratie Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 md:space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Gebruiker
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {selectedEntry.user?.fullName ||
-                        `${selectedEntry.user?.firstName || ""} ${selectedEntry.user?.lastName || ""}`.trim() ||
-                        "Onbekend"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Datum
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {dayjs(selectedEntry.startTime).format("DD MMMM YYYY")}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Tijd
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {dayjs(selectedEntry.startTime).format("HH:mm")} -{" "}
-                      {dayjs(selectedEntry.endTime).format("HH:mm")}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Pauze
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {selectedEntry.breakMinutes || 0} minuten
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Bedrijf
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {selectedEntry.project?.projectGroup?.company?.name ||
-                        "Onbekend"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Project
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {selectedEntry.project?.name || "Onbekend"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Totaal Uren
-                    </label>
-                    <p className="text-lg font-semibold">
-                      {(
-                        (dayjs(selectedEntry.endTime).diff(
-                          dayjs(selectedEntry.startTime),
-                          "minute",
-                        ) -
-                          (selectedEntry.breakMinutes || 0)) /
-                        60
-                      ).toFixed(2)}{" "}
-                      uur
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Status
-                    </label>
-                    <div className="mt-1">
-                      {getStatusBadge(selectedEntry.status)}
-                    </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Info className="w-4 h-4 text-slate-500" />
+                Urenregistratie Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 md:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Gebruiker
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {selectedEntry.user?.fullName ||
+                      `${selectedEntry.user?.firstName || ""} ${selectedEntry.user?.lastName || ""}`.trim() ||
+                      "Onbekend"}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Datum
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {dayjs(selectedEntry.startTime).format("DD MMMM YYYY")}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Tijd
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {dayjs(selectedEntry.startTime).format("HH:mm")} -{" "}
+                    {dayjs(selectedEntry.endTime).format("HH:mm")}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Pauze
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {selectedEntry.breakMinutes || 0} minuten
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Bedrijf
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {selectedEntry.project?.projectGroup?.company?.name ||
+                      "Onbekend"}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Project
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {selectedEntry.project?.name || "Onbekend"}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Totaal Uren
+                  </label>
+                  <p className="text-lg font-semibold">
+                    {(
+                      (dayjs(selectedEntry.endTime).diff(
+                        dayjs(selectedEntry.startTime),
+                        "minute",
+                      ) -
+                        (selectedEntry.breakMinutes || 0)) /
+                      60
+                    ).toFixed(2)}{" "}
+                    uur
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Status
+                  </label>
+                  <div className="mt-1">
+                    {getStatusBadge(selectedEntry.status)}
                   </div>
                 </div>
+              </div>
 
-                {selectedEntry.notes && (
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Notities
-                    </label>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg mt-1">
-                      <p className="text-slate-900 dark:text-slate-100">
-                        {selectedEntry.notes}
-                      </p>
-                    </div>
+              {selectedEntry.notes && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Notities
+                  </label>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                    <p className="text-slate-900 dark:text-slate-100">
+                      {selectedEntry.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {(selectedEntry.distanceKm || selectedEntry.expenses) && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Aanvullende Kosten
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {selectedEntry.distanceKm && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                        <span className="text-xs text-slate-500">
+                          Afstand
+                        </span>
+                        <p className="font-medium">
+                          {selectedEntry.distanceKm} km
+                        </p>
+                      </div>
+                    )}
+                    {selectedEntry.expenses && (
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
+                        <span className="text-xs text-slate-500">
+                          Onkosten
+                        </span>
+                        <p className="font-medium">
+                          €{selectedEntry.expenses.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedEntry.status !== "goedgekeurd" &&
+                selectedEntry.status !== "afgekeurd" && (
+                  <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDetailsModal(false)}
+                    >
+                      Sluiten
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        handleReject(selectedEntry.id);
+                        setShowDetailsModal(false);
+                      }}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Afkeuren
+                    </Button>
+                    <Button
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => {
+                        handleApprove(selectedEntry.id);
+                        setShowDetailsModal(false);
+                      }}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Goedkeuren
+                    </Button>
                   </div>
                 )}
-
-                {(selectedEntry.distanceKm || selectedEntry.expenses) && (
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Aanvullende Kosten
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
-                      {selectedEntry.distanceKm && (
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-                          <span className="text-xs text-slate-500">
-                            Afstand
-                          </span>
-                          <p className="font-medium">
-                            {selectedEntry.distanceKm} km
-                          </p>
-                        </div>
-                      )}
-                      {selectedEntry.expenses && (
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg">
-                          <span className="text-xs text-slate-500">
-                            Onkosten
-                          </span>
-                          <p className="font-medium">
-                            €{selectedEntry.expenses.toFixed(2)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {selectedEntry.status !== "goedgekeurd" &&
-                  selectedEntry.status !== "afgekeurd" && (
-                    <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowDetailsModal(false)}
-                      >
-                        Sluiten
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          handleReject(selectedEntry.id);
-                          setShowDetailsModal(false);
-                        }}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Afkeuren
-                      </Button>
-                      <Button
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() => {
-                          handleApprove(selectedEntry.id);
-                          setShowDetailsModal(false);
-                        }}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Goedkeuren
-                      </Button>
-                    </div>
-                  )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

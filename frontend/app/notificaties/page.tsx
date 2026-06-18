@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, Check, Trash2, Loader2, Users, User } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 import dayjs from "dayjs";
@@ -190,11 +192,11 @@ export default function NotificatiesPage() {
   const getNotificationColor = (type: string) => {
     switch (type) {
       case "time_entry":
-        return "text-timr-orange dark:text-timr-orange";
+        return "text-amber-600 dark:text-amber-600";
       case "vacation":
         return "text-green-600 dark:text-green-400";
       case "project":
-        return "text-timr-blue dark:text-timr-blue";
+        return "text-blue-600 dark:text-blue-600";
       default:
         return "text-slate-600 dark:text-slate-400";
     }
@@ -203,100 +205,53 @@ export default function NotificatiesPage() {
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-4 md:space-y-6 p-3 md:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Notificaties
-              </h1>
-              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-                {userRank === "manager" && "Team notificaties en updates"}
-                {userRank === "admin" && "Alle systeem notificaties"}
-                {userRank === "user" && "Jouw persoonlijke notificaties"}
-                {unreadCount > 0 && ` • ${unreadCount} ongelezen`}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {userRank === "manager" && (
-                <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                  <Users className="w-4 h-4" />
-                  <span>Team overzicht</span>
-                </div>
-              )}
-              {userRank === "admin" && (
-                <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                  <User className="w-4 h-4" />
-                  <span>Systeem breed</span>
-                </div>
-              )}
+        <div className="space-y-6 animate-fadeIn">
+          <PageHeader
+            title="Notificaties"
+            description={
+              (userRank === "manager" ? "Team notificaties en updates" :
+               userRank === "admin" ? "Alle systeem notificaties" :
+               "Jouw persoonlijke notificaties") +
+              (unreadCount > 0 ? ` • ${unreadCount} ongelezen` : "")
+            }
+            actions={
               <Button
                 variant="secondary"
                 onClick={handleMarkAllRead}
                 disabled={unreadCount === 0}
-                className="w-full sm:w-auto"
               >
                 <Check className="w-4 h-4 mr-2" />
-                <span className="hidden md:inline">Alles Gelezen</span>
-                <span className="md:hidden">Gelezen</span>
+                Alles Gelezen
               </Button>
-            </div>
-          </div>
+            }
+          />
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
-            <Card className="border-l-4 border-l-timr-orange">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      Totaal
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : notifications.length}
-                    </p>
-                  </div>
-                  <Bell className="w-8 h-8 text-timr-orange dark:text-timr-orange" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-timr-orange">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      Ongelezen
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : unreadCount}
-                    </p>
-                  </div>
-                  <Bell className="w-8 h-8 text-timr-orange dark:text-timr-orange" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-green-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                      Gelezen
-                    </p>
-                    <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                      {loading ? "..." : readCount}
-                    </p>
-                  </div>
-                  <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-              </CardContent>
-            </Card>
+            <StatCard
+              title="Totaal"
+              value={loading ? "..." : notifications.length}
+              icon={Bell}
+              color="blue"
+            />
+            <StatCard
+              title="Ongelezen"
+              value={loading ? "..." : unreadCount}
+              icon={Bell}
+              color="amber"
+            />
+            <StatCard
+              title="Gelezen"
+              value={loading ? "..." : readCount}
+              icon={Check}
+              color="emerald"
+            />
           </div>
 
           {/* Notifications List */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Bell className="w-5 h-5" />
                 {userRank === "manager" && "Team Notificaties"}
                 {userRank === "admin" && "Systeem Notificaties"}
@@ -306,24 +261,21 @@ export default function NotificatiesPage() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-timr-orange" />
+                  <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
                   <span className="ml-2 text-slate-600 dark:text-slate-400">
                     Notificaties laden...
                   </span>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="text-center py-12">
-                  <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                    Geen notificaties
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    {userRank === "manager" &&
-                      "Er zijn nog geen team notificaties"}
-                    {userRank === "admin" &&
-                      "Er zijn nog geen systeem notificaties"}
-                    {userRank === "user" &&
-                      "Je hebt nog geen notificaties ontvangen"}
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <Bell className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen notificaties</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {userRank === "manager" && "Er zijn nog geen team notificaties"}
+                    {userRank === "admin" && "Er zijn nog geen systeem notificaties"}
+                    {userRank === "user" && "Je hebt nog geen notificaties ontvangen"}
                   </p>
                 </div>
               ) : (
@@ -333,7 +285,7 @@ export default function NotificatiesPage() {
                       key={notification.id}
                       className={`transition-all duration-200 hover:shadow-md ${
                         !notification.read
-                          ? "bg-timr-orange-light/30 dark:bg-timr-orange-light/10 border-timr-orange dark:border-timr-orange"
+                          ? "bg-amber-50/30 dark:bg-amber-50/10 border-amber-400 dark:border-amber-400"
                           : "bg-slate-50/50 dark:bg-slate-800/50"
                       }`}
                     >

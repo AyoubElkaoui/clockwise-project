@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { API_URL } from "@/lib/api";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function AdminSettingsPage() {
   const { t } = useTranslation();
@@ -126,17 +127,13 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          {t("admin.settings.title")}
-        </h1>
-        <p className="text-gray-600 dark:text-slate-400">
-          {t("admin.settings.subtitle")}
-        </p>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("admin.settings.title")}
+        description={t("admin.settings.subtitle")}
+      />
 
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-4xl">
         {/* Security - 2FA Required */}
         <Card>
           <CardHeader>

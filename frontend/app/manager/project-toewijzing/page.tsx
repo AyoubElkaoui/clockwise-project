@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import {
@@ -288,28 +289,24 @@ export default function ManagerProjectToewijzingPage() {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Project Toewijzingen
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Wijs medewerkers toe aan projecten
-          </p>
-        </div>
-        <div className="flex gap-2 md:gap-3">
-          <Badge variant="secondary" className="text-xs md:text-sm py-1 px-2 md:px-3">
-            <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
-            {projects.length}
-          </Badge>
-          <Badge variant="secondary" className="text-xs md:text-sm py-1 px-2 md:px-3">
-            <Users className="w-3.5 h-3.5 mr-1.5" />
-            {users.length}
-          </Badge>
-        </div>
-      </div>
+      <PageHeader
+        title="Project Toewijzingen"
+        description="Wijs medewerkers toe aan projecten"
+        actions={
+          <div className="flex gap-2 md:gap-3">
+            <Badge variant="secondary" className="text-xs md:text-sm py-1 px-2 md:px-3">
+              <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+              {projects.length}
+            </Badge>
+            <Badge variant="secondary" className="text-xs md:text-sm py-1 px-2 md:px-3">
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              {users.length}
+            </Badge>
+          </div>
+        }
+      />
 
       {/* Project zoeken */}
       <Card>
@@ -418,8 +415,12 @@ export default function ManagerProjectToewijzingPage() {
             </CardHeader>
             <CardContent>
               {projectAssignments.length === 0 ? (
-                <div className="text-center py-6 text-slate-500 text-sm">
-                  Nog geen medewerkers toegewezen
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <Users className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen medewerkers</p>
+                  <p className="text-sm text-slate-500 mt-1">Nog geen medewerkers toegewezen aan dit project</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -436,7 +437,7 @@ export default function ManagerProjectToewijzingPage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                               {getInitials(name)}
                             </div>
                             <div className="min-w-0">
@@ -561,7 +562,7 @@ export default function ManagerProjectToewijzingPage() {
                             checked={selected}
                             onChange={() => handleToggleUser(user.id)}
                           />
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                             {getInitials(getUserDisplayName(user))}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -599,11 +600,14 @@ export default function ManagerProjectToewijzingPage() {
       {/* Placeholder als geen project geselecteerd */}
       {!selectedProject && (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <FolderOpen className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-            <p className="text-sm text-slate-500">
-              Selecteer een project hierboven om medewerkers toe te wijzen
-            </p>
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <FolderOpen className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen project geselecteerd</p>
+              <p className="text-sm text-slate-500 mt-1">Selecteer een project hierboven om medewerkers toe te wijzen</p>
+            </div>
           </CardContent>
         </Card>
       )}

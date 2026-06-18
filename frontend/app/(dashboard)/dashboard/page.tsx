@@ -27,6 +27,8 @@ import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
@@ -200,139 +202,66 @@ export default function Dashboard() {
     stats.weekHours >= (stats.weekTarget / 7) * dayjs().isoWeekday();
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 animate-fadeIn">
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-          {getGreeting()}, {firstName}! 👋
-        </h1>
-        <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-          {t("dashboard.subtitle")}, {dayjs().format("dddd D MMMM YYYY")}
-        </p>
-      </div>
+      <PageHeader
+        title={`${getGreeting()}, ${firstName}!`}
+        description={`${t("dashboard.subtitle")}, ${dayjs().format("dddd D MMMM YYYY")}`}
+        actions={
+          <Button onClick={() => router.push("/tijd-registratie")}>
+            <Clock className="w-4 h-4 mr-2" />
+            {t("dashboard.registerHours")}
+          </Button>
+        }
+      />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card
-          variant="elevated"
-          padding="md"
-          className="cursor-pointer hover:shadow-lg transition"
+        <StatCard
+          title={t("dashboard.thisWeek")}
+          value={`${stats.weekHours}u`}
+          subtitle={`${Math.round(weekProgress)}% van ${stats.weekTarget}u`}
+          icon={Clock}
+          color="blue"
+          trend={{ value: isOnTrack ? t("dashboard.onTrack") : t("dashboard.watchHours"), isPositive: isOnTrack }}
           onClick={() => router.push("/tijd-registratie")}
-        >
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {t("dashboard.thisWeek")}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.weekHours}u
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
-                    <div
-                      className={`h-1.5 rounded-full ${isOnTrack ? "bg-green-500" : "bg-yellow-500"}`}
-                      style={{ width: `${Math.min(weekProgress, 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {Math.round(weekProgress)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          variant="elevated"
-          padding="md"
-          className="cursor-pointer hover:shadow-lg transition"
+        />
+        <StatCard
+          title={t("dashboard.thisMonth")}
+          value={`${stats.monthHours}u`}
+          subtitle={dayjs().format("MMMM")}
+          icon={Calendar}
+          color="emerald"
           onClick={() => router.push("/uren-overzicht")}
-        >
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {t("dashboard.thisMonth")}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.monthHours}u
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {dayjs().format("MMMM")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          variant="elevated"
-          padding="md"
-          className="cursor-pointer hover:shadow-lg transition"
+        />
+        <StatCard
+          title={t("dashboard.vacationDays")}
+          value={stats.vacationDays}
+          subtitle={t("dashboard.available")}
+          icon={Plane}
+          color="violet"
           onClick={() => router.push("/vakantie")}
-        >
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <Plane className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {t("dashboard.vacationDays")}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.vacationDays}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {t("dashboard.available")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          variant="elevated"
-          padding="md"
-          className="cursor-pointer hover:shadow-lg transition"
+        />
+        <StatCard
+          title={t("dashboard.pending")}
+          value={stats.pendingApprovals}
+          subtitle={t("dashboard.waitingApproval")}
+          icon={AlertCircle}
+          color="amber"
           onClick={() => router.push("/uren-overzicht")}
-        >
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {t("dashboard.pending")}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.pendingApprovals}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {t("dashboard.waitingApproval")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        />
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 w-full">
         {/* Recent Entries */}
-        <Card variant="elevated" padding="lg" className="lg:col-span-2 overflow-hidden">
-          <CardHeader>
+        <Card className="lg:col-span-2 overflow-hidden">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle>{t("dashboard.recentEntries")}</CardTitle>
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-600" />
+                {t("dashboard.recentEntries")}
+              </CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -344,52 +273,69 @@ export default function Dashboard() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {recentEntries.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>{t("dashboard.noEntries")}</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                  <Clock className="w-7 h-7 text-slate-400" />
+                </div>
+                <p className="text-base font-semibold text-slate-700 dark:text-slate-300">{t("dashboard.noEntries")}</p>
+                <p className="text-sm text-slate-500 mt-1">{t("dashboard.startRegistering")}</p>
                 <Button
-                  className="mt-4 text-slate-900 dark:text-white"
+                  className="mt-4"
                   onClick={() => router.push("/tijd-registratie")}
                 >
                   {t("dashboard.startRegistering")}
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {recentEntries.map((entry: any) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-center gap-2 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
-                    onClick={() => router.push("/uren-overzicht")}
-                  >
-                    <div className="w-12 md:w-16 text-center flex-shrink-0">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">
-                        {dayjs(entry.datum || entry.startTime || entry.date).format("ddd")}
-                      </p>
-                      <p className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100">
-                        {dayjs(entry.datum || entry.startTime || entry.date).format("D")}
-                      </p>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate">
-                          {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || '?'}`}
-                        </p>
-                        {getStatusBadge(entry.status)}
-                      </div>
-                      <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">
-                        {entry.omschrijving || entry.notes || t("dashboard.noDescription")}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-lg md:text-xl font-bold text-blue-600 dark:text-blue-400">
-                        {entry.aantal || entry.hours || 0}u
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dashboard.date") || "Datum"}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dashboard.project") || "Project"}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dashboard.status") || "Status"}</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">{t("dashboard.hours") || "Uren"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {recentEntries.map((entry: any) => (
+                      <tr
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                        onClick={() => router.push("/uren-overzicht")}
+                      >
+                        <td className="px-4 py-3">
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">
+                              {dayjs(entry.datum || entry.startTime || entry.date).format("ddd")}
+                            </p>
+                            <p className="font-bold text-slate-900 dark:text-slate-100">
+                              {dayjs(entry.datum || entry.startTime || entry.date).format("D MMM")}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[160px]">
+                            {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || '?'}`}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
+                            {entry.omschrijving || entry.notes || t("dashboard.noDescription")}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          {getStatusBadge(entry.status)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                            {entry.aantal || entry.hours || 0}u
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </CardContent>
@@ -398,9 +344,12 @@ export default function Dashboard() {
         {/* Quick Actions & Info */}
         <div className="space-y-4 md:space-y-6">
           {/* Quick Actions */}
-          <Card variant="elevated" padding="lg" className="overflow-hidden">
-            <CardHeader>
-              <CardTitle>{t("dashboard.quickActions")}</CardTitle>
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                {t("dashboard.quickActions")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -433,20 +382,18 @@ export default function Dashboard() {
 
           {/* Week Status */}
           <Card
-            variant="elevated"
-            padding="lg"
             className={
               isOnTrack
-                ? "border-green-200 dark:border-green-800"
-                : "border-yellow-200 dark:border-yellow-800"
+                ? "border-emerald-200 dark:border-emerald-800"
+                : "border-amber-200 dark:border-amber-800"
             }
           >
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="flex items-start gap-3">
                 {isOnTrack ? (
-                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
                 ) : (
-                  <TrendingUp className="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-1" />
+                  <TrendingUp className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-1" />
                 )}
                 <div>
                   <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
@@ -471,14 +418,10 @@ export default function Dashboard() {
 
           {/* Upcoming Vacation */}
           {upcomingVacation && (
-            <Card
-              variant="elevated"
-              padding="lg"
-              className="border-purple-200 dark:border-purple-800"
-            >
-              <CardContent>
+            <Card className="border-violet-200 dark:border-violet-800">
+              <CardContent className="pt-6">
                 <div className="flex items-start gap-3">
-                  <Plane className="w-6 h-6 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
+                  <Plane className="w-6 h-6 text-violet-600 dark:text-violet-400 flex-shrink-0 mt-1" />
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
                       {t("dashboard.upcomingVacation")}
@@ -487,7 +430,7 @@ export default function Dashboard() {
                       {dayjs(upcomingVacation.startDate).format("D MMM")} -{" "}
                       {dayjs(upcomingVacation.endDate).format("D MMM YYYY")}
                     </p>
-                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                    <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
                       {t("dashboard.inDays", {
                         days: dayjs(upcomingVacation.startDate).diff(
                           dayjs(),

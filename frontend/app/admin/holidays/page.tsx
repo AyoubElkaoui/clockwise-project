@@ -13,6 +13,7 @@ import {
   toggleWorkAllowed,
   generateHolidaysForYear,
 } from "@/lib/api/holidaysApi";
+import { PageHeader } from "@/components/ui/page-header";
 import dayjs from "dayjs";
 
 interface Holiday {
@@ -137,72 +138,70 @@ export default function HolidaysPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
-          Feestdagen & Sluitingsdagen
-        </h1>
-        <div className="flex gap-2">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm"
-          >
-            {[2024, 2025, 2026, 2027].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <Button variant="outline" onClick={handleGenerateYear}>
-            <Calendar className="w-4 h-4 mr-2" />
-            Genereer {selectedYear}
-          </Button>
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nieuwe Dag
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Feestdagen & Sluitingsdagen"
+        description="Beheer nationale en bedrijfsvrije dagen"
+        actions={
+          <div className="flex gap-2">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm"
+            >
+              {[2024, 2025, 2026, 2027].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <Button variant="outline" onClick={handleGenerateYear}>
+              <Calendar className="w-4 h-4 mr-2" />
+              Genereer {selectedYear}
+            </Button>
+            <Button onClick={() => setShowModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nieuwe Dag
+            </Button>
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       ) : (
-        <Card variant="elevated" padding="lg">
-          <CardContent>
+        <Card>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700">
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">Datum</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">Naam</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">Type</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">Werken Toegestaan</th>
-                    <th className="text-right py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">Acties</th>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Naam</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Werken Toegestaan</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                   {holidays.map((holiday) => (
-                    <tr
-                      key={holiday.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    >
-                      <td className="py-3 px-4">
+                    <tr key={holiday.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-4 py-3 font-medium tabular-nums">
                         {dayjs(holiday.holidayDate).format("DD-MM-YYYY")}
                       </td>
-                      <td className="py-3 px-4 font-medium">{holiday.name}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeBadge(holiday.type)}`}>
+                      <td className="px-4 py-3 font-medium">{holiday.name}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(holiday.type)}`}>
                           {getTypeLabel(holiday.type)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         <button
                           onClick={() => handleToggleWork(holiday.id)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                             holiday.isWorkAllowed
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+                              : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300"
                           }`}
                         >
                           {holiday.isWorkAllowed ? (
@@ -212,11 +211,11 @@ export default function HolidaysPage() {
                           )}
                         </button>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         {holiday.type !== "national" && (
                           <button
                             onClick={() => handleDelete(holiday.id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -227,8 +226,12 @@ export default function HolidaysPage() {
                 </tbody>
               </table>
               {holidays.length === 0 && (
-                <div className="text-center py-8 text-slate-500">
-                  Geen feestdagen gevonden voor {selectedYear}. Klik op &quot;Genereer {selectedYear}&quot; om Nederlandse feestdagen toe te voegen.
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <Calendar className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen feestdagen gevonden</p>
+                  <p className="text-sm text-slate-500 mt-1">Klik op &quot;Genereer {selectedYear}&quot; om Nederlandse feestdagen toe te voegen.</p>
                 </div>
               )}
             </div>

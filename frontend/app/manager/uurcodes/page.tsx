@@ -16,6 +16,9 @@ import {
   Clock,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface TaskCode {
   id: number;
@@ -179,208 +182,209 @@ export default function UurcodesPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <ListChecks className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            Uurcode Toewijzingen
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-            Stel per medewerker het jaarlijks budget in per uurcode
-          </p>
-        </div>
-        {selectedMember && hasChanges && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? "Opslaan..." : "Opslaan"}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Uurcode Toewijzingen"
+        description="Stel per medewerker het jaarlijks budget in per uurcode"
+        actions={
+          selectedMember && hasChanges ? (
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="sm"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? "Opslaan..." : "Opslaan"}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Team Member Selection */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-gray-500 dark:text-slate-400" />
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4" />
             Selecteer medewerker
-          </h3>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {teamMembers.map((member) => (
-            <button
-              key={member.medewGcId}
-              onClick={() => handleSelectMember(member)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
-                selectedMember?.medewGcId === member.medewGcId
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
-                  : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600"
-              }`}
-            >
-              <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
-                {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-              </div>
-              <span className="font-medium">
-                {member.firstName} {member.lastName}
-              </span>
-            </button>
-          ))}
-          {teamMembers.length === 0 && (
-            <p className="text-sm text-gray-400">Geen teamleden gevonden</p>
-          )}
-        </div>
-      </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {teamMembers.map((member) => (
+              <button
+                key={member.medewGcId}
+                onClick={() => handleSelectMember(member)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                  selectedMember?.medewGcId === member.medewGcId
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
+                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                  {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+                </div>
+                <span className="font-medium">
+                  {member.firstName} {member.lastName}
+                </span>
+              </button>
+            ))}
+            {teamMembers.length === 0 && (
+              <p className="text-sm text-slate-400">Geen teamleden gevonden</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Allocations Table */}
       {selectedMember ? (
         <>
           {/* Search */}
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Zoek uurcode..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <ListChecks className="w-4 h-4" />
                 {selectedMember.firstName} {selectedMember.lastName}
-                <span className="ml-2 text-gray-400 font-normal">
+                <span className="ml-1 text-slate-400 font-normal text-sm">
                   ({selectedMember.contractHours || 40} uur/week)
                 </span>
-              </h3>
-            </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 w-20">
+                        Code
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Omschrijving
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell w-24">
+                        Categorie
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-24">
+                        Budget
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-20">
+                        Gebruikt
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-20">
+                        Rest
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {filteredTasks.map((task) => {
+                      const alloc = getAllocation(task.code);
+                      const budget = alloc?.annualBudget ?? 0;
+                      const used = alloc?.used ?? 0;
+                      const remaining = budget - used;
+                      const cat = getCategoryInfo(task.code);
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 dark:border-slate-700">
-                    <th className="text-left px-4 py-2.5 font-semibold text-gray-600 dark:text-slate-400 w-20">
-                      Code
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-semibold text-gray-600 dark:text-slate-400">
-                      Omschrijving
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-semibold text-gray-600 dark:text-slate-400 hidden md:table-cell w-24">
-                      Categorie
-                    </th>
-                    <th className="text-center px-4 py-2.5 font-semibold text-gray-600 dark:text-slate-400 w-24">
-                      Budget
-                    </th>
-                    <th className="text-center px-4 py-2.5 font-semibold text-gray-600 dark:text-slate-400 w-20">
-                      Gebruikt
-                    </th>
-                    <th className="text-center px-4 py-2.5 font-semibold text-gray-600 dark:text-slate-400 w-20">
-                      Rest
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTasks.map((task) => {
-                    const alloc = getAllocation(task.code);
-                    const budget = alloc?.annualBudget ?? 0;
-                    const used = alloc?.used ?? 0;
-                    const remaining = budget - used;
-                    const cat = getCategoryInfo(task.code);
-
-                    return (
-                      <tr
-                        key={task.id}
-                        className={`border-b border-gray-100 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700/20 transition-colors ${
-                          budget > 0 ? "" : "opacity-60 hover:opacity-100"
-                        }`}
-                      >
-                        <td className="px-4 py-2.5">
-                          <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-200 font-mono text-xs font-bold">
-                            {task.code}
-                          </code>
-                        </td>
-                        <td className="px-4 py-2.5 text-gray-900 dark:text-white text-sm">
-                          {task.description}
-                        </td>
-                        <td className="px-4 py-2.5 hidden md:table-cell">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cat.color}`}>
-                            {cat.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={budget || ""}
-                            placeholder="0"
-                            onChange={(e) =>
-                              updateBudget(task.code, task.description, parseFloat(e.target.value) || 0)
-                            }
-                            className="w-16 h-8 text-center text-sm border border-gray-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mx-auto"
-                          />
-                        </td>
-                        <td className="px-4 py-2.5 text-center text-gray-500 dark:text-slate-400 text-sm font-mono">
-                          {used > 0 ? used : "-"}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          {budget > 0 ? (
-                            <span
-                              className={`text-sm font-bold font-mono ${
-                                remaining < 0
-                                  ? "text-red-600 dark:text-red-400"
-                                  : remaining <= budget * 0.1
-                                  ? "text-amber-600 dark:text-amber-400"
-                                  : "text-green-600 dark:text-green-400"
-                              }`}
-                            >
-                              {remaining}
+                      return (
+                        <tr
+                          key={task.id}
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${
+                            budget > 0 ? "" : "opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs font-bold">
+                              {task.code}
+                            </code>
+                          </td>
+                          <td className="px-4 py-3 text-slate-900 dark:text-white text-sm">
+                            {task.description}
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cat.color}`}>
+                              {cat.label}
                             </span>
-                          ) : (
-                            <span className="text-gray-300 dark:text-slate-600">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={budget || ""}
+                              placeholder="0"
+                              onChange={(e) =>
+                                updateBudget(task.code, task.description, parseFloat(e.target.value) || 0)
+                              }
+                              className="w-16 h-8 text-center text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mx-auto"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-center text-slate-500 dark:text-slate-400 text-sm font-mono">
+                            {used > 0 ? used : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {budget > 0 ? (
+                              <span
+                                className={`text-sm font-bold font-mono ${
+                                  remaining < 0
+                                    ? "text-rose-600 dark:text-rose-400"
+                                    : remaining <= budget * 0.1
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                                }`}
+                              >
+                                {remaining}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 dark:text-slate-600">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Footer with save */}
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-slate-400">
-                {allocations.filter((a) => a.annualBudget > 0).length} van {tasks.length} uurcodes ingesteld
-              </span>
-              {hasChanges && (
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-xs transition-colors disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {saving ? "Opslaan..." : "Wijzigingen opslaan"}
-                </button>
-              )}
-            </div>
-          </div>
+              {/* Footer with save */}
+              <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {allocations.filter((a) => a.annualBudget > 0).length} van {tasks.length} uurcodes ingesteld
+                </span>
+                {hasChanges && (
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    {saving ? "Opslaan..." : "Wijzigingen opslaan"}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-12 text-center">
-          <Users className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-300 mb-1">
-            Selecteer een medewerker
-          </h3>
-          <p className="text-sm text-gray-400 dark:text-slate-500">
-            Kies hierboven een teamlid om hun uurcode budgetten in te stellen
-          </p>
-        </div>
+        <Card>
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Users className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Selecteer een medewerker</p>
+              <p className="text-sm text-slate-500 mt-1">Kies hierboven een teamlid om hun uurcode budgetten in te stellen</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

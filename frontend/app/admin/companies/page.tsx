@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { Company } from "@/lib/types";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   Building2,
   Plus,
@@ -55,7 +57,7 @@ export default function AdminCompaniesPage() {
 
   const loadCompanies = async () => {
     try {
-      const data: any = await getCompanies();
+      const data = await getCompanies();
       let safeData: Company[] = [];
       if (Array.isArray(data)) {
         safeData = data;
@@ -70,7 +72,7 @@ export default function AdminCompaniesPage() {
       }
       setCompanies(safeData);
     } catch (error) {
-      
+
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);
@@ -224,84 +226,44 @@ export default function AdminCompaniesPage() {
   }
 
   return (
-    <div className="space-y-4 md:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {t("admin.companies.title")}
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {t("admin.companies.subtitle")}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={exportCompanies}>
-            <Download className="w-4 h-4 mr-2" />
-            <span className="hidden md:inline">{t("admin.users.export")}</span>
-          </Button>
-          <Button onClick={() => router.push("/admin/companies/create")}>
-            <Plus className="w-4 h-4 mr-2" />
-            <span className="hidden md:inline">{t("admin.companies.createCompany")}</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("admin.companies.title")}
+        description={t("admin.companies.subtitle")}
+        actions={
+          <>
+            <Button variant="outline" onClick={exportCompanies}>
+              <Download className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">{t("admin.users.export")}</span>
+            </Button>
+            <Button onClick={() => router.push("/admin/companies/create")}>
+              <Plus className="w-4 h-4 mr-2" />
+              <span className="hidden md:inline">{t("admin.companies.createCompany")}</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.totalUsers")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.total}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.activeUsers")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {stats.active}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-indigo-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {t("admin.dashboard.totalProjects")}
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {companies.reduce((sum, c) => sum + (c.projectCount || 0), 0)}
-                </p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        <StatCard
+          title={t("admin.dashboard.totalUsers")}
+          value={stats.total}
+          icon={Building2}
+          color="blue"
+        />
+        <StatCard
+          title={t("admin.dashboard.activeUsers")}
+          value={stats.active}
+          icon={Users}
+          color="emerald"
+        />
+        <StatCard
+          title={t("admin.dashboard.totalProjects")}
+          value={companies.reduce((sum, c) => sum + (c.projectCount || 0), 0)}
+          icon={Briefcase}
+          color="indigo"
+        />
       </div>
 
       {/* Filters and Search */}
@@ -375,121 +337,121 @@ export default function AdminCompaniesPage() {
           )}
 
           {/* Companies Table */}
-          <div className="space-y-4">
-            {/* Table Header */}
-            <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-              <Checkbox
-                checked={
-                  selectedCompanies.size ===
-                    filteredAndSortedCompanies.length &&
-                  filteredAndSortedCompanies.length > 0
-                }
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
-                {filteredAndSortedCompanies.length}{" "}
-                {t("admin.companies.company")}
-                {filteredAndSortedCompanies.length !== 1 ? "s" : ""}
-              </span>
+          {filteredAndSortedCompanies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Building2 className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">{t("admin.companies.noCompanies")}</p>
+              <p className="text-sm text-slate-500 mt-1">
+                {searchQuery
+                  ? t("admin.companies.tryFilters")
+                  : t("admin.companies.noCompaniesDesc")}
+              </p>
             </div>
-
-            {/* Companies List */}
-            {filteredAndSortedCompanies.length === 0 ? (
+          ) : (
+            <>
+              {/* Select-all row */}
+              <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                <Checkbox
+                  checked={
+                    selectedCompanies.size === filteredAndSortedCompanies.length &&
+                    filteredAndSortedCompanies.length > 0
+                  }
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
+                  {filteredAndSortedCompanies.length}{" "}
+                  {t("admin.companies.company")}
+                  {filteredAndSortedCompanies.length !== 1 ? "s" : ""}
+                </span>
+              </div>
               <Card>
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Building2 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                    {t("admin.companies.noCompanies")}
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400">
-                    {searchQuery
-                      ? t("admin.companies.tryFilters")
-                      : t("admin.companies.noCompaniesDesc")}
-                  </p>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                          <th className="px-4 py-3 text-left w-10"></th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.name")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("common.email")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("common.phone")}</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.status")}</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        {filteredAndSortedCompanies.map((company) => (
+                          <tr key={company.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={selectedCompanies.has(company.id)}
+                                onCheckedChange={() => handleSelectCompany(company.id)}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                  {(company.name || "C").charAt(0).toUpperCase()}
+                                </div>
+                                <span className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                                  {company.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                              {company.email && (
+                                <div className="flex items-center gap-1">
+                                  <Mail className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">{company.email}</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                              {company.phone && (
+                                <div className="flex items-center gap-1">
+                                  <Phone className="w-4 h-4" />
+                                  <span>{company.phone}</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                                {company.active !== false
+                                  ? t("status.active")
+                                  : t("status.inactive")}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    router.push(`/admin/companies/edit/${company.id}`)
+                                  }
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteCompany(company)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-3">
-                {filteredAndSortedCompanies.map((company) => (
-                  <Card
-                    key={company.id}
-                    className="hover:shadow-md transition-shadow"
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-3 md:gap-4">
-                        <Checkbox
-                          checked={selectedCompanies.has(company.id)}
-                          onCheckedChange={() =>
-                            handleSelectCompany(company.id)
-                          }
-                        />
-
-                        {/* Company Logo/Avatar */}
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
-                          {(company.name || "C").charAt(0).toUpperCase()}
-                        </div>
-
-                        {/* Company Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1">
-                            <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
-                              {company.name}
-                            </h3>
-                            <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                              {company.active !== false
-                                ? t("status.active")
-                                : t("status.inactive")}
-                            </Badge>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-sm text-slate-600 dark:text-slate-400">
-                            {company.email && (
-                              <div className="flex items-center gap-1 truncate">
-                                <Mail className="w-4 h-4 shrink-0" />
-                                <span className="truncate">{company.email}</span>
-                              </div>
-                            )}
-                            {company.phone && (
-                              <div className="hidden md:flex items-center gap-1">
-                                <Phone className="w-4 h-4" />
-                                <span>{company.phone}</span>
-                              </div>
-                            )}
-                            {company.address && (
-                              <div className="hidden md:flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                <span>{company.address}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              router.push(`/admin/companies/edit/${company.id}`)
-                            }
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteCompany(company)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

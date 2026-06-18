@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import {
   Calendar,
   Search,
@@ -111,11 +113,11 @@ export default function AdminVacationPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge className="bg-green-500">Goedgekeurd</Badge>;
+        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Goedgekeurd</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-500">In behandeling</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">In behandeling</Badge>;
       case "rejected":
-        return <Badge className="bg-red-500">Afgekeurd</Badge>;
+        return <Badge className="bg-rose-500/10 text-rose-600 border-rose-500/20">Afgekeurd</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -134,22 +136,27 @@ export default function AdminVacationPage() {
   }
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const approvedCount = requests.filter((r) => r.status === "approved").length;
+  const rejectedCount = requests.filter((r) => r.status === "rejected").length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-          Vakantie Aanvragen
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          {pendingCount} in behandeling
-        </p>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Vakantie Aanvragen"
+        description={`${pendingCount} in behandeling`}
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard title="In Behandeling" value={pendingCount} icon={Calendar} color="amber" />
+        <StatCard title="Goedgekeurd" value={approvedCount} icon={CheckCircle} color="emerald" />
+        <StatCard title="Afgekeurd" value={rejectedCount} icon={XCircle} color="rose" />
       </div>
 
       {successMessage && (
-        <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+        <Card className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800">
           <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
               <CheckCircle className="w-5 h-5" />
               <span>{successMessage}</span>
             </div>
@@ -208,9 +215,14 @@ export default function AdminVacationPage() {
       <div className="space-y-4">
         {filteredRequests.length === 0 ? (
           <Card>
-            <CardContent className="pt-6 pb-6 text-center text-slate-600 dark:text-slate-400">
-              <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>Geen vakantie aanvragen gevonden</p>
+            <CardContent className="p-0">
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                  <AlertCircle className="w-7 h-7 text-slate-400" />
+                </div>
+                <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen aanvragen</p>
+                <p className="text-sm text-slate-500 mt-1">Er zijn geen vakantie aanvragen gevonden voor de huidige filter.</p>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -219,8 +231,8 @@ export default function AdminVacationPage() {
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row items-start justify-between gap-3">
                   <div className="flex items-start gap-3 md:gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                      <User className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                      {request.user?.firstName?.charAt(0)}{request.user?.lastName?.charAt(0)}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">

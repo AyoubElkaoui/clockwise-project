@@ -5,6 +5,8 @@ import { getHolidays } from "@/lib/api/holidaysApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
@@ -140,7 +142,7 @@ export default function ManagerPlanningPage() {
       // Filter vacations for team members only
       const teamIds = team.map((u: any) => u.id || u.medewGcId);
       const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
-      setVacations(vacationsData as VacationRequest[]);
+      setVacations(vacationsData);
 
       // Load holidays and closed days from API
       const currentYear = currentDate.year();
@@ -728,26 +730,20 @@ export default function ManagerPlanningPage() {
 
   if (!loading && teamMembers.length === 0) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Team Planning
-          </h1>
-          <p className="text-slate-700 dark:text-slate-300 mt-1">
-            Overzicht van team uren en beschikbaarheid
-          </p>
-        </div>
+      <div className="space-y-6 animate-fadeIn">
+        <PageHeader
+          title="Team Planning"
+          description="Overzicht van team uren en beschikbaarheid"
+        />
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center py-12">
-              <AlertCircle className="w-16 h-16 text-slate-400 mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                Geen Teamleden Gevonden
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 text-center max-w-md">
-                Er zijn nog geen teamleden aan jou toegewezen. Neem contact op met een administrator om teamleden toe te voegen aan de manager_assignments tabel.
-              </p>
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen Teamleden Gevonden</p>
+              <p className="text-sm text-slate-500 mt-1">Er zijn nog geen teamleden aan jou toegewezen. Neem contact op met een administrator.</p>
+              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg max-w-md">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
                   <strong>Tip:</strong> Teamleden worden toegewezen via de manager_assignments tabel in de database.
                 </p>
@@ -760,50 +756,46 @@ export default function ManagerPlanningPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Team Planning
-          </h1>
-          <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 mt-1">
-            {teamMembers.length} teamleden • Overzicht van uren en beschikbaarheid
-          </p>
-        </div>
-        <div className="flex gap-2 md:gap-3">
-          <Button
-            size="sm"
-            variant={viewMode === "week" ? "default" : "outline"}
-            onClick={() => {
-              setViewMode("week");
-              setCurrentDate(dayjs().startOf("isoWeek"));
-            }}
-          >
-            Week
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === "month" ? "default" : "outline"}
-            onClick={() => {
-              setViewMode("month");
-              setCurrentDate(dayjs().startOf("month"));
-            }}
-          >
-            Maand
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === "year" ? "default" : "outline"}
-            onClick={() => {
-              setViewMode("year");
-              setCurrentDate(dayjs().startOf("year"));
-            }}
-          >
-            Jaar
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Team Planning"
+        description={`${teamMembers.length} teamleden • Overzicht van uren en beschikbaarheid`}
+        actions={
+          <div className="flex gap-2 md:gap-3">
+            <Button
+              size="sm"
+              variant={viewMode === "week" ? "default" : "outline"}
+              onClick={() => {
+                setViewMode("week");
+                setCurrentDate(dayjs().startOf("isoWeek"));
+              }}
+            >
+              Week
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "month" ? "default" : "outline"}
+              onClick={() => {
+                setViewMode("month");
+                setCurrentDate(dayjs().startOf("month"));
+              }}
+            >
+              Maand
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "year" ? "default" : "outline"}
+              onClick={() => {
+                setViewMode("year");
+                setCurrentDate(dayjs().startOf("year"));
+              }}
+            >
+              Jaar
+            </Button>
+          </div>
+        }
+      />
 
       {/* Period Navigation */}
       <Card>
@@ -866,60 +858,25 @@ export default function ManagerPlanningPage() {
       </Card>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Beschikbare Leden
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.availableMembers}/{stats.totalMembers}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Geplande Uren
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.totalPlannedHours.toFixed(1)}u
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-timr-orange-light dark:bg-timr-orange-light/20 flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-timr-orange dark:text-timr-orange" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Gemiddeld per Persoon
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {stats.avgHoursPerPerson.toFixed(1)}u
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+        <StatCard
+          title="Beschikbare Leden"
+          value={`${stats.availableMembers}/${stats.totalMembers}`}
+          icon={Users}
+          color="blue"
+        />
+        <StatCard
+          title="Geplande Uren"
+          value={`${stats.totalPlannedHours.toFixed(1)}u`}
+          icon={Clock}
+          color="emerald"
+        />
+        <StatCard
+          title="Gemiddeld per Persoon"
+          value={`${stats.avgHoursPerPerson.toFixed(1)}u`}
+          icon={UserCheck}
+          color="indigo"
+        />
       </div>
 
       {/* Day Details */}
@@ -1014,8 +971,8 @@ export default function ManagerPlanningPage() {
 
       {/* Calendar View */}
       <Card className="max-w-screen-xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Calendar className="w-5 h-5 text-slate-600" />
             {viewMode === "week" && "Weekoverzicht"}
             {viewMode === "month" && "Maandoverzicht"}

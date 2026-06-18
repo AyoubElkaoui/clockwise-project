@@ -14,6 +14,8 @@ import {
     CheckCircleIcon,
     ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function EditUserPage(): JSX.Element {
     const router = useRouter();
@@ -121,8 +123,8 @@ export default function EditUserPage(): JSX.Element {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
-                    <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
-                    <p className="text-lg font-semibold text-gray-700">Gebruiker laden...</p>
+                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Gebruiker laden...</p>
                 </div>
             </div>
         );
@@ -130,280 +132,251 @@ export default function EditUserPage(): JSX.Element {
 
     if (!user) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="text-center">
-                    <div className="text-6xl mb-4">[X]</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Gebruiker niet gevonden</h2>
-                    <p className="text-gray-600 mb-6">De gebruiker die je zoekt bestaat niet of is verwijderd.</p>
-                    <button
-                        onClick={() => router.push("/admin/users")}
-                        className="btn btn-primary rounded-xl"
-                    >
-                        Terug naar Gebruikers
-                    </button>
+            <div className="flex flex-col items-center justify-center min-h-screen text-center">
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <ExclamationTriangleIcon className="w-7 h-7 text-slate-400" />
                 </div>
+                <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Gebruiker niet gevonden</p>
+                <p className="text-sm text-slate-500 mt-1">De gebruiker die je zoekt bestaat niet of is verwijderd.</p>
+                <button
+                    onClick={() => router.push("/admin/users")}
+                    className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                    Terug naar Gebruikers
+                </button>
             </div>
         );
     }
 
     return (
         <AdminRoute>
-            <div className="space-y-4 md:space-y-8">
-                {/* Header Section */}
-                <div className="bg-blue-600 text-white rounded-2xl p-4 md:p-8 shadow-lg">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <button
-                                    onClick={() => router.push("/admin/users")}
-                                    className="btn btn-ghost text-white hover:bg-white/20 rounded-xl"
-                                >
-                                    <ArrowLeftIcon className="w-5 h-5" />
-                                </button>
-                                <UserCircleIcon className="w-8 h-8" />
-                                <h1 className="text-2xl md:text-4xl font-bold">Gebruiker Bewerken</h1>
-                            </div>
-                            <p className="text-blue-100 text-lg">Bewerk gegevens van {firstName} {lastName}</p>
-                        </div>
-                        <div className="avatar placeholder">
-                            <div className="bg-white/20 backdrop-blur-sm text-white rounded-xl w-16 h-16 flex items-center justify-center">
-                                <span className="text-xl font-bold">
-                                    {firstName.charAt(0)}{lastName.charAt(0)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div className="space-y-6 animate-fadeIn">
+                <PageHeader
+                    title="Gebruiker Bewerken"
+                    description={`Bewerk gegevens van ${firstName} ${lastName}`}
+                    actions={
+                        <button
+                            onClick={() => router.push("/admin/users")}
+                            className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            <ArrowLeftIcon className="w-4 h-4" />
+                            Terug
+                        </button>
+                    }
+                />
 
                 {/* Main Form */}
                 <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-8">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         {/* User Info Card */}
                         <div className="xl:col-span-1">
-                            <div className="card bg-white shadow-lg border-0 rounded-2xl">
-                                <div className="card-body p-4 md:p-8">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                        <UserCircleIcon className="w-6 h-6" />
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <UserCircleIcon className="w-5 h-5" />
                                         Gebruiker Info
-                                    </h2>
-
-                                    <div className="text-center mb-6">
-                                        <div className="avatar placeholder mx-auto mb-4">
-                                            <div className="bg-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center">
-                                                <span className="text-xl font-bold">
-                                                    {firstName.charAt(0)}{lastName.charAt(0)}
-                                                </span>
-                                            </div>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="text-center">
+                                        <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                                            {firstName.charAt(0)}{lastName.charAt(0)}
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-800">{firstName} {lastName}</h3>
-                                        <p className="text-gray-600">{email}</p>
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{firstName} {lastName}</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{email}</p>
                                         <div className="mt-2">
-                                            <span className={`badge ${
-                                                rank === "admin" ? "badge-error" :
-                                                    rank === "manager" ? "badge-warning" : "badge-primary"
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                rank === "admin"
+                                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400"
+                                                    : rank === "manager"
+                                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                                                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
                                             }`}>
                                                 {rank || 'employee'}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="bg-blue-100 rounded-xl p-6">
-                                        <h4 className="font-bold text-gray-800 mb-3">Account Details</h4>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Gebruiker ID:</span>
-                                                <span className="font-medium">{user.id}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Login naam:</span>
-                                                <span className="font-medium">{loginName}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Rol:</span>
-                                                <span className="font-medium">{rank || 'employee'}</span>
-                                            </div>
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-2 text-sm">
+                                        <p className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Account Details</p>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Gebruiker ID:</span>
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{user.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Login naam:</span>
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{loginName}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Rol:</span>
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{rank || 'employee'}</span>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </div>
 
                         {/* Edit Form */}
-                        <div className="xl:col-span-2">
-                            <div className="card bg-white shadow-lg border-0 rounded-2xl">
-                                <div className="card-body p-4 md:p-8">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-8">Gegevens Bewerken</h2>
-
-                                    {/* Personal Info */}
-                                    <div className="mb-4 md:mb-8">
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                            <UserCircleIcon className="w-5 h-5" />
-                                            Persoonlijke Gegevens
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-                                            <div className="form-control">
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Voornaam *</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={firstName}
-                                                    onChange={(e) => setFirstName(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="form-control">
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Achternaam *</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={lastName}
-                                                    onChange={(e) => setLastName(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Contact Info */}
-                                    <div className="mb-4 md:mb-8">
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                            <EnvelopeIcon className="w-5 h-5" />
-                                            Contact Gegevens
-                                        </h3>
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text font-semibold text-gray-700">E-mail *</span>
-                                            </label>
+                        <div className="xl:col-span-2 space-y-6">
+                            {/* Personal Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <UserCircleIcon className="w-5 h-5" />
+                                        Persoonlijke Gegevens
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Voornaam *</label>
                                             <input
-                                                type="email"
-                                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={firstName}
+                                                onChange={(e) => setFirstName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Achternaam *</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
                                                 required
                                             />
                                         </div>
                                     </div>
+                                </CardContent>
+                            </Card>
 
-                                    {/* Address Info */}
-                                    <div className="mb-4 md:mb-8">
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                            <MapPinIcon className="w-5 h-5" />
-                                            Adres Gegevens
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                            <div className="md:col-span-3">
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Adres</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={address}
-                                                    onChange={(e) => setAddress(e.target.value)}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Nr.</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={houseNumber}
-                                                    onChange={(e) => setHouseNumber(e.target.value)}
-                                                />
-                                            </div>
+                            {/* Contact Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <EnvelopeIcon className="w-5 h-5" />
+                                        Contact Gegevens
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">E-mail *</label>
+                                        <input
+                                            type="email"
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Address Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <MapPinIcon className="w-5 h-5" />
+                                        Adres Gegevens
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="md:col-span-3 space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Adres</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={address}
+                                                onChange={(e) => setAddress(e.target.value)}
+                                            />
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Postcode</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={postalCode}
-                                                    onChange={(e) => setPostalCode(e.target.value)}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Plaats</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={city}
-                                                    onChange={(e) => setCity(e.target.value)}
-                                                />
-                                            </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nr.</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={houseNumber}
+                                                onChange={(e) => setHouseNumber(e.target.value)}
+                                            />
                                         </div>
                                     </div>
-
-                                    {/* Login Info */}
-                                    <div className="mb-4 md:mb-8">
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                            <KeyIcon className="w-5 h-5" />
-                                            Login & Beveiliging
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-                                            <div className="form-control">
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Inlognaam *</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={loginName}
-                                                    onChange={(e) => setLoginName(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="form-control">
-                                                <label className="label">
-                                                    <span className="label-text font-semibold text-gray-700">Gebruikersrol *</span>
-                                                </label>
-                                                <select
-                                                    className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                    value={rank}
-                                                    onChange={(e) => setRank(e.target.value)}
-                                                    required
-                                                >
-                                                    <option value="employee">Medewerker</option>
-                                                    <option value="manager">Manager</option>
-                                                    <option value="admin">Administrator</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="form-control mt-4">
-                                            <label className="label">
-                                                <span className="label-text font-semibold text-gray-700">Nieuw wachtwoord</span>
-                                            </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Postcode</label>
                                             <input
-                                                type="password"
-                                                className="input input-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                                value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                placeholder="Laat leeg om ongewijzigd te laten"
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={postalCode}
+                                                onChange={(e) => setPostalCode(e.target.value)}
                                             />
-                                            <label className="label">
-                                                <span className="label-text-alt text-gray-500">
-                                                    Alleen invullen als je het wachtwoord wilt wijzigen
-                                                </span>
-                                            </label>
                                         </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Plaats</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={city}
+                                                onChange={(e) => setCity(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Login Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <KeyIcon className="w-5 h-5" />
+                                        Login &amp; Beveiliging
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Inlognaam *</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={loginName}
+                                                onChange={(e) => setLoginName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gebruikersrol *</label>
+                                            <select
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={rank}
+                                                onChange={(e) => setRank(e.target.value)}
+                                                required
+                                            >
+                                                <option value="employee">Medewerker</option>
+                                                <option value="manager">Manager</option>
+                                                <option value="admin">Administrator</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nieuw wachtwoord</label>
+                                        <input
+                                            type="password"
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Laat leeg om ongewijzigd te laten"
+                                        />
+                                        <p className="text-xs text-slate-500">Alleen invullen als je het wachtwoord wilt wijzigen</p>
                                     </div>
 
                                     {/* Submit Buttons */}
-                                    <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+                                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                                         <button
                                             type="button"
-                                            className="btn btn-outline rounded-xl"
+                                            className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                                             onClick={() => router.push("/admin/users")}
                                             disabled={isSubmitting}
                                         >
@@ -411,24 +384,24 @@ export default function EditUserPage(): JSX.Element {
                                         </button>
                                         <button
                                             type="submit"
-                                            className="btn bg-blue-600 border-0 text-white rounded-xl hover:shadow-xl disabled:opacity-50 disabled:transform-none"
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
                                             disabled={isSubmitting}
                                         >
                                             {isSubmitting ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="loading loading-spinner loading-sm"></span>
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                                     Opslaan...
-                                                </div>
+                                                </>
                                             ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircleIcon className="w-5 h-5" />
+                                                <>
+                                                    <CheckCircleIcon className="w-4 h-4" />
                                                     Wijzigingen Opslaan
-                                                </div>
+                                                </>
                                             )}
                                         </button>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
                 </form>

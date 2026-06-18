@@ -196,7 +196,7 @@ export default function AccountPage() {
       <ProtectedRoute>
         <ModernLayout>
           <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-12 h-12 animate-spin text-timr-orange" />
+            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
           </div>
         </ModernLayout>
       </ProtectedRoute>

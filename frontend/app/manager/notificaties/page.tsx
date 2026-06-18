@@ -12,6 +12,8 @@ import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import { API_URL } from "@/lib/api";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
@@ -165,102 +167,68 @@ export default function ManagerNotificatiesPage() {
   const getNotificationColor = (type: string) => {
     switch (type.toLowerCase()) {
       case "workflow":
-        return "text-timr-orange dark:text-timr-orange";
+        return "text-amber-600 dark:text-amber-600";
       case "approval":
         return "text-green-600 dark:text-green-400";
       case "rejection":
         return "text-red-600 dark:text-red-400";
       case "vacation":
-        return "text-timr-blue dark:text-timr-blue";
+        return "text-blue-600 dark:text-blue-600";
       default:
         return "text-slate-600 dark:text-slate-400";
     }
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 p-3 md:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Notificaties
-          </h1>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-            Team notificaties en updates
-            {unreadCount > 0 && ` • ${unreadCount} ongelezen`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Users className="w-4 h-4" />
-            <span>Team overzicht</span>
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleMarkAllRead}
-            disabled={unreadCount === 0}
-          >
-            <Check className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Alles Gelezen</span>
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Notificaties"
+        description={`Team notificaties en updates${unreadCount > 0 ? ` • ${unreadCount} ongelezen` : ""}`}
+        actions={
+          <>
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <Users className="w-4 h-4" />
+              <span>Team overzicht</span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={unreadCount === 0}
+            >
+              <Check className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Alles Gelezen</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
-        <Card className="border-l-4 border-l-timr-orange">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Totaal
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {loading ? "..." : notifications.length}
-                </p>
-              </div>
-              <Bell className="w-8 h-8 text-timr-orange dark:text-timr-orange" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-timr-orange">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Ongelezen
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {loading ? "..." : unreadCount}
-                </p>
-              </div>
-              <Bell className="w-8 h-8 text-timr-orange dark:text-timr-orange" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Gelezen
-                </p>
-                <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">
-                  {loading ? "..." : readCount}
-                </p>
-              </div>
-              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Totaal"
+          value={loading ? "..." : notifications.length}
+          icon={Bell}
+          color="amber"
+        />
+        <StatCard
+          title="Ongelezen"
+          value={loading ? "..." : unreadCount}
+          icon={Bell}
+          color="amber"
+        />
+        <StatCard
+          title="Gelezen"
+          value={loading ? "..." : readCount}
+          icon={Check}
+          color="emerald"
+        />
       </div>
 
       {/* Notifications List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 pb-8">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Bell className="w-5 h-5" />
             Team Notificaties
           </CardTitle>
@@ -268,20 +236,18 @@ export default function ManagerNotificatiesPage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center pt-8 py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-timr-orange" />
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
               <span className="ml-2 text-slate-600 dark:text-slate-400">
                 Notificaties laden...
               </span>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                Geen notificaties
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                Er zijn nog geen team notificaties
-              </p>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Bell className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen notificaties</p>
+              <p className="text-sm text-slate-500 mt-1">Er zijn nog geen team notificaties</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -290,7 +256,7 @@ export default function ManagerNotificatiesPage() {
                   key={notification.id}
                   className={`transition-all duration-200 hover:shadow-md ${
                     !notification.read
-                      ? "bg-timr-orange-light/30 dark:bg-timr-orange-light/10 border-timr-orange dark:border-timr-orange"
+                      ? "bg-amber-50/30 dark:bg-amber-50/10 border-amber-400 dark:border-amber-400"
                       : "bg-slate-50/50 dark:bg-slate-800/50"
                   }`}
                 >
