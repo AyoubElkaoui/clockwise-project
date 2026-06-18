@@ -8,6 +8,15 @@ public class PostgreSQLUserRepository
     private readonly PostgreSQLConnectionFactory _connectionFactory;
     private readonly ILogger<PostgreSQLUserRepository> _logger;
 
+    private const string TwoFAColumns = @"
+        id AS Id, email AS Email,
+        two_factor_enabled AS TwoFactorEnabled,
+        two_factor_method AS TwoFactorMethod,
+        two_factor_secret AS TwoFactorSecret,
+        two_factor_email_code AS TwoFactorEmailCode,
+        two_factor_code_expires_at AS TwoFactorCodeExpiresAt,
+        two_factor_backup_codes AS TwoFactorBackupCodes";
+
     public PostgreSQLUserRepository(
         PostgreSQLConnectionFactory connectionFactory,
         ILogger<PostgreSQLUserRepository> logger)
@@ -109,6 +118,55 @@ public class PostgreSQLUserRepository
         {
             _logger.LogError(ex, "Error updating last login for user: {Id}", id);
             throw;
+        }
+    }
+
+    public async Task<ClockwiseProject.Domain.User?> GetFor2FAAsync(int id)
+    {
+        var sql = $"SELECT {TwoFAColumns} FROM users WHERE id = @id";
+        try
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            return await connection.QueryFirstOrDefaultAsync<ClockwiseProject.Domain.User>(sql, new { id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching 2FA data for user {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task UpdateEmailCodeAsync(int id, string code, DateTime expiresAt)
+    {
+        const string sql = @"
+            UPDATE users
+            SET two_factor_email_code = @code,
+                two_factor_code_expires_at = @expiresAt
+            WHERE id = @id";
+        try
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            await connection.ExecuteAsync(sql, new { id, code, expiresAt });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating email code for user {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<string?> GetSystemSettingAsync(string key)
+    {
+        const string sql = "SELECT value FROM system_settings WHERE key = @key";
+        try
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            return await connection.ExecuteScalarAsync<string>(sql, new { key });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching system setting {Key}", key);
+            return null;
         }
     }
 
