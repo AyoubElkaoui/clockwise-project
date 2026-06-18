@@ -9,22 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // timr. brand colors
+        primary: {
+          DEFAULT: "var(--color-primary)",
+          hover: "var(--color-primary-hover)",
+          light: "var(--color-primary-light)",
+          dark: "var(--color-primary-dark)",
+        },
+        // timr.* aliases remapped to brand blue — keeps existing pages working
         timr: {
-          orange: '#FF6B35',
-          'orange-hover': '#E55A28',
-          'orange-light': '#FFE5DD',
-          'orange-dark': '#D14A1E',
-          blue: '#00A8E8',
-          'blue-hover': '#0091CC',
-          'blue-light': '#CCF0FF',
-          'blue-dark': '#006B94',
-          yellow: '#FFC857',
-          'yellow-hover': '#E5B34F',
-          'yellow-light': '#FFF4D6',
-          'yellow-dark': '#CC9F45',
-          dark: '#1A1A2E',
-          success: '#10B981',
+          orange:           "#2563EB",
+          "orange-hover":   "#1D4ED8",
+          "orange-light":   "#DBEAFE",
+          "orange-dark":    "#1E40AF",
+          blue:             "#2563EB",
+          "blue-hover":     "#1D4ED8",
+          "blue-light":     "#DBEAFE",
+          "blue-dark":      "#1E40AF",
+          yellow:           "#F59E0B",
+          "yellow-hover":   "#D97706",
+          "yellow-light":   "#FEF3C7",
+          "yellow-dark":    "#B45309",
+          dark:             "#0F172A",
+          success:          "#10B981",
         },
       },
     },

@@ -482,7 +482,7 @@ export default function Navbar(): JSX.Element {
           >
             <div
               className="
-                bg-[#3563E9] dark:bg-[#3563E9]
+                bg-[#2563EB] dark:bg-[#2563EB]
                 text-white
                 rounded-full w-10 h-10 flex items-center justify-center
               "
