@@ -173,7 +173,7 @@ export function ModernSidebar({
     if (userRank === "admin") {
       items = [...adminMenuItems, ...getWerknemerMenuItems(t)];
     } else if (userRank === "manager") {
-      items = [...managerMenuItems, ...getWerknemerMenuItems(t)];
+      items = [...managerMenuItems];
     }
 
     const uniqueItems = items.filter(
