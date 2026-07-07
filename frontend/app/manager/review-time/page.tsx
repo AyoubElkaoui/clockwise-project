@@ -11,18 +11,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import authUtils from "@/lib/auth-utils";
 import {
   CheckCircle,
   XCircle,
   Search,
-  Calendar,
   Clock,
   User,
   FileText,
   AlertCircle,
-  Filter,
-  X,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/nl";
@@ -57,6 +55,9 @@ export default function ManagerReviewTimePage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [processing, setProcessing] = useState(false);
   const [currentPeriod, setCurrentPeriod] = useState<number | null>(null);
+
+  // New: tab state
+  const [activeTab, setActiveTab] = useState<"wachtend" | "goedgekeurd" | "afgewezen">("wachtend");
 
   useEffect(() => {
     const initializePage = async () => {
@@ -244,6 +245,25 @@ export default function ManagerReviewTimePage() {
     return entries.reduce((sum, e) => sum + e.aantal, 0);
   };
 
+  // New: approve all visible entries
+  const handleApproveAll = () => {
+    if (filteredEntries.length === 0) return;
+    setSelectedEntries(new Set(filteredEntries.map((e) => e.id)));
+    setShowApproveModal(true);
+  };
+
+  // New: single-row approve
+  const handleSingleApprove = (id: number) => {
+    setSelectedEntries(new Set([id]));
+    setShowApproveModal(true);
+  };
+
+  // New: single-row reject
+  const handleSingleReject = (id: number) => {
+    setSelectedEntries(new Set([id]));
+    setShowRejectModal(true);
+  };
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -254,65 +274,117 @@ export default function ManagerReviewTimePage() {
     filteredEntries.filter((e) => selectedEntries.has(e.id))
   );
 
+  // Tab-filtered view
+  const tabFilteredEntries = filteredEntries.filter((e) => {
+    if (activeTab === "goedgekeurd") return e.status === "goedgekeurd";
+    if (activeTab === "afgewezen") return e.status === "afgewezen";
+    return e.status !== "goedgekeurd" && e.status !== "afgewezen";
+  });
+
+  const tabCounts = {
+    wachtend: entries.filter((e) => e.status !== "goedgekeurd" && e.status !== "afgewezen").length,
+    goedgekeurd: entries.filter((e) => e.status === "goedgekeurd").length,
+    afgewezen: entries.filter((e) => e.status === "afgewezen").length,
+  };
+
+  const allTabSelected =
+    tabFilteredEntries.length > 0 &&
+    tabFilteredEntries.every((e) => selectedEntries.has(e.id));
+  const someTabSelected =
+    tabFilteredEntries.some((e) => selectedEntries.has(e.id));
+
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="p-6 space-y-6 animate-fadeIn">
       <PageHeader
         title="Uren Beoordelen"
-        description="Beoordeel en keur uren goed van je teamleden"
+        description={`${entries.length} wachtend op beoordeling`}
         actions={
-          <>
-            <Button
-              size="sm"
-              onClick={handleApprove}
-              disabled={selectedEntries.size === 0 || processing}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              <CheckCircle className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Goedkeuren</span> ({selectedEntries.size})
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleRejectClick}
-              disabled={selectedEntries.size === 0 || processing}
-              variant="destructive"
-            >
-              <XCircle className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Afkeuren</span> ({selectedEntries.size})
-            </Button>
-          </>
+          <Button
+            size="sm"
+            onClick={handleApproveAll}
+            disabled={filteredEntries.length === 0 || processing}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Alles goedkeuren
+          </Button>
         }
       />
 
-      {/* Snelle Filters */}
+      {/* Stats row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Wachtend"
+          value={entries.length}
+          icon={Clock}
+          color="amber"
+        />
+        <StatCard
+          title="Medewerkers"
+          value={getUniqueEmployees().length}
+          icon={User}
+          color="blue"
+        />
+        <StatCard
+          title="Totaal uren"
+          value={`${totalHours.toFixed(1)}u`}
+          icon={FileText}
+          color="indigo"
+        />
+        <StatCard
+          title="Geselecteerd"
+          value={selectedEntries.size}
+          icon={CheckCircle}
+          color="emerald"
+        />
+      </div>
+
+      {/* Main card */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Snelle Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input
-                  type="text"
-                  placeholder="Zoek op naam, taak, project of omschrijving..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex flex-col gap-3">
+
+            {/* Filter tabs */}
+            <div className="flex items-center gap-1 border-b border-slate-100 dark:border-slate-700 -mx-6 px-6 pb-3">
+              {(["wachtend", "goedgekeurd", "afgewezen"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === tab
+                      ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  <span
+                    className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+                      activeTab === tab
+                        ? "bg-white/20 dark:bg-slate-900/20"
+                        : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    {tabCounts[tab]}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            {/* Employee Filter */}
-            <div>
+            {/* Filter bar */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  className="pl-9 h-9"
+                  placeholder="Zoeken op naam, taak, project..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
               <select
                 value={selectedEmployee}
                 onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
               >
                 <option value="all">Alle medewerkers</option>
                 {getUniqueEmployees().map(([id, name]) => (
@@ -322,149 +394,219 @@ export default function ManagerReviewTimePage() {
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* Stats */}
-          <div className="mt-4 flex flex-wrap items-center gap-3 md:gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-slate-900 dark:text-slate-100 font-medium">
-                {groupedEntries.length} medewerker(s)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              <span className="text-slate-900 dark:text-slate-100 font-medium">
-                {totalHours.toFixed(1)}u totaal
-              </span>
-            </div>
+            {/* Bulk action bar */}
             {selectedEntries.size > 0 && (
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span className="text-emerald-600 font-medium">
-                  {selectedHours.toFixed(1)}u geselecteerd
+              <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {selectedEntries.size} geselecteerd
+                  {selectedHours > 0 && (
+                    <span className="ml-1 font-normal text-blue-500 dark:text-blue-400">
+                      ({selectedHours.toFixed(1)}u)
+                    </span>
+                  )}
                 </span>
+                <span className="text-blue-300 dark:text-blue-600">—</span>
+                <Button
+                  size="sm"
+                  onClick={handleApprove}
+                  disabled={processing}
+                  className="h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-xs"
+                >
+                  <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                  Alles goedkeuren
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleRejectClick}
+                  disabled={processing}
+                  className="h-7 px-3 text-xs"
+                >
+                  <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                  Alles afwijzen
+                </Button>
+                <button
+                  onClick={() => setSelectedEntries(new Set())}
+                  className="ml-auto text-xs text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-200 transition-colors"
+                >
+                  Deselecteer
+                </button>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </CardHeader>
 
-      {/* Entries Grouped by Employee */}
-      {groupedEntries.length === 0 ? (
-        <Card>
-          <CardContent className="p-0">
+        <CardContent className="p-0">
+          {tabFilteredEntries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                <AlertCircle className="w-7 h-7 text-slate-400" />
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-6 h-6 text-slate-400" />
               </div>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen ingediende uren</p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                {activeTab === "wachtend" ? "Geen wachtende uren" : activeTab === "goedgekeurd" ? "Geen goedgekeurde uren" : "Geen afgewezen uren"}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
                 {entries.length === 0
                   ? "Er zijn momenteel geen uren om te beoordelen."
                   : "Geen resultaten gevonden met de huidige filters."}
               </p>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        groupedEntries.map(([employeeName, employeeEntries]) => {
-          const employeeHours = calculateTotalHours(employeeEntries);
-          const allSelected = employeeEntries.every((e) => selectedEntries.has(e.id));
-          const someSelected = employeeEntries.some((e) => selectedEntries.has(e.id));
-
-          return (
-            <Card key={employeeName}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = someSelected && !allSelected;
-                      }}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        employeeEntries.forEach((entry) => {
-                          handleSelectEntry(entry.id, checked);
-                        });
-                      }}
-                      className="w-5 h-5 rounded border-slate-300 dark:border-slate-600"
-                    />
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                        {employeeName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .substring(0, 2)}
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-semibold">{employeeName}</CardTitle>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          {employeeEntries.length} registratie(s) • {employeeHours.toFixed(1)}u
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {employeeEntries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="flex items-start gap-3 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
-                    >
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 w-10">
                       <input
                         type="checkbox"
-                        checked={selectedEntries.has(entry.id)}
-                        onChange={(e) => handleSelectEntry(entry.id, e.target.checked)}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+                        checked={allTabSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someTabSelected && !allTabSelected;
+                        }}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          const newSelected = new Set(selectedEntries);
+                          tabFilteredEntries.forEach((entry) => {
+                            if (checked) newSelected.add(entry.id);
+                            else newSelected.delete(entry.id);
+                          });
+                          setSelectedEntries(newSelected);
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                              <span className="font-medium text-slate-900 dark:text-slate-100">
-                                {dayjs(entry.datum).format("DD MMM YYYY")}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                              <FileText className="w-4 h-4" />
-                              <span>
-                                {entry.taakDescription || entry.taakCode}
-                                {entry.werkDescription && ` • ${entry.werkDescription}`}
-                              </span>
-                            </div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Medewerker
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Datum
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Project / Taak
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Uren
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Notities
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Acties
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {tabFilteredEntries.map((entry) => (
+                    <tr
+                      key={entry.id}
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${
+                        selectedEntries.has(entry.id)
+                          ? "bg-blue-50/50 dark:bg-blue-900/10"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.has(entry.id)}
+                          onChange={(e) => handleSelectEntry(entry.id, e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            {(entry.employeeName || "?")
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase()}
                           </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-blue-600">
-                              {entry.aantal.toFixed(1)}u
-                            </div>
-                            {entry.submittedAt && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400">
-                                Ingediend {dayjs(entry.submittedAt).format("DD/MM HH:mm")}
-                              </div>
-                            )}
-                          </div>
+                          <span className="text-slate-900 dark:text-slate-100 font-medium">
+                            {entry.employeeName || "Onbekend"}
+                          </span>
                         </div>
-                        {entry.omschrijving && (
-                          <div className="mt-2 text-sm text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-700">
-                            {entry.omschrijving}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        {dayjs(entry.datum).format("DD MMM YYYY")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-slate-900 dark:text-slate-100">
+                          {entry.taakDescription || entry.taakCode || "—"}
+                        </div>
+                        {entry.werkDescription && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {entry.werkDescription}
                           </div>
                         )}
-                      </div>
-                    </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                          {entry.aantal.toFixed(1)}u
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 max-w-[200px]">
+                        {entry.omschrijving ? (
+                          <span
+                            className="text-slate-600 dark:text-slate-400 truncate block"
+                            title={entry.omschrijving}
+                          >
+                            {entry.omschrijving.length > 50
+                              ? entry.omschrijving.substring(0, 50) + "…"
+                              : entry.omschrijving}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entry.status === "goedgekeurd" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            Goedgekeurd
+                          </span>
+                        ) : entry.status === "afgewezen" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            Afgewezen
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            In behandeling
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleSingleApprove(entry.id)}
+                            disabled={processing}
+                            title="Goedkeuren"
+                            className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 transition-colors"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleSingleReject(entry.id)}
+                            disabled={processing}
+                            title="Afwijzen"
+                            className="p-1.5 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 transition-colors"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })
-      )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Reject Modal */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>

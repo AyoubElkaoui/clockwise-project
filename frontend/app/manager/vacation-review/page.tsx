@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { showToast } from "@/components/ui/toast";
@@ -15,12 +14,8 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  Calendar,
   Clock,
-  User,
-  FileText,
   AlertCircle,
-  Filter,
   CalendarDays,
 } from "lucide-react";
 import dayjs from "dayjs";
@@ -102,7 +97,6 @@ export default function ManagerVacationReviewPage() {
   const applyFilters = () => {
     let filtered = [...requests];
 
-    // Status filter
     if (statusFilter !== "ALL") {
       filtered = filtered.filter((r) =>
         r.status?.toUpperCase() === statusFilter ||
@@ -110,7 +104,6 @@ export default function ManagerVacationReviewPage() {
       );
     }
 
-    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -155,7 +148,9 @@ export default function ManagerVacationReviewPage() {
         throw new Error("Kan vakantie aanvraag niet goedkeuren");
       }
 
-      const userName = selectedRequest.user ? `${selectedRequest.user.firstName} ${selectedRequest.user.lastName}` : "Medewerker";
+      const userName = selectedRequest.user
+        ? `${selectedRequest.user.firstName} ${selectedRequest.user.lastName}`
+        : "Medewerker";
       showToast(`✓ Vakantie aanvraag van ${userName} goedgekeurd en verwerkt in Firebird`, "success");
       setSelectedRequest(null);
       await loadVacationRequests();
@@ -201,7 +196,9 @@ export default function ManagerVacationReviewPage() {
         throw new Error("Kan vakantie aanvraag niet afkeuren");
       }
 
-      const userName = selectedRequest.user ? `${selectedRequest.user.firstName} ${selectedRequest.user.lastName}` : "Medewerker";
+      const userName = selectedRequest.user
+        ? `${selectedRequest.user.firstName} ${selectedRequest.user.lastName}`
+        : "Medewerker";
       showToast(`✓ Vakantie aanvraag van ${userName} afgekeurd. ${userName} krijgt een notificatie.`, "success");
       setShowRejectModal(false);
       setRejectionComment("");
@@ -220,28 +217,32 @@ export default function ManagerVacationReviewPage() {
     switch (upperStatus) {
       case "APPROVED":
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
-            <CheckCircle className="w-3 h-3 mr-1" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <CheckCircle className="w-3 h-3" />
             Goedgekeurd
-          </Badge>
+          </span>
         );
       case "REJECTED":
         return (
-          <Badge className="bg-red-50 text-red-700 border-red-200">
-            <XCircle className="w-3 h-3 mr-1" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            <XCircle className="w-3 h-3" />
             Afgekeurd
-          </Badge>
+          </span>
         );
       case "SUBMITTED":
       case "PENDING":
         return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200">
-            <Clock className="w-3 h-3 mr-1" />
-            In Behandeling
-          </Badge>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            <Clock className="w-3 h-3" />
+            In behandeling
+          </span>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -282,202 +283,256 @@ export default function ManagerVacationReviewPage() {
   const stats = calculateStats();
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="p-6 space-y-6 animate-fadeIn">
+      {/* Page Header */}
       <PageHeader
-        title="Vakantie Aanvragen Beoordelen"
-        description="Beoordeel en verwerk vakantie aanvragen van je team"
+        title="Verlofaanvragen"
+        description="Beoordeel en verwerk verlofaanvragen van je team"
+        actions={
+          stats.pending > 0 ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <Clock className="w-3 h-3" />
+              {stats.pending} wachtend
+            </span>
+          ) : undefined
+        }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={Clock}
           title="Te Behandelen"
           value={stats.pending}
-          subtitle={`${stats.pendingDays} dagen`}
+          icon={Clock}
           color="amber"
+          subtitle={`${stats.pendingDays} dagen`}
         />
         <StatCard
-          icon={CheckCircle}
           title="Goedgekeurd"
           value={stats.approved}
+          icon={CheckCircle}
           color="emerald"
         />
         <StatCard
-          icon={XCircle}
           title="Afgekeurd"
           value={stats.rejected}
+          icon={XCircle}
           color="rose"
         />
         <StatCard
-          icon={CalendarDays}
           title="Totaal Aanvragen"
           value={stats.total}
+          icon={CalendarDays}
           color="blue"
         />
       </div>
 
-      {/* Filters */}
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            className="pl-9 h-9"
+            placeholder="Zoeken op naam of notities..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+        >
+          <option value="SUBMITTED">Wachtend</option>
+          <option value="APPROVED">Goedgekeurd</option>
+          <option value="REJECTED">Afgekeurd</option>
+          <option value="ALL">Alle statussen</option>
+        </select>
+      </div>
+
+      {/* Requests Table */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search */}
-            <div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input
-                  type="text"
-                  placeholder="Zoek op naam of notities..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-              >
-                <option value="SUBMITTED">Te behandelen</option>
-                <option value="APPROVED">Goedgekeurd</option>
-                <option value="REJECTED">Afgekeurd</option>
-                <option value="ALL">Alle statussen</option>
-              </select>
-            </div>
+        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-slate-400" />
+              Aanvragen ({filteredRequests.length})
+            </CardTitle>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Vacation Requests */}
-      {filteredRequests.length === 0 ? (
-        <Card>
-          <CardContent className="p-0">
+        </CardHeader>
+        <CardContent className="p-0">
+          {filteredRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                <AlertCircle className="w-7 h-7 text-slate-400" />
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-6 h-6 text-slate-400" />
               </div>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen vakantie aanvragen</p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen aanvragen</p>
+              <p className="text-xs text-slate-500 mt-1">
                 {requests.length === 0
-                  ? "Er zijn momenteel geen vakantie aanvragen."
+                  ? "Er zijn momenteel geen verlofaanvragen."
                   : "Geen resultaten gevonden met de huidige filters."}
               </p>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredRequests.map((request) => (
-            <Card key={request.id}>
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 md:gap-4">
-                  <div className="flex items-start gap-3 md:gap-4 flex-1">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {request.user?.firstName?.charAt(0) || "U"}
-                      {request.user?.lastName?.charAt(0) || ""}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                          {request.user?.firstName} {request.user?.lastName}
-                        </h3>
-                        {getStatusBadge(request.status)}
-                      </div>
-                      <div className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {dayjs(request.startDate).format("DD MMM YYYY")} -{" "}
-                            {dayjs(request.endDate).format("DD MMM YYYY")}
-                          </span>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Medewerker
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Aangevraagd
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Periode
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Dagen
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Reden
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Acties
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {filteredRequests.map((request) => (
+                    <tr
+                      key={request.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      {/* Medewerker */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            {request.user?.firstName?.charAt(0) || "U"}
+                            {request.user?.lastName?.charAt(0) || ""}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                              {request.user?.firstName} {request.user?.lastName}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate max-w-[160px]">
+                              {request.user?.email}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="w-4 h-4" />
-                          <span>
-                            {request.totalDays} dag(en) • {getVacationType(request.vacationType)}
-                          </span>
-                        </div>
-                        {request.notes && (
-                          <div className="flex items-start gap-2 mt-2">
-                            <FileText className="w-4 h-4 mt-0.5" />
-                            <span className="text-slate-700 dark:text-slate-300">
-                              {request.notes}
-                            </span>
+                      </td>
+
+                      {/* Aangevraagd */}
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        {request.createdAt
+                          ? dayjs(request.createdAt).format("DD MMM YYYY")
+                          : "—"}
+                      </td>
+
+                      {/* Periode */}
+                      <td className="px-4 py-3 text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                        {dayjs(request.startDate).format("DD MMM")} –{" "}
+                        {dayjs(request.endDate).format("DD MMM YYYY")}
+                      </td>
+
+                      {/* Dagen */}
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-slate-900 dark:text-slate-100">
+                          {request.totalDays}
+                        </span>
+                      </td>
+
+                      {/* Type */}
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                        {getVacationType(request.vacationType)}
+                      </td>
+
+                      {/* Reden */}
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                        <span
+                          className="block truncate max-w-[180px]"
+                          title={request.notes || undefined}
+                        >
+                          {request.notes || "—"}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
+
+                      {/* Acties */}
+                      <td className="px-4 py-3">
+                        {(request.status?.toUpperCase() === "SUBMITTED" ||
+                          request.status?.toUpperCase() === "PENDING") && (
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(request)}
+                              disabled={processing}
+                              className="h-7 px-2 text-xs bg-emerald-600 hover:bg-emerald-700"
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Goedkeuren
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleRejectClick(request)}
+                              disabled={processing}
+                              variant="destructive"
+                              className="h-7 px-2 text-xs"
+                            >
+                              <XCircle className="w-3 h-3 mr-1" />
+                              Afkeuren
+                            </Button>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  {(request.status?.toUpperCase() === "SUBMITTED" ||
-                    request.status?.toUpperCase() === "PENDING") && (
-                    <div className="flex gap-2 w-full sm:w-auto">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApprove(request)}
-                        disabled={processing}
-                        className="bg-emerald-600 hover:bg-emerald-700 flex-1 sm:flex-none"
-                      >
-                        <CheckCircle className="w-4 h-4 md:mr-2" />
-                        <span className="hidden md:inline">Goedkeuren</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleRejectClick(request)}
-                        disabled={processing}
-                        variant="destructive"
-                        className="flex-1 sm:flex-none"
-                      >
-                        <XCircle className="w-4 h-4 md:mr-2" />
-                        <span className="hidden md:inline">Afkeuren</span>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Reject Modal */}
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Vakantie Aanvraag Afkeuren</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-5 h-5" />
+              Verlofaanvraag Afkeuren
+            </DialogTitle>
             <DialogDescription>
-              Je staat op het punt om deze vakantie aanvraag af te keuren.
-              Geef een reden op zodat de medewerker weet waarom.
+              Je staat op het punt om deze verlofaanvraag af te keuren. Geef een reden
+              op zodat de medewerker weet waarom.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
-              Reden voor afwijzing *
+              Reden voor afwijzing <span className="text-red-500">*</span>
             </label>
             <textarea
               value={rejectionComment}
               onChange={(e) => setRejectionComment(e.target.value)}
               placeholder="bijv. Overlapping met andere afwezigheid, te drukke periode, etc."
               rows={4}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+              className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+            <Button variant="outline" size="sm" onClick={() => setShowRejectModal(false)}>
               Annuleren
             </Button>
             <Button
+              size="sm"
               variant="destructive"
               onClick={handleRejectConfirm}
               disabled={!rejectionComment.trim() || processing}
@@ -495,45 +550,55 @@ export default function ManagerVacationReviewPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-600">
               <CheckCircle className="w-5 h-5" />
-              Vakantie Goedkeuren
+              Verlof Goedkeuren
             </DialogTitle>
             <DialogDescription>
-              Je staat op het punt om deze vakantie aanvraag goed te keuren en te verwerken.
+              Je staat op het punt om deze verlofaanvraag goed te keuren en te verwerken.
             </DialogDescription>
           </DialogHeader>
           {selectedRequest && (
             <div className="py-4 space-y-4">
-              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2 text-sm">
-                <p>
-                  <strong>Medewerker:</strong> {selectedRequest.user?.firstName} {selectedRequest.user?.lastName}
-                </p>
-                <p>
-                  <strong>Periode:</strong> {dayjs(selectedRequest.startDate).format("DD MMMM YYYY")} - {dayjs(selectedRequest.endDate).format("DD MMMM YYYY")}
-                </p>
-                <p>
-                  <strong>Type:</strong> {selectedRequest.vacationType}
-                </p>
-                <p>
-                  <strong>Werkdagen:</strong> {selectedRequest.totalDays} dagen
-                </p>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Medewerker</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {selectedRequest.user?.firstName} {selectedRequest.user?.lastName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Periode</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {dayjs(selectedRequest.startDate).format("DD MMM YYYY")} –{" "}
+                    {dayjs(selectedRequest.endDate).format("DD MMM YYYY")}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Type</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {getVacationType(selectedRequest.vacationType)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Werkdagen</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {selectedRequest.totalDays} dagen
+                  </span>
+                </div>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
                 <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                  <strong>Let op:</strong> Goedgekeurde vakantie wordt:
-                  <ul className="list-disc list-inside mt-2 space-y-1 ml-2">
-                    <li>Automatisch verwerkt in Firebird</li>
-                    <li>Zichtbaar in de planning</li>
-                    <li>Afgetrokken van het saldo</li>
-                  </ul>
+                  <strong>Let op:</strong> Goedgekeurd verlof wordt automatisch verwerkt
+                  in Firebird, zichtbaar in de planning en afgetrokken van het saldo.
                 </p>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApproveModal(false)}>
+            <Button variant="outline" size="sm" onClick={() => setShowApproveModal(false)}>
               Annuleren
             </Button>
             <Button
+              size="sm"
               onClick={handleApproveConfirm}
               disabled={processing}
               className="bg-emerald-600 hover:bg-emerald-700"

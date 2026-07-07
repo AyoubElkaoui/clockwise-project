@@ -18,22 +18,18 @@ import {
   Users,
   UserCheck,
   Clock,
-  TrendingUp,
-  TrendingDown,
   Mail,
-  Phone,
-  Calendar,
   Activity,
   ArrowUpRight,
   ArrowDownRight,
   Target,
-  Briefcase,
   Edit,
   Power,
   PowerOff,
   Save,
   X,
   Search,
+  Eye,
 } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -72,7 +68,7 @@ export default function ManagerTeamPage() {
     try {
       const managerId = authUtils.getUserId();
       const userRole = authUtils.getRole();
-      
+
       if (!managerId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
@@ -87,7 +83,7 @@ export default function ManagerTeamPage() {
 
       // Load all users - managers see all team members
       const users = await getAllUsers();
-      
+
       // Show all users to manager (no filtering by managerId since it doesn't exist in DB)
       const team = users;
 
@@ -350,24 +346,24 @@ export default function ManagerTeamPage() {
     // Search query filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const matchName = 
+      const matchName =
         member.firstName?.toLowerCase().includes(query) ||
         member.lastName?.toLowerCase().includes(query);
       const matchEmail = member.email?.toLowerCase().includes(query);
       const matchPhone = member.phone?.toLowerCase().includes(query);
-      
+
       if (!matchName && !matchEmail && !matchPhone) {
         return false;
       }
     }
-    
+
     // Role filter
     if (roleFilter !== "all") {
       if (member.rank !== roleFilter) {
         return false;
       }
     }
-    
+
     // Status filter
     if (statusFilter === "active" && member.rank === "inactive") {
       return false;
@@ -375,105 +371,127 @@ export default function ManagerTeamPage() {
     if (statusFilter === "inactive" && member.rank !== "inactive") {
       return false;
     }
-    
+
     return true;
   });
 
+  const hasActiveFilters = searchQuery || roleFilter !== "all" || statusFilter !== "all";
+
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="p-6 space-y-6 animate-fadeIn">
       <PageHeader
         title="Mijn Team"
-        description="Overzicht van alle teamleden en hun prestaties"
+        description={`${teamStats.totalMembers ?? 0} teamleden`}
         actions={
-          <>
-            <Button size="sm" variant="outline" onClick={() => setShowAddMember(true)}>
-              <Users className="w-4 h-4 mr-2" />
-              Nieuw Teamlid
-            </Button>
-          </>
+          <Button size="sm" onClick={() => setShowAddMember(true)}>
+            <Users className="w-4 h-4 mr-2" />
+            Lid toevoegen
+          </Button>
         }
       />
 
-      {/* KPI Cards */}
+      {/* Stats rij */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Teamleden" value={teamStats.totalMembers ?? 0} subtitle={`${teamStats.activeMembers ?? 0} actief deze week`} icon={Users} color="blue" />
-        <StatCard title="Totaal Uren" value={`${teamStats.totalWeekHours?.toFixed(1) ?? "0.0"}u`} subtitle="Deze week" icon={Clock} color="emerald" />
-        <StatCard title="Gemiddeld" value={`${teamStats.avgHoursPerMember?.toFixed(1) ?? "0.0"}u`} subtitle="Per teamlid" icon={Target} color="indigo" />
-        <StatCard title="Te Behandelen" value={teamStats.totalPending ?? 0} subtitle="Uren registraties" icon={Activity} color="amber" />
+        <StatCard
+          title="Teamleden"
+          value={teamStats.totalMembers ?? 0}
+          subtitle={`${teamStats.activeMembers ?? 0} actief deze week`}
+          icon={Users}
+          color="blue"
+        />
+        <StatCard
+          title="Actief deze week"
+          value={teamStats.activeMembers ?? 0}
+          icon={UserCheck}
+          color="emerald"
+        />
+        <StatCard
+          title="Uren deze week"
+          value={`${teamStats.totalWeekHours?.toFixed(1) ?? "0.0"}u`}
+          subtitle={`Gem. ${teamStats.avgHoursPerMember?.toFixed(1) ?? "0.0"}u per lid`}
+          icon={Clock}
+          color="indigo"
+        />
+        <StatCard
+          title="Te behandelen"
+          value={teamStats.totalPending ?? 0}
+          subtitle="Openstaande registraties"
+          icon={Activity}
+          color="amber"
+        />
       </div>
 
-      {/* Search and Filter Section */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input
-                  type="text"
-                  placeholder="Zoek op naam, email of telefoon..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-              >
-                <option value="all">Alle rollen</option>
-                <option value="user">Gebruiker</option>
-                <option value="manager">Manager</option>
-              </select>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
-              >
-                <option value="all">Alle statussen</option>
-                <option value="active">Actief</option>
-                <option value="inactive">Inactief</option>
-              </select>
-            </div>
-          </div>
-          {(searchQuery || roleFilter !== "all" || statusFilter !== "all") && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <span>{filteredTeamMembers.length} van {teamMembers.length} teamleden</span>
-              {(searchQuery || roleFilter !== "all" || statusFilter !== "all") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setRoleFilter("all");
-                    setStatusFilter("all");
-                  }}
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Wis filters
-                </Button>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Filter balk */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            className="pl-9 h-9"
+            placeholder="Zoeken op naam of email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+        >
+          <option value="all">Alle rollen</option>
+          <option value="user">Medewerker</option>
+          <option value="manager">Manager</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+        >
+          <option value="all">Alle statussen</option>
+          <option value="active">Actief</option>
+          <option value="inactive">Inactief</option>
+        </select>
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearchQuery("");
+              setRoleFilter("all");
+              setStatusFilter("all");
+            }}
+          >
+            <X className="w-4 h-4 mr-1" />
+            Wis filters
+          </Button>
+        )}
+      </div>
 
-      {/* Team Members Table */}
+      {/* Teamleden tabel */}
       <Card>
+        <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Users className="w-4 h-4 text-slate-400" />
+              Teamleden
+              {hasActiveFilters && (
+                <span className="text-xs font-normal text-slate-500">
+                  ({filteredTeamMembers.length} van {teamMembers.length})
+                </span>
+              )}
+            </CardTitle>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           {filteredTeamMembers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                <Users className="w-7 h-7 text-slate-400" />
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Users className="w-6 h-6 text-slate-400" />
               </div>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen teamleden gevonden</p>
-              <p className="text-sm text-slate-500 mt-1">
-                {searchQuery || roleFilter !== "all" || statusFilter !== "all"
-                  ? "Pas de filters aan om meer resultaten te zien"
-                  : "Er zijn nog geen teamleden aan jou toegewezen"}
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen teamleden gevonden</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {hasActiveFilters
+                  ? "Pas de filters aan om meer resultaten te zien."
+                  : "Er zijn nog geen teamleden aan jou toegewezen."}
               </p>
             </div>
           ) : (
@@ -482,75 +500,93 @@ export default function ManagerTeamPage() {
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Medewerker</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">Contact</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Uren/week</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 hidden sm:table-cell">Benutting</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Rol</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                   {filteredTeamMembers.map((member) => {
-                    const trend = getTrendIndicator(member.stats.weekHours, member.stats.lastWeekHours);
-                    const activity = getActivityStatus(member.stats.lastActivity);
+                    const isActive = member.rank !== "inactive";
                     return (
-                      <tr key={member.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <tr
+                        key={member.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/manager/hours?userId=${member.id}`)}
+                      >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                               {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-900 dark:text-slate-100">{member.firstName} {member.lastName}</p>
-                              <p className="text-xs text-slate-500 capitalize">{member.rank === "manager" ? "Manager" : "Medewerker"}</p>
+                              <p className="font-medium text-slate-900 dark:text-slate-100">
+                                {member.firstName} {member.lastName}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {member.rank === "manager" ? "Manager" : "Medewerker"}
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 text-xs">
-                              <Mail className="w-3 h-3" />{member.email}
-                            </div>
-                            {member.phone && (
-                              <div className="flex items-center gap-1 text-slate-500 text-xs">
-                                <Phone className="w-3 h-3" />{member.phone}
-                              </div>
-                            )}
+                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400 text-xs">
+                            <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                            {member.email}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <div>
-                            <p className="text-base font-bold text-slate-900 dark:text-slate-100 tabular-nums">{member.stats.weekHours.toFixed(1)}u</p>
-                            <p className={`text-xs font-medium ${trend.color}`}>{trend.change}</p>
-                          </div>
+                        <td className="px-4 py-3">
+                          {member.rank === "manager" ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                              Manager
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                              Medewerker
+                            </span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-center hidden sm:table-cell">
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{member.stats.utilization.toFixed(0)}%</span>
-                            <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(member.stats.utilization, 100)}%` }} />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${activity.bg} ${activity.color}`}>
-                            {activity.status}
-                          </span>
+                        <td className="px-4 py-3">
+                          {isActive ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              Actief
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                              Inactief
+                            </span>
+                          )}
                           {member.stats.pendingEntries > 0 && (
-                            <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                               {member.stats.pendingEntries}
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td
+                          className="px-4 py-3 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => router.push(`/manager/hours?userId=${member.id}`)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors" title="Uren bekijken">
-                              <Briefcase className="w-4 h-4" />
+                            <button
+                              onClick={() => router.push(`/manager/hours?userId=${member.id}`)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors"
+                              title="Bekijken"
+                            >
+                              <Eye className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleEditMember(member)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors" title="Bewerken">
+                            <button
+                              onClick={() => handleEditMember(member)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-blue-600 transition-colors"
+                              title="Bewerken"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleToggleActive(member)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}>
+                            <button
+                              onClick={() => handleToggleActive(member)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                              title={member.rank === "inactive" ? "Activeren" : "Deactiveren"}
+                            >
                               {member.rank === "inactive"
                                 ? <Power className="w-4 h-4 text-emerald-600" />
                                 : <PowerOff className="w-4 h-4 text-rose-500" />}
@@ -741,7 +777,6 @@ export default function ManagerTeamPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {/* Persoonlijke gegevens */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">
