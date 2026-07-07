@@ -57,15 +57,11 @@ export default function AdminCompaniesPage() {
 
   const loadCompanies = async () => {
     try {
-      const data = await getCompanies();
+      const data: any = await getCompanies();
       let safeData: Company[] = [];
       if (Array.isArray(data)) {
         safeData = data;
-      } else if (
-        data &&
-        typeof data === "object" &&
-        Array.isArray(data.companies)
-      ) {
+      } else if (data && typeof data === "object" && Array.isArray(data.companies)) {
         safeData = data.companies;
       } else if (data && typeof data === "object" && Array.isArray(data.data)) {
         safeData = data.data;

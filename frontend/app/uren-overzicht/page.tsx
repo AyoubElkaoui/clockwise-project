@@ -123,7 +123,9 @@ export default function UrenOverzichtPage() {
         status: e.status,
         startTime: e.datum,
         endTime: e.datum,
+        companyId: 0,
         companyName: '',
+        projectGroupId: 0,
         projectGroupName: '',
       }));
       
@@ -322,9 +324,12 @@ export default function UrenOverzichtPage() {
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
     link.href = url;
     link.download = `uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.csv`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
