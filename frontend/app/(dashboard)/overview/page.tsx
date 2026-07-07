@@ -260,29 +260,29 @@ export default function UrenOverzicht(): JSX.Element {
           title={t("overview.approved")}
           value={`${safeToFixed(totalHours)}u`}
           subtitle={t("overview.totalHoursLabel") || "Goedgekeurde uren"}
-          icon={<Clock className="w-5 h-5" />}
-          iconBgColor="bg-emerald-600"
+          icon={Clock}
+          color="emerald"
         />
         <StatCard
           title={t("overview.totalDays")}
           value={totalDays}
           subtitle={t("overview.daysWorked") || "Gewerkte dagen"}
-          icon={<Calendar className="w-5 h-5" />}
-          iconBgColor="bg-violet-600"
+          icon={Calendar}
+          color="violet"
         />
         <StatCard
           title={t("overview.expenses")}
           value={`€${safeToFixed(totalExpenses)}`}
           subtitle={t("overview.totalExpenses") || "Totale kosten"}
-          icon={<DollarSign className="w-5 h-5" />}
-          iconBgColor="bg-amber-500"
+          icon={DollarSign}
+          color="amber"
         />
         <StatCard
           title={t("overview.distance")}
           value={`${safeToFixed(totalDistance, 0)} km`}
           subtitle={t("overview.totalDistance") || "Totale afstand"}
-          icon={<MapPin className="w-5 h-5" />}
-          iconBgColor="bg-indigo-600"
+          icon={MapPin}
+          color="indigo"
         />
       </div>
 
@@ -378,7 +378,7 @@ export default function UrenOverzicht(): JSX.Element {
               <span className="font-semibold text-slate-700 dark:text-slate-300">{entries.filter((e) => e.status === "goedgekeurd").length}</span> totaal
             </p>
             <Button
-              variant="link"
+              variant="ghost"
               className="text-sm font-medium p-0 h-auto"
               onClick={resetFilters}
             >
