@@ -58,60 +58,83 @@ type BadgesState = Record<BadgeKey, number | null>;
    Menu items
 ====================== */
 const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
-  { icon: LayoutDashboard, label: t("nav.dashboard"),     href: "/dashboard",              rank: "all" },
-  { icon: Clock,           label: t("nav.hours"),         href: "/tijd-registratie",       rank: "all" },
-  { icon: List,            label: t("nav.overview"),      href: "/uren-overzicht",         rank: "all" },
-  { icon: Plane,           label: t("nav.vacation"),      href: "/vakantie",               rank: "all" },
-  { icon: Calendar,        label: "Aanwezigheid",         href: "/aanwezigheidskalender",  rank: "all" },
-  { icon: Bell,            label: t("nav.notifications"), href: "/notificaties",           rank: "all",
-    badgeKey: "unreadNotifications" },
-  { icon: User,            label: t("nav.account"),       href: "/account",                rank: "all" },
-  { icon: HelpCircle,      label: t("nav.faq"),           href: "/faq",                    rank: "all" },
+  {
+    icon: LayoutDashboard,
+    label: t("nav.dashboard"),
+    href: "/dashboard",
+    rank: "all",
+  },
+  {
+    icon: Clock,
+    label: t("nav.hours"),
+    href: "/tijd-registratie",
+    rank: "all",
+  },
+  {
+    icon: List,
+    label: t("nav.overview"),
+    href: "/uren-overzicht",
+    rank: "all",
+  },
+  { icon: Plane, label: t("nav.vacation"), href: "/vakantie", rank: "all" },
+  {
+    icon: Calendar,
+    label: "Aanwezigheid",
+    href: "/aanwezigheidskalender",
+    rank: "all",
+  },
+  {
+    icon: Bell,
+    label: t("nav.notifications"),
+    href: "/notificaties",
+    badgeKey: "unreadNotifications",
+    rank: "all",
+  },
+  { icon: User, label: t("nav.account"), href: "/account", rank: "all" },
+  { icon: HelpCircle, label: t("nav.faq"), href: "/faq", rank: "all" },
 ];
 
 const managerMenuItems: MenuItem[] = [
-  { icon: Shield,       label: "Manager Dashboard",   href: "/manager/dashboard",         rank: "manager" },
-  { icon: Users,        label: "Mijn Team",           href: "/manager/team",              rank: "manager" },
-  { icon: CheckCircle2, label: "Uren Beoordelen",     href: "/manager/review-time",       rank: "manager",
-    badgeKey: "pendingApprovals" },
-  { icon: CheckCircle2, label: "Goedkeuringen",       href: "/manager/approve",           rank: "manager" },
-  { icon: Plane,        label: "Vakantie Beoordelen", href: "/manager/vacation-review",   rank: "manager" },
-  { icon: Plane,        label: "Vakantie Kalender",   href: "/manager/vacation",          rank: "manager" },
-  { icon: Clock,        label: "Team Uren",           href: "/manager/hours",             rank: "manager" },
-  { icon: Clock,        label: "Tijdregistratie",     href: "/manager/tijd-registratie",  rank: "manager" },
-  { icon: CalendarRange,label: "Planning",            href: "/manager/planning",          rank: "manager" },
-  { icon: CalendarDays, label: "Jaarkalender",        href: "/manager/jaarkalender",      rank: "manager" },
-  { icon: FolderKanban, label: "Project Toewijzing",  href: "/manager/project-toewijzing",rank: "manager" },
-  { icon: ListChecks,   label: "Uurcodes",            href: "/manager/uurcodes",          rank: "manager" },
-  { icon: Bell,         label: "Notificaties",        href: "/manager/notificaties",      rank: "manager" },
-  { icon: Settings,     label: "Instellingen",        href: "/manager/settings",          rank: "manager" },
+  { icon: Shield,       label: "Manager Dashboard",   href: "/manager/dashboard",          rank: "manager" },
+  { icon: Users,        label: "Mijn Team",           href: "/manager/team",               rank: "manager" },
+  { icon: CheckCircle2, label: "Uren Beoordelen",     href: "/manager/review-time",        rank: "manager", badgeKey: "pendingApprovals" },
+  { icon: CheckCircle2, label: "Goedkeuringen",       href: "/manager/approve",            rank: "manager" },
+  { icon: Plane,        label: "Vakantie Beoordelen", href: "/manager/vacation-review",    rank: "manager" },
+  { icon: Plane,        label: "Vakantie Kalender",   href: "/manager/vacation",           rank: "manager" },
+  { icon: Clock,        label: "Team Uren",           href: "/manager/hours",              rank: "manager" },
+  { icon: Clock,        label: "Tijdregistratie",     href: "/manager/tijd-registratie",   rank: "manager" },
+  { icon: CalendarRange,label: "Planning",            href: "/manager/planning",           rank: "manager" },
+  { icon: CalendarDays, label: "Jaarkalender",        href: "/manager/jaarkalender",       rank: "manager" },
+  { icon: FolderKanban, label: "Project Toewijzing",  href: "/manager/project-toewijzing", rank: "manager" },
+  { icon: ListChecks,   label: "Uurcodes",            href: "/manager/uurcodes",           rank: "manager" },
+  { icon: Bell,         label: "Notificaties",        href: "/manager/notificaties",       rank: "manager" },
+  { icon: Settings,     label: "Instellingen",        href: "/manager/settings",           rank: "manager" },
 ];
 
 const adminMenuItems: MenuItem[] = [
-  { icon: Shield,       label: "Admin Dashboard",     href: "/admin",                rank: "admin" },
-  { icon: Users,        label: "Gebruikers",          href: "/admin/users",          rank: "admin" },
-  { icon: UserCheck,    label: "Medewerkers",         href: "/admin/employees",      rank: "admin" },
-  { icon: Building2,    label: "Bedrijven",           href: "/admin/companies",      rank: "admin" },
-  { icon: FolderKanban, label: "Projecten",           href: "/admin/projects",       rank: "admin" },
-  { icon: CheckCircle2, label: "Alle Goedkeuringen",  href: "/admin/approvals",      rank: "admin",
-    badgeKey: "pendingApprovals" },
-  { icon: Plane,        label: "Vakantie Aanvragen",  href: "/admin/vacation",       rank: "admin" },
-  { icon: FileText,     label: "Tijdregistraties",    href: "/admin/time-entries",   rank: "admin" },
-  { icon: ShieldCheck,  label: "Validaties",          href: "/admin/validations",    rank: "admin" },
-  { icon: Activity,     label: "Logs",                href: "/admin/logs",           rank: "admin" },
-  { icon: BarChart3,    label: "Rapporten",           href: "/admin/reports",        rank: "admin" },
-  { icon: Server,       label: "Systeem",             href: "/admin/system",         rank: "admin" },
-  { icon: Settings,     label: "Instellingen",        href: "/admin/settings",       rank: "admin" },
+  { icon: Shield,       label: "Admin Dashboard",    href: "/admin",               rank: "admin" },
+  { icon: Users,        label: "Gebruikers",         href: "/admin/users",         rank: "admin" },
+  { icon: UserCheck,    label: "Medewerkers",        href: "/admin/employees",     rank: "admin" },
+  { icon: Building2,    label: "Bedrijven",          href: "/admin/companies",     rank: "admin" },
+  { icon: FolderKanban, label: "Projecten",          href: "/admin/projects",      rank: "admin" },
+  { icon: CheckCircle2, label: "Alle Goedkeuringen", href: "/admin/approvals",     rank: "admin", badgeKey: "pendingApprovals" },
+  { icon: Plane,        label: "Vakantie Aanvragen", href: "/admin/vacation",      rank: "admin" },
+  { icon: FileText,     label: "Tijdregistraties",   href: "/admin/time-entries",  rank: "admin" },
+  { icon: ShieldCheck,  label: "Validaties",         href: "/admin/validations",   rank: "admin" },
+  { icon: Activity,     label: "Logs",               href: "/admin/logs",          rank: "admin" },
+  { icon: BarChart3,    label: "Rapporten",          href: "/admin/reports",       rank: "admin" },
+  { icon: Server,       label: "Systeem",            href: "/admin/system",        rank: "admin" },
+  { icon: Settings,     label: "Instellingen",       href: "/admin/settings",      rank: "admin" },
 ];
 
 /* ======================
    Component
 ====================== */
-export function ModernSidebar({
-  collapsed: externalCollapsed,
-  onToggle,
-}: {
-  collapsed?: boolean;
+export function ModernSidebar({ 
+  collapsed: externalCollapsed, 
+  onToggle 
+}: { 
+  collapsed?: boolean; 
   onToggle?: (collapsed: boolean) => void;
 }) {
   const pathname = usePathname();
@@ -121,14 +144,17 @@ export function ModernSidebar({
   const [collapsed, setCollapsed] = useState(externalCollapsed || false);
   const [mounted, setMounted] = useState(false);
 
+  // Sync with external collapsed state
   useEffect(() => {
-    if (externalCollapsed !== undefined) setCollapsed(externalCollapsed);
+    if (externalCollapsed !== undefined) {
+      setCollapsed(externalCollapsed);
+    }
   }, [externalCollapsed]);
 
   const toggleCollapsed = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    onToggle?.(next);
+    const newState = !collapsed;
+    setCollapsed(newState);
+    onToggle?.(newState);
   };
 
   const [firstName, setFirstName] = useState("");
@@ -162,24 +188,30 @@ export function ModernSidebar({
 
   useEffect(() => {
     setMounted(true);
+
     setFirstName(localStorage.getItem("firstName") || "");
     setLastName(localStorage.getItem("lastName") || "");
     setUserRank((localStorage.getItem("userRank") as any) || "");
+
     loadBadges();
+
     const interval = setInterval(loadBadges, 15000);
     return () => clearInterval(interval);
   }, [loadBadges]);
 
   const menuItems = useMemo(() => {
     let items: MenuItem[] = [...getWerknemerMenuItems(t)];
+
     if (userRank === "admin") {
       items = [...adminMenuItems, ...getWerknemerMenuItems(t)];
     } else if (userRank === "manager") {
-      items = [...managerMenuItems];
+      items = [...managerMenuItems, ...getWerknemerMenuItems(t)];
     }
 
+    // Remove duplicates by href
     const uniqueItems = items.filter(
-      (item, index, self) => index === self.findIndex((s) => s.href === item.href),
+      (item, index, self) =>
+        index === self.findIndex((t) => t.href === item.href),
     );
 
     return uniqueItems.map((item) => ({
@@ -198,50 +230,46 @@ export function ModernSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transition-all duration-300",
+        "fixed left-0 top-0 h-screen bg-slate-900 dark:bg-slate-950 border-r border-slate-800 z-50 transition-all duration-300",
         "hidden md:block",
         collapsed ? "w-20" : "w-64",
       )}
     >
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="p-5 border-b border-slate-800">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3 focus:outline-none" aria-label="Ga naar dashboard">
-              <Image
-                src="/clockd-logo.png"
-                alt="CLOCKD"
-                width={collapsed ? 80 : 130}
-                height={collapsed ? 16 : 26}
-                className="transition-all dark:hidden"
-                priority
-              />
+            <Link
+              href="/"
+              className="flex items-center gap-3 focus:outline-none"
+              aria-label="Ga naar dashboard"
+            >
               <Image
                 src="/clockd-logo-white.png"
                 alt="CLOCKD"
                 width={collapsed ? 80 : 130}
                 height={collapsed ? 16 : 26}
-                className="transition-all hidden dark:block"
+                className="transition-all"
                 priority
               />
             </Link>
 
             <button
               onClick={toggleCollapsed}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-md transition-colors"
               aria-label="Toggle sidebar"
             >
               {collapsed ? (
-                <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <ChevronRight className="w-4 h-4 text-slate-400" />
               ) : (
-                <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <ChevronLeft className="w-4 h-4 text-slate-400" />
               )}
             </button>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {menuItems.map((item: any) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -251,19 +279,19 @@ export function ModernSidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg group relative",
+                  "flex items-center gap-3 px-3 py-2 rounded-md group relative transition-colors",
                   isActive
-                    ? "bg-primary-light dark:bg-blue-900/20 text-primary dark:text-blue-400"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
+                    ? "bg-slate-800 text-white border-l-2 border-blue-500"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-100 border-l-2 border-transparent",
                 )}
               >
-                <Icon className={cn("w-5 h-5 flex-shrink-0", collapsed && "mx-auto")} />
+                <Icon className={cn("w-4 h-4 flex-shrink-0", collapsed && "mx-auto")} />
 
                 {!collapsed && (
                   <>
-                    <span className="flex-1 font-medium text-sm">{item.label}</span>
+                    <span className="flex-1 text-sm">{item.label}</span>
                     {item.badge && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-red-500 text-white rounded-full">
+                      <span className="px-1.5 py-0.5 text-xs font-medium bg-red-500 text-white rounded-full">
                         {item.badge}
                       </span>
                     )}
@@ -285,23 +313,23 @@ export function ModernSidebar({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+        <div className="p-3 border-t border-slate-800 space-y-2">
           <div className="flex items-center justify-center">
             <ThemeToggle />
           </div>
 
           {!collapsed && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+            <div className="p-3 bg-slate-800 rounded-md">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
                   {firstName.charAt(0)}
                   {lastName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  <p className="text-sm font-medium text-slate-100 truncate">
                     {firstName} {lastName}
                   </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 capitalize">
+                  <p className="text-xs text-slate-400 capitalize">
                     {userRank || "Medewerker"}
                   </p>
                 </div>
@@ -312,12 +340,12 @@ export function ModernSidebar({
           <button
             onClick={handleLogout}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-red-400 rounded-md transition-colors",
               collapsed && "justify-center",
             )}
           >
-            <LogOut className="w-5 h-5" />
-            {!collapsed && <span className="font-medium text-sm">{t("nav.logout")}</span>}
+            <LogOut className="w-4 h-4" />
+            {!collapsed && <span className="text-sm">{t("nav.logout")}</span>}
           </button>
         </div>
       </div>

@@ -131,8 +131,8 @@ export async function saveBulkEntries(
   });
 }
 
-// Lever entries in
-export async function submitEntries(entryIds: number[]): Promise<void> {
+// Lever entries in (legacy — gebruik submitEntries uit workflowApi)
+export async function submitTimeEntryIds(entryIds: number[]): Promise<void> {
   const promises = entryIds.map((id) =>
     axios.post(`${API_URL}/time-entries/${id}/submit`),
   );

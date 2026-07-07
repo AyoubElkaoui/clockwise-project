@@ -334,14 +334,13 @@ export default function Navbar(): JSX.Element {
     <>
     <nav
       className="
-        sticky top-0 z-40 px-3 md:px-6 py-2 md:py-3 shadow-md transition-colors w-full
+        sticky top-0 z-40 h-12 px-3 md:px-6 flex items-center transition-colors w-full
         bg-white dark:bg-slate-900
-        md:bg-white/80 md:dark:bg-slate-900/80 md:backdrop-blur-lg
-        border-b border-slate-200 dark:border-slate-700
+        border-b border-slate-200 dark:border-slate-800
         text-slate-900 dark:text-slate-100
       "
     >
-      <div className="flex items-center justify-between gap-2 md:gap-4">
+      <div className="flex items-center justify-between gap-2 md:gap-4 w-full">
         {/* === LEFT: Hamburger (mobile) + Logo (desktop) + Search (desktop) === */}
         <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           {/* Hamburger menu for mobile */}

@@ -13,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import authUtils from "@/lib/auth-utils";
 import { API_URL } from "@/lib/api";
 import i18n from "i18next";
-import ManagerLayout from "@/components/ManagerLayout";
 
 export default function ManagerSettingsPage() {
   const router = useRouter();
@@ -129,8 +128,7 @@ export default function ManagerSettingsPage() {
   };
 
   return (
-    <ManagerLayout>
-      <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn">
         <PageHeader title="Instellingen" description="Manager voorkeuren en account beheer" />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -405,7 +403,6 @@ export default function ManagerSettingsPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </ManagerLayout>
+    </div>
   );
 }

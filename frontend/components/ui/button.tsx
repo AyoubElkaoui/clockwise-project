@@ -3,34 +3,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-lg font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 rounded-md font-medium text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors",
   {
     variants: {
       variant: {
         default:
-          "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md",
+          "bg-blue-600 text-white hover:bg-blue-700",
         secondary:
-          "bg-slate-200 text-slate-900 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600",
+          "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600",
         outline:
-          "border-2 border-slate-300 bg-transparent hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800 text-slate-900 dark:text-white",
+          "border border-slate-300 bg-transparent hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
         ghost:
-          "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white",
+          "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
         danger:
-          "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
+          "bg-red-600 text-white hover:bg-red-700",
         destructive:
-          "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md",
+          "bg-red-600 text-white hover:bg-red-700",
         success:
-          "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow-md",
-        info:
-          "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-        warning:
-          "bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-300",
+          "bg-emerald-600 text-white hover:bg-emerald-700",
       },
       size: {
-        sm: "h-9 px-3 text-sm",
-        md: "h-10 px-4 text-base",
-        lg: "h-12 px-6 text-lg",
-        icon: "h-10 w-10",
+        sm: "h-8 px-3 text-xs",
+        md: "h-9 px-3.5 text-sm",
+        lg: "h-10 px-5 text-sm",
+        icon: "h-9 w-9",
       },
     },
     defaultVariants: {
