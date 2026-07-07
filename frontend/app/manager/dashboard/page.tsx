@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  getAllWorkflowEntries, 
-  getAllUsers, 
+import {
+  getAllWorkflowEntries,
+  getAllUsers,
   approveTimeEntry,
   reviewWorkflowEntries,
   getCurrentPeriodId,
@@ -21,6 +21,7 @@ import {
   Users,
   Clock,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   AlertCircle,
   TrendingUp,
@@ -97,7 +98,7 @@ export default function ManagerDashboard() {
       const teamMemberIds = managersTeam.map((u: any) => u.medewGcId || u.id);
 
       // Filter entries for this manager's team only
-      const teamEntries = workflowResponse.entries.filter((e: any) => 
+      const teamEntries = workflowResponse.entries.filter((e: any) =>
         teamMemberIds.includes(e.medewGcId)
       );
 
@@ -116,7 +117,7 @@ export default function ManagerDashboard() {
       }));
 
       // Filter vacations for this manager's team
-      const teamVacations = allVacations.filter((v: any) => 
+      const teamVacations = allVacations.filter((v: any) =>
         teamMemberIds.includes(v.userId)
       );
 
@@ -206,7 +207,7 @@ export default function ManagerDashboard() {
         setPendingEntries(pending.slice(0, 5));
 
         // Get team activity (recent entries) - only SUBMITTED and APPROVED, not DRAFT
-        const recentRelevant = entries.filter((e: any) => 
+        const recentRelevant = entries.filter((e: any) =>
           e.status === 'SUBMITTED' || e.status === 'APPROVED'
         );
         const recent = recentRelevant
@@ -246,6 +247,9 @@ export default function ManagerDashboard() {
                   );
                 }),
               ),
+              pendingCount: entries.filter(
+                (e: any) => e.userId === member.medewGcId && e.status === "SUBMITTED"
+              ).length,
             };
           })
           .sort((a: any, b: any) => b.weekHours - a.weekHours);
@@ -333,218 +337,274 @@ export default function ManagerDashboard() {
   }
 
   const weekTrend = getTrendIndicator(stats.thisWeekHours, stats.lastWeekHours);
-  const monthTrend = getTrendIndicator(
-    stats.thisMonthHours,
-    stats.lastMonthHours,
-  );
+  const monthTrend = getTrendIndicator(stats.thisMonthHours, stats.lastMonthHours);
+
+  const totalDecided = teamActivity.filter(
+    (e) => e.status === "APPROVED" || e.status === "REJECTED"
+  ).length;
+  const totalApproved = teamActivity.filter((e) => e.status === "APPROVED").length;
+  const approvalRate =
+    totalDecided > 0 ? Math.round((totalApproved / totalDecided) * 100) : 100;
+
+  const userName = authUtils.getUserName();
 
   return (
-    <div className="space-y-6 pb-20 animate-fadeIn">
+    <div className="p-6 space-y-6 animate-fadeIn">
       <PageHeader
-        title="Team Dashboard"
-        description="Overzicht van team prestaties en goedkeuringen"
+        title="Manager Dashboard"
+        description={`Welkom terug, ${userName.firstName} — overzicht van teamactiviteiten en goedkeuringen`}
         actions={
-          <>
-            <Button size="sm" variant="outline" onClick={loadDashboardData}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Vernieuwen</span>
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => router.push("/manager/hours")}>
-              <BarChart3 className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Rapport</span>
-            </Button>
-            <Button size="sm" onClick={() => router.push("/manager/approve")}>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Goedkeuringen</span>
-              {stats.pendingApprovals > 0 && (
-                <span className="ml-1.5 bg-white/20 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{stats.pendingApprovals}</span>
-              )}
-            </Button>
-          </>
+          <select className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option>Deze week</option>
+            <option>Deze maand</option>
+            <option>Vorige week</option>
+            <option>Vorige maand</option>
+          </select>
         }
       />
 
-      {/* KPI Cards */}
+      {/* Stats rij */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Teamleden" value={stats.teamSize} subtitle="Actieve medewerkers" icon={Users} color="blue" onClick={() => router.push("/manager/team")} />
-        <StatCard title="Benutting" value={`${stats.utilizationRate.toFixed(0)}%`} subtitle="Deze week" icon={Target} color="emerald" />
         <StatCard
-          title="Uren Deze Week"
-          value={stats.thisWeekHours.toFixed(1)}
+          title="Teamleden"
+          value={stats.teamSize}
+          icon={Users}
+          color="blue"
+          onClick={() => router.push("/manager/team")}
+        />
+        <StatCard
+          title="Wachtend op goedkeuring"
+          value={stats.pendingApprovals}
           icon={Clock}
-          color="indigo"
-          trend={stats.lastWeekHours > 0 ? { value: `${Math.abs(((stats.thisWeekHours - stats.lastWeekHours) / stats.lastWeekHours) * 100).toFixed(0)}%`, isPositive: stats.thisWeekHours >= stats.lastWeekHours } : undefined}
+          color={stats.pendingApprovals > 0 ? "amber" : "emerald"}
+          onClick={() => router.push("/manager/approve")}
+        />
+        <StatCard
+          title="Team uren deze week"
+          value={`${stats.thisWeekHours.toFixed(1)}u`}
+          icon={BarChart3}
+          color="emerald"
+          trend={
+            stats.lastWeekHours > 0
+              ? {
+                  value: `${Math.abs(
+                    ((stats.thisWeekHours - stats.lastWeekHours) /
+                      stats.lastWeekHours) *
+                      100
+                  ).toFixed(0)}%`,
+                  isPositive: stats.thisWeekHours >= stats.lastWeekHours,
+                }
+              : undefined
+          }
           subtitle="vs vorige week"
         />
         <StatCard
-          title="Te Goedkeuren"
-          value={stats.pendingApprovals}
-          subtitle="Wachtende registraties"
-          icon={AlertCircle}
-          color="amber"
-          onClick={() => router.push("/manager/approve")}
+          title="Goedkeuringspercentage"
+          value={`${approvalRate}%`}
+          icon={CheckCircle2}
+          color="blue"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Approvals */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-500" />
-                Wachtend op Goedkeuring
-                {stats.pendingApprovals > 0 && (
-                  <span className="ml-1 text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full">{stats.pendingApprovals}</span>
-                )}
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push("/manager/approve")}>
-                Alles bekijken <ChevronRight className="w-3 h-3 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {pendingEntries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mb-3">
-                  <CheckCircle className="w-6 h-6 text-emerald-500" />
-                </div>
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Alles goedgekeurd</p>
-                <p className="text-xs text-slate-500 mt-1">Geen wachtende uren registraties</p>
+      {/* Twee-kolom layout */}
+      <div className="grid grid-cols-5 gap-6">
+        {/* Links 3/5: Wachtende Goedkeuringen */}
+        <div className="col-span-5 lg:col-span-3">
+          <Card>
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                  Wachtende Goedkeuringen
+                  {stats.pendingApprovals > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      {stats.pendingApprovals}
+                    </span>
+                  )}
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push("/manager/approve")}
+                >
+                  Alles bekijken
+                  <ChevronRight className="w-3 h-3 ml-1" />
+                </Button>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {pendingEntries.map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between py-3 first:pt-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {entry.userFirstName?.charAt(0)}{entry.userLastName?.charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{entry.userFirstName} {entry.userLastName}</p>
-                        <p className="text-xs text-slate-500 truncate">{entry.projectName || entry.projectCode} · {dayjs(entry.date).format("D MMM")} · {entry.hours?.toFixed(1)}u</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-1.5 ml-2 flex-shrink-0">
-                      <button onClick={() => handleApprove(entry.id)} className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors" title="Goedkeuren">
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleReject(entry.id)} className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors" title="Afkeuren">
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {pendingEntries.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center mb-4">
+                    <CheckCircle className="w-6 h-6 text-emerald-500" />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Team Performance */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-500" />
-                Team Prestaties
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push("/manager/hours")}>
-                Details <ChevronRight className="w-3 h-3 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {teamPerformance.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
-                  <Users className="w-6 h-6 text-slate-400" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Alles goedgekeurd
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Er zijn geen wachtende urenregistraties.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-500">Geen data beschikbaar</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Medewerker
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Datum
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Uren
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Project
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Actie
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {pendingEntries.map((entry) => (
+                        <tr
+                          key={entry.id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 flex-shrink-0">
+                                {entry.userFirstName?.charAt(0)}
+                                {entry.userLastName?.charAt(0)}
+                              </div>
+                              <span className="text-slate-900 dark:text-slate-100 font-medium truncate max-w-[100px]">
+                                {entry.userFirstName} {entry.userLastName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            {dayjs(entry.date).format("D MMM YYYY")}
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
+                            {entry.hours?.toFixed(1)}u
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[120px]">
+                            {entry.projectName || entry.projectCode || "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                              In behandeling
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleApprove(entry.id)}
+                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                                title="Goedkeuren"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(entry.id)}
+                                className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                                title="Afwijzen"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Rechts 2/5: Teamoverzicht */}
+        <div className="col-span-5 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Users className="w-4 h-4 text-slate-400" />
+                  Teamoverzicht
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push("/manager/team")}
+                >
+                  Details
+                  <ChevronRight className="w-3 h-3 ml-1" />
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-1">
-                {teamPerformance.slice(0, 6).map((member) => {
-                  const memberTrend = getTrendIndicator(member.weekHours, member.lastWeekHours);
-                  const maxHours = Math.max(...teamPerformance.map((m: any) => m.weekHours), 1);
-                  const pct = Math.round((member.weekHours / maxHours) * 100);
-                  return (
-                    <div key={member.id} className="flex items-center gap-3 py-2 px-1 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors">
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                        {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+            </CardHeader>
+            <CardContent className="p-0">
+              {teamPerformance.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <Users className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Geen teamleden
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Er zijn nog geen teamleden beschikbaar.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {teamPerformance.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 flex-shrink-0">
+                          {member.firstName?.charAt(0)}
+                          {member.lastName?.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                            {member.firstName} {member.lastName}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {member.weekHours.toFixed(1)}u goedgekeurd deze week
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{member.firstName} {member.lastName}</p>
-                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 ml-2 tabular-nums">{member.weekHours.toFixed(1)}u</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className={`text-xs font-medium ${memberTrend.color} w-10 text-right`}>{memberTrend.change}</span>
-                        </div>
+                      <div className="flex-shrink-0 ml-2">
+                        {member.pendingCount > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            {member.pendingCount} ingediend
+                          </span>
+                        ) : member.weekHours > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            Goedgekeurd
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                            Geen uren
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Activity className="w-4 h-4 text-slate-500" />
-            Recente Activiteit
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {teamActivity.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
-                <Calendar className="w-6 h-6 text-slate-400" />
-              </div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Geen recente activiteit</p>
-              <p className="text-xs text-slate-500 mt-1">Uren registraties verschijnen hier</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-700">
-                    <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Medewerker</th>
-                    <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Project</th>
-                    <th className="pb-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
-                    <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
-                    <th className="pb-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                  {teamActivity.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 flex-shrink-0">
-                            {entry.userFirstName?.charAt(0)}{entry.userLastName?.charAt(0)}
-                          </div>
-                          <span className="font-medium text-slate-900 dark:text-slate-100">{entry.userFirstName} {entry.userLastName}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 text-slate-600 dark:text-slate-400 truncate max-w-[140px]">{entry.projectName || entry.projectCode || "—"}</td>
-                      <td className="py-2.5 text-slate-500">{dayjs(entry.date).format("D MMM YYYY")}</td>
-                      <td className="py-2.5 text-right font-semibold text-slate-900 dark:text-slate-100 tabular-nums">{entry.hours?.toFixed(1)}u</td>
-                      <td className="py-2.5 text-right">{getStatusBadge(entry.status)}</td>
-                    </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import {
   Users,
   Building2,
-  Briefcase,
+  FolderKanban,
   Clock,
   TrendingUp,
   TrendingDown,
@@ -13,31 +13,19 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  Calendar,
   BarChart3,
-  PieChart,
   Zap,
   Server,
   Database,
   Shield,
-  Settings,
-  UserPlus,
-  ChevronRight,
-  ArrowUpRight,
-  ArrowDownRight,
-  Eye,
-  Download,
   RefreshCw,
   Globe,
-  Smartphone,
-  Monitor,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
 import dayjs from "dayjs";
@@ -47,7 +35,6 @@ import {
   getAdminStats,
   getSystemStatus,
   getAdminTimeEntries,
-  getDashboardHealth,
   getDashboardAlerts,
 } from "@/lib/api";
 
@@ -127,8 +114,6 @@ export default function AdminDashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      
-      // Load stats, system status, alerts, and recent time entries in parallel
       const [statsData, systemStatusData, alertsData, timeEntries] =
         await Promise.all([
           getAdminStats(),
@@ -137,7 +122,6 @@ export default function AdminDashboardPage() {
           getAdminTimeEntries(),
         ]);
 
-      // Set stats from backend
       setStats({
         totalUsers: statsData.totalUsers || 0,
         totalCompanies: statsData.totalCompanies || 0,
@@ -154,7 +138,6 @@ export default function AdminDashboardPage() {
         completionRate: statsData.completionRate || 0,
       });
 
-      // Set system status from backend
       setSystemStatus(
         systemStatusData.map((component: any) => ({
           id: component.id,
@@ -165,7 +148,6 @@ export default function AdminDashboardPage() {
         })),
       );
 
-      // Set alerts from backend
       setAlerts(
         alertsData.map((alert: any) => ({
           id: alert.id,
@@ -177,7 +159,6 @@ export default function AdminDashboardPage() {
         })),
       );
 
-      // Recent activity from time entries
       const sorted = timeEntries
         .sort((a: any, b: any) => dayjs(b.startTime).diff(dayjs(a.startTime)))
         .slice(0, 5)
@@ -195,7 +176,6 @@ export default function AdminDashboardPage() {
 
       setRecentActivity(sorted);
     } catch (error) {
-      
       showToast(t("admin.dashboard.loadError"), "error");
     } finally {
       setLoading(false);
@@ -207,29 +187,33 @@ export default function AdminDashboardPage() {
       case "goedgekeurd":
       case "approved":
         return (
-          <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
             <CheckCircle className="w-3 h-3 mr-1" />
             Goedgekeurd
-          </Badge>
+          </span>
         );
       case "ingeleverd":
       case "pending":
         return (
-          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
             <Clock className="w-3 h-3 mr-1" />
-            In Behandeling
-          </Badge>
+            In behandeling
+          </span>
         );
       case "afgekeurd":
       case "rejected":
         return (
-          <Badge className="bg-red-500/10 text-red-600 border-red-500/20">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
             <XCircle className="w-3 h-3 mr-1" />
             Afgekeurd
-          </Badge>
+          </span>
         );
       default:
-        return <Badge variant="secondary">Concept</Badge>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            Concept
+          </span>
+        );
     }
   };
 
@@ -237,27 +221,28 @@ export default function AdminDashboardPage() {
     switch (status) {
       case "operational":
         return (
-          <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-            <CheckCircle className="w-3 h-3 mr-1" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
             Operationeel
-          </Badge>
+          </span>
         );
       case "degraded":
         return (
-          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-            <AlertTriangle className="w-3 h-3 mr-1" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
             Vertraagd
-          </Badge>
+          </span>
         );
       case "down":
         return (
-          <Badge className="bg-red-500/10 text-red-600 border-red-500/20">
-            <XCircle className="w-3 h-3 mr-1" />
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
             Uitval
-          </Badge>
+          </span>
         );
       default:
-        return <Badge variant="secondary">Onbekend</Badge>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            Onbekend
+          </span>
+        );
     }
   };
 
@@ -282,14 +267,17 @@ export default function AdminDashboardPage() {
   };
 
   const usersTrend = getTrendIndicator(stats.totalUsers, stats.lastWeekUsers);
-  const hoursTrend = getTrendIndicator(
-    stats.totalHoursThisMonth,
-    stats.lastWeekHours,
-  );
   const projectsTrend = getTrendIndicator(
     stats.totalProjects,
     stats.lastWeekProjects,
   );
+
+  const getComponentIcon = (component: string) => {
+    if (component === "API Server") return <Globe className="w-4 h-4 text-slate-400" />;
+    if (component === "Database") return <Database className="w-4 h-4 text-slate-400" />;
+    if (component === "E-mail Service") return <Shield className="w-4 h-4 text-slate-400" />;
+    return <Server className="w-4 h-4 text-slate-400" />;
+  };
 
   if (loading) {
     return (
@@ -305,484 +293,324 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Beheerdersdashboard
-              </h1>
-              <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mt-1">
-                Overzicht van systeem prestaties en activiteiten
-              </p>
-            </div>
-            <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadDashboardData}
-                className="bg-white/50 dark:bg-slate-800/50 flex-1 sm:flex-none"
-              >
-                <RefreshCw className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Vernieuwen</span>
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => router.push("/admin/users")}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
-              >
-                <UserPlus className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Nieuwe Gebruiker</span>
-              </Button>
-            </div>
+    <div className="p-6 space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Admin Dashboard"
+        description={`Systeem overzicht — ${dayjs().format("dddd D MMMM YYYY")}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={loadDashboardData}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Vernieuwen
+            </Button>
+            <Button size="sm" onClick={() => setActiveView("system")}>
+              <Server className="w-4 h-4 mr-2" />
+              Systeem
+            </Button>
           </div>
-        </div>
+        }
+      />
+
+      {/* Stats rij */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Gebruikers"
+          value={stats.totalUsers}
+          icon={Users}
+          color="blue"
+          trend={
+            stats.lastWeekUsers > 0
+              ? {
+                  value: usersTrend.change,
+                  isPositive: stats.totalUsers >= stats.lastWeekUsers,
+                }
+              : undefined
+          }
+          subtitle="totaal geregistreerd"
+          onClick={() => router.push("/admin/users")}
+        />
+        <StatCard
+          title="Bedrijven"
+          value={stats.totalCompanies}
+          icon={Building2}
+          color="emerald"
+          subtitle="actieve organisaties"
+          onClick={() => router.push("/admin/companies")}
+        />
+        <StatCard
+          title="Projecten"
+          value={stats.totalProjects}
+          icon={FolderKanban}
+          color="violet"
+          trend={
+            stats.lastWeekProjects > 0
+              ? {
+                  value: projectsTrend.change,
+                  isPositive: stats.totalProjects >= stats.lastWeekProjects,
+                }
+              : undefined
+          }
+          subtitle="lopende projecten"
+          onClick={() => router.push("/admin/projects")}
+        />
+        <StatCard
+          title="Wachtende goedkeuringen"
+          value={stats.pendingApprovals}
+          icon={Clock}
+          color="amber"
+          subtitle={`${stats.pendingVacations} verlofaanvragen`}
+          onClick={() => router.push("/admin/time-entries")}
+        />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
-        {/* Navigation */}
-        <div className="flex items-center gap-2 mb-6 md:mb-8 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50 overflow-x-auto">
-          <Button
-            size="sm"
-            variant={activeView === "overview" ? "default" : "ghost"}
-            onClick={() => setActiveView("overview")}
-            className={`flex items-center gap-2 whitespace-nowrap ${
-              activeView === "overview"
-                ? "bg-white dark:bg-slate-700 shadow-sm"
-                : "hover:bg-white/50 dark:hover:bg-slate-700/50"
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Overzicht
-          </Button>
-          <Button
-            size="sm"
-            variant={activeView === "analytics" ? "default" : "ghost"}
-            onClick={() => setActiveView("analytics")}
-            className={`flex items-center gap-2 whitespace-nowrap ${
-              activeView === "analytics"
-                ? "bg-white dark:bg-slate-700 shadow-sm"
-                : "hover:bg-white/50 dark:hover:bg-slate-700/50"
-            }`}
-          >
-            <TrendingUp className="w-4 h-4" />
-            Analytics
-          </Button>
-          <Button
-            size="sm"
-            variant={activeView === "system" ? "default" : "ghost"}
-            onClick={() => setActiveView("system")}
-            className={`flex items-center gap-2 whitespace-nowrap ${
-              activeView === "system"
-                ? "bg-white dark:bg-slate-700 shadow-sm"
-                : "hover:bg-white/50 dark:hover:bg-slate-700/50"
-            }`}
-          >
-            <Server className="w-4 h-4" />
-            Systeem
-          </Button>
-          <Button
-            size="sm"
-            variant={activeView === "activity" ? "default" : "ghost"}
-            onClick={() => setActiveView("activity")}
-            className={`flex items-center gap-2 whitespace-nowrap ${
-              activeView === "activity"
-                ? "bg-white dark:bg-slate-700 shadow-sm"
-                : "hover:bg-white/50 dark:hover:bg-slate-700/50"
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            Activiteit
-          </Button>
-        </div>
-
-        {/* Overview View */}
-        {activeView === "overview" && (
-          <div className="space-y-6 md:space-y-8">
-            {/* Hero Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard title="Totaal Gebruikers" value={stats.totalUsers} icon={Users} color="blue" trend={stats.lastWeekUsers > 0 ? { value: usersTrend.change, isPositive: stats.totalUsers >= stats.lastWeekUsers } : undefined} subtitle="vs vorige week" onClick={() => router.push("/admin/users")} />
-              <StatCard title="Uren Deze Maand" value={stats.totalHoursThisMonth.toFixed(0)} icon={Clock} color="emerald" trend={stats.lastWeekHours > 0 ? { value: hoursTrend.change, isPositive: stats.totalHoursThisMonth >= stats.lastWeekHours } : undefined} subtitle="vs vorige week" />
-              <StatCard title="Totaal Projecten" value={stats.totalProjects} icon={Briefcase} color="violet" trend={stats.lastWeekProjects > 0 ? { value: projectsTrend.change, isPositive: stats.totalProjects >= stats.lastWeekProjects } : undefined} subtitle="vs vorige week" />
-              <StatCard title="Signaleringen" value={alerts.length} icon={AlertTriangle} color="amber" subtitle={`${alerts.filter((a) => a.severity === "error").length} kritiek`} />
+      {/* Drie kolommen */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recente activiteit */}
+        <Card>
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Activity className="w-4 h-4 text-slate-400" />
+                Recente activiteit
+              </CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push("/admin/time-entries")}
+              >
+                Alles
+              </Button>
             </div>
-
-            {/* Alerts Section */}
-            {alerts.length > 0 && (
-              <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-amber-600" />
-                    Actieve Signaleringen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {alerts.slice(0, 5).map((alert) => (
-                      <div
-                        key={alert.id}
-                        className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800"
-                      >
-                        <AlertTriangle
-                          className={`w-5 h-5 mt-0.5 ${alert.severity === "error" ? "text-red-500" : "text-amber-500"}`}
-                        />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {alert.message}
-                          </p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                            {dayjs(alert.timestamp).fromNow()}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={
-                            alert.severity === "error"
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {alert.severity}
-                        </Badge>
-                      </div>
-                    ))}
-                    {alerts.length > 5 && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-                        +{alerts.length - 5} meer signaleringen
+          </CardHeader>
+          <CardContent className="p-0">
+            {recentActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                  <Activity className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Geen activiteit
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Er zijn nog geen items beschikbaar.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                {recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
+                      {activity.user?.firstName?.charAt(0)}
+                      {activity.user?.lastName?.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                        {activity.user?.firstName} {activity.user?.lastName}
                       </p>
-                    )}
+                      <p className="text-xs text-slate-500 truncate">
+                        {activity.project?.name} · {activity.hours.toFixed(1)}u
+                      </p>
+                      <div className="mt-1">{getStatusBadge(activity.status)}</div>
+                    </div>
+                    <span className="text-xs text-slate-400 whitespace-nowrap pt-0.5">
+                      {dayjs(activity.timestamp).fromNow()}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
             )}
+          </CardContent>
+        </Card>
 
-            {/* Quick Actions Grid */}
-            <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-slate-600" />
-                  Snelle Acties
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                  <Button
-                    variant="outline"
-                    className="h-16 md:h-20 flex-col gap-2 md:gap-3 hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-900/20"
-                    onClick={() => router.push("/admin/users")}
-                  >
-                    <Users className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
-                    <span className="text-xs md:text-sm font-medium">Gebruikers</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-3 hover:bg-purple-50 hover:border-purple-200 dark:hover:bg-purple-900/20"
-                    onClick={() => router.push("/admin/companies")}
-                  >
-                    <Building2 className="w-6 h-6 text-purple-600" />
-                    <span className="text-sm font-medium">Bedrijven</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-3 hover:bg-emerald-50 hover:border-emerald-200 dark:hover:bg-emerald-900/20"
-                    onClick={() => router.push("/admin/projects")}
-                  >
-                    <Briefcase className="w-6 h-6 text-emerald-600" />
-                    <span className="text-sm font-medium">Projecten</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-20 flex-col gap-3 hover:bg-amber-50 hover:border-amber-200 dark:hover:bg-amber-900/20"
-                    onClick={() => router.push("/admin/time-entries")}
-                  >
-                    <CheckCircle className="w-6 h-6 text-amber-600" />
-                    <span className="text-sm font-medium">Goedkeuringen</span>
-                  </Button>
+        {/* Snelle navigatie */}
+        <Card>
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Zap className="w-4 h-4 text-slate-400" />
+                Snelle navigatie
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="h-16 flex-col gap-1.5 text-xs font-medium hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-900/20"
+                onClick={() => router.push("/admin/users")}
+              >
+                <Users className="w-5 h-5 text-blue-600" />
+                Gebruikers
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 flex-col gap-1.5 text-xs font-medium hover:bg-emerald-50 hover:border-emerald-200 dark:hover:bg-emerald-900/20"
+                onClick={() => router.push("/admin/companies")}
+              >
+                <Building2 className="w-5 h-5 text-emerald-600" />
+                Bedrijven
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 flex-col gap-1.5 text-xs font-medium hover:bg-violet-50 hover:border-violet-200 dark:hover:bg-violet-900/20"
+                onClick={() => router.push("/admin/projects")}
+              >
+                <FolderKanban className="w-5 h-5 text-violet-600" />
+                Projecten
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 flex-col gap-1.5 text-xs font-medium hover:bg-amber-50 hover:border-amber-200 dark:hover:bg-amber-900/20"
+                onClick={() => router.push("/admin/time-entries")}
+              >
+                <Clock className="w-5 h-5 text-amber-600" />
+                Uren
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 flex-col gap-1.5 text-xs font-medium hover:bg-teal-50 hover:border-teal-200 dark:hover:bg-teal-900/20"
+                onClick={() => router.push("/admin/time-entries")}
+              >
+                <CheckCircle className="w-5 h-5 text-teal-600" />
+                Validaties
+              </Button>
+              <Button
+                variant="outline"
+                className="h-16 flex-col gap-1.5 text-xs font-medium hover:bg-indigo-50 hover:border-indigo-200 dark:hover:bg-indigo-900/20"
+                onClick={() => router.push("/admin/reports")}
+              >
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                Rapporten
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Systeem status */}
+        <Card>
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Server className="w-4 h-4 text-slate-400" />
+                Systeem status
+              </CardTitle>
+              <span className="text-xs text-slate-500">
+                {stats.systemHealth}% gezond
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {systemStatus.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                  <Server className="w-6 h-6 text-slate-400" />
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Charts and Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
-              {/* Performance Chart */}
-              <Card className="lg:col-span-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-slate-600" />
-                    Prestaties Overzicht
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Voltooiingsgraad
-                        </span>
-                        <span className="text-sm font-bold">
-                          {stats.completionRate.toFixed(1)}%
-                        </span>
-                      </div>
-                      <Progress value={stats.completionRate} className="h-2" />
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Actieve Gebruikers
-                        </span>
-                        <span className="text-sm font-bold">
-                          {stats.activeUsers}
-                        </span>
-                      </div>
-                      <Progress
-                        value={(stats.activeUsers / stats.totalUsers) * 100}
-                        className="h-2"
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Geen data
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Systeemstatus niet beschikbaar.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                {systemStatus.map((component) => (
+                  <div
+                    key={component.id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          component.status === "operational"
+                            ? "bg-emerald-500"
+                            : component.status === "degraded"
+                              ? "bg-amber-500"
+                              : "bg-red-500"
+                        }`}
                       />
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Gemiddeld per Gebruiker
-                        </span>
-                        <span className="text-sm font-bold">
-                          {stats.avgHoursPerUser.toFixed(1)}u
-                        </span>
-                      </div>
-                      <Progress
-                        value={(stats.avgHoursPerUser / 40) * 100}
-                        className="h-2"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Activity */}
-              <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-slate-600" />
-                    Recente Activiteit
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivity.length === 0 ? (
-                      <p className="text-center text-slate-600 dark:text-slate-400 py-8">
-                        Geen recente activiteit
-                      </p>
-                    ) : (
-                      recentActivity.map((activity, index) => (
-                        <div key={activity.id} className="flex gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                            {activity.user?.firstName?.charAt(0)}
-                            {activity.user?.lastName?.charAt(0)}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {activity.user?.firstName}{" "}
-                              {activity.user?.lastName}
-                            </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
-                              {activity.project?.name} •{" "}
-                              {activity.hours.toFixed(1)}u
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {getStatusBadge(activity.status)}
-                              <span className="text-xs text-slate-500">
-                                {dayjs(activity.timestamp).fromNow()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {/* Analytics View */}
-        {activeView === "analytics" && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="border-l-4 border-l-indigo-500">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <PieChart className="w-12 h-12 mx-auto mb-4 text-indigo-600 dark:text-indigo-400" />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
-                      Gebruikersdistributie
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      {stats.activeUsers} van {stats.totalUsers} actief deze
-                      maand
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-cyan-500">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <TrendingUp className="w-12 h-12 mx-auto mb-4 text-cyan-600 dark:text-cyan-400" />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
-                      Groei Trends
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      +{usersTrend.change} gebruikersgroei
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-pink-500">
-                <CardContent className="pt-6">
-                  <div className="text-center">
-                    <BarChart3 className="w-12 h-12 mx-auto mb-4 text-pink-600 dark:text-pink-400" />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
-                      Productiviteit
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      {stats.avgHoursPerUser.toFixed(1)}u gemiddeld per
-                      gebruiker
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {/* System View */}
-        {activeView === "system" && (
-          <div className="space-y-8">
-            {/* System Health Overview */}
-            <Card className="border-l-4 border-l-emerald-500">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                      Systeem Health
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Alle systemen draaien optimaal
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                      {stats.systemHealth}%
-                    </div>
-                    <div className="text-slate-600 dark:text-slate-400 text-sm">
-                      Uptime Score
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Progress value={stats.systemHealth} className="h-3" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* System Components */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {systemStatus.map((component) => (
-                <Card
-                  key={component.id}
-                  className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50"
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                          {component.component === "API Server" && (
-                            <Globe className="w-5 h-5" />
-                          )}
-                          {component.component === "Database" && (
-                            <Database className="w-5 h-5" />
-                          )}
-                          {component.component === "Bestandsopslag" && (
-                            <Server className="w-5 h-5" />
-                          )}
-                          {component.component === "E-mail Service" && (
-                            <Shield className="w-5 h-5" />
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-slate-900 dark:text-slate-100">
-                            {component.component}
-                          </h4>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {component.uptime} uptime
-                          </p>
-                        </div>
-                      </div>
-                      {getSystemStatusBadge(component.status)}
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600 dark:text-slate-400">
-                        Response tijd
-                      </span>
-                      <span className="font-medium text-slate-900 dark:text-slate-100">
-                        {component.responseTime}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Activity View */}
-        {activeView === "activity" && (
-          <div className="space-y-8">
-            <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-slate-600" />
-                  Live Activiteit Feed
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentActivity.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                          {activity.user?.firstName?.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-900 dark:text-slate-100 truncate">
-                            {activity.user?.firstName} {activity.user?.lastName}
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                            Registreerde {activity.hours.toFixed(1)} uur voor{" "}
-                            {activity.project?.name}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:text-right ml-13 sm:ml-0">
-                        {getStatusBadge(activity.status)}
-                        <p className="text-xs text-slate-500">
-                          {dayjs(activity.timestamp).fromNow()}
+                      <div>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                          {component.component}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {component.responseTime} · {component.uptime} uptime
                         </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                    {getSystemStatusBadge(component.status)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Signaleringen (indien aanwezig) */}
+      {alerts.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Actieve signaleringen
+              </CardTitle>
+              <Badge variant="destructive" className="text-xs">
+                {alerts.length}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Melding
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Ernst
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Tijdstip
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {alerts.slice(0, 5).map((alert) => (
+                    <tr
+                      key={alert.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                        {alert.message}
+                      </td>
+                      <td className="px-4 py-3">
+                        {alert.severity === "error" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            Kritiek
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            Waarschuwing
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">
+                        {dayjs(alert.timestamp).fromNow()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

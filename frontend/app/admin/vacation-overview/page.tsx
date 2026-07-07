@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { API_URL } from "@/lib/api";
 import { Calendar, Users, TrendingUp, Loader2, Download } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ToastContainer } from "@/components/Toast";
@@ -86,8 +85,7 @@ export default function VacationOverviewPage() {
 
   return (
     <ProtectedRoute>
-      <ModernLayout>
-        <div className="space-y-6 animate-fadeIn">
+      <div className="space-y-6 animate-fadeIn">
           <PageHeader
             title="Jaaroverzicht Vakantiedagen"
             description={`Overzicht voor ${selectedYear}`}
@@ -243,7 +241,6 @@ export default function VacationOverviewPage() {
         </div>
 
         <ToastContainer toasts={toasts} onRemove={removeToast} />
-      </ModernLayout>
     </ProtectedRoute>
   );
 }

@@ -6,23 +6,26 @@ import { getTimeEntries } from "@/lib/api";
 import { TimeEntry } from "@/lib/types";
 import { useTranslation } from "react-i18next";
 import {
-    ClockIcon,
-    CalendarDaysIcon,
-    CurrencyEuroIcon,
-    ChartBarIcon,
-    FunnelIcon,
-    ArrowDownTrayIcon,
-    EyeIcon,
-    MagnifyingGlassIcon,
-    CheckCircleIcon
-} from "@heroicons/react/24/outline";
-import { Clock, Calendar, DollarSign, MapPin } from "lucide-react";
+  Clock,
+  Calendar,
+  DollarSign,
+  MapPin,
+  Filter,
+  Download,
+  Eye,
+  Search,
+  CheckCircle2,
+} from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 dayjs.extend(isBetween);
 
 const PAGE_SIZE = 10;
+
+const selectClass = "w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600";
 
 export default function UrenOverzicht(): JSX.Element {
   const { t } = useTranslation();
@@ -56,7 +59,6 @@ export default function UrenOverzicht(): JSX.Element {
       let result: TimeEntry[] = [];
       for (const entry of entries) {
         try {
-          // FILTER: Only show approved entries
           if (entry.status !== "goedgekeurd") {
             continue;
           }
@@ -66,7 +68,7 @@ export default function UrenOverzicht(): JSX.Element {
             result.push(entry);
           }
         } catch (error) {
-          
+
         }
       }
 
@@ -113,7 +115,7 @@ export default function UrenOverzicht(): JSX.Element {
       setFilteredEntries(result);
       setCurrentPage(1);
     } catch (error) {
-      
+
       setFilteredEntries([]);
     }
   }, [
@@ -135,7 +137,7 @@ export default function UrenOverzicht(): JSX.Element {
         }
         setEntries(safeData);
       } catch (error) {
-        
+
         setEntries([]);
       }
     }
@@ -149,7 +151,6 @@ export default function UrenOverzicht(): JSX.Element {
 
       for (const entry of entries) {
         try {
-          // Only get options from approved entries
           if (
             entry &&
             entry.status === "goedgekeurd" &&
@@ -163,14 +164,14 @@ export default function UrenOverzicht(): JSX.Element {
             companiesSet.add(compName);
           }
         } catch (error) {
-          
+
         }
       }
 
       setProjectOptions(Array.from(projectsSet));
       setCompanyOptions(Array.from(companiesSet));
     } catch (error) {
-      
+
       setProjectOptions([]);
       setCompanyOptions([]);
     }
@@ -214,7 +215,7 @@ export default function UrenOverzicht(): JSX.Element {
       totalExpenses += entry.expenses || 0;
       totalDistance += entry.distanceKm || 0;
     } catch (error) {
-      
+
     }
   }
   totalDays = daysWithHours.size;
@@ -246,10 +247,10 @@ export default function UrenOverzicht(): JSX.Element {
         title={t("overview.title")}
         description={t("overview.subtitle")}
         actions={
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
-            <ArrowDownTrayIcon className="w-4 h-4" />
+          <Button className="gap-2">
+            <Download className="w-4 h-4" />
             Exporteren
-          </button>
+          </Button>
         }
       />
 
@@ -289,7 +290,7 @@ export default function UrenOverzicht(): JSX.Element {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <FunnelIcon className="w-4 h-4 text-blue-600" />
+            <Filter className="w-4 h-4 text-blue-600" />
             {t("overview.filters")}
             <span className="ml-1 px-2 py-0.5 text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800">
               {t("overview.onlyApproved")}
@@ -302,9 +303,9 @@ export default function UrenOverzicht(): JSX.Element {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {t("overview.startDate")}
               </label>
-              <input
+              <Input
                 type="date"
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -314,9 +315,9 @@ export default function UrenOverzicht(): JSX.Element {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {t("overview.endDate") || "Einddatum"}
               </label>
-              <input
+              <Input
                 type="date"
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
@@ -327,7 +328,7 @@ export default function UrenOverzicht(): JSX.Element {
                 Bedrijf
               </label>
               <select
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className={selectClass}
                 value={selectedCompany}
                 onChange={(e) => setSelectedCompany(e.target.value)}
               >
@@ -345,7 +346,7 @@ export default function UrenOverzicht(): JSX.Element {
                 Project
               </label>
               <select
-                className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className={selectClass}
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
               >
@@ -361,11 +362,11 @@ export default function UrenOverzicht(): JSX.Element {
 
           {/* Search Bar */}
           <div className="relative">
-            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Input
               type="text"
               placeholder="Zoek op project, bedrijf of notities..."
-              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -376,12 +377,13 @@ export default function UrenOverzicht(): JSX.Element {
               <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredEntries.length}</span> goedgekeurde entries van{" "}
               <span className="font-semibold text-slate-700 dark:text-slate-300">{entries.filter((e) => e.status === "goedgekeurd").length}</span> totaal
             </p>
-            <button
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            <Button
+              variant="ghost"
+              className="text-sm font-medium p-0 h-auto"
               onClick={resetFilters}
             >
               Reset filters
-            </button>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -390,7 +392,7 @@ export default function UrenOverzicht(): JSX.Element {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <EyeIcon className="w-4 h-4 text-blue-600" />
+            <Eye className="w-4 h-4 text-blue-600" />
             {t("overview.approved")}registraties
           </CardTitle>
         </CardHeader>
@@ -442,7 +444,7 @@ export default function UrenOverzicht(): JSX.Element {
             {pageEntries.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                  <CheckCircleIcon className="w-7 h-7 text-slate-400" />
+                  <CheckCircle2 className="w-7 h-7 text-slate-400" />
                 </div>
                 <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen goedgekeurde uren gevonden</p>
                 <p className="text-sm text-slate-500 mt-1">Probeer je filters aan te passen</p>
@@ -520,7 +522,7 @@ export default function UrenOverzicht(): JSX.Element {
                     <td colSpan={8}>
                       <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                          <CheckCircleIcon className="w-7 h-7 text-slate-400" />
+                          <CheckCircle2 className="w-7 h-7 text-slate-400" />
                         </div>
                         <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen goedgekeurde uren gevonden</p>
                         <p className="text-sm text-slate-500 mt-1">Probeer je filters aan te passen of wacht tot uren zijn goedgekeurd</p>
@@ -536,13 +538,14 @@ export default function UrenOverzicht(): JSX.Element {
           {totalPages > 1 && (
             <div className="px-4 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
               <div className="flex justify-center items-center gap-2">
-                <button
-                  className="px-3 py-1.5 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   {t("overview.previous")}
-                </button>
+                </Button>
 
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -558,28 +561,27 @@ export default function UrenOverzicht(): JSX.Element {
                     }
 
                     return (
-                      <button
+                      <Button
                         key={pageNum}
-                        className={`w-8 h-8 text-sm font-medium rounded-lg transition ${
-                          pageNum === currentPage
-                            ? "bg-blue-600 text-white"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-                        }`}
+                        variant={pageNum === currentPage ? "default" : "ghost"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
                         onClick={() => goToPage(pageNum)}
                       >
                         {pageNum}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
 
-                <button
-                  className="px-3 py-1.5 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 transition"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
                   {t("overview.next")}
-                </button>
+                </Button>
               </div>
 
               <p className="text-center mt-2 text-xs text-slate-500 dark:text-slate-400">

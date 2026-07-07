@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Calendar,
@@ -14,16 +12,15 @@ import {
   Loader2,
   Clock,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   AlertCircle,
+  Plane,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { getVacationRequests } from "@/lib/api";
-import { registerVacationRequest } from "@/lib/api/vacationApi";
 import dayjs from "dayjs";
 import { showToast } from "@/components/ui/toast";
-import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import { useTranslation } from "react-i18next";
 import { API_URL } from "@/lib/api";
@@ -58,7 +55,6 @@ interface VacationType {
 }
 
 export default function VakantiePage() {
-  const router = useRouter();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<VacationRequest[]>([]);
@@ -291,10 +287,10 @@ export default function VakantiePage() {
     const pending = requests.filter((r) => r.status === "SUBMITTED" || r.status === "pending");
     const rejected = requests.filter((r) => r.status === "REJECTED" || r.status === "rejected");
 
-    const totalDays = requests.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
-    const approvedDays = approved.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
-    const pendingDays = pending.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
-    const rejectedDays = rejected.reduce((sum, r) => sum + (r.totalDays || r.hours / 8 || 0), 0);
+    const totalDays = requests.reduce((sum, r) => sum + (r.totalDays || (r.hours ?? 0) / 8 || 0), 0);
+    const approvedDays = approved.reduce((sum, r) => sum + (r.totalDays || (r.hours ?? 0) / 8 || 0), 0);
+    const pendingDays = pending.reduce((sum, r) => sum + (r.totalDays || (r.hours ?? 0) / 8 || 0), 0);
+    const rejectedDays = rejected.reduce((sum, r) => sum + (r.totalDays || (r.hours ?? 0) / 8 || 0), 0);
     const availableDays = 25 - approvedDays; // Aangenomen 25 dagen per jaar
 
     return {
@@ -314,7 +310,7 @@ export default function VakantiePage() {
     if (type) {
       return type.omschrijving;
     }
-    
+
     // Fallback mapping
     const mapping: Record<string, string> = {
       'Z03': 'Vakantie (ATV)',
@@ -324,7 +320,7 @@ export default function VakantiePage() {
       'Z08': 'Opbouw tijd voor tijd',
       'Z09': 'Opname tijd voor tijd'
     };
-    
+
     return mapping[code] || code;
   };
 
@@ -333,288 +329,273 @@ export default function VakantiePage() {
     switch (upperStatus) {
       case "APPROVED":
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
             <CheckCircle className="w-3 h-3 mr-1" />
             Goedgekeurd
-          </Badge>
+          </span>
         );
       case "REJECTED":
         return (
-          <Badge className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
             <XCircle className="w-3 h-3 mr-1" />
-            Afgekeurd
-          </Badge>
+            Afgewezen
+          </span>
         );
       case "SUBMITTED":
       case "PENDING":
         return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
             <Clock className="w-3 h-3 mr-1" />
-            In Behandeling
-          </Badge>
+            In behandeling
+          </span>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            {status}
+          </span>
+        );
     }
+  };
+
+  const calcWorkingDays = (start: string, end: string) => {
+    const startDate = dayjs(start);
+    const endDate = dayjs(end);
+    const totalDays = endDate.diff(startDate, "day") + 1;
+    let workingDays = 0;
+    for (let i = 0; i < totalDays; i++) {
+      const currentDate = startDate.add(i, "day");
+      if (currentDate.day() !== 0 && currentDate.day() !== 6) {
+        workingDays++;
+      }
+    }
+    return workingDays;
   };
 
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6 animate-fadeIn">
+        <div className="p-6 space-y-6 animate-fadeIn">
           <PageHeader
-            title={t("vacation.title")}
-            description={t("vacation.subtitle")}
+            title="Verlof & Vakantie"
+            description="Beheer je verlofaanvragen"
             actions={
               <Button onClick={() => setShowModal(true)} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
-                {t("vacation.request")}
+                Aanvragen
               </Button>
             }
           />
 
-          {/* Balance Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              title={t("vacation.totalRequested")}
-              value={loading ? "..." : Math.round(stats.totalDays)}
-              subtitle={t("vacation.vacationDays")}
-              icon={Calendar}
+              title="Resterend"
+              value={loading ? "..." : Math.max(0, Math.round(stats.availableDays))}
+              icon={Plane}
               color="blue"
             />
             <StatCard
-              title={t("status.approved")}
+              title="Opgenomen"
               value={loading ? "..." : Math.round(stats.approvedDays)}
-              subtitle={t("vacation.used")}
-              icon={CheckCircle}
+              icon={CheckCircle2}
               color="emerald"
             />
             <StatCard
-              title={t("status.pending")}
+              title="In behandeling"
               value={loading ? "..." : Math.round(stats.pendingDays)}
-              subtitle={t("vacation.waitingAction")}
               icon={Clock}
               color="amber"
             />
-            <StatCard
-              title={t("status.rejected")}
-              value={loading ? "..." : Math.round(stats.rejectedDays)}
-              subtitle={t("vacation.thisYear")}
-              icon={XCircle}
-              color="rose"
-            />
-            <StatCard
-              title={t("vacation.available")}
-              value={loading ? "..." : Math.max(0, Math.round(stats.availableDays))}
-              subtitle={t("vacation.remainingYear")}
-              icon={AlertCircle}
-              color="indigo"
-            />
           </div>
 
-          {/* Vacation Requests */}
-          <Card variant="elevated" padding="lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">{t("vacation.myRequests")}</CardTitle>
+          {/* Aanvragen tabel */}
+          <Card>
+            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  Mijn Aanvragen
+                </CardTitle>
+                <Button size="sm" variant="outline" onClick={() => setShowModal(true)}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Nieuw
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
-                  <span className="ml-2 text-slate-600">
-                    {t("common.loading")}
-                  </span>
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  <span className="ml-2 text-sm text-slate-500">Laden...</span>
                 </div>
               ) : requests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                    <Calendar className="w-7 h-7 text-slate-400" />
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                    <Calendar className="w-6 h-6 text-slate-400" />
                   </div>
-                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen aanvragen</p>
-                  <p className="text-sm text-slate-500 mt-1">{t("vacation.noRequests")}</p>
-                  <Button className="mt-4" onClick={() => setShowModal(true)}>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen aanvragen</p>
+                  <p className="text-xs text-slate-500 mt-1">Er zijn nog geen verlofaanvragen beschikbaar.</p>
+                  <Button size="sm" className="mt-4" onClick={() => setShowModal(true)}>
                     <Plus className="w-4 h-4 mr-2" />
-                    {t("vacation.request")}
+                    Eerste aanvraag indienen
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {requests
-                    .sort(
-                      (a, b) =>
-                        new Date(b.startDate).getTime() -
-                        new Date(a.startDate).getTime(),
-                    )
-                    .map((request) => {
-                      const days = Math.ceil(request.hours / 8);
-                      const period =
-                        request.startDate === request.endDate
-                          ? dayjs(request.startDate).format("DD MMMM YYYY")
-                          : `${dayjs(request.startDate).format("DD MMM")} - ${dayjs(request.endDate).format("DD MMM YYYY")}`;
-
-                      return (
-                        <Card
-                          key={request.id}
-                          className="hover:shadow-md transition-shadow"
-                        >
-                          <CardContent className="pt-6">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                    <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold text-slate-900 dark:text-slate-100">
-                                      {period}
-                                    </p>
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                                      {getVacationTypeLabel(request.vacationType || 'Z03')} • {days}{" "}
-                                      {days > 1
-                                        ? t("vacation.workingDaysPlural")
-                                        : t("vacation.workingDays")}{" "}
-                                      • {request.hours} {t("vacation.hours")}
-                                    </p>
-                                  </div>
-                                </div>
-                                {request.reason && (
-                                  <div className="ml-13 mb-3">
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg">
-                                      {request.reason}
-                                    </p>
-                                  </div>
-                                )}
-                                <div className="ml-13">
-                                  {getStatusBadge(request.status)}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Periode</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Dagen</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Reden</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                      {requests
+                        .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+                        .map((request) => {
+                          const days = request.totalDays || Math.ceil((request.hours ?? 8) / 8);
+                          const period =
+                            request.startDate === request.endDate
+                              ? dayjs(request.startDate).format("DD MMM YYYY")
+                              : `${dayjs(request.startDate).format("DD MMM")} – ${dayjs(request.endDate).format("DD MMM YYYY")}`;
+                          const note = request.notes || request.reason || "–";
+                          return (
+                            <tr key={request.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                              <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap">{period}</td>
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{days} dag{days !== 1 ? "en" : ""}</td>
+                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{getVacationTypeLabel(request.vacationType || "Z03")}</td>
+                              <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-[200px] truncate" title={note}>{note}</td>
+                              <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(request.status)}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Modal voor nieuwe aanvraag */}
+          {/* Nieuw Aanvragen — inline form card */}
           {showModal && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <Card className="w-full max-w-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="w-5 h-5" />
-                    {t("vacation.newRequest")}
+            <Card>
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-slate-400" />
+                    Nieuwe Aanvraag
                   </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {t("vacation.startDate")}
-                        </label>
-                        <Input
-                          type="date"
-                          required
-                          value={formData.startDate}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              startDate: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {t("vacation.endDate")}
-                        </label>
-                        <Input
-                          type="date"
-                          required
-                          value={formData.endDate}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              endDate: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    {/* Partial day / hours toggle */}
-                    {formData.startDate === formData.endDate && formData.startDate !== "" && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Gedeeltelijke dag (uren)?
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsPartialDay(!isPartialDay);
-                              if (!isPartialDay) {
-                                setFormData({ ...formData, hours: 4 });
-                              } else {
-                                setFormData({ ...formData, hours: 8 });
-                              }
-                            }}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              isPartialDay ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                isPartialDay ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </div>
-                        {isPartialDay && (
-                          <div>
-                            <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
-                              Aantal uren
-                            </label>
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="range"
-                                min="1"
-                                max="8"
-                                step="0.5"
-                                value={formData.hours}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, hours: parseFloat(e.target.value) })
-                                }
-                                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                              />
-                              <span className="text-lg font-bold text-blue-600 dark:text-blue-400 min-w-[3rem] text-center">
-                                {formData.hours} uur
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                              💡 Aanvragen onder 8 uur worden automatisch goedgekeurd
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowModal(false);
+                      setValidationError("");
+                    }}
+                  >
+                    Annuleren
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Startdatum
+                      </label>
+                      <Input
+                        type="date"
+                        required
+                        className="h-9"
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Einddatum
+                      </label>
+                      <Input
+                        type="date"
+                        required
+                        className="h-9"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Partial day toggle */}
+                  {formData.startDate === formData.endDate && formData.startDate !== "" && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Gedeeltelijke dag (uren)?
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPartialDay(!isPartialDay);
+                            if (!isPartialDay) {
+                              setFormData({ ...formData, hours: 4 });
+                            } else {
+                              setFormData({ ...formData, hours: 8 });
+                            }
+                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            isPartialDay ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              isPartialDay ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      {isPartialDay && (
+                        <div>
+                          <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                            Aantal uren
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min="1"
+                              max="8"
+                              step="0.5"
+                              value={formData.hours}
+                              onChange={(e) =>
+                                setFormData({ ...formData, hours: parseFloat(e.target.value) })
+                              }
+                              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                            />
+                            <span className="text-base font-bold text-blue-600 dark:text-blue-400 min-w-[3rem] text-center">
+                              {formData.hours} uur
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                            Aanvragen onder 8 uur worden automatisch goedgekeurd.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                         Type Verlof
                       </label>
                       <select
                         value={formData.vacationType}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            vacationType: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                        onChange={(e) => setFormData({ ...formData, vacationType: e.target.value })}
+                        className="h-9 w-full px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                       >
                         {vacationTypes.length > 0 ? (
                           vacationTypes.map((type: VacationType) => (
@@ -636,139 +617,104 @@ export default function VakantiePage() {
                       </select>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Reden / Opmerking <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        required
-                        value={formData.notes}
-                        onChange={(e) =>
-                          setFormData({ ...formData, notes: e.target.value })
-                        }
-                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
-                        rows={3}
-                        placeholder="Voeg een reden toe voor je verlofaanvraag..."
-                      />
-                    </div>
-
-                    {/* Validation Error */}
-                    {validationError && (
-                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                        <p className="text-sm text-red-700 dark:text-red-400 font-medium">
-                          ⚠️ {validationError}
-                        </p>
-                      </div>
-                    )}
-
                     {formData.startDate && formData.endDate && (
-                      <div className="bg-amber-50 dark:bg-blue-600/10 border border-amber-400/30 dark:border-amber-400/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-600 mb-2">
-                          <Calendar className="w-4 h-4" />
-                          <span className="font-medium">
-                            Samenvatting
-                          </span>
-                        </div>
-                        <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
-                          <p>
-                            <strong>Periode:</strong> {dayjs(formData.startDate).format("DD MMMM YYYY")} - {dayjs(formData.endDate).format("DD MMMM YYYY")}
-                          </p>
-                          <p>
-                            <strong>Type:</strong> {getVacationTypeLabel(formData.vacationType)}
-                          </p>
-                          <p>
-                            <strong>Werkdagen:</strong> {(() => {
-                              const start = dayjs(formData.startDate);
-                              const end = dayjs(formData.endDate);
-                              const days = end.diff(start, "day") + 1;
-                              let workingDays = 0;
-                              for (let i = 0; i < days; i++) {
-                                const currentDate = start.add(i, "day");
-                                if (currentDate.day() !== 0 && currentDate.day() !== 6) {
-                                  workingDays++;
-                                }
-                              }
-                              return workingDays;
-                            })()} dagen (ma-vr)
-                          </p>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Werkdagen
+                        </label>
+                        <div className="h-9 px-3 flex items-center text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800/50">
+                          {calcWorkingDays(formData.startDate, formData.endDate)} werkdag{calcWorkingDays(formData.startDate, formData.endDate) !== 1 ? "en" : ""}
                         </div>
                       </div>
                     )}
+                  </div>
 
-                    <div className="flex gap-3 pt-2">
-                      <Button type="submit" className="flex-1">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Aanvraag Indienen
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setShowModal(false);
-                          setValidationError("");
-                        }}
-                        className="flex-1"
-                      >
-                        Annuleren
-                      </Button>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Reden / Opmerking <span className="text-red-500 normal-case">*</span>
+                    </label>
+                    <textarea
+                      required
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
+                      rows={3}
+                      placeholder="Voeg een reden toe voor je verlofaanvraag..."
+                    />
+                  </div>
+
+                  {validationError && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <p className="text-sm text-red-700 dark:text-red-400">{validationError}</p>
                     </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
+                  )}
+
+                  <div className="flex items-center gap-3 pt-1">
+                    <Button type="submit" size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Aanvraag indienen
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setShowModal(false);
+                        setValidationError("");
+                      }}
+                    >
+                      Annuleren
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Confirmation Dialog */}
+          {/* Bevestiging dialoog */}
           {showConfirmDialog && (
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <Card className="w-full max-w-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-amber-600">
-                    <AlertCircle className="w-5 h-5" />
-                    Bevestig je aanvraag
+                <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    Bevestig aanvraag
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   <div className="space-y-4">
-                    <p className="text-slate-700 dark:text-slate-300">
-                      Je staat op het punt om een verlofaanvraag in te dienen voor:
-                    </p>
-                    <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2">
-                      <p className="text-sm">
-                        <strong>Periode:</strong> {dayjs(formData.startDate).format("DD MMMM YYYY")} - {dayjs(formData.endDate).format("DD MMMM YYYY")}
-                      </p>
-                      <p className="text-sm">
-                        <strong>Type:</strong> {formData.vacationType}
-                      </p>
-                      <p className="text-sm">
-                        <strong>Werkdagen:</strong> {(() => {
-                          const start = dayjs(formData.startDate);
-                          const end = dayjs(formData.endDate);
-                          const days = end.diff(start, "day") + 1;
-                          let workingDays = 0;
-                          for (let i = 0; i < days; i++) {
-                            const currentDate = start.add(i, "day");
-                            if (currentDate.day() !== 0 && currentDate.day() !== 6) {
-                              workingDays++;
-                            }
-                          }
-                          return workingDays;
-                        })()} dagen
-                      </p>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-md p-3 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Periode</span>
+                        <span className="text-slate-900 dark:text-slate-100 font-medium">
+                          {dayjs(formData.startDate).format("DD MMM YYYY")} – {dayjs(formData.endDate).format("DD MMM YYYY")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Type</span>
+                        <span className="text-slate-900 dark:text-slate-100">{getVacationTypeLabel(formData.vacationType)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Werkdagen</span>
+                        <span className="text-slate-900 dark:text-slate-100">
+                          {formData.startDate && formData.endDate
+                            ? `${calcWorkingDays(formData.startDate, formData.endDate)} dag${calcWorkingDays(formData.startDate, formData.endDate) !== 1 ? "en" : ""}`
+                            : "–"}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-xs text-slate-500">
                       Je manager ontvangt automatisch een notificatie om je aanvraag goed te keuren.
                     </p>
-                    <div className="flex gap-3 pt-2">
-                      <Button
-                        onClick={handleConfirmSubmit}
-                        className="flex-1"
-                      >
+                    <div className="flex gap-3">
+                      <Button onClick={handleConfirmSubmit} size="sm" className="flex-1">
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Ja, Indienen
+                        Ja, indienen
                       </Button>
                       <Button
                         variant="outline"
+                        size="sm"
                         onClick={() => setShowConfirmDialog(false)}
                         className="flex-1"
                       >

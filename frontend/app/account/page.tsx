@@ -1,597 +1,456 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { API_URL } from "@/lib/api";
-import dayjs from "dayjs";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Briefcase,
-  Calendar,
-  Loader2,
-  Save,
-  Shield,
-  Globe,
-  Moon,
-  Sun,
-} from "lucide-react";
-
+import { useTranslation } from "react-i18next";
+import React, { useState, useEffect, JSX } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import ModernLayout from "@/components/ModernLayout";
+import { User, Shield, Eye, EyeOff, Bell, Camera, Lock, ExternalLink, CheckCircle, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ToastContainer } from "@/components/Toast";
-import type { ToastType } from "@/components/Toast";
+import { PageHeader } from "@/components/ui/page-header";
 import { getUser, updateUser } from "@/lib/api";
-import authUtils from "@/lib/auth-utils";
-import { useTranslation } from "react-i18next";
-import { useTheme } from "@/lib/theme-context";
-import i18n from "i18next";
+import Link from "next/link";
 
-interface ToastMessage {
-  id: string;
-  message: string;
-  type: ToastType;
-}
-
-interface UserData {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  houseNumber?: string;
-  postalCode?: string;
-  city?: string;
-  rank?: string;
-  hourlyRate?: number;
-  employmentDate?: string;
-}
-
-export default function AccountPage() {
+export default function AccountPage(): JSX.Element {
   const { t } = useTranslation();
-  const { theme, setTheme } = useTheme();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    address: "",
+    houseNumber: "",
+    postalCode: "",
+    city: "",
+    loginName: "",
+    bio: "",
   });
-  const [changingPassword, setChangingPassword] = useState(false);
 
-  // Toast helpers
-  const addToast = (message: string, type: ToastType) => {
-    const id = Date.now().toString() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
-  };
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+    pushNotifications: false,
+    weeklyReports: true,
+    holidayReminders: true,
+    language: "nl",
+    timezone: "Europe/Amsterdam",
+  });
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  // 📦 Load user on mount
   useEffect(() => {
-    loadUserData();
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setProfileData({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        address: user.address,
+        houseNumber: user.houseNumber,
+        postalCode: user.postalCode,
+        city: user.city,
+        loginName: user.loginName,
+        bio: "",
+      });
+    }
+
+    const userIdStr = localStorage.getItem("userId");
+    if (userIdStr) {
+      const userId = parseInt(userIdStr);
+      getUser(userId)
+        .then(setProfileData)
+        .catch(() => {});
+    }
   }, []);
 
-  const loadUserData = async () => {
-    setLoading(true);
-    try {
-      const medewGcId = authUtils.getMedewGcId();
-      const userId = medewGcId ? Number(medewGcId) : null;
-      
-      
-      if (!userId) {
-        addToast("Niet ingelogd. Ga naar login pagina.", "error");
-        setTimeout(() => window.location.href = "/login", 2000);
-        return;
-      }
-      
-      
-      const data = await getUser(userId);
-      
-      
-      if (!data) {
-        addToast("Gebruikersgegevens niet gevonden voor ID " + userId, "error");
-        return;
-      }
-      setUserData(data);
-      addToast("Gegevens geladen", "success");
-    } catch (error) {
-      
-      addToast("Kon gebruikersgegevens niet laden: " + error, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleUpdate = async (): Promise<void> => {
+    const userIdStr = localStorage.getItem("userId");
+    if (!userIdStr) return;
 
-  // Opslaan Save user updates
-  const handleSave = async () => {
-    if (!userData) return;
-    
-    const medewGcId = authUtils.getMedewGcId();
-    const userId = medewGcId ? Number(medewGcId) : null;
-    if (!userId) {
-      addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
-      return;
-    }
-    
-    setSaving(true);
+    const userId = parseInt(userIdStr);
+    setIsLoading(true);
+    setMessage("");
 
     try {
-      await updateUser(userId, userData);
-      addToast("Profiel succesvol bijgewerkt!", "success");
-      setEditMode(false);
-    } catch (error) {
-      addToast("Opslaan mislukt. Probeer opnieuw.", "error");
+      const data: any = { ...profileData };
+      if (password.trim() !== "") data.password = password;
+
+      await updateUser(userId, data);
+
+      setMessage(t("account.updateSuccess"));
+      setIsSuccess(true);
+      localStorage.setItem("firstName", profileData.firstName);
+      localStorage.setItem("lastName", profileData.lastName);
+      setPassword("");
+    } catch (error: any) {
+      setMessage(error.response?.data?.message || t("account.updateError"));
+      setIsSuccess(false);
     } finally {
-      setSaving(false);
+      setIsLoading(false);
+      setTimeout(() => setMessage(""), 5000);
     }
   };
 
-  //  Handle input updates
-  const handleInputChange = (field: keyof UserData, value: string | number) => {
-    if (!userData) return;
-    setUserData({ ...userData, [field]: value });
-  };
+  const initials =
+    (profileData.firstName?.charAt(0) ?? "") +
+    (profileData.lastName?.charAt(0) ?? "");
 
-  // Password change handler
-  const handleChangePassword = async () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      addToast("Vul alle wachtwoordvelden in", "error");
-      return;
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      addToast("Nieuwe wachtwoorden komen niet overeen", "error");
-      return;
-    }
-    if (passwordData.newPassword.length < 6) {
-      addToast("Nieuw wachtwoord moet minimaal 6 tekens bevatten", "error");
-      return;
-    }
+  const fullName =
+    profileData.firstName || profileData.lastName
+      ? `${profileData.firstName} ${profileData.lastName}`.trim()
+      : "";
 
-    const medewGcId = authUtils.getMedewGcId();
-    const userId = medewGcId ? Number(medewGcId) : null;
-    if (!userId) {
-      addToast("Gebruiker niet gevonden. Log opnieuw in.", "error");
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      const response = await fetch(`${API_URL}/users/${userId}/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Wachtwoord wijzigen mislukt");
-      }
-
-      addToast("Wachtwoord succesvol gewijzigd!", "success");
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error) {
-      addToast(error instanceof Error ? error.message : "Wachtwoord wijzigen mislukt", "error");
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  // 🌀 Loading state
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <ModernLayout>
-          <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
-          </div>
-        </ModernLayout>
-      </ProtectedRoute>
-    );
-  }
-
-  // No user data
-  if (!userData) {
-    return (
-      <ProtectedRoute>
-        <ModernLayout>
-          <div className="flex flex-col items-center justify-center py-20 space-y-6">
-            <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-              <User className="w-10 h-10 text-red-600 dark:text-red-400" />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Gebruikersgegevens niet gevonden
-              </h2>
-              <p className="text-slate-600 dark:text-slate-400 max-w-md">
-                We kunnen je profielgegevens niet laden. Dit kan komen doordat je niet correct bent ingelogd.
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                authUtils.clearAuth();
-                window.location.href = "/login";
-              }}
-              variant="outline"
-            >
-              Opnieuw inloggen
-            </Button>
-          </div>
-        </ModernLayout>
-      </ProtectedRoute>
-    );
-  }
-
-  // Main UI
   return (
     <ProtectedRoute>
-      <ModernLayout>
-        <div className="animate-fade-in w-full px-3 md:px-12 lg:px-20 space-y-4 md:space-y-6">
-          {/* Page Header */}
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {t("account.title")}
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Beheer je profiel en account instellingen
-            </p>
-          </div>
+      <div className="p-6 space-y-6 animate-fadeIn">
+        <PageHeader
+          title="Mijn Account"
+          description={fullName || "Beheer je persoonlijke gegevens en beveiliging"}
+        />
 
-          {/* GRID: Profiel + Beveiliging + Theme + Taal */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 items-start">
-            {/* Profiel Informatie */}
-            <Card variant="elevated" padding="lg" className="h-full w-full lg:row-span-2">
-              <CardHeader>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left column — 2/3 */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Persoonlijke Gegevens */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <CardTitle>Profiel Informatie</CardTitle>
-                  {!editMode && (
-                    <Button variant="outline" onClick={() => setEditMode(true)}>
-                      Profiel Bewerken
-                    </Button>
-                  )}
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <User className="w-4 h-4 text-slate-400" />
+                    Persoonlijke Gegevens
+                  </CardTitle>
                 </div>
               </CardHeader>
-
-              <CardContent>
-                {/* Avatar + Naam */}
-                <div className="flex items-center gap-4 md:gap-6 mb-6">
-                  <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl md:text-3xl font-bold flex-shrink-0">
-                    {userData.firstName.charAt(0)}
-                    {userData.lastName.charAt(0)}
-                  </div>
-
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {userData.firstName} {userData.lastName}
-                    </h2>
-                    {userData.rank && (
-                      <p className="text-slate-600 dark:text-slate-400">
-                        {userData.rank}
-                      </p>
-                    )}
-                    {userData.employmentDate && (
-                      <p className="text-sm text-slate-500 dark:text-slate-500">
-                        In dienst sinds{" "}
-                        {dayjs(userData.employmentDate).format("MMMM YYYY")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Form Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-                  <InputField
-                    label="Voornaam"
-                    icon={<User className="w-4 h-4" />}
-                    value={userData.firstName}
-                    onChange={(v) => handleInputChange("firstName", v)}
-                    disabled={!editMode}
-                  />
-                  <InputField
-                    label="Achternaam"
-                    icon={<User className="w-4 h-4" />}
-                    value={userData.lastName}
-                    onChange={(v) => handleInputChange("lastName", v)}
-                    disabled={!editMode}
-                  />
-                  <InputField
-                    label="E-mail"
-                    icon={<Mail className="w-4 h-4" />}
-                    value={userData.email}
-                    onChange={(v) => handleInputChange("email", v)}
-                    disabled={!editMode}
-                  />
-                  <InputField
-                    label="Telefoon"
-                    icon={<Phone className="w-4 h-4" />}
-                    value={userData.phone || ""}
-                    onChange={(v) => handleInputChange("phone", v)}
-                    disabled={!editMode}
-                    placeholder="Bijv: +31 6 12345678"
-                  />
-
-                  {/* Adres */}
-                  <div className="md:col-span-2">
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <MapPin className="w-4 h-4" />
-                      Adres
+              <CardContent className="pt-5 space-y-4">
+                {/* Naam */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Voornaam
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input
-                        value={userData.address || ""}
-                        onChange={(e) =>
-                          handleInputChange("address", e.target.value)
-                        }
-                        disabled={!editMode}
-                        placeholder="Straatnaam"
-                      />
-                      <Input
-                        value={userData.houseNumber || ""}
-                        onChange={(e) =>
-                          handleInputChange("houseNumber", e.target.value)
-                        }
-                        disabled={!editMode}
-                        placeholder="Huisnummer"
-                      />
-                      <Input
-                        value={userData.postalCode || ""}
-                        onChange={(e) =>
-                          handleInputChange("postalCode", e.target.value)
-                        }
-                        disabled={!editMode}
-                        placeholder="Postcode"
-                      />
-                      <Input
-                        value={userData.city || ""}
-                        onChange={(e) =>
-                          handleInputChange("city", e.target.value)
-                        }
-                        disabled={!editMode}
-                        placeholder="Plaats"
-                      />
-                    </div>
+                    <Input
+                      value={profileData.firstName}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, firstName: e.target.value })
+                      }
+                      placeholder="Voornaam"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Achternaam
+                    </label>
+                    <Input
+                      value={profileData.lastName}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, lastName: e.target.value })
+                      }
+                      placeholder="Achternaam"
+                    />
                   </div>
                 </div>
 
-                {/* Save / Cancel Buttons */}
-                {editMode && (
-                  <div className="flex gap-3 mt-6">
-                    <Button onClick={handleSave} disabled={saving}>
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4 mr-2" />
-                      )}
-                      Opslaan
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setEditMode(false);
-                        loadUserData();
-                      }}
-                    >
-                      Annuleren
-                    </Button>
+                {/* E-mail */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    E-mailadres
+                  </label>
+                  <Input
+                    type="email"
+                    value={profileData.email}
+                    onChange={(e) =>
+                      setProfileData({ ...profileData, email: e.target.value })
+                    }
+                    placeholder="naam@bedrijf.nl"
+                  />
+                </div>
+
+                {/* Adres */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("account.address")}
+                    </label>
+                    <Input
+                      value={profileData.address}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, address: e.target.value })
+                      }
+                      placeholder="Straatnaam"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("account.houseNumber")}
+                    </label>
+                    <Input
+                      value={profileData.houseNumber}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, houseNumber: e.target.value })
+                      }
+                      placeholder="Nr."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("account.postalCode")}
+                    </label>
+                    <Input
+                      value={profileData.postalCode}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, postalCode: e.target.value })
+                      }
+                      placeholder="1234 AB"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {t("account.city")}
+                    </label>
+                    <Input
+                      value={profileData.city}
+                      onChange={(e) =>
+                        setProfileData({ ...profileData, city: e.target.value })
+                      }
+                      placeholder="Stad"
+                    />
+                  </div>
+                </div>
+
+                {/* Bio */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t("account.bio")}
+                  </label>
+                  <textarea
+                    value={profileData.bio}
+                    onChange={(e) =>
+                      setProfileData({ ...profileData, bio: e.target.value })
+                    }
+                    className="w-full border border-slate-300 dark:border-slate-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none h-24"
+                    placeholder={t("account.bioPlaceholder")}
+                  />
+                </div>
+
+                {/* Meldingsbalk */}
+                {message && (
+                  <div
+                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${
+                      isSuccess
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
+                        : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                    }`}
+                  >
+                    {isSuccess ? (
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                      <XCircle className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    {message}
                   </div>
                 )}
+
+                {/* Opslaan */}
+                <div className="pt-1 flex justify-end">
+                  <Button onClick={handleUpdate} disabled={isLoading} size="sm">
+                    {isLoading ? t("account.saving") : "Wijzigingen opslaan"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Voorkeuren */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-slate-400" />
+                  Meldingen &amp; Voorkeuren
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-5 space-y-4">
+                {[
+                  {
+                    key: "emailNotifications",
+                    label: t("account.emailNotifications"),
+                    desc: t("account.emailNotificationsDesc"),
+                  },
+                  {
+                    key: "pushNotifications",
+                    label: t("account.pushNotifications"),
+                    desc: t("account.pushNotificationsDesc"),
+                  },
+                  {
+                    key: "weeklyReports",
+                    label: t("account.weeklyReports"),
+                    desc: t("account.weeklyReportsDesc"),
+                  },
+                  {
+                    key: "holidayReminders",
+                    label: t("account.holidayReminders"),
+                    desc: t("account.holidayRemindersDesc"),
+                  },
+                ].map(({ key, label, desc }) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between gap-4 py-1"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {label}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={
+                        preferences[key as keyof typeof preferences] as boolean
+                      }
+                      onChange={(e) =>
+                        setPreferences({ ...preferences, [key]: e.target.checked })
+                      }
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 flex-shrink-0"
+                    />
+                  </div>
+                ))}
+
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {t("account.language")}
+                  </label>
+                  <select
+                    value={preferences.language}
+                    onChange={(e) =>
+                      setPreferences({ ...preferences, language: e.target.value })
+                    }
+                    className="h-9 w-full px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="nl">Nederlands</option>
+                    <option value="en">Engels</option>
+                    <option value="de">Duits</option>
+                    <option value="fr">Frans</option>
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right column — 1/3 */}
+          <div className="space-y-6">
+            {/* Profielfoto */}
+            <Card>
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  Profielfoto
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-5 flex flex-col items-center text-center space-y-4">
+                {/* Avatar */}
+                <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold select-none">
+                  {initials || <User className="w-8 h-8" />}
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {fullName || "—"}
+                  </p>
+                  {profileData.email && (
+                    <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[160px]">
+                      {profileData.email}
+                    </p>
+                  )}
+                  {profileData.city && (
+                    <p className="text-xs text-slate-400 mt-0.5">{profileData.city}</p>
+                  )}
+                </div>
+
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  Medewerker
+                </span>
+
+                <Button size="sm" variant="outline" className="w-full" disabled>
+                  <Camera className="w-3.5 h-3.5 mr-1.5" />
+                  Foto uploaden
+                </Button>
+                <p className="text-xs text-slate-400">Binnenkort beschikbaar</p>
               </CardContent>
             </Card>
 
             {/* Beveiliging */}
-            <Card variant="elevated" padding="lg" className="h-full w-full">
-              <CardHeader>
-                <CardTitle>Beveiliging</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <PasswordField 
-                    label="Huidig Wachtwoord" 
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  />
-                  <PasswordField 
-                    label="Nieuw Wachtwoord" 
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                  />
-                  <PasswordField 
-                    label="Bevestig Nieuw Wachtwoord" 
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  />
-                  <Button onClick={handleChangePassword} disabled={changingPassword}>
-                    {changingPassword ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : null}
-                    Wachtwoord Wijzigen
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tweestapsverificatie Card */}
-            <Card variant="elevated" padding="lg" className="h-full w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-blue-600" />
-                  Tweestapsverificatie (2FA)
+            <Card>
+              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-slate-400" />
+                  Beveiliging
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Extra beveiliging voor je account. Bij inloggen heb je een
-                    tweede verificatiestap nodig via authenticator app.
+              <CardContent className="pt-5 space-y-4">
+                {/* Wachtwoord wijzigen */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Nieuw wachtwoord
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder={t("account.passwordPlaceholder")}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Laat leeg om het wachtwoord niet te wijzigen.
                   </p>
+                </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                          Waarom 2FA?
-                        </h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                          Zelfs als iemand je wachtwoord kent, kunnen ze niet
-                          inloggen zonder toegang tot je tweede factor (bijv. je
-                          telefoon).
-                        </p>
-                      </div>
+                <Button
+                  onClick={handleUpdate}
+                  disabled={isLoading || !password.trim()}
+                  size="sm"
+                  className="w-full"
+                >
+                  <Lock className="w-3.5 h-3.5 mr-1.5" />
+                  {isLoading ? t("account.saving") : t("account.changePassword")}
+                </Button>
+
+                {/* Scheidingslijn */}
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Tweestapsverificatie
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Beveilig je account met 2FA via een authenticator app.
+                      </p>
                     </div>
                   </div>
-
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => (window.location.href = "/account/2fa")}
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    2FA Beheren
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Theme Settings */}
-            <Card variant="elevated" padding="lg" className="h-full w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {theme === "dark" ? (
-                    <Moon className="h-5 w-5" />
-                  ) : (
-                    <Sun className="h-5 w-5" />
-                  )}
-                  {t("settings.theme")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Wissel tussen lichte en donkere modus
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    onClick={() => setTheme("light")}
-                    className="flex items-center gap-2 flex-1"
-                  >
-                    <Sun className="h-4 w-4" />
-                    {t("settings.light")}
-                  </Button>
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    onClick={() => setTheme("dark")}
-                    className="flex items-center gap-2 flex-1"
-                  >
-                    <Moon className="h-4 w-4" />
-                    {t("settings.dark")}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Language Settings */}
-            <Card variant="elevated" padding="lg" className="h-full w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  {t("settings.language")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Kies de taal van de applicatie
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant={i18n.language === "nl" ? "default" : "outline"}
-                    onClick={() => i18n.changeLanguage("nl")}
-                    className="flex-1"
-                  >
-                    Nederlands
-                  </Button>
-                  <Button
-                    variant={i18n.language === "en" ? "default" : "outline"}
-                    onClick={() => i18n.changeLanguage("en")}
-                    className="flex-1"
-                  >
-                    English
-                  </Button>
+                  <Link href="/account/2fa" className="mt-3 block">
+                    <Button size="sm" variant="outline" className="w-full">
+                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                      2FA beheren
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
-
-        <ToastContainer toasts={toasts} onRemove={removeToast} />
-      </ModernLayout>
+      </div>
     </ProtectedRoute>
-  );
-}
-
-/* 🧩 Kleine helper-componenten */
-function InputField({
-  label,
-  icon,
-  value,
-  onChange,
-  disabled,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  icon: React.ReactNode;
-  value: string | number;
-  onChange: (value: string) => void;
-  disabled: boolean;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-        {icon}
-        {label}
-      </label>
-      <Input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        placeholder={placeholder}
-      />
-    </div>
-  );
-}
-
-function PasswordField({ 
-  label, 
-  value, 
-  onChange 
-}: { 
-  label: string; 
-  value: string; 
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <div>
-      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-        {label}
-      </label>
-      <Input type="password" value={value} onChange={onChange} />
-    </div>
   );
 }

@@ -1,8 +1,6 @@
 "use client";
 
 import { HelpCircle } from "lucide-react";
-import FaqAccordion from "./FaqAccordion";
-import ModernLayout from "@/components/ModernLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { useTranslation } from "react-i18next";

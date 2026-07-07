@@ -62,24 +62,16 @@ export default function AdminProjectsPage() {
 
   const loadData = async () => {
     try {
-      const [projectsData, companiesData] = await Promise.all([
+      const [projectsData, companiesData]: [any, any] = await Promise.all([
         getAllProjects(),
         getCompanies(),
       ]);
       let safeProjects: Project[] = [];
       if (Array.isArray(projectsData)) {
         safeProjects = projectsData;
-      } else if (
-        projectsData &&
-        typeof projectsData === "object" &&
-        Array.isArray(projectsData.projects)
-      ) {
+      } else if (projectsData && typeof projectsData === "object" && Array.isArray(projectsData.projects)) {
         safeProjects = projectsData.projects;
-      } else if (
-        projectsData &&
-        typeof projectsData === "object" &&
-        Array.isArray(projectsData.data)
-      ) {
+      } else if (projectsData && typeof projectsData === "object" && Array.isArray(projectsData.data)) {
         safeProjects = projectsData.data;
       }
       setProjects(safeProjects);
@@ -87,17 +79,9 @@ export default function AdminProjectsPage() {
       let safeCompanies: Company[] = [];
       if (Array.isArray(companiesData)) {
         safeCompanies = companiesData;
-      } else if (
-        companiesData &&
-        typeof companiesData === "object" &&
-        Array.isArray(companiesData.companies)
-      ) {
+      } else if (companiesData && typeof companiesData === "object" && Array.isArray(companiesData.companies)) {
         safeCompanies = companiesData.companies;
-      } else if (
-        companiesData &&
-        typeof companiesData === "object" &&
-        Array.isArray(companiesData.data)
-      ) {
+      } else if (companiesData && typeof companiesData === "object" && Array.isArray(companiesData.data)) {
         safeCompanies = companiesData.data;
       }
       setCompanies(safeCompanies);

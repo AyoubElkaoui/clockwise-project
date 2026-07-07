@@ -12,10 +12,6 @@ export default function InstellingenPage() {
     router.replace("/account");
   }, [router]);
 
-  useEffect(() => {
-    router.replace("/account");
-  }, [router]);
-
   return (
     <div className="flex items-center justify-center min-h-screen">
       <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

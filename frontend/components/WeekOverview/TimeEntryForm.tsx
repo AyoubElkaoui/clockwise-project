@@ -1000,7 +1000,7 @@ export default function TimeEntryForm({
             <div className="flex items-center gap-2">
               <PaperAirplaneIcon className="w-5 h-5" />
               {t("register.submitHoursWithCount", {
-                count: formatHours(calculatedHours),
+                count: calculatedHours,
               })}
             </div>
           )}

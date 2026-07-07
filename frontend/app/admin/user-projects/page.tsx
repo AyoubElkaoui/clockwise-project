@@ -5,6 +5,10 @@ import { getUsers, getCompanies, getProjectGroups, getProjects,
 import AdminRoute from "@/components/AdminRoute";
 import ToastNotification from "@/components/ToastNotification";
 import { User, Company, ProjectGroup, Project, UserProject } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Loader2 } from "lucide-react";
 import {
     UserPlusIcon,
     FunnelIcon,
@@ -16,6 +20,8 @@ import {
     CheckCircleIcon,
     ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
+
+const selectClass = "w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export default function AdminUserProjectsPage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -53,7 +59,7 @@ export default function AdminUserProjectsPage() {
             setUserProjects(userProjectsData);
             setFilteredUserProjects(userProjectsData);
         } catch (error) {
-            
+
             setToastMessage("Fout bij het ophalen van data");
             setToastType("error");
         } finally {
@@ -72,7 +78,7 @@ export default function AdminUserProjectsPage() {
                     const data = await getProjectGroups(selectedCompany);
                     setProjectGroups(data);
                 } catch (error) {
-                    
+
                 }
             };
 
@@ -92,7 +98,7 @@ export default function AdminUserProjectsPage() {
                     const data = await getProjects(selectedProjectGroup);
                     setProjects(data);
                 } catch (error) {
-                    
+
                 }
             };
 
@@ -146,7 +152,7 @@ export default function AdminUserProjectsPage() {
             setSelectedProjectGroup(null);
             setSelectedProject(null);
         } catch (error) {
-            
+
 
             // Toon de foutmelding van de server, als die er is
             const errorMessage = error instanceof Error ? error.message : "Fout bij toewijzen gebruiker aan project";
@@ -175,7 +181,7 @@ export default function AdminUserProjectsPage() {
             setToastMessage("Gebruiker succesvol verwijderd van project!");
             setToastType("success");
         } catch (error) {
-            
+
             setToastMessage("Fout bij verwijderen gebruiker van project");
             setToastType("error");
         }
@@ -206,10 +212,10 @@ export default function AdminUserProjectsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-blue-100">
+            <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900">
                 <div className="text-center">
-                    <div className="loading loading-spinner loading-lg text-elmar-primary mb-4"></div>
-                    <p className="text-lg font-semibold text-gray-700">Project toewijzingen laden...</p>
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Project toewijzingen laden...</p>
                 </div>
             </div>
         );
@@ -217,284 +223,267 @@ export default function AdminUserProjectsPage() {
 
     return (
         <AdminRoute>
-            <div className="container mx-auto p-6 space-y-8">
-                {/* Header Section */}
-                <div className="bg-blue-600 text-white rounded-2xl p-8 shadow-lg">
-                    <div className="flex items-center gap-3 mb-4">
-                        <UserPlusIcon className="w-8 h-8" />
-                        <h1 className="text-4xl font-bold">Project Toewijzingen</h1>
-                    </div>
-                    <p className="text-blue-100 text-lg">Beheer welke medewerkers toegang hebben tot welke projecten</p>
-                </div>
+            <div className="space-y-6 p-6">
+                <PageHeader
+                    title="Project Toewijzingen"
+                    description="Beheer welke medewerkers toegang hebben tot welke projecten"
+                />
 
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {/* Formulier voor toewijzen van gebruiker aan project */}
-                    <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-                        <div className="card-body p-8">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <UserPlusIcon className="w-6 h-6 text-elmar-primary" />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                <UserPlusIcon className="w-5 h-5 text-blue-600" />
                                 Nieuwe Toewijzing
-                            </h2>
-
-                            <div className="space-y-6">
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
-                                            <UsersIcon className="w-4 h-4" />
-                                            Gebruiker
-                                        </span>
-                                    </label>
-                                    <select
-                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                        value={selectedUser ?? ""}
-                                        onChange={(e) => setSelectedUser(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">Selecteer een gebruiker</option>
-                                        {users.map((user) => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.firstName} {user.lastName}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
-                                            <BuildingOfficeIcon className="w-4 h-4" />
-                                            Bedrijf
-                                        </span>
-                                    </label>
-                                    <select
-                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                        value={selectedCompany ?? ""}
-                                        onChange={(e) => setSelectedCompany(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">Selecteer een bedrijf</option>
-                                        {companies.map((company) => (
-                                            <option key={company.id} value={company.id}>
-                                                {company.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-gray-700">Projectgroep</span>
-                                    </label>
-                                    <select
-                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                        value={selectedProjectGroup ?? ""}
-                                        onChange={(e) => setSelectedProjectGroup(e.target.value ? Number(e.target.value) : null)}
-                                        disabled={!selectedCompany}
-                                    >
-                                        <option value="">Selecteer een projectgroep</option>
-                                        {projectGroups.map((group) => (
-                                            <option key={group.id} value={group.id}>
-                                                {group.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-gray-700 flex items-center gap-2">
-                                            <FolderIcon className="w-4 h-4" />
-                                            Project
-                                        </span>
-                                    </label>
-                                    <select
-                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                        value={selectedProject ?? ""}
-                                        onChange={(e) => setSelectedProject(e.target.value ? Number(e.target.value) : null)}
-                                        disabled={!selectedProjectGroup}
-                                    >
-                                        <option value="">Selecteer een project</option>
-                                        {projects.map((project) => (
-                                            <option key={project.id} value={project.id}>
-                                                {project.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <button
-                                    className="btn bg-blue-600 border-0 text-white rounded-xl w-full hover:shadow-xl disabled:opacity-50 disabled:transform-none"
-                                    onClick={handleAssignUserToProject}
-                                    disabled={!selectedUser || !selectedProject}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
+                                    <UsersIcon className="w-4 h-4" />
+                                    Gebruiker
+                                </label>
+                                <select
+                                    className={selectClass}
+                                    value={selectedUser ?? ""}
+                                    onChange={(e) => setSelectedUser(e.target.value ? Number(e.target.value) : null)}
                                 >
-                                    <UserPlusIcon className="w-5 h-5 mr-2" />
-                                    Gebruiker Toewijzen
-                                </button>
+                                    <option value="">Selecteer een gebruiker</option>
+                                    {users.map((user) => (
+                                        <option key={user.id} value={user.id}>
+                                            {user.firstName} {user.lastName}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                        </div>
-                    </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
+                                    <BuildingOfficeIcon className="w-4 h-4" />
+                                    Bedrijf
+                                </label>
+                                <select
+                                    className={selectClass}
+                                    value={selectedCompany ?? ""}
+                                    onChange={(e) => setSelectedCompany(e.target.value ? Number(e.target.value) : null)}
+                                >
+                                    <option value="">Selecteer een bedrijf</option>
+                                    {companies.map((company) => (
+                                        <option key={company.id} value={company.id}>
+                                            {company.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Projectgroep
+                                </label>
+                                <select
+                                    className={selectClass}
+                                    value={selectedProjectGroup ?? ""}
+                                    onChange={(e) => setSelectedProjectGroup(e.target.value ? Number(e.target.value) : null)}
+                                    disabled={!selectedCompany}
+                                >
+                                    <option value="">Selecteer een projectgroep</option>
+                                    {projectGroups.map((group) => (
+                                        <option key={group.id} value={group.id}>
+                                            {group.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-2">
+                                    <FolderIcon className="w-4 h-4" />
+                                    Project
+                                </label>
+                                <select
+                                    className={selectClass}
+                                    value={selectedProject ?? ""}
+                                    onChange={(e) => setSelectedProject(e.target.value ? Number(e.target.value) : null)}
+                                    disabled={!selectedProjectGroup}
+                                >
+                                    <option value="">Selecteer een project</option>
+                                    {projects.map((project) => (
+                                        <option key={project.id} value={project.id}>
+                                            {project.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <Button
+                                className="w-full"
+                                onClick={handleAssignUserToProject}
+                                disabled={!selectedUser || !selectedProject}
+                            >
+                                <UserPlusIcon className="w-4 h-4 mr-2" />
+                                Gebruiker Toewijzen
+                            </Button>
+                        </CardContent>
+                    </Card>
 
                     {/* Filters voor bestaande koppelingen */}
-                    <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-                        <div className="card-body p-8">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <FunnelIcon className="w-6 h-6 text-elmar-primary" />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                <FunnelIcon className="w-5 h-5 text-blue-600" />
                                 Filter Toewijzingen
-                            </h2>
-
-                            <div className="space-y-6">
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-gray-700">Filter op Gebruiker</span>
-                                    </label>
-                                    <select
-                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                        value={filterUser ?? ""}
-                                        onChange={(e) => setFilterUser(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">Alle gebruikers</option>
-                                        {users.map((user) => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.firstName} {user.lastName}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-gray-700">Filter op Project</span>
-                                    </label>
-                                    <select
-                                        className="select select-bordered border-2 border-gray-200 focus:border-elmar-primary focus:ring-2 focus:ring-elmar-primary focus:ring-opacity-20 rounded-xl"
-                                        value={filterProject ?? ""}
-                                        onChange={(e) => setFilterProject(e.target.value ? Number(e.target.value) : null)}
-                                    >
-                                        <option value="">Alle projecten</option>
-                                        {userProjects
-                                            .filter(up => up.project)
-                                            .filter((up, index, self) =>
-                                                index === self.findIndex(p => p.project && p.project.id === up.project?.id)
-                                            )
-                                            .map((up) => (
-                                                <option key={up.project?.id} value={up.project?.id}>
-                                                    {getProjectName(up.project)}
-                                                </option>
-                                            ))
-                                        }
-                                    </select>
-                                </div>
-
-                                <div className="bg-blue-100 rounded-xl p-4 border border-blue-200">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="font-semibold text-gray-800">Totaal Toewijzingen</p>
-                                            <p className="text-sm text-gray-600">{filteredUserProjects.length} van {userProjects.length}</p>
-                                        </div>
-                                        <MagnifyingGlassIcon className="w-8 h-8 text-blue-500" />
-                                    </div>
-                                </div>
-
-                                <button
-                                    className="btn btn-outline btn-primary rounded-xl w-full"
-                                    onClick={() => {
-                                        setFilterUser(null);
-                                        setFilterProject(null);
-                                    }}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Filter op Gebruiker
+                                </label>
+                                <select
+                                    className={selectClass}
+                                    value={filterUser ?? ""}
+                                    onChange={(e) => setFilterUser(e.target.value ? Number(e.target.value) : null)}
                                 >
-                                    Reset Filters
-                                </button>
+                                    <option value="">Alle gebruikers</option>
+                                    {users.map((user) => (
+                                        <option key={user.id} value={user.id}>
+                                            {user.firstName} {user.lastName}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                        </div>
-                    </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Filter op Project
+                                </label>
+                                <select
+                                    className={selectClass}
+                                    value={filterProject ?? ""}
+                                    onChange={(e) => setFilterProject(e.target.value ? Number(e.target.value) : null)}
+                                >
+                                    <option value="">Alle projecten</option>
+                                    {userProjects
+                                        .filter(up => up.project)
+                                        .filter((up, index, self) =>
+                                            index === self.findIndex(p => p.project && p.project.id === up.project?.id)
+                                        )
+                                        .map((up) => (
+                                            <option key={up.project?.id} value={up.project?.id}>
+                                                {getProjectName(up.project)}
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
+
+                            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Totaal Toewijzingen</p>
+                                        <p className="text-xs text-slate-600 dark:text-slate-400">{filteredUserProjects.length} van {userProjects.length}</p>
+                                    </div>
+                                    <MagnifyingGlassIcon className="w-7 h-7 text-blue-500" />
+                                </div>
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => {
+                                    setFilterUser(null);
+                                    setFilterProject(null);
+                                }}
+                            >
+                                Reset Filters
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Tabel met alle user-project koppelingen */}
-                <div className="card bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
-                    <div className="card-body p-0">
-                        <div className="bg-slate-50 dark:bg-slate-800 p-6 border-b border-slate-200 dark:border-slate-700">
-                            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                <CheckCircleIcon className="w-6 h-6 text-elmar-primary" />
-                                Bestaande Toewijzingen
-                            </h2>
-                            <p className="text-gray-600 mt-1">Overzicht van alle actieve project toewijzingen</p>
-                        </div>
-
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                            <CheckCircleIcon className="w-5 h-5 text-blue-600" />
+                            Bestaande Toewijzingen
+                        </CardTitle>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Overzicht van alle actieve project toewijzingen</p>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         <div className="overflow-x-auto">
-                            <table className="table w-full">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="text-gray-700 font-semibold">👤 Gebruiker</th>
-                                    <th className="text-gray-700 font-semibold">📁 Project</th>
-                                    <th className="text-gray-700 font-semibold">🏢 Bedrijf</th>
-                                    <th className="text-gray-700 font-semibold">Datum Toegewezen op</th>
-                                    <th className="text-gray-700 font-semibold">Acties</th>
+                            <table className="w-full text-sm">
+                                <thead>
+                                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Gebruiker</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Project</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Bedrijf</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum Toegewezen</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
                                 </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
                                 {filteredUserProjects.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="text-center py-12">
-                                            <div className="flex flex-col items-center gap-4">
-                                                <ExclamationTriangleIcon className="w-16 h-16 text-gray-300" />
+                                            <div className="flex flex-col items-center gap-3">
+                                                <ExclamationTriangleIcon className="w-12 h-12 text-slate-300" />
                                                 <div>
-                                                    <h3 className="text-lg font-semibold text-gray-600">Geen toewijzingen gevonden</h3>
-                                                    <p className="text-gray-500">Probeer je filters aan te passen of voeg een nieuwe toewijzing toe</p>
+                                                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Geen toewijzingen gevonden</p>
+                                                    <p className="text-xs text-slate-500">Probeer je filters aan te passen of voeg een nieuwe toewijzing toe</p>
                                                 </div>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredUserProjects.map((up, index) => (
-                                        <tr key={up.id} className="hover:bg-gray-50 transition-colors duration-150">
-                                            <td>
+                                    filteredUserProjects.map((up) => (
+                                        <tr key={up.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="avatar placeholder">
-                                                        <div className="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center">
-                                                            <span className="text-sm font-bold">
-                                                                {getUserName(up.userId).split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                                            </span>
-                                                        </div>
+                                                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                                        {getUserName(up.userId).split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                                                     </div>
                                                     <div>
-                                                        <div className="font-bold text-gray-800">{getUserName(up.userId)}</div>
-                                                        <div className="text-sm text-gray-500">ID: {up.userId}</div>
+                                                        <div className="font-medium text-slate-900 dark:text-slate-100">{getUserName(up.userId)}</div>
+                                                        <div className="text-xs text-slate-500">ID: {up.userId}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                                                    <span className="font-medium text-gray-800">
+                                                    <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
+                                                    <span className="font-medium text-slate-800 dark:text-slate-200">
                                                         {up.project ? getProjectName(up.project) : `Project ${up.projectId}`}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <BuildingOfficeIcon className="w-4 h-4 text-gray-400" />
-                                                    <span className="text-gray-700">
+                                                    <BuildingOfficeIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    <span className="text-slate-700 dark:text-slate-300">
                                                         {up.project && up.project.projectGroup && up.project.projectGroup.company
                                                             ? up.project.projectGroup.company.name
                                                             : "Onbekend bedrijf"}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div className="text-gray-600">
-                                                    {new Date(up.assignedDate).toLocaleDateString('nl-NL', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric'
-                                                    })}
-                                                </div>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                                                {new Date(up.assignedDate).toLocaleDateString('nl-NL', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric'
+                                                })}
                                             </td>
-                                            <td>
-                                                <button
-                                                    className="btn btn-sm btn-error rounded-xl"
+                                            <td className="px-4 py-3">
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
                                                     onClick={() => handleRemoveUserFromProject(up.userId, up.projectId)}
                                                 >
-                                                    <TrashIcon className="w-4 h-4 mr-1" />
+                                                    <TrashIcon className="w-3.5 h-3.5 mr-1" />
                                                     Verwijderen
-                                                </button>
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))
@@ -505,25 +494,19 @@ export default function AdminUserProjectsPage() {
 
                         {/* Footer met statistieken */}
                         {filteredUserProjects.length > 0 && (
-                            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
+                            <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                                 <div className="flex items-center justify-between">
-                                    <div className="text-sm text-gray-600">
-                                        Toont <span className="font-semibold">{filteredUserProjects.length}</span> van <span className="font-semibold">{userProjects.length}</span> toewijzingen
-                                    </div>
-                                    <div className="flex items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                            <span className="text-gray-600">Actief</span>
-                                        </div>
-                                        <div className="text-gray-600">
-                                            {users.length} gebruikers • {companies.length} bedrijven
-                                        </div>
-                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        Toont <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredUserProjects.length}</span> van <span className="font-semibold text-slate-700 dark:text-slate-300">{userProjects.length}</span> toewijzingen
+                                    </p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        {users.length} gebruikers • {companies.length} bedrijven
+                                    </p>
                                 </div>
                             </div>
                         )}
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
 
                 {toastMessage && (
                     <ToastNotification message={toastMessage} type={toastType} />

@@ -141,7 +141,7 @@ export default function ManagerPlanningPage() {
 
       // Filter vacations for team members only
       const teamIds = team.map((u: any) => u.id || u.medewGcId);
-      const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId));
+      const vacationsData = allVacations.filter((v: any) => teamIds.includes(v.userId)) as any[];
       setVacations(vacationsData);
 
       // Load holidays and closed days from API

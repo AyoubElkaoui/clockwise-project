@@ -8,9 +8,9 @@ import { safeToFixed, safeArray } from "@/lib/type-safe-utils";
 import { useTranslation } from "react-i18next";
 
 interface TimeEntry {
-  startTime: string;
-  endTime: string;
-  breakMinutes: number;
+  startTime?: string;
+  endTime?: string;
+  breakMinutes?: number;
   status?: string;
 }
 

@@ -1643,12 +1643,13 @@ export default function ManagerApprovePage() {
               <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Urenregistratie Details
               </h3>
-              <button
-                className="btn btn-ghost btn-circle"
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowDetailsModal(false)}
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
