@@ -304,7 +304,7 @@ export default function NotificatiesPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <h4 className="font-semibold text-slate-900 dark:text-slate-100">
-                                    {notification.message}
+                                    {notification.details || notification.message}
                                   </h4>
                                   {!notification.read && (
                                     <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
@@ -312,9 +312,11 @@ export default function NotificatiesPage() {
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                                  {notification.details}
-                                </p>
+                                {notification.details && notification.message !== notification.details && (
+                                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                    {notification.message}
+                                  </p>
+                                )}
                                 <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
                                   <span>
                                     {dayjs(notification.timestamp).fromNow()}

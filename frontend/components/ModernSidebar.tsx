@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  BarChart3,
   Bell,
   Building2,
   Calendar,
@@ -98,6 +99,7 @@ const adminMenuItems: MenuItem[] = [
   { icon: FileText,     label: "Tijdregistraties",    href: "/admin/time-entries",   rank: "admin" },
   { icon: ShieldCheck,  label: "Validaties",          href: "/admin/validations",    rank: "admin" },
   { icon: Activity,     label: "Logs",                href: "/admin/logs",           rank: "admin" },
+  { icon: BarChart3,    label: "Rapporten",           href: "/admin/reports",        rank: "admin" },
   { icon: Server,       label: "Systeem",             href: "/admin/system",         rank: "admin" },
   { icon: Settings,     label: "Instellingen",        href: "/admin/settings",       rank: "admin" },
 ];
@@ -291,7 +293,7 @@ export function ModernSidebar({
           {!collapsed && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#2563EB] rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                   {firstName.charAt(0)}
                   {lastName.charAt(0)}
                 </div>

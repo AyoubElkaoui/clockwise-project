@@ -172,7 +172,7 @@ export function ManagerSidebar({
             {!collapsed && (
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <UserCheck className="w-5 h-5 text-timr-orange dark:text-timr-orange" />
+                  <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                     Manager Panel
                   </h1>
@@ -208,7 +208,7 @@ export function ManagerSidebar({
                 className={cn(
                   "flex items-center gap-3 px-3 py-3 rounded-lg group relative",
                   isActive
-                    ? "bg-timr-orange-light dark:bg-timr-orange-light/20 text-timr-orange dark:text-timr-orange"
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                     : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
                 )}
               >
@@ -244,7 +244,7 @@ export function ManagerSidebar({
           {!collapsed && (
             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-timr-orange rounded-full flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
                   {firstName.charAt(0)}
                   {lastName.charAt(0)}
                 </div>
