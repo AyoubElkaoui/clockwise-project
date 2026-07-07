@@ -2,27 +2,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { getCompanies, deleteCompany } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
-import { LoadingSpinner } from "@/components/ui/loading";
 import { Company } from "@/lib/types";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
 import {
   Building2,
   Plus,
   Search,
-  Filter,
-  MoreHorizontal,
   Edit,
   Trash2,
   Mail,
   Phone,
-  MapPin,
   Users,
   Briefcase,
   ChevronDown,
@@ -68,7 +57,6 @@ export default function AdminCompaniesPage() {
       }
       setCompanies(safeData);
     } catch (error) {
-
       showToast(t("common.errorLoading"), "error");
     } finally {
       setLoading(false);
@@ -85,7 +73,6 @@ export default function AdminCompaniesPage() {
       return matchesSearch;
     });
 
-    // Sort
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
 
@@ -218,283 +205,297 @@ export default function AdminCompaniesPage() {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader
-        title={t("admin.companies.title")}
-        description={t("admin.companies.subtitle")}
-        actions={
-          <>
-            <Button variant="outline" onClick={exportCompanies}>
-              <Download className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">{t("admin.users.export")}</span>
-            </Button>
-            <Button onClick={() => router.push("/admin/companies/create")}>
-              <Plus className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">{t("admin.companies.createCompany")}</span>
-            </Button>
-          </>
-        }
-      />
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-        <StatCard
-          title={t("admin.dashboard.totalUsers")}
-          value={stats.total}
-          icon={Building2}
-          color="blue"
-        />
-        <StatCard
-          title={t("admin.dashboard.activeUsers")}
-          value={stats.active}
-          icon={Users}
-          color="emerald"
-        />
-        <StatCard
-          title={t("admin.dashboard.totalProjects")}
-          value={companies.reduce((sum, c) => sum + (c.projectCount || 0), 0)}
-          icon={Briefcase}
-          color="indigo"
-        />
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="mb-6">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {t("admin.companies.title")}
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {t("admin.companies.subtitle")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCompanies}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden md:inline">{t("admin.users.export")}</span>
+          </button>
+          <button
+            onClick={() => router.push("/admin/companies/create")}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden md:inline">{t("admin.companies.createCompany")}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder={t("admin.companies.search")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-sm"
-              >
-                <option value="name">{t("admin.companies.sortByName")}</option>
-                <option value="email">
-                  {t("admin.companies.sortByEmail")}
-                </option>
-                <option value="created">
-                  {t("admin.companies.sortByCreated")}
-                </option>
-              </select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-              >
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
-                />
-              </Button>
-            </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+            {t("admin.dashboard.totalUsers").toUpperCase()}
+          </p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {stats.total}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+            {t("admin.dashboard.activeUsers").toUpperCase()}
+          </p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {stats.active}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+            {t("admin.dashboard.totalProjects").toUpperCase()}
+          </p>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+            {companies.reduce((sum, c) => sum + (c.projectCount || 0), 0)}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder={t("admin.companies.search")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 w-full pl-9 pr-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="name">{t("admin.companies.sortByName")}</option>
+            <option value="email">{t("admin.companies.sortByEmail")}</option>
+            <option value="created">{t("admin.companies.sortByCreated")}</option>
+          </select>
+          <button
+            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            className="h-9 w-9 flex items-center justify-center border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${sortOrder === "desc" ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Bulk Actions */}
+      {selectedCompanies.size > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3">
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+            {selectedCompanies.size} {t("admin.companies.selected")}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedCompanies(new Set())}
+              className="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium"
+            >
+              {t("admin.users.deselect")}
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors font-medium"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t("admin.users.delete")}
+            </button>
           </div>
+        </div>
+      )}
 
-          {/* Bulk Actions Bar */}
-          {selectedCompanies.size > 0 && (
-            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {selectedCompanies.size} {t("admin.companies.selected")}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedCompanies(new Set())}
+      {/* Table */}
+      {filteredAndSortedCompanies.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+            <Building2 className="w-7 h-7 text-slate-400" />
+          </div>
+          <p className="text-base font-semibold text-slate-700 dark:text-slate-300">
+            {t("admin.companies.noCompanies")}
+          </p>
+          <p className="text-sm text-slate-500 mt-1">
+            {searchQuery
+              ? t("admin.companies.tryFilters")
+              : t("admin.companies.noCompaniesDesc")}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedCompanies.size === filteredAndSortedCompanies.length &&
+                      filteredAndSortedCompanies.length > 0
+                    }
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {t("common.name")}
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">
+                  {t("common.email")}
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">
+                  {t("common.phone")}
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {t("common.status")}
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  {t("common.actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAndSortedCompanies.map((company) => (
+                <tr
+                  key={company.id}
+                  className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30"
                 >
-                  {t("admin.users.deselect")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-red-600 border-red-600 hover:bg-red-50"
-                  onClick={handleBulkDelete}
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  {t("admin.users.delete")}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Companies Table */}
-          {filteredAndSortedCompanies.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                <Building2 className="w-7 h-7 text-slate-400" />
-              </div>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">{t("admin.companies.noCompanies")}</p>
-              <p className="text-sm text-slate-500 mt-1">
-                {searchQuery
-                  ? t("admin.companies.tryFilters")
-                  : t("admin.companies.noCompaniesDesc")}
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Select-all row */}
-              <div className="flex items-center gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
-                <Checkbox
-                  checked={
-                    selectedCompanies.size === filteredAndSortedCompanies.length &&
-                    filteredAndSortedCompanies.length > 0
-                  }
-                  onCheckedChange={handleSelectAll}
-                />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-1">
-                  {filteredAndSortedCompanies.length}{" "}
-                  {t("admin.companies.company")}
-                  {filteredAndSortedCompanies.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                          <th className="px-4 py-3 text-left w-10"></th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.name")}</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("common.email")}</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">{t("common.phone")}</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.status")}</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">{t("common.actions")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                        {filteredAndSortedCompanies.map((company) => (
-                          <tr key={company.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                            <td className="px-4 py-3">
-                              <Checkbox
-                                checked={selectedCompanies.has(company.id)}
-                                onCheckedChange={() => handleSelectCompany(company.id)}
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                  {(company.name || "C").charAt(0).toUpperCase()}
-                                </div>
-                                <span className="font-medium text-slate-900 dark:text-slate-100 truncate">
-                                  {company.name}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
-                              {company.email && (
-                                <div className="flex items-center gap-1">
-                                  <Mail className="w-4 h-4 shrink-0" />
-                                  <span className="truncate">{company.email}</span>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
-                              {company.phone && (
-                                <div className="flex items-center gap-1">
-                                  <Phone className="w-4 h-4" />
-                                  <span>{company.phone}</span>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                                {company.active !== false
-                                  ? t("status.active")
-                                  : t("status.inactive")}
-                              </Badge>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    router.push(`/admin/companies/edit/${company.id}`)
-                                  }
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => handleDeleteCompany(company)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedCompanies.has(company.id)}
+                      onChange={() => handleSelectCompany(company.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {(company.name || "C").charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                        {company.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                    {company.email && (
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                        <span className="truncate">{company.email}</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                    {company.phone && (
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{company.phone}</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        company.active !== false
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {company.active !== false
+                        ? t("status.active")
+                        : t("status.inactive")}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() =>
+                          router.push(`/admin/companies/edit/${company.id}`)
+                        }
+                        className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        title="Bewerken"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCompany(company)}
+                        className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Verwijderen"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="w-5 h-5" />
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <h2 className="text-base font-semibold text-red-600">
                 {companyToDelete
                   ? t("admin.companies.deleteConfirm")
                   : t("admin.companies.deleteBulkConfirm")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-slate-600 dark:text-slate-400">
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 {companyToDelete
                   ? `${t("admin.companies.deleteMessage")} ${companyToDelete.name}?`
                   : `${t("admin.companies.deleteMessage")} ${selectedCompanies.size} ${t("admin.companies.company")}${selectedCompanies.size !== 1 ? "s" : ""}?`}
-                <br />
-                <span className="text-sm text-red-600 dark:text-red-400 font-medium">
-                  {t("admin.users.deleteWarning")}
-                </span>
               </p>
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                {t("admin.users.deleteWarning")}
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
                   onClick={() => {
                     setShowDeleteModal(false);
                     setCompanyToDelete(null);
                   }}
+                  className="px-4 py-2 text-sm font-medium border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   {t("common.cancel")}
-                </Button>
-                <Button
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={
-                    companyToDelete ? confirmDeleteCompany : confirmBulkDelete
-                  }
+                </button>
+                <button
+                  onClick={companyToDelete ? confirmDeleteCompany : confirmBulkDelete}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className="w-4 h-4" />
                   {t("admin.users.delete")}
-                </Button>
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>
