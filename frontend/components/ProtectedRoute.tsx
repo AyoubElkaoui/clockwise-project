@@ -80,8 +80,8 @@ export default function ProtectedRoute({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="loading loading-spinner loading-lg"></div>
+      <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900">
+        <div className="w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
       </div>
     );
   }
