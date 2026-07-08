@@ -26,7 +26,10 @@ export function StatCard({
   onClick,
   className,
 }: StatCardProps) {
-  const isLucideIcon = typeof icon === "function";
+  // React 19: forwardRef components return an object with $$typeof + render, not a function
+  const isLucideIcon =
+    typeof icon === "function" ||
+    (typeof icon === "object" && icon !== null && typeof (icon as any).render === "function");
 
   return (
     <div
