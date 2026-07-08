@@ -1,13 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toast";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { LoadingSpinner } from "@/components/ui/loading";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Settings,
   Bell,
   Shield,
   Database,
@@ -18,12 +12,11 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { API_URL } from "@/lib/api";
-import { PageHeader } from "@/components/ui/page-header";
 
 export default function AdminSettingsPage() {
   const { t } = useTranslation();
 
-  // Notification settings (local only for now)
+  // Notification settings (local only)
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
 
@@ -36,14 +29,12 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Load settings
   useEffect(() => {
     loadSettings();
   }, []);
 
   const loadSettings = async () => {
     try {
-      // Load from database
       const userId = localStorage.getItem("userId");
       const response = await fetch(`${API_URL}/system-settings`, {
         headers: {
@@ -51,14 +42,11 @@ export default function AdminSettingsPage() {
           "ngrok-skip-browser-warning": "1",
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         setRequire2FA(data.require_2fa === "true");
         setSessionTimeout(data.session_timeout_minutes !== "0");
       }
-
-      // Load local settings
       const localSettings = localStorage.getItem("adminSettings");
       if (localSettings) {
         const parsed = JSON.parse(localSettings);
@@ -74,9 +62,7 @@ export default function AdminSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-
     try {
-      // Save to database
       const userId = localStorage.getItem("userId");
       const response = await fetch(`${API_URL}/system-settings`, {
         method: "POST",
@@ -90,19 +76,13 @@ export default function AdminSettingsPage() {
           session_timeout_minutes: sessionTimeout ? "60" : "0",
         }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to save settings");
-      }
-
-      // Save local settings
+      if (!response.ok) throw new Error("Failed to save settings");
       const localSettings = {
         emailNotifications,
         pushNotifications,
         lastUpdated: new Date().toISOString(),
       };
       localStorage.setItem("adminSettings", JSON.stringify(localSettings));
-
       setSaved(true);
       showToast("Instellingen opgeslagen!", "success");
       setTimeout(() => setSaved(false), 3000);
@@ -120,165 +100,157 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="p-6 flex justify-center items-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader
-        title={t("admin.settings.title")}
-        description={t("admin.settings.subtitle")}
-      />
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {t("admin.settings.title")}
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {t("admin.settings.subtitle")}
+        </p>
+      </div>
 
       <div className="space-y-6 max-w-4xl">
-        {/* Security - 2FA Required */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-600" />
-              Beveiliging - Tweestapsverificatie
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="require2fa"
-                checked={require2FA}
-                onCheckedChange={(checked) => setRequire2FA(checked as boolean)}
-              />
-              <div className="space-y-1">
-                <label
-                  htmlFor="require2fa"
-                  className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-                >
-                  2FA Verplicht voor alle gebruikers
-                </label>
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Wanneer ingeschakeld, moeten alle gebruikers tweestapsverificatie
-                  instellen voordat ze kunnen inloggen.
-                </p>
-              </div>
-            </div>
+        {/* Security */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-blue-600" />
+            Beveiliging
+          </h2>
 
-            {require2FA && (
-              <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                <AlertTriangle className="w-4 h-4 text-blue-600" />
-                <AlertDescription className="text-blue-900 dark:text-blue-100">
-                  <strong>Let op:</strong> Gebruikers zonder 2FA worden na het inloggen
-                  doorgestuurd naar de 2FA setup pagina en kunnen pas verder als 2FA
-                  is ingesteld.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="flex items-start gap-3 pt-2">
-              <Checkbox
-                id="sessionTimeout"
-                checked={sessionTimeout}
-                onCheckedChange={(checked) =>
-                  setSessionTimeout(checked as boolean)
-                }
-              />
-              <div className="space-y-1">
-                <label
-                  htmlFor="sessionTimeout"
-                  className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-                >
-                  Automatische sessie timeout (60 minuten)
-                </label>
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Log gebruikers automatisch uit na 60 minuten inactiviteit.
-                </p>
-              </div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              id="require2fa"
+              checked={require2FA}
+              onChange={(e) => setRequire2FA(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <div>
+              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                2FA Verplicht voor alle gebruikers
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Wanneer ingeschakeld, moeten alle gebruikers
+                tweestapsverificatie instellen voordat ze kunnen inloggen.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </label>
+
+          {require2FA && (
+            <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-900 dark:text-blue-100">
+                <strong>Let op:</strong> Gebruikers zonder 2FA worden na het
+                inloggen doorgestuurd naar de 2FA setup pagina en kunnen pas
+                verder als 2FA is ingesteld.
+              </p>
+            </div>
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              id="sessionTimeout"
+              checked={sessionTimeout}
+              onChange={(e) => setSessionTimeout(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <div>
+              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Automatische sessie timeout (60 minuten)
+              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Log gebruikers automatisch uit na 60 minuten inactiviteit.
+              </p>
+            </div>
+          </label>
+        </div>
 
         {/* Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-purple-600" />
-              Notificaties
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="emailNotifications"
-                checked={emailNotifications}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications(checked as boolean)
-                }
-              />
-              <label
-                htmlFor="emailNotifications"
-                className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
-              >
-                Email notificaties voor nieuwe aanvragen
-              </label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="pushNotifications"
-                checked={pushNotifications}
-                onCheckedChange={(checked) =>
-                  setPushNotifications(checked as boolean)
-                }
-              />
-              <label
-                htmlFor="pushNotifications"
-                className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
-              >
-                Push notificaties inschakelen
-              </label>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-slate-500" />
+            Notificaties
+          </h2>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              id="emailNotifications"
+              checked={emailNotifications}
+              onChange={(e) => setEmailNotifications(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              Email notificaties voor nieuwe aanvragen
+            </span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              id="pushNotifications"
+              checked={pushNotifications}
+              onChange={(e) => setPushNotifications(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              Push notificaties inschakelen
+            </span>
+          </label>
+        </div>
 
         {/* Database */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-green-600" />
-              Database
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleBackup} variant="outline">
-              <Database className="w-4 h-4 mr-2" />
-              Database Backup Maken
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+            <Database className="w-4 h-4 text-emerald-600" />
+            Database
+          </h2>
+          <button
+            onClick={handleBackup}
+            className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Database className="w-4 h-4" />
+            Database Backup Maken
+          </button>
+        </div>
 
-        {/* Save Button */}
+        {/* Save */}
         <div className="flex items-center gap-4">
-          <Button onClick={handleSave} disabled={saving || saved} size="lg">
+          <button
+            onClick={handleSave}
+            disabled={saving || saved}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+          >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Opslaan...
               </>
             ) : saved ? (
               <>
-                <CheckCircle className="w-5 h-5 mr-2" />
+                <CheckCircle className="w-4 h-4" />
                 Opgeslagen!
               </>
             ) : (
               <>
-                <Save className="w-5 h-5 mr-2" />
+                <Save className="w-4 h-4" />
                 Instellingen Opslaan
               </>
             )}
-          </Button>
-
+          </button>
           {saved && (
-            <span className="text-sm text-green-600 dark:text-green-400">
-              ✓ Instellingen zijn succesvol opgeslagen
+            <span className="text-xs text-emerald-600 dark:text-emerald-400">
+              Instellingen zijn succesvol opgeslagen
             </span>
           )}
         </div>

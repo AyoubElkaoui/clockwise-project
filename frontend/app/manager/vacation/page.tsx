@@ -2,14 +2,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getAllUsers, getAllVacationRequests, updateVacationRequestStatus } from "@/lib/manager-api";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
-import { PageHeader } from "@/components/ui/page-header";
 import authUtils from "@/lib/auth-utils";
 import {
   CheckCircle,
@@ -17,7 +11,6 @@ import {
   Search,
   AlertCircle,
   Calendar,
-  User,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -35,10 +28,9 @@ export default function ManagerVacationPage() {
   const filterRequests = () => {
     let filtered = requests;
     if (filterStatus !== "all") {
-      // Match both "pending" and "submitted" for pending filter
       if (filterStatus === "pending") {
-        filtered = filtered.filter((r) => 
-          r.status?.toLowerCase() === "pending" || 
+        filtered = filtered.filter((r) =>
+          r.status?.toLowerCase() === "pending" ||
           r.status?.toLowerCase() === "submitted"
         );
       } else {
@@ -64,7 +56,7 @@ export default function ManagerVacationPage() {
   useEffect(() => {
     const userId = searchParams.get("userId");
     if (userId) {
-      setFilterStatus("all"); // Show all statuses when filtering by user
+      setFilterStatus("all");
     }
     loadRequests();
   }, []);
@@ -93,7 +85,6 @@ export default function ManagerVacationPage() {
       let teamRequests;
 
       if (userId) {
-        // Filter for specific user
         const user = team.find((u: any) => u.id === Number(userId) || u.medewGcId === Number(userId));
         if (user) {
           setFilteredUser(user);
@@ -103,7 +94,6 @@ export default function ManagerVacationPage() {
           teamRequests = [];
         }
       } else {
-        // Filter for all team members
         teamRequests = allRequests.filter((r: any) => teamIds.includes(r.userId));
       }
 
@@ -148,29 +138,33 @@ export default function ManagerVacationPage() {
     switch (lowerStatus) {
       case "approved":
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
             Goedgekeurd
-          </Badge>
+          </span>
         );
       case "submitted":
       case "pending":
         return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
             In afwachting
-          </Badge>
+          </span>
         );
       case "rejected":
         return (
-          <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
             Afgekeurd
-          </Badge>
+          </span>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            {status}
+          </span>
+        );
     }
   };
 
-  const pendingCount = requests.filter((r) => 
+  const pendingCount = requests.filter((r) =>
     r.status?.toLowerCase() === "pending" || r.status?.toLowerCase() === "submitted"
   ).length;
 
@@ -179,199 +173,180 @@ export default function ManagerVacationPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader
-        title={filteredUser ? `Vakantie - ${filteredUser.firstName} ${filteredUser.lastName}` : "Vakantie Verzoeken"}
-        description={`${pendingCount} verzoeken wachten op goedkeuring`}
-      />
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {filteredUser
+            ? `Vakantie - ${filteredUser.firstName} ${filteredUser.lastName}`
+            : "Vakantie Verzoeken"}
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {pendingCount} verzoeken wachten op goedkeuring
+        </p>
+      </div>
 
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Zoek op naam..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant={filterStatus === "pending" ? "default" : "outline"}
-                onClick={() => setFilterStatus("pending")}
-              >
-                <span className="hidden sm:inline">In afwachting</span>
-                <span className="sm:hidden">Wacht</span>
-              </Button>
-              <Button
-                size="sm"
-                variant={filterStatus === "approved" ? "default" : "outline"}
-                onClick={() => setFilterStatus("approved")}
-              >
-                <span className="hidden sm:inline">Goedgekeurd</span>
-                <span className="sm:hidden">✓</span>
-              </Button>
-              <Button
-                size="sm"
-                variant={filterStatus === "rejected" ? "default" : "outline"}
-                onClick={() => setFilterStatus("rejected")}
-              >
-                <span className="hidden sm:inline">Afgekeurd</span>
-                <span className="sm:hidden">✗</span>
-              </Button>
-              <Button
-                size="sm"
-                variant={filterStatus === "all" ? "default" : "outline"}
-                onClick={() => setFilterStatus("all")}
-              >
-                Alles
-              </Button>
-            </div>
+      {/* Filters */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Zoek op naam..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap gap-2">
+            {(["pending", "approved", "rejected", "all"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  filterStatus === s
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                }`}
+              >
+                {s === "pending"
+                  ? "In afwachting"
+                  : s === "approved"
+                  ? "Goedgekeurd"
+                  : s === "rejected"
+                  ? "Afgekeurd"
+                  : "Alles"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
+      {/* Request list */}
       {filteredRequests.length === 0 ? (
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                <AlertCircle className="w-7 h-7 text-slate-400" />
-              </div>
-              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen verzoeken</p>
-              <p className="text-sm text-slate-500 mt-1">Geen vakantie verzoeken gevonden voor de geselecteerde filters</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-16 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+            <AlertCircle className="w-7 h-7 text-slate-400" />
+          </div>
+          <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen verzoeken</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Geen vakantie verzoeken gevonden voor de geselecteerde filters
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3">
           {filteredRequests.map((request) => (
-            <Card key={request.id} className="hover:shadow-md transition overflow-hidden">
-              <CardContent className="pt-4 md:pt-6">
-                <div className="space-y-3 md:space-y-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                        {request.userFirstName?.charAt(0)}{request.userLastName?.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {request.userFirstName} {request.userLastName}
-                          </h3>
-                          {getStatusBadge(request.status)}
-                        </div>
-                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400">
-                          {request.user?.function || "Medewerker"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 bg-slate-50 dark:bg-slate-800 rounded-lg p-3 md:p-4">
-                    <div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Start Datum
-                      </p>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">
-                        {dayjs(request.startDate).format("DD MMM YYYY")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Eind Datum
-                      </p>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">
-                        {dayjs(request.endDate).format("DD MMM YYYY")}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                        Aantal Dagen
-                      </p>
-                      <p className="font-medium text-blue-600 dark:text-blue-400">
-                        {calculateDays(request.startDate, request.endDate)}{" "}
-                        dagen
-                      </p>
-                    </div>
-                  </div>
-
-                  {request.reason && (
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                        Reden:
-                      </p>
-                      <p className="text-sm text-slate-900 dark:text-slate-100">
-                        {request.reason}
-                      </p>
-                    </div>
-                  )}
-
-                  {request.managerComment && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
-                        Manager Opmerking:
-                      </p>
-                      <p className="text-sm text-slate-900 dark:text-slate-100">
-                        {request.managerComment}
-                      </p>
-                    </div>
-                  )}
-
-                  {(request.status?.toLowerCase() === "pending" || request.status?.toLowerCase() === "submitted") &&
-                    (selectedRequest?.id === request.id ? (
-                      <div className="space-y-3 bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
-                        <Textarea
-                          placeholder="Voeg een opmerking toe (optioneel)..."
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          rows={3}
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => handleApprove(request.id, comment)}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Goedkeuren
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="text-red-600 border-red-600"
-                            onClick={() => handleReject(request.id, comment)}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Afkeuren
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedRequest(null);
-                              setComment("");
-                            }}
-                          >
-                            Annuleren
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => setSelectedRequest(request)}
-                        >
-                          Behandelen
-                        </Button>
-                      </div>
-                    ))}
+            <div
+              key={request.id}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5"
+            >
+              {/* Card header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  {request.userFirstName?.charAt(0)}{request.userLastName?.charAt(0)}
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {request.userFirstName} {request.userLastName}
+                    </span>
+                    {getStatusBadge(request.status)}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {request.user?.function || "Medewerker"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Date info */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 mb-3">
+                <div>
+                  <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                    <Calendar className="w-3 h-3" />Start Datum
+                  </p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    {dayjs(request.startDate).format("DD MMM YYYY")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 flex items-center gap-1 mb-1">
+                    <Calendar className="w-3 h-3" />Eind Datum
+                  </p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    {dayjs(request.endDate).format("DD MMM YYYY")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Aantal Dagen</p>
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    {calculateDays(request.startDate, request.endDate)} dagen
+                  </p>
+                </div>
+              </div>
+
+              {request.reason && (
+                <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-slate-500 mb-1">Reden:</p>
+                  <p className="text-sm text-slate-900 dark:text-slate-100">{request.reason}</p>
+                </div>
+              )}
+
+              {request.managerComment && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Manager Opmerking:</p>
+                  <p className="text-sm text-slate-900 dark:text-slate-100">{request.managerComment}</p>
+                </div>
+              )}
+
+              {(request.status?.toLowerCase() === "pending" ||
+                request.status?.toLowerCase() === "submitted") &&
+                (selectedRequest?.id === request.id ? (
+                  <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <textarea
+                      placeholder="Voeg een opmerking toe (optioneel)..."
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApprove(request.id, comment)}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md transition-colors"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Goedkeuren
+                      </button>
+                      <button
+                        onClick={() => handleReject(request.id, comment)}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Afkeuren
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedRequest(null);
+                          setComment("");
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                      >
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => setSelectedRequest(request)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                    >
+                      Behandelen
+                    </button>
+                  </div>
+                ))}
+            </div>
           ))}
         </div>
       )}

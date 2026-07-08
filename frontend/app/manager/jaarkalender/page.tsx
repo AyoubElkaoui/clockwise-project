@@ -9,12 +9,7 @@ import {
   generateHolidaysForYear,
   Holiday
 } from "@/lib/api/holidaysApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/page-header";
 import { showToast } from "@/components/ui/toast";
-import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import {
   Calendar,
@@ -69,9 +64,8 @@ export default function JaarkalenderPage() {
 
   const handleDateClick = (date: string) => {
     const existingHoliday = holidays.find(h => h.holidayDate === date);
-    
+
     if (existingHoliday) {
-      // Show holiday details
       setSelectedDate(date);
       setFormData({
         name: existingHoliday.name,
@@ -82,7 +76,6 @@ export default function JaarkalenderPage() {
       setModalMode("edit");
       setShowModal(true);
     } else {
-      // Add new holiday
       setSelectedDate(date);
       setFormData({
         name: "",
@@ -100,15 +93,14 @@ export default function JaarkalenderPage() {
 
     try {
       if (modalMode === "add") {
-        // Auto-generate name if empty for closed days
-        const finalName = formData.name.trim() || 
+        const finalName = formData.name.trim() ||
           (formData.type === "closed" ? `Gesloten dag ${selectedDate}` : "");
-        
+
         if (!finalName) {
           showToast("Naam is verplicht", "error");
           return;
         }
-        
+
         await createHoliday({
           holidayDate: selectedDate,
           name: finalName,
@@ -171,19 +163,17 @@ export default function JaarkalenderPage() {
 
   const renderCalendar = () => {
     const months = [];
-    
+
     for (let month = 0; month < 12; month++) {
       const firstDay = dayjs().year(currentYear).month(month).startOf("month");
       const daysInMonth = firstDay.daysInMonth();
-      const startDay = firstDay.day(); // 0 = Sunday
+      const startDay = firstDay.day();
       const days = [];
 
-      // Add empty cells for days before month starts
       for (let i = 0; i < (startDay === 0 ? 6 : startDay - 1); i++) {
-        days.push(<div key={`empty-${i}`} className="p-2"></div>);
+        days.push(<div key={`empty-${i}`} className="p-1" />);
       }
 
-      // Add days of month
       for (let day = 1; day <= daysInMonth; day++) {
         const date = firstDay.date(day);
         const dateStr = date.format("YYYY-MM-DD");
@@ -196,28 +186,28 @@ export default function JaarkalenderPage() {
             key={day}
             onClick={() => handleDateClick(dateStr)}
             className={`
-              p-2 text-center cursor-pointer rounded-lg border transition-all
-              ${isToday ? "ring-2 ring-blue-500" : ""}
-              ${holiday
-                ? holiday.type === "national"
-                  ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300"
-                  : holiday.isWorkAllowed
-                  ? "bg-green-100 dark:bg-green-900/30 border-green-300"
-                  : "bg-pink-100 dark:bg-pink-900/30 border-pink-300"
-                : isWeekend
-                ? "bg-slate-100 dark:bg-slate-800"
-                : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+              p-1.5 text-center cursor-pointer rounded-md border transition-all text-xs
+              ${isToday ? "ring-2 ring-blue-500 ring-offset-1" : ""}
+              ${
+                holiday
+                  ? holiday.type === "national"
+                    ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700"
+                    : holiday.isWorkAllowed
+                    ? "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700"
+                    : "bg-rose-100 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700"
+                  : isWeekend
+                  ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
               }
-              border-slate-200 dark:border-slate-700
             `}
           >
-            <div className="font-semibold text-sm">{day}</div>
+            <span className="font-medium text-slate-800 dark:text-slate-200">{day}</span>
             {holiday && (
-              <div className="flex items-center justify-center gap-1 mt-1">
+              <div className="flex items-center justify-center mt-0.5">
                 {holiday.isWorkAllowed ? (
-                  <Unlock className="w-3 h-3 text-green-600 dark:text-green-400" />
+                  <Unlock className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
-                  <Lock className="w-3 h-3 text-red-600 dark:text-red-400" />
+                  <Lock className="w-2.5 h-2.5 text-red-600 dark:text-red-400" />
                 )}
               </div>
             )}
@@ -226,25 +216,21 @@ export default function JaarkalenderPage() {
       }
 
       months.push(
-        <Card key={month} className="flex-1 min-w-[280px]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
-              {firstDay.format("MMMM YYYY")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(day => (
-                <div key={day} className="text-xs font-semibold text-center text-slate-600 dark:text-slate-400">
-                  {day}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {days}
-            </div>
-          </CardContent>
-        </Card>
+        <div key={month} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">
+            {firstDay.format("MMMM YYYY")}
+          </p>
+          <div className="grid grid-cols-7 gap-0.5 mb-1.5">
+            {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(d => (
+              <div key={d} className="text-center text-[10px] font-semibold text-slate-400 pb-1">
+                {d}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {days}
+          </div>
+        </div>
       );
     }
 
@@ -256,80 +242,70 @@ export default function JaarkalenderPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <LoadingSpinner />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-20">
+    <div className="p-6 space-y-6 pb-20">
       {/* Header */}
-      <PageHeader
-        title="Jaarkalender"
-        description="Beheer feestdagen en gesloten dagen"
-        actions={
-          <div className="flex items-center gap-2 md:gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentYear(currentYear - 1)}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-lg md:text-xl font-bold min-w-[60px] md:min-w-[100px] text-center">
-              {currentYear}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentYear(currentYear + 1)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleGenerateHolidays}
-              className="ml-2 md:ml-4"
-            >
-              <Plus className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Feestdagen Genereren</span>
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Jaarkalender</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Beheer feestdagen en gesloten dagen</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrentYear(currentYear - 1)}
+            className="p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-lg font-bold min-w-[60px] text-center text-slate-900 dark:text-slate-100">
+            {currentYear}
+          </span>
+          <button
+            onClick={() => setCurrentYear(currentYear + 1)}
+            className="p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleGenerateHolidays}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors ml-2"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Feestdagen Genereren</span>
+          </button>
+        </div>
+      </div>
 
       {/* Legend */}
-      <Card>
-        <CardContent className="p-3 md:pt-6 md:p-6">
-          <div className="flex flex-wrap gap-3 md:gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 rounded"></div>
-              <span className="text-sm">Nationale feestdag</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-pink-100 dark:bg-pink-900/30 border border-pink-300 rounded"></div>
-              <span className="text-sm">Gesloten (geen uren)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border border-green-300 rounded"></div>
-              <span className="text-sm">Feestdag (uren toegestaan)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border border-red-300 rounded flex items-center justify-center">
-                <Lock className="w-3 h-3 text-red-600" />
-              </div>
-              <span className="text-sm">Uren geblokkeerd</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border border-green-300 rounded flex items-center justify-center">
-                <Unlock className="w-3 h-3 text-green-600" />
-              </div>
-              <span className="text-sm">Uren toegestaan</span>
-            </div>
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 rounded-md" />
+            <span className="text-xs text-slate-600 dark:text-slate-400">Nationale feestdag</span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-rose-100 dark:bg-rose-900/30 border border-rose-300 rounded-md" />
+            <span className="text-xs text-slate-600 dark:text-slate-400">Gesloten (geen uren)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 rounded-md" />
+            <span className="text-xs text-slate-600 dark:text-slate-400">Feestdag (uren toegestaan)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-red-600" />
+            <span className="text-xs text-slate-600 dark:text-slate-400">Uren geblokkeerd</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-xs text-slate-600 dark:text-slate-400">Uren toegestaan</span>
+          </div>
+        </div>
+      </div>
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -339,33 +315,35 @@ export default function JaarkalenderPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md shadow-xl">
+            <div className="px-6 pt-5 pb-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <CardTitle>
-                  {modalMode === "add" ? "Dag Toevoegen" : "Dag Bewerken"}
-                </CardTitle>
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                    {modalMode === "add" ? "Dag Toevoegen" : "Dag Bewerken"}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {dayjs(selectedDate).format("dddd D MMMM YYYY")}
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
+                  className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {dayjs(selectedDate).format("dddd D MMMM YYYY")}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+            <div className="px-6 py-4 space-y-4">
               {selectedHoliday?.type === "national" && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
                         Nationale Feestdag
                       </p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
                         Je kunt aangeven of uren registratie toegestaan is op deze dag. De feestdag zelf kan niet worden verwijderd.
                       </p>
                     </div>
@@ -376,22 +354,25 @@ export default function JaarkalenderPage() {
               {modalMode === "add" ? (
                 <>
                   <div>
-                    <label className="block text-sm font-medium mb-2">Naam</label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      Naam
+                    </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Bijv. Bedrijfsuitje"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium mb-2">Type</label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      Type
+                    </label>
                     <select
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as "company" | "closed" })}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg"
+                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="closed">Gesloten Dag</option>
                       <option value="company">Bedrijfsdag</option>
@@ -400,11 +381,16 @@ export default function JaarkalenderPage() {
                 </>
               ) : (
                 <div>
-                  <p className="text-sm font-medium mb-2">{selectedHoliday?.name}</p>
-                  <Badge variant="outline">
-                    {selectedHoliday?.type === "national" ? "Nationale Feestdag" : 
-                     selectedHoliday?.type === "company" ? "Bedrijfsdag" : "Gesloten Dag"}
-                  </Badge>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
+                    {selectedHoliday?.name}
+                  </p>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                    {selectedHoliday?.type === "national"
+                      ? "Nationale Feestdag"
+                      : selectedHoliday?.type === "company"
+                      ? "Bedrijfsdag"
+                      : "Gesloten Dag"}
+                  </span>
                 </div>
               )}
 
@@ -414,46 +400,53 @@ export default function JaarkalenderPage() {
                   id="workAllowed"
                   checked={formData.isWorkAllowed}
                   onChange={(e) => setFormData({ ...formData, isWorkAllowed: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded"
+                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                 />
-                <label htmlFor="workAllowed" className="text-sm font-medium">
+                <label htmlFor="workAllowed" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Uren registratie toegestaan
                 </label>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Notities</label>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                  Notities
+                </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   rows={3}
                   placeholder="Optionele notities..."
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 pt-2">
                 {selectedHoliday && selectedHoliday.type !== "national" && (
-                  <Button
-                    variant="outline"
+                  <button
                     onClick={() => handleDelete(selectedHoliday.id)}
-                    className="border-red-300 text-red-600 hover:bg-red-50"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-4 h-4" />
                     Verwijderen
-                  </Button>
+                  </button>
                 )}
-                <div className="flex-1"></div>
-                <Button variant="outline" onClick={() => setShowModal(false)}>
+                <div className="flex-1" />
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
                   Annuleren
-                </Button>
-                <Button onClick={handleSubmit}>
-                  <Check className="w-4 h-4 mr-2" />
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                >
+                  <Check className="w-4 h-4" />
                   Opslaan
-                </Button>
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </div>

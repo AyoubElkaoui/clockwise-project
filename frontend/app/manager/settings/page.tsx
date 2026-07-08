@@ -1,12 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun, Lock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "react-i18next";
@@ -35,7 +30,6 @@ export default function ManagerSettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
 
-  // Load settings from localStorage
   useEffect(() => {
     const loadSettings = () => {
       try {
@@ -128,281 +122,267 @@ export default function ManagerSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-        <PageHeader title="Instellingen" description="Manager voorkeuren en account beheer" />
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Instellingen</h1>
+        <p className="text-xs text-slate-500 mt-0.5">Manager voorkeuren en account beheer</p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Language Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                {t("settings.language")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Kies de taal van de applicatie
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant={i18n.language === "nl" ? "default" : "outline"}
-                  onClick={() => i18n.changeLanguage("nl")}
-                >
-                  Nederlands
-                </Button>
-                <Button
-                  variant={i18n.language === "en" ? "default" : "outline"}
-                  onClick={() => i18n.changeLanguage("en")}
-                >
-                  English
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Theme Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {theme === "dark" ? (
-                  <Moon className="h-5 w-5" />
-                ) : (
-                  <Sun className="h-5 w-5" />
-                )}
-                {t("settings.theme")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Wissel tussen lichte en donkere modus
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant={theme === "light" ? "default" : "outline"}
-                  onClick={() => setTheme("light")}
-                  className="flex items-center gap-2"
-                >
-                  <Sun className="h-4 w-4" />
-                  {t("settings.light")}
-                </Button>
-                <Button
-                  variant={theme === "dark" ? "default" : "outline"}
-                  onClick={() => setTheme("dark")}
-                  className="flex items-center gap-2"
-                >
-                  <Moon className="h-4 w-4" />
-                  {t("settings.dark")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Notifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notificaties
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="emailOnRequests"
-                    checked={emailOnRequests}
-                    onCheckedChange={(checked) =>
-                      setEmailOnRequests(checked as boolean)
-                    }
-                  />
-                  <label
-                    htmlFor="emailOnRequests"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Email bij nieuwe aanvragen
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="pushNotifications"
-                    checked={pushNotifications}
-                    onCheckedChange={(checked) =>
-                      setPushNotifications(checked as boolean)
-                    }
-                  />
-                  <label
-                    htmlFor="pushNotifications"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Push notificaties
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="dailySummary"
-                    checked={dailySummary}
-                    onCheckedChange={(checked) =>
-                      setDailySummary(checked as boolean)
-                    }
-                  />
-                  <label
-                    htmlFor="dailySummary"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Dagelijkse samenvatting
-                  </label>
-                </div>
-              </div>
-              <Button
-                onClick={handleSave}
-                disabled={saving || saved}
-                className="mt-4 w-full"
-              >
-                {saving ? (
-                  "Opslaan..."
-                ) : saved ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Opgeslagen!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Opslaan
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* 2FA Security */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-blue-600" />
-                Tweestapsverificatie (2FA)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Extra beveiliging voor je manager account. Bij inloggen heb je
-                  een tweede verificatiestap nodig.
-                </p>
-
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                        Waarom 2FA?
-                      </h3>
-                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                        Als manager heb je toegang tot gevoelige teamgegevens.
-                        2FA beschermt je account tegen ongeautoriseerde toegang.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => router.push("/account/2fa")}
-                >
-                  <Shield className="w-4 h-4 mr-2" />
-                  2FA Beheren
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Password Change */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Wachtwoord Wijzigen
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Huidig Wachtwoord
-                  </label>
-                  <Input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Nieuw Wachtwoord
-                  </label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Bevestig Nieuw Wachtwoord
-                  </label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                onClick={handleChangePassword}
-                disabled={changingPassword || passwordChanged}
-                className="mt-4"
-              >
-                {changingPassword ? (
-                  <>
-                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                    Wijzigen...
-                  </>
-                ) : passwordChanged ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Gewijzigd!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Wachtwoord Wijzigen
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Profile */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profiel Beheer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Bewerk je persoonlijke gegevens, contactinformatie en meer
-              </p>
-              <Button onClick={handleEditProfile} variant="outline">
-                <User className="w-4 h-4 mr-2" />
-                Naar Profiel Pagina
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Language Settings */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Globe className="w-4 h-4 text-slate-500" />
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {t("settings.language")}
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">Kies de taal van de applicatie</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => i18n.changeLanguage("nl")}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                i18n.language === "nl"
+                  ? "bg-blue-600 text-white"
+                  : "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              Nederlands
+            </button>
+            <button
+              onClick={() => i18n.changeLanguage("en")}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                i18n.language === "en"
+                  ? "bg-blue-600 text-white"
+                  : "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              English
+            </button>
+          </div>
         </div>
+
+        {/* Theme Settings */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-1">
+            {theme === "dark" ? (
+              <Moon className="w-4 h-4 text-slate-500" />
+            ) : (
+              <Sun className="w-4 h-4 text-slate-500" />
+            )}
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {t("settings.theme")}
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">Wissel tussen lichte en donkere modus</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTheme("light")}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                theme === "light"
+                  ? "bg-blue-600 text-white"
+                  : "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <Sun className="w-4 h-4" />
+              {t("settings.light")}
+            </button>
+            <button
+              onClick={() => setTheme("dark")}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                theme === "dark"
+                  ? "bg-blue-600 text-white"
+                  : "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <Moon className="w-4 h-4" />
+              {t("settings.dark")}
+            </button>
+          </div>
+        </div>
+
+        {/* Notifications */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Bell className="w-4 h-4 text-slate-500" />
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Notificaties</h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">Beheer je notificatievoorkeuren</p>
+          <div className="space-y-3 mb-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="emailOnRequests"
+                checked={emailOnRequests}
+                onChange={(e) => setEmailOnRequests(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">
+                Email bij nieuwe aanvragen
+              </span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="pushNotifications"
+                checked={pushNotifications}
+                onChange={(e) => setPushNotifications(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">
+                Push notificaties
+              </span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="dailySummary"
+                checked={dailySummary}
+                onChange={(e) => setDailySummary(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">
+                Dagelijkse samenvatting
+              </span>
+            </label>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving || saved}
+            className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            {saving ? (
+              "Opslaan..."
+            ) : saved ? (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                Opgeslagen!
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Opslaan
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* 2FA Security */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Shield className="w-4 h-4 text-blue-600" />
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Tweestapsverificatie (2FA)
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Extra beveiliging voor je manager account. Bij inloggen heb je een tweede verificatiestap nodig.
+          </p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+            <div className="flex items-start gap-2">
+              <Shield className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Waarom 2FA?</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+                  Als manager heb je toegang tot gevoelige teamgegevens. 2FA beschermt je account tegen ongeautoriseerde toegang.
+                </p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push("/account/2fa")}
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <Shield className="w-4 h-4" />
+            2FA Beheren
+          </button>
+        </div>
+
+        {/* Password Change */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-1">
+            <User className="w-4 h-4 text-slate-500" />
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Wachtwoord Wijzigen</h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">Wijzig je huidige wachtwoord</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Huidig Wachtwoord
+              </label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Nieuw Wachtwoord
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Bevestig Nieuw Wachtwoord
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleChangePassword}
+            disabled={changingPassword || passwordChanged}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            {changingPassword ? (
+              <>
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                Wijzigen...
+              </>
+            ) : passwordChanged ? (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                Gewijzigd!
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Wachtwoord Wijzigen
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Profile */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-1">
+            <User className="w-4 h-4 text-slate-500" />
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Profiel Beheer</h2>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Bewerk je persoonlijke gegevens, contactinformatie en meer
+          </p>
+          <button
+            onClick={handleEditProfile}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <User className="w-4 h-4" />
+            Naar Profiel Pagina
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

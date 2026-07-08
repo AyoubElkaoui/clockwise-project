@@ -3,36 +3,23 @@
 import { useState, useEffect, useMemo } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Clock,
   Filter,
   Download,
   Search,
-  Loader2,
   Calendar,
   ChevronLeft,
   ChevronRight,
   CalendarDays,
-  Table,
-  List,
   BarChart3,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
-import { getEnrichedTimeEntries } from "@/lib/api";
 import { getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
-import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
@@ -70,7 +57,6 @@ export default function UrenOverzichtPage() {
     dayjs().startOf("isoWeek"),
   );
   const [viewMode, setViewMode] = useState<"week" | "month" | "year">("month");
-  const [displayView, setDisplayView] = useState<"cards" | "table">("table");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [startDate, setStartDate] = useState("");
@@ -94,41 +80,39 @@ export default function UrenOverzichtPage() {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
-      
-      // Load ALL workflow entries (DRAFT, SUBMITTED, APPROVED, REJECTED)
-      const urenperGcId = 100426; // Current period
-      
+
+      const urenperGcId = 100426;
+
       const [drafts, submitted, rejected] = await Promise.all([
         getDrafts(urenperGcId),
         getSubmitted(urenperGcId),
-        getRejected(urenperGcId)
+        getRejected(urenperGcId),
       ]);
-      
+
       const allEntries = [...drafts, ...submitted, ...rejected];
-      
-      // Transform to expected format
+
       const transformed = allEntries.map((e: any) => ({
         id: e.id,
         userId: userId,
-        date: e.datum.split('T')[0],
+        date: e.datum.split("T")[0],
         projectId: e.werkGcId || 0,
-        projectCode: e.werkCode || '',
+        projectCode: e.werkCode || "",
         projectName: e.werkDescription || `Project ${e.werkGcId}`,
-        taskName: e.taakDescription || '',
+        taskName: e.taakDescription || "",
         hours: e.aantal,
         km: 0,
         expenses: 0,
         breakMinutes: 0,
-        notes: e.omschrijving || '',
+        notes: e.omschrijving || "",
         status: e.status,
         startTime: e.datum,
         endTime: e.datum,
         companyId: 0,
-        companyName: '',
+        companyName: "",
         projectGroupId: 0,
-        projectGroupName: '',
+        projectGroupName: "",
       }));
-      
+
       setEntries(transformed);
     } catch (error) {
       showToast("Fout bij laden uren", "error");
@@ -137,11 +121,9 @@ export default function UrenOverzichtPage() {
     }
   };
 
-  // Fast filtering with useMemo
   const filteredEntries = useMemo(() => {
     let filtered = entries;
 
-    // Custom date range filter
     if (startDate && endDate) {
       const start = dayjs(startDate);
       const end = dayjs(endDate);
@@ -150,7 +132,6 @@ export default function UrenOverzichtPage() {
         return entryDate.isBetween(start, end, null, "[]");
       });
     } else {
-      // Period filter
       if (viewMode === "week") {
         const weekStart = currentPeriod.startOf("day");
         const weekEnd = currentPeriod.add(6, "day").endOf("day");
@@ -175,12 +156,10 @@ export default function UrenOverzichtPage() {
       }
     }
 
-    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((entry) => entry.status === statusFilter);
     }
 
-    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -202,16 +181,16 @@ export default function UrenOverzichtPage() {
     endDate,
   ]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+
   const paginatedEntries = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredEntries.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredEntries, currentPage, itemsPerPage]);
 
-  // Chart data
   const chartData = useMemo(() => {
-    const days = viewMode === "week" ? 7 : dayjs(currentPeriod).daysInMonth();
+    const days =
+      viewMode === "week" ? 7 : dayjs(currentPeriod).daysInMonth();
     const data = [];
     for (let i = 0; i < days; i++) {
       const date =
@@ -222,7 +201,10 @@ export default function UrenOverzichtPage() {
         const entryDate = dayjs(entry.date || entry.startTime);
         return entryDate.isSame(date, "day");
       });
-      const totalHours = dayEntries.reduce((sum, e) => sum + (e.hours || 0), 0);
+      const totalHours = dayEntries.reduce(
+        (sum, e) => sum + (e.hours || 0),
+        0,
+      );
       data.push({
         day: date.format("DD/MM"),
         hours: totalHours,
@@ -244,6 +226,32 @@ export default function UrenOverzichtPage() {
     }),
     [filteredEntries],
   );
+
+  // Group paginated entries by ISO week for week-total rows
+  const weekGroups = useMemo(() => {
+    const groups = new Map<
+      string,
+      { label: string; entries: TimeEntryWithDetails[]; total: number }
+    >();
+    paginatedEntries.forEach((entry) => {
+      const d = dayjs(entry.date || entry.startTime);
+      const key = `${d.year()}-W${String(d.isoWeek()).padStart(2, "0")}`;
+      if (!groups.has(key)) {
+        const weekStart = d.startOf("isoWeek");
+        groups.set(key, {
+          label: `Week ${d.isoWeek()} · ${weekStart.format("DD/MM")} – ${weekStart.add(6, "day").format("DD/MM")}`,
+          entries: [],
+          total: 0,
+        });
+      }
+      const g = groups.get(key)!;
+      g.entries.push(entry);
+      g.total += entry.hours || 0;
+    });
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => v);
+  }, [paginatedEntries]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -269,17 +277,39 @@ export default function UrenOverzichtPage() {
 
   const handlePrev = () => {
     setCurrentPeriod((p) =>
-      p.subtract(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"),
+      p.subtract(
+        1,
+        viewMode === "week"
+          ? "week"
+          : viewMode === "month"
+            ? "month"
+            : "year",
+      ),
     );
   };
 
   const handleNext = () => {
-    setCurrentPeriod((p) => p.add(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"));
+    setCurrentPeriod((p) =>
+      p.add(
+        1,
+        viewMode === "week"
+          ? "week"
+          : viewMode === "month"
+            ? "month"
+            : "year",
+      ),
+    );
   };
 
   const handleToday = () => {
     setCurrentPeriod(
-      dayjs().startOf(viewMode === "week" ? "isoWeek" : viewMode === "month" ? "month" : "year"),
+      dayjs().startOf(
+        viewMode === "week"
+          ? "isoWeek"
+          : viewMode === "month"
+            ? "month"
+            : "year",
+      ),
     );
   };
 
@@ -290,7 +320,13 @@ export default function UrenOverzichtPage() {
       else if (prev === "month") newMode = "year";
       else newMode = "week";
       setCurrentPeriod(
-        dayjs().startOf(newMode === "week" ? "isoWeek" : newMode === "month" ? "month" : "year"),
+        dayjs().startOf(
+          newMode === "week"
+            ? "isoWeek"
+            : newMode === "month"
+              ? "month"
+              : "year",
+        ),
       );
       return newMode;
     });
@@ -336,7 +372,6 @@ export default function UrenOverzichtPage() {
   const SimpleBarChart = ({ data }: { data: any[] }) => {
     const maxHours = Math.max(...data.map((d) => d.hours), 1);
     const barCount = data.length;
-    // On mobile with many bars (month/year), make scrollable
     const needsScroll = barCount > 10;
     return (
       <div className={needsScroll ? "overflow-x-auto -mx-2 px-2" : ""}>
@@ -345,7 +380,10 @@ export default function UrenOverzichtPage() {
           style={needsScroll ? { minWidth: `${barCount * 28}px` } : undefined}
         >
           {data.map((item, index) => (
-            <div key={index} className="flex flex-col items-center flex-1 min-w-0">
+            <div
+              key={index}
+              className="flex flex-col items-center flex-1 min-w-0"
+            >
               <div
                 className="bg-blue-500 dark:bg-blue-400 rounded-t w-full transition-all hover:bg-blue-600"
                 style={{
@@ -353,8 +391,10 @@ export default function UrenOverzichtPage() {
                   minHeight: item.hours > 0 ? "4px" : "0px",
                 }}
                 title={`${item.day}: ${item.hours}u`}
-              ></div>
-              <span className="text-[9px] md:text-xs text-slate-500 mt-1 truncate w-full text-center">{item.day}</span>
+              />
+              <span className="text-[9px] md:text-xs text-slate-500 mt-1 truncate w-full text-center">
+                {item.day}
+              </span>
             </div>
           ))}
         </div>
@@ -362,16 +402,16 @@ export default function UrenOverzichtPage() {
     );
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "goedgekeurd":
-        return "success";
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
       case "ingeleverd":
-        return "warning";
+        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
       case "afgekeurd":
-        return "danger";
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
       default:
-        return "secondary";
+        return "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300";
     }
   };
 
@@ -392,72 +432,79 @@ export default function UrenOverzichtPage() {
     viewMode === "week"
       ? `Week ${currentPeriod.isoWeek()} • ${currentPeriod.format("DD/MM")} - ${currentPeriod.add(6, "day").format("DD/MM/YYYY")}`
       : viewMode === "month"
-      ? currentPeriod.format("MMMM YYYY")
-      : currentPeriod.format("YYYY");
+        ? currentPeriod.format("MMMM YYYY")
+        : currentPeriod.format("YYYY");
 
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="space-y-6 animate-fadeIn">
-          <PageHeader
-            title="Uren Overzicht"
-            description="Bekijk en beheer al je tijdregistraties"
-            actions={
-              <Button
-                size="sm"
-                onClick={exportToCSV}
-                disabled={filteredEntries.length === 0}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exporteren
-              </Button>
-            }
-          />
+        <div className="p-6 space-y-6">
+
+          {/* Page Header */}
+          <div className="flex items-start justify-between">
+            <div className="mb-6">
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Uren Overzicht
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Bekijk en beheer al je tijdregistraties
+              </p>
+            </div>
+            <button
+              onClick={exportToCSV}
+              disabled={filteredEntries.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="w-4 h-4" />
+              Exporteren
+            </button>
+          </div>
 
           {/* Period Navigation */}
-          <Card variant="elevated" padding="md">
-            <div className="flex items-center justify-between gap-1 md:gap-4">
-              <Button
-                variant="outline"
-                size="sm"
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <div className="flex items-center justify-between gap-4">
+              <button
                 onClick={handlePrev}
-                className="text-slate-700 dark:text-slate-300 flex-shrink-0"
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4 md:mr-1" />
+                <ChevronLeft className="w-4 h-4" />
                 <span className="hidden md:inline">Vorige</span>
-              </Button>
+              </button>
 
-              <div className="flex items-center gap-1.5 md:gap-4 min-w-0 flex-1 justify-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
+              <div className="flex items-center gap-3 flex-1 justify-center flex-wrap">
+                <button
                   onClick={handleToday}
-                  className="text-slate-700 dark:text-slate-300 hidden sm:flex flex-shrink-0"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
+                  <Calendar className="w-3.5 h-3.5" />
                   Vandaag
-                </Button>
-                <div className="text-center min-w-0">
-                  <p className="font-semibold text-xs md:text-base text-slate-900 dark:text-slate-100 truncate">
-                    {periodLabel}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
+                </button>
+                <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 text-center min-w-0">
+                  {periodLabel}
+                </span>
+                <button
                   onClick={toggleView}
-                  className="text-slate-700 dark:text-slate-300 flex-shrink-0 text-xs md:text-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <CalendarDays className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">{viewMode === "week" ? "Maand" : viewMode === "month" ? "Jaar" : "Week"}</span>
-                </Button>
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">
+                    {viewMode === "week"
+                      ? "Maand"
+                      : viewMode === "month"
+                        ? "Jaar"
+                        : "Week"}
+                  </span>
+                </button>
                 {viewMode === "year" && (
                   <select
                     value={selectedYear}
                     onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                    className="hidden sm:block px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {Array.from({ length: dayjs().year() - 2017 }, (_, i) => 2018 + i).map((year) => (
+                    {Array.from(
+                      { length: dayjs().year() - 2017 },
+                      (_, i) => 2018 + i,
+                    ).map((year) => (
                       <option key={year} value={year}>
                         {year}
                       </option>
@@ -466,350 +513,277 @@ export default function UrenOverzichtPage() {
                 )}
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={handleNext}
-                className="text-slate-700 dark:text-slate-300 flex-shrink-0"
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 <span className="hidden md:inline">Volgende</span>
-                <ChevronRight className="w-4 h-4 md:ml-1" />
-              </Button>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          </Card>
+          </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 md:gap-6">
-            <StatCard
-              title="Totaal Uren"
-              value={loading ? "..." : `${stats.total.toFixed(1)}u`}
-              icon={Clock}
-              color="blue"
-            />
-            <StatCard
-              title="Goedgekeurd"
-              value={loading ? "..." : `${stats.approved.toFixed(1)}u`}
-              icon={Clock}
-              color="emerald"
-            />
-            <StatCard
-              title="In Behandeling"
-              value={loading ? "..." : `${stats.pending.toFixed(1)}u`}
-              icon={Clock}
-              color="amber"
-            />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+              <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                TOTAAL UREN
+              </p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {loading ? "..." : `${stats.total.toFixed(1)}u`}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+              <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                GOEDGEKEURD
+              </p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {loading ? "..." : `${stats.approved.toFixed(1)}u`}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+              <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                IN BEHANDELING
+              </p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                {loading ? "..." : `${stats.pending.toFixed(1)}u`}
+              </p>
+            </div>
           </div>
 
           {/* Filters */}
-          <Card variant="elevated" padding="md">
-            <div className="space-y-3 md:space-y-4">
-              <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
-                <div className="flex-1">
-                  <Input
-                    icon={<Search className="w-5 h-5" />}
-                    placeholder="Zoek project, bedrijf..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 md:px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="all">Alle Statussen</option>
-                  <option value="concept">Concept</option>
-                  <option value="ingeleverd">In Behandeling</option>
-                  <option value="goedgekeurd">Goedgekeurd</option>
-                  <option value="afgekeurd">Afgekeurd</option>
-                </select>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  className="h-9 pl-9 pr-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  placeholder="Zoek project, bedrijf..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] gap-2 md:gap-4">
-                <div>
-                  <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Start
-                  </label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Eind
-                  </label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-1 flex items-end">
-                  <Button
-                    variant="outline"
-                    onClick={resetFilters}
-                    className="text-slate-700 dark:text-slate-300 w-full sm:w-auto"
-                    size="sm"
-                  >
-                    <Filter className="w-4 h-4 mr-2" />
-                    Reset
-                  </Button>
-                </div>
-              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">Alle Statussen</option>
+                <option value="concept">Concept</option>
+                <option value="ingeleverd">In Behandeling</option>
+                <option value="goedgekeurd">Goedgekeurd</option>
+                <option value="afgekeurd">Afgekeurd</option>
+              </select>
             </div>
-          </Card>
-
-          {/* Chart */}
-          <Card variant="elevated" padding="md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Uren per Dag
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SimpleBarChart data={chartData} />
-            </CardContent>
-          </Card>
-
-          {/* Summary Card + Entries */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-6">
-            <Card variant="elevated" padding="md" className="hidden lg:block lg:col-span-1">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                  Deze Periode
-                </h3>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                  {stats.total.toFixed(1)}u
-                </p>
-                <div className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
-                  <p>Goedgekeurd: {stats.approved.toFixed(1)}u</p>
-                  <p>In Behandeling: {stats.pending.toFixed(1)}u</p>
-                </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Start
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-            </Card>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Eind
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={resetFilters}
+                className="flex items-center gap-2 h-9 px-3 text-sm text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Filter className="w-3.5 h-3.5" />
+                Reset
+              </button>
+            </div>
+          </div>
 
-            {/* Entries */}
-            <Card variant="elevated" padding="md" className="lg:col-span-3">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">Registraties ({filteredEntries.length})</CardTitle>
-                  <div className="hidden md:flex items-center gap-2">
-                    <Button
-                      variant={displayView === "cards" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setDisplayView("cards")}
-                      className={
-                        displayView === "cards"
-                          ? "text-slate-900 dark:text-white"
-                          : "text-slate-700 dark:text-slate-300"
-                      }
-                    >
-                      <List className="w-4 h-4 mr-2" />
-                      Kaarten
-                    </Button>
-                    <Button
-                      variant={displayView === "table" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setDisplayView("table")}
-                      className={
-                        displayView === "table"
-                          ? "text-slate-900 dark:text-white"
-                          : "text-slate-700 dark:text-slate-300"
-                      }
-                    >
-                      <Table className="w-4 h-4 mr-2" />
-                      Tabel
-                    </Button>
-                  </div>
+          {/* Bar Chart */}
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-slate-400" />
+              Uren per Dag
+            </h2>
+            <SimpleBarChart data={chartData} />
+          </div>
+
+          {/* Entries Table */}
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Registraties{" "}
+                <span className="text-slate-400 font-normal ml-1">
+                  ({filteredEntries.length})
+                </span>
+              </h2>
+            </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
+                  <Calendar className="w-6 h-6 text-slate-400" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                    <span className="ml-3 text-slate-600 dark:text-slate-400">
-                      Laden...
-                    </span>
-                  </div>
-                ) : filteredEntries.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                      <Calendar className="w-7 h-7 text-slate-400" />
-                    </div>
-                    <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen registraties</p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {searchQuery || statusFilter !== "all" || startDate || endDate
-                        ? "Probeer andere filters"
-                        : "Start met het registreren van je uren"}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Mobile: always cards */}
-                    <div className={`space-y-2 md:space-y-3 ${displayView === "table" ? "md:hidden" : ""}`}>
-                      {paginatedEntries.map((entry) => (
-                        <div
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Geen registraties
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {searchQuery || statusFilter !== "all" || startDate || endDate
+                    ? "Probeer andere filters"
+                    : "Start met het registreren van je uren"}
+                </p>
+              </div>
+            ) : (
+              <>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Datum
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Project
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">
+                        Taak
+                      </th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Uren
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">
+                        Notitie
+                      </th>
+                    </tr>
+                  </thead>
+                  {weekGroups.map((group, gi) => (
+                    <tbody key={gi}>
+                      {group.entries.map((entry) => (
+                        <tr
                           key={entry.id}
-                          className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30"
                         >
-                          <div className="w-14 md:w-20 text-center flex-shrink-0">
-                            <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 uppercase">
-                              {dayjs(entry.date || entry.startTime).format("ddd")}
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                            <span className="capitalize">
+                              {dayjs(entry.date || entry.startTime).format(
+                                "ddd DD/MM",
+                              )}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-slate-900 dark:text-slate-100 truncate max-w-[180px]">
+                              {entry.projectName}
                             </p>
-                            <p className="text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {dayjs(entry.date || entry.startTime).format("DD/MM")}
-                            </p>
-                            <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-                              {entry.hours}u
-                            </p>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
-                              <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate">
-                                {entry.projectName}
-                              </p>
-                              <Badge
-                                variant={getStatusBadgeVariant(entry.status)}
-                                size="sm"
-                              >
-                                {getStatusLabel(entry.status)}
-                              </Badge>
-                            </div>
-                            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">
-                              {entry.projectGroupName ||
-                                `Groep ${entry.projectId}`}
-                            </p>
-                            {entry.notes && (
-                              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 italic mt-0.5 truncate">
-                                {entry.notes}
+                            {entry.projectCode && (
+                              <p className="text-xs text-slate-400">
+                                {entry.projectCode}
                               </p>
                             )}
-                            {(entry.km > 0 || entry.expenses > 0) && (
-                              <div className="flex gap-3 mt-1 text-[11px] md:text-xs text-slate-500 dark:text-slate-400">
-                                {entry.km > 0 && <span>{entry.km} km</span>}
-                                {entry.expenses > 0 && (
-                                  <span>€{entry.expenses.toFixed(2)}</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                            {entry.taskName}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                            {entry.hours}u
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(entry.status)}`}
+                            >
+                              {getStatusLabel(entry.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 dark:text-slate-400 hidden lg:table-cell max-w-[200px] truncate">
+                            {entry.notes}
+                          </td>
+                        </tr>
                       ))}
-                    </div>
-
-                    {/* Desktop: table view (when selected) */}
-                    {displayView === "table" && (
-                      <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectcode</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectnaam</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Taak</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                            {paginatedEntries.map((entry) => (
-                              <tr
-                                key={entry.id}
-                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-                              >
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                                  {dayjs(entry.date || entry.startTime).format("DD/MM/YYYY")}
-                                </td>
-                                <td className="px-4 py-3 font-semibold text-blue-600 dark:text-blue-400">
-                                  {entry.hours}u
-                                </td>
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                                  {entry.projectCode}
-                                </td>
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                                  {entry.projectName}
-                                </td>
-                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                                  {entry.taskName}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </>
-                )}
+                      {/* Week total row */}
+                      <tr className="bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-700">
+                        <td colSpan={6} className="px-4 py-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                              {group.label}
+                            </span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                              {group.total.toFixed(1)}u totaal
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  ))}
+                </table>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 md:mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400">
-                      {currentPage}/{totalPages} ({filteredEntries.length} totaal)
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-xs text-slate-500">
+                      Pagina {currentPage} van {totalPages} ·{" "}
+                      {filteredEntries.length} registraties
                     </p>
-                    <div className="flex items-center gap-1 md:gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
+                    <div className="flex items-center gap-1">
+                      <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="text-slate-700 dark:text-slate-300 disabled:text-slate-400"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <ChevronLeft className="w-4 h-4 md:mr-1" />
-                        <span className="hidden md:inline">Vorige</span>
-                      </Button>
-                      <div className="hidden sm:flex items-center gap-1 md:gap-2">
-                        {Array.from(
-                          { length: Math.min(5, totalPages) },
-                          (_, i) => {
-                            const page =
-                              Math.max(
-                                1,
-                                Math.min(totalPages - 4, currentPage - 2),
-                              ) + i;
-                            return (
-                              <Button
-                                key={page}
-                                variant={
-                                  page === currentPage ? "default" : "outline"
-                                }
-                                size="sm"
-                                onClick={() => handlePageChange(page)}
-                                className={
-                                  page === currentPage
-                                    ? "text-slate-900 dark:text-white"
-                                    : "text-slate-700 dark:text-slate-300"
-                                }
-                              >
-                                {page}
-                              </Button>
-                            );
-                          },
-                        )}
-                      </div>
-                      <span className="sm:hidden text-sm font-medium text-slate-700 dark:text-slate-300 px-2">
-                        {currentPage} / {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        Vorige
+                      </button>
+                      {Array.from(
+                        { length: Math.min(5, totalPages) },
+                        (_, i) => {
+                          const page =
+                            Math.max(
+                              1,
+                              Math.min(totalPages - 4, currentPage - 2),
+                            ) + i;
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => handlePageChange(page)}
+                              className={`px-2.5 py-1.5 text-xs rounded-md transition-colors ${
+                                page === currentPage
+                                  ? "bg-blue-600 text-white font-medium"
+                                  : "text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        },
+                      )}
+                      <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="text-slate-700 dark:text-slate-300 disabled:text-slate-400"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <span className="hidden md:inline">Volgende</span>
-                        <ChevronRight className="w-4 h-4 md:ml-1" />
-                      </Button>
+                        Volgende
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </>
+            )}
           </div>
+
         </div>
       </ModernLayout>
     </ProtectedRoute>
