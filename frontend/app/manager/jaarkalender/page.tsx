@@ -1,32 +1,24 @@
 "use client";
 import { useState, useEffect } from "react";
-import {
-  getHolidays,
-  createHoliday,
-  updateHoliday,
-  deleteHoliday,
-  toggleWorkAllowed,
-  generateHolidaysForYear,
-  Holiday
-} from "@/lib/api/holidaysApi";
+import { getHolidays, createHoliday, updateHoliday, deleteHoliday, toggleWorkAllowed, generateHolidaysForYear, Holiday } from "@/lib/api/holidaysApi";
 import { showToast } from "@/components/ui/toast";
-import authUtils from "@/lib/auth-utils";
-import {
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  X,
-  Check,
-  Lock,
-  Unlock,
-  Trash2,
-  AlertCircle,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Check, Lock, Unlock, Trash2, AlertCircle } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/nl";
 
 dayjs.locale("nl");
+
+function getDayStyle(holiday: Holiday | undefined, isWeekend: boolean, isToday: boolean): React.CSSProperties {
+  let bg = "var(--c-panel)", border = "1px solid var(--c-border)";
+  if (holiday) {
+    if (holiday.type === "national")       { bg = "var(--c-accent-weak)"; border = "1px solid color-mix(in srgb, var(--c-accent) 30%, transparent)"; }
+    else if (holiday.isWorkAllowed)        { bg = "var(--c-green-weak)";  border = "1px solid color-mix(in srgb, var(--c-green) 30%, transparent)"; }
+    else                                   { bg = "var(--c-red-weak)";    border = "1px solid color-mix(in srgb, var(--c-red) 30%, transparent)"; }
+  } else if (isWeekend) {
+    bg = "var(--c-panel-2)";
+  }
+  return { background: bg, border, outline: isToday ? "2px solid var(--c-accent)" : "none", outlineOffset: 1 };
+}
 
 export default function JaarkalenderPage() {
   const [loading, setLoading] = useState(true);
@@ -35,345 +27,192 @@ export default function JaarkalenderPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "company" as "company" | "closed",
-    isWorkAllowed: false,
-    notes: "",
-  });
+  const [formData, setFormData] = useState({ name: "", type: "company" as "company" | "closed", isWorkAllowed: false, notes: "" });
 
-  useEffect(() => {
-    loadHolidays();
-  }, [currentYear]);
+  useEffect(() => { loadHolidays(); }, [currentYear]);
 
   const loadHolidays = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await getHolidays(currentYear);
       setHolidays(Array.isArray(data) ? data : []);
-      if (data.length === 0) {
-        showToast("Geen feestdagen gevonden - migration 012 uitgevoerd?", "info");
-      }
-    } catch (error) {
-      showToast("Kon feestdagen niet laden", "error");
-      setHolidays([]);
-    } finally {
-      setLoading(false);
-    }
+      if (data.length === 0) showToast("Geen feestdagen gevonden — migration 012 uitgevoerd?", "info");
+    } catch { showToast("Kon feestdagen niet laden", "error"); setHolidays([]); } finally { setLoading(false); }
   };
 
-  const handleDateClick = (date: string) => {
-    const existingHoliday = holidays.find(h => h.holidayDate === date);
-
-    if (existingHoliday) {
-      setSelectedDate(date);
-      setFormData({
-        name: existingHoliday.name,
-        type: existingHoliday.type === "national" ? "company" : (existingHoliday.type as "company" | "closed"),
-        isWorkAllowed: existingHoliday.isWorkAllowed,
-        notes: existingHoliday.notes || "",
-      });
+  const handleDateClick = (dateStr: string) => {
+    const existing = holidays.find(h => h.holidayDate === dateStr);
+    setSelectedDate(dateStr);
+    if (existing) {
+      setFormData({ name: existing.name, type: existing.type === "national" ? "company" : (existing.type as "company" | "closed"), isWorkAllowed: existing.isWorkAllowed, notes: existing.notes || "" });
       setModalMode("edit");
-      setShowModal(true);
     } else {
-      setSelectedDate(date);
-      setFormData({
-        name: "",
-        type: "closed",
-        isWorkAllowed: false,
-        notes: "",
-      });
+      setFormData({ name: "", type: "closed", isWorkAllowed: false, notes: "" });
       setModalMode("add");
-      setShowModal(true);
     }
+    setShowModal(true);
   };
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
-
     try {
       if (modalMode === "add") {
-        const finalName = formData.name.trim() ||
-          (formData.type === "closed" ? `Gesloten dag ${selectedDate}` : "");
-
-        if (!finalName) {
-          showToast("Naam is verplicht", "error");
-          return;
-        }
-
-        await createHoliday({
-          holidayDate: selectedDate,
-          name: finalName,
-          type: formData.type,
-          isWorkAllowed: formData.isWorkAllowed,
-          notes: formData.notes,
-        });
+        const finalName = formData.name.trim() || (formData.type === "closed" ? `Gesloten dag ${selectedDate}` : "");
+        if (!finalName) { showToast("Naam is verplicht", "error"); return; }
+        await createHoliday({ holidayDate: selectedDate, name: finalName, type: formData.type, isWorkAllowed: formData.isWorkAllowed, notes: formData.notes });
         showToast("Feestdag toegevoegd", "success");
       } else {
         const holiday = holidays.find(h => h.holidayDate === selectedDate);
-        if (holiday) {
-          await updateHoliday(holiday.id, {
-            isWorkAllowed: formData.isWorkAllowed,
-            notes: formData.notes,
-          });
-          showToast("Feestdag bijgewerkt", "success");
-        }
+        if (holiday) { await updateHoliday(holiday.id, { isWorkAllowed: formData.isWorkAllowed, notes: formData.notes }); showToast("Feestdag bijgewerkt", "success"); }
       }
-      setShowModal(false);
-      loadHolidays();
-    } catch (error: any) {
-      showToast(error.message || "Fout bij opslaan", "error");
-    }
+      setShowModal(false); loadHolidays();
+    } catch (e: any) { showToast(e.message || "Fout bij opslaan", "error"); }
   };
 
-  const handleDelete = async (holidayId: number) => {
+  const handleDelete = async (id: number) => {
     if (!confirm("Weet je zeker dat je deze dag wilt verwijderen?")) return;
-
-    try {
-      await deleteHoliday(holidayId);
-      showToast("Dag verwijderd", "success");
-      setShowModal(false);
-      loadHolidays();
-    } catch (error: any) {
-      showToast(error.message || "Fout bij verwijderen", "error");
-    }
-  };
-
-  const handleToggleWork = async (holidayId: number) => {
-    try {
-      await toggleWorkAllowed(holidayId);
-      showToast("Status gewijzigd", "success");
-      loadHolidays();
-    } catch (error: any) {
-      showToast(error.message || "Fout bij wijzigen", "error");
-    }
+    try { await deleteHoliday(id); showToast("Dag verwijderd", "success"); setShowModal(false); loadHolidays(); }
+    catch (e: any) { showToast(e.message || "Fout bij verwijderen", "error"); }
   };
 
   const handleGenerateHolidays = async () => {
     if (!confirm(`Wil je de Nederlandse feestdagen genereren voor ${currentYear}?`)) return;
-
-    try {
-      const result = await generateHolidaysForYear(currentYear);
-      showToast(result.message, "success");
-      loadHolidays();
-    } catch (error: any) {
-      showToast(error.message || "Fout bij genereren", "error");
-    }
+    try { const r = await generateHolidaysForYear(currentYear); showToast(r.message, "success"); loadHolidays(); }
+    catch (e: any) { showToast(e.message || "Fout bij genereren", "error"); }
   };
 
-  const renderCalendar = () => {
-    const months = [];
-
-    for (let month = 0; month < 12; month++) {
+  const renderCalendar = () =>
+    Array.from({ length: 12 }, (_, month) => {
       const firstDay = dayjs().year(currentYear).month(month).startOf("month");
       const daysInMonth = firstDay.daysInMonth();
-      const startDay = firstDay.day();
-      const days = [];
-
-      for (let i = 0; i < (startDay === 0 ? 6 : startDay - 1); i++) {
-        days.push(<div key={`empty-${i}`} className="p-1" />);
-      }
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = firstDay.date(day);
-        const dateStr = date.format("YYYY-MM-DD");
-        const holiday = holidays.find(h => h.holidayDate === dateStr);
-        const isWeekend = date.day() === 0 || date.day() === 6;
-        const isToday = date.isSame(dayjs(), "day");
-
-        days.push(
-          <div
-            key={day}
-            onClick={() => handleDateClick(dateStr)}
-            className={`
-              p-1.5 text-center cursor-pointer rounded-md border transition-all text-xs
-              ${isToday ? "ring-2 ring-blue-500 ring-offset-1" : ""}
-              ${
-                holiday
-                  ? holiday.type === "national"
-                    ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700"
-                    : holiday.isWorkAllowed
-                    ? "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700"
-                    : "bg-rose-100 dark:bg-rose-900/30 border-rose-300 dark:border-rose-700"
-                  : isWeekend
-                  ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-              }
-            `}
-          >
-            <span className="font-medium text-slate-800 dark:text-slate-200">{day}</span>
-            {holiday && (
-              <div className="flex items-center justify-center mt-0.5">
-                {holiday.isWorkAllowed ? (
-                  <Unlock className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <Lock className="w-2.5 h-2.5 text-red-600 dark:text-red-400" />
-                )}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      months.push(
-        <div key={month} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">
-            {firstDay.format("MMMM YYYY")}
-          </p>
-          <div className="grid grid-cols-7 gap-0.5 mb-1.5">
-            {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(d => (
-              <div key={d} className="text-center text-[10px] font-semibold text-slate-400 pb-1">
-                {d}
-              </div>
+      const startOffset = (firstDay.day() === 0 ? 6 : firstDay.day() - 1);
+      return (
+        <div key={month} style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 14 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 10px" }}>{firstDay.format("MMMM YYYY")}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
+            {["Ma","Di","Wo","Do","Vr","Za","Zo"].map(d => (
+              <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 700, color: "var(--c-muted)", paddingBottom: 3 }}>{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-0.5">
-            {days}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
+            {Array.from({ length: startOffset }, (_, i) => <div key={`e${i}`} />)}
+            {Array.from({ length: daysInMonth }, (_, d) => {
+              const date = firstDay.date(d + 1);
+              const dateStr = date.format("YYYY-MM-DD");
+              const holiday = holidays.find(h => h.holidayDate === dateStr);
+              const isWeekend = date.day() === 0 || date.day() === 6;
+              const isToday = date.isSame(dayjs(), "day");
+              return (
+                <div
+                  key={d}
+                  onClick={() => handleDateClick(dateStr)}
+                  style={{ ...getDayStyle(holiday, isWeekend, isToday), padding: "3px 2px", textAlign: "center", cursor: "pointer", borderRadius: 5, transition: "opacity 0.1s" }}
+                  onMouseEnter={e => { if (!holiday && !isWeekend) e.currentTarget.style.opacity = "0.7"; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-text)" }}>{d + 1}</span>
+                  {holiday && (
+                    <div style={{ display: "flex", justifyContent: "center", marginTop: 1 }}>
+                      {holiday.isWorkAllowed
+                        ? <Unlock size={8} color="var(--c-green)" />
+                        : <Lock    size={8} color="var(--c-red)"   />}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       );
-    }
-
-    return months;
-  };
+    });
 
   const selectedHoliday = selectedDate ? holidays.find(h => h.holidayDate === selectedDate) : null;
+  const inputStyle: React.CSSProperties = { height: 34, width: "100%", padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+  const labelStyle: React.CSSProperties = { display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", marginBottom: 5 };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 320 }}>
+      <div style={{ width: 32, height: 32, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+    </div>
+  );
 
   return (
-    <div className="p-6 space-y-6 pb-20">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Jaarkalender</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Beheer feestdagen en gesloten dagen</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Jaarkalender</h1>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Beheer feestdagen en gesloten dagen</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCurrentYear(currentYear - 1)}
-            className="p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setCurrentYear(y => y - 1)} style={{ padding: "7px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", cursor: "pointer", display: "flex" }}>
+            <ChevronLeft size={16} color="var(--c-text)" />
           </button>
-          <span className="text-lg font-bold min-w-[60px] text-center text-slate-900 dark:text-slate-100">
-            {currentYear}
-          </span>
-          <button
-            onClick={() => setCurrentYear(currentYear + 1)}
-            className="p-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
+          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-text)", minWidth: 56, textAlign: "center" }}>{currentYear}</span>
+          <button onClick={() => setCurrentYear(y => y + 1)} style={{ padding: "7px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", cursor: "pointer", display: "flex" }}>
+            <ChevronRight size={16} color="var(--c-text)" />
           </button>
           <button
             onClick={handleGenerateHolidays}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors ml-2"
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", marginLeft: 4 }}
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Feestdagen Genereren</span>
+            <Plus size={14} /> Feestdagen Genereren
           </button>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 rounded-md" />
-            <span className="text-xs text-slate-600 dark:text-slate-400">Nationale feestdag</span>
+      <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "12px 18px", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}>
+        {[
+          { bg: "var(--c-accent-weak)", border: "color-mix(in srgb, var(--c-accent) 30%, transparent)", label: "Nationale feestdag" },
+          { bg: "var(--c-red-weak)",    border: "color-mix(in srgb, var(--c-red) 30%, transparent)",    label: "Gesloten (geen uren)" },
+          { bg: "var(--c-green-weak)",  border: "color-mix(in srgb, var(--c-green) 30%, transparent)",  label: "Feestdag (uren toegestaan)" },
+        ].map((l) => (
+          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ width: 18, height: 18, borderRadius: 4, background: l.bg, border: `1px solid ${l.border}` }} />
+            <span style={{ fontSize: 12, color: "var(--c-text-2)" }}>{l.label}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-rose-100 dark:bg-rose-900/30 border border-rose-300 rounded-md" />
-            <span className="text-xs text-slate-600 dark:text-slate-400">Gesloten (geen uren)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 rounded-md" />
-            <span className="text-xs text-slate-600 dark:text-slate-400">Feestdag (uren toegestaan)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 text-red-600" />
-            <span className="text-xs text-slate-600 dark:text-slate-400">Uren geblokkeerd</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-xs text-slate-600 dark:text-slate-400">Uren toegestaan</span>
-          </div>
-        </div>
+        ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}><Lock size={12} color="var(--c-red)" /><span style={{ fontSize: 12, color: "var(--c-text-2)" }}>Uren geblokkeerd</span></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}><Unlock size={12} color="var(--c-green)" /><span style={{ fontSize: 12, color: "var(--c-text-2)" }}>Uren toegestaan</span></div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Calendar grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
         {renderCalendar()}
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-md shadow-xl">
-            <div className="px-6 pt-5 pb-4 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                    {modalMode === "add" ? "Dag Toevoegen" : "Dag Bewerken"}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {dayjs(selectedDate).format("dddd D MMMM YYYY")}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 12, width: "100%", maxWidth: 440, boxShadow: "var(--c-shadow)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "18px 20px", borderBottom: "1px solid var(--c-border)" }}>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>{modalMode === "add" ? "Dag Toevoegen" : "Dag Bewerken"}</p>
+                <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "3px 0 0" }}>{dayjs(selectedDate).format("dddd D MMMM YYYY")}</p>
               </div>
+              <button onClick={() => setShowModal(false)} style={{ padding: 6, background: "none", border: "none", cursor: "pointer", color: "var(--c-muted)" }}><X size={18} /></button>
             </div>
-            <div className="px-6 py-4 space-y-4">
+            <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
               {selectedHoliday?.type === "national" && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
-                        Nationale Feestdag
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-                        Je kunt aangeven of uren registratie toegestaan is op deze dag. De feestdag zelf kan niet worden verwijderd.
-                      </p>
-                    </div>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "var(--c-accent-weak)", borderRadius: 8, padding: "10px 14px" }}>
+                  <AlertCircle size={14} color="var(--c-accent)" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: "var(--c-accent)", margin: "0 0 3px" }}>Nationale Feestdag</p>
+                    <p style={{ fontSize: 12, color: "var(--c-text-2)", margin: 0 }}>Je kunt aangeven of uren registratie toegestaan is op deze dag.</p>
                   </div>
                 </div>
               )}
-
               {modalMode === "add" ? (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Naam
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Bijv. Bedrijfsuitje"
-                    />
+                    <label style={labelStyle}>Naam</label>
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Bijv. Bedrijfsuitje" style={inputStyle} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Type
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value as "company" | "closed" })}
-                      className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                    <label style={labelStyle}>Type</label>
+                    <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as "company" | "closed" })} style={inputStyle}>
                       <option value="closed">Gesloten Dag</option>
                       <option value="company">Bedrijfsdag</option>
                     </select>
@@ -381,68 +220,30 @@ export default function JaarkalenderPage() {
                 </>
               ) : (
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-1">
-                    {selectedHoliday?.name}
-                  </p>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                    {selectedHoliday?.type === "national"
-                      ? "Nationale Feestdag"
-                      : selectedHoliday?.type === "company"
-                      ? "Bedrijfsdag"
-                      : "Gesloten Dag"}
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: "0 0 6px" }}>{selectedHoliday?.name}</p>
+                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: "var(--c-hover)", color: "var(--c-muted)" }}>
+                    {selectedHoliday?.type === "national" ? "Nationale Feestdag" : selectedHoliday?.type === "company" ? "Bedrijfsdag" : "Gesloten Dag"}
                   </span>
                 </div>
               )}
-
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="workAllowed"
-                  checked={formData.isWorkAllowed}
-                  onChange={(e) => setFormData({ ...formData, isWorkAllowed: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                />
-                <label htmlFor="workAllowed" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Uren registratie toegestaan
-                </label>
-              </div>
-
+              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                <input type="checkbox" id="workAllowed" checked={formData.isWorkAllowed} onChange={(e) => setFormData({ ...formData, isWorkAllowed: e.target.checked })} style={{ width: 15, height: 15, accentColor: "var(--c-accent)" }} />
+                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)" }}>Uren registratie toegestaan</span>
+              </label>
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  Notities
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows={3}
-                  placeholder="Optionele notities..."
-                />
+                <label style={labelStyle}>Notities</label>
+                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={3} placeholder="Optionele notities..." style={{ ...inputStyle, height: "auto", padding: "8px 10px", resize: "none" }} />
               </div>
-
-              <div className="flex gap-2 pt-2">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4 }}>
                 {selectedHoliday && selectedHoliday.type !== "national" && (
-                  <button
-                    onClick={() => handleDelete(selectedHoliday.id)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Verwijderen
+                  <button onClick={() => handleDelete(selectedHoliday.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "none", border: "1px solid var(--c-red)", color: "var(--c-red)", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    <Trash2 size={13} /> Verwijderen
                   </button>
                 )}
-                <div className="flex-1" />
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Annuleren
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
-                >
-                  <Check className="w-4 h-4" />
-                  Opslaan
+                <div style={{ flex: 1 }} />
+                <button onClick={() => setShowModal(false)} style={{ padding: "8px 14px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text-2)", cursor: "pointer" }}>Annuleren</button>
+                <button onClick={handleSubmit} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  <Check size={13} /> Opslaan
                 </button>
               </div>
             </div>

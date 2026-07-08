@@ -4,50 +4,18 @@ import { useState, useEffect } from "react";
 import { API_URL } from "@/lib/api";
 import { getAllUsers } from "@/lib/manager-api";
 import axios from "axios";
-import {
-  ListChecks,
-  Search,
-  Users,
-  Save,
-  Briefcase,
-  Plane,
-  AlertTriangle,
-  Clock,
-} from "lucide-react";
+import { ListChecks, Search, Users, Save, Briefcase, Plane, AlertTriangle, Clock } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
 
-interface TaskCode {
-  id: number;
-  code: string;
-  description: string;
-  shortName: string | null;
-  isHistorical: boolean;
-}
+interface TaskCode  { id: number; code: string; description: string; shortName: string | null; isHistorical: boolean; }
+interface Allocation { taskCode: string; taskDescription: string; annualBudget: number; used: number; }
+interface TeamMember { medewGcId: number; firstName: string; lastName: string; rank: string; isActive: boolean; contractHours: number; }
 
-interface Allocation {
-  taskCode: string;
-  taskDescription: string;
-  annualBudget: number;
-  used: number;
-}
-
-interface TeamMember {
-  medewGcId: number;
-  firstName: string;
-  lastName: string;
-  rank: string;
-  isActive: boolean;
-  contractHours: number;
-}
-
-function getCategoryInfo(code: string) {
-  if (code.startsWith("I"))
-    return { label: "Indirect", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", icon: Briefcase };
-  if (code.startsWith("Z0") || code.startsWith("Z1") || code === "SLEEFTIJD")
-    return { label: "Verlof", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", icon: Plane };
-  if (code.startsWith("Z2") || code.startsWith("Z3") || code.startsWith("Z4"))
-    return { label: "Ziekte", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", icon: AlertTriangle };
-  return { label: "Werk", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: Clock };
+function getCategoryInfo(code: string): { label: string; color: string; bg: string; Icon: React.ElementType } {
+  if (code.startsWith("I"))                                                return { label: "Indirect", color: "var(--c-accent)",  bg: "var(--c-accent-weak)", Icon: Briefcase };
+  if (code.startsWith("Z0") || code.startsWith("Z1") || code === "SLEEFTIJD") return { label: "Verlof",   color: "var(--c-green)",  bg: "var(--c-green-weak)", Icon: Plane };
+  if (code.startsWith("Z2") || code.startsWith("Z3") || code.startsWith("Z4")) return { label: "Ziekte",  color: "var(--c-red)",    bg: "var(--c-red-weak)",   Icon: AlertTriangle };
+  return { label: "Werk", color: "var(--c-amber)", bg: "var(--c-amber-weak)", Icon: Clock };
 }
 
 export default function UurcodesPage() {
@@ -60,9 +28,7 @@ export default function UurcodesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
+  useEffect(() => { loadInitialData(); }, []);
 
   const loadInitialData = async () => {
     try {
@@ -71,61 +37,32 @@ export default function UurcodesPage() {
         axios.get(`${API_URL}/tasks`, { headers: { "ngrok-skip-browser-warning": "1" } }),
         getAllUsers(),
       ]);
-
-      const allTasks = (tasksRes.data.tasks || []).filter(
-        (t: TaskCode) =>
-          t.code.startsWith("I") ||
-          t.code.startsWith("Z") ||
-          t.code === "SLEEFTIJD"
-      );
-      setTasks(allTasks);
-
-      const activeMembers = (usersRes || []).filter(
-        (u: any) => u.rank !== "inactive" && u.isActive !== false
-      );
-      setTeamMembers(activeMembers);
-    } catch (err) {
-      console.error("Error loading data:", err);
-      showToast("Fout bij laden gegevens", "error");
-    } finally {
-      setLoading(false);
-    }
+      setTasks((tasksRes.data.tasks || []).filter((t: TaskCode) => t.code.startsWith("I") || t.code.startsWith("Z") || t.code === "SLEEFTIJD"));
+      setTeamMembers((usersRes || []).filter((u: any) => u.rank !== "inactive" && u.isActive !== false));
+    } catch { showToast("Fout bij laden gegevens", "error"); } finally { setLoading(false); }
   };
 
   const loadAllocations = async (member: TeamMember) => {
     try {
-      const res = await axios.get(
-        `${API_URL}/users/${member.medewGcId}/hour-allocations`,
-        { headers: { "ngrok-skip-browser-warning": "1" } }
-      );
+      const res = await axios.get(`${API_URL}/users/${member.medewGcId}/hour-allocations`, { headers: { "ngrok-skip-browser-warning": "1" } });
       setAllocations(res.data || []);
       setHasChanges(false);
-    } catch {
-      setAllocations([]);
-    }
+    } catch { setAllocations([]); }
   };
 
   const handleSelectMember = (member: TeamMember) => {
-    if (hasChanges) {
-      if (!confirm("Je hebt onopgeslagen wijzigingen. Wil je doorgaan?")) return;
-    }
+    if (hasChanges && !confirm("Je hebt onopgeslagen wijzigingen. Wil je doorgaan?")) return;
     setSelectedMember(member);
     loadAllocations(member);
   };
 
-  const getAllocation = (taskCode: string): Allocation | undefined => {
-    return allocations.find((a) => a.taskCode === taskCode);
-  };
+  const getAllocation = (code: string) => allocations.find((a) => a.taskCode === code);
 
   const updateBudget = (taskCode: string, taskDescription: string, value: number) => {
     setHasChanges(true);
     setAllocations((prev) => {
       const idx = prev.findIndex((a) => a.taskCode === taskCode);
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], annualBudget: value };
-        return updated;
-      }
+      if (idx >= 0) { const u = [...prev]; u[idx] = { ...u[idx], annualBudget: value }; return u; }
       return [...prev, { taskCode, taskDescription, annualBudget: value, used: 0 }];
     });
   };
@@ -134,145 +71,110 @@ export default function UurcodesPage() {
     if (!selectedMember) return;
     setSaving(true);
     try {
-      await axios.put(
-        `${API_URL}/users/${selectedMember.medewGcId}/hour-allocations`,
-        {
-          year: new Date().getFullYear(),
-          allocations: allocations.map((a) => ({
-            taskCode: a.taskCode,
-            taskDescription: a.taskDescription,
-            annualBudget: a.annualBudget,
-            used: a.used || 0,
-          })),
-        }
-      );
-      showToast(
-        `Toewijzingen opgeslagen voor ${selectedMember.firstName} ${selectedMember.lastName}`,
-        "success"
-      );
+      await axios.put(`${API_URL}/users/${selectedMember.medewGcId}/hour-allocations`, {
+        year: new Date().getFullYear(),
+        allocations: allocations.map((a) => ({ taskCode: a.taskCode, taskDescription: a.taskDescription, annualBudget: a.annualBudget, used: a.used || 0 })),
+      });
+      showToast(`Opgeslagen voor ${selectedMember.firstName} ${selectedMember.lastName}`, "success");
       setHasChanges(false);
-    } catch {
-      showToast("Fout bij opslaan", "error");
-    } finally {
-      setSaving(false);
-    }
+    } catch { showToast("Fout bij opslaan", "error"); } finally { setSaving(false); }
   };
 
   const filteredTasks = tasks.filter((task) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return (
-      task.code.toLowerCase().includes(q) ||
-      task.description.toLowerCase().includes(q)
-    );
+    return task.code.toLowerCase().includes(q) || task.description.toLowerCase().includes(q);
   });
+
+  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10 };
+  const thStyle: React.CSSProperties = { padding: "9px 14px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid var(--c-border)", background: "var(--c-panel-2)" };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 320 }}>
+        <div style={{ width: 32, height: 32, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Uurcode Toewijzingen</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Stel per medewerker het jaarlijks budget in per uurcode</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Uurcode Toewijzingen</h1>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Stel per medewerker het jaarlijks budget in per uurcode</p>
         </div>
         {selectedMember && hasChanges && (
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
           >
-            <Save className="w-4 h-4" />
-            {saving ? "Opslaan..." : "Opslaan"}
+            <Save size={14} /> {saving ? "Opslaan..." : "Opslaan"}
           </button>
         )}
       </div>
 
-      {/* Team Member Selection */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Users className="w-3.5 h-3.5" />
-          Selecteer medewerker
+      {/* Member selection */}
+      <div style={{ ...panelStyle, padding: "16px 18px" }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 5 }}>
+          <Users size={12} /> Selecteer medewerker
         </p>
-        <div className="flex flex-wrap gap-2">
-          {teamMembers.map((member) => (
-            <button
-              key={member.medewGcId}
-              onClick={() => handleSelectMember(member)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
-                selectedMember?.medewGcId === member.medewGcId
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
-                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
-              }`}
-            >
-              <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-              </div>
-              <span className="font-medium">
-                {member.firstName} {member.lastName}
-              </span>
-            </button>
-          ))}
-          {teamMembers.length === 0 && (
-            <p className="text-sm text-slate-400">Geen teamleden gevonden</p>
-          )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {teamMembers.map((m) => {
+            const active = selectedMember?.medewGcId === m.medewGcId;
+            return (
+              <button
+                key={m.medewGcId}
+                onClick={() => handleSelectMember(m)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 8, border: `1px solid ${active ? "var(--c-accent)" : "var(--c-border)"}`, background: active ? "var(--c-accent-weak)" : "transparent", color: active ? "var(--c-accent)" : "var(--c-text)", fontSize: 13, fontWeight: active ? 600 : 400, cursor: "pointer" }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: active ? "var(--c-accent)" : "var(--c-hover)", color: active ? "#fff" : "var(--c-text)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                  {m.firstName?.charAt(0)}{m.lastName?.charAt(0)}
+                </div>
+                {m.firstName} {m.lastName}
+              </button>
+            );
+          })}
+          {teamMembers.length === 0 && <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Geen teamleden gevonden</p>}
         </div>
       </div>
 
-      {/* Allocations Table */}
       {selectedMember ? (
         <>
           {/* Search */}
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div style={{ position: "relative", maxWidth: 320 }}>
+            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
             <input
               type="text"
               placeholder="Zoek uurcode..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ height: 34, width: "100%", paddingLeft: 32, paddingRight: 10, fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
             />
           </div>
 
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <ListChecks className="w-4 h-4" />
+          {/* Table */}
+          <div style={{ ...panelStyle, overflow: "hidden" }}>
+            <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", gap: 8 }}>
+              <ListChecks size={14} color="var(--c-muted)" />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>
                 {selectedMember.firstName} {selectedMember.lastName}
-                <span className="text-slate-400 font-normal text-xs">
-                  ({selectedMember.contractHours || 40} uur/week)
-                </span>
-              </p>
+              </span>
+              <span style={{ fontSize: 12, color: "var(--c-muted)" }}>({selectedMember.contractHours || 40} uur/week)</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">
-                      Code
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Omschrijving
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell w-28">
-                      Categorie
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">
-                      Budget
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">
-                      Gebruikt
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">
-                      Rest
-                    </th>
+                  <tr>
+                    <th style={{ ...thStyle, width: 80 }}>Code</th>
+                    <th style={thStyle}>Omschrijving</th>
+                    <th style={thStyle}>Categorie</th>
+                    <th style={{ ...thStyle, textAlign: "center", width: 90 }}>Budget</th>
+                    <th style={{ ...thStyle, textAlign: "center", width: 70 }}>Gebruikt</th>
+                    <th style={{ ...thStyle, textAlign: "center", width: 70 }}>Rest</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -282,58 +184,40 @@ export default function UurcodesPage() {
                     const used = alloc?.used ?? 0;
                     const remaining = budget - used;
                     const cat = getCategoryInfo(task.code);
-
+                    const remainColor = remaining < 0 ? "var(--c-red)" : remaining <= budget * 0.1 ? "var(--c-amber)" : "var(--c-green)";
                     return (
                       <tr
                         key={task.id}
-                        className={`border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${
-                          budget > 0 ? "" : "opacity-60 hover:opacity-100"
-                        }`}
+                        style={{ borderBottom: "1px solid var(--c-border)", opacity: budget > 0 ? 1 : 0.55 }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "var(--c-hover)"; e.currentTarget.style.opacity = "1"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.opacity = budget > 0 ? "1" : "0.55"; }}
                       >
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                          <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs font-bold">
-                            {task.code}
-                          </code>
+                        <td style={{ padding: "9px 14px" }}>
+                          <code style={{ padding: "2px 6px", borderRadius: 5, background: "var(--c-hover)", fontSize: 11, fontWeight: 700, fontFamily: "monospace" }}>{task.code}</code>
                         </td>
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                          {task.description}
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cat.color}`}>
+                        <td style={{ padding: "9px 14px", color: "var(--c-text)" }}>{task.description}</td>
+                        <td style={{ padding: "9px 14px" }}>
+                          <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: cat.bg, color: cat.color }}>
                             {cat.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td style={{ padding: "9px 14px", textAlign: "center" }}>
                           <input
                             type="number"
                             min="0"
                             step="0.5"
                             value={budget || ""}
                             placeholder="0"
-                            onChange={(e) =>
-                              updateBudget(task.code, task.description, parseFloat(e.target.value) || 0)
-                            }
-                            className="w-16 h-8 text-center text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mx-auto block"
+                            onChange={(e) => updateBudget(task.code, task.description, parseFloat(e.target.value) || 0)}
+                            style={{ width: 60, height: 28, textAlign: "center", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 6, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit" }}
                           />
                         </td>
-                        <td className="px-4 py-3 text-center text-slate-500 dark:text-slate-400 text-sm font-mono">
-                          {used > 0 ? used : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center">
+                        <td style={{ padding: "9px 14px", textAlign: "center", color: "var(--c-muted)", fontVariantNumeric: "tabular-nums" }}>{used > 0 ? used : "–"}</td>
+                        <td style={{ padding: "9px 14px", textAlign: "center" }}>
                           {budget > 0 ? (
-                            <span
-                              className={`text-sm font-bold font-mono ${
-                                remaining < 0
-                                  ? "text-red-600 dark:text-red-400"
-                                  : remaining <= budget * 0.1
-                                  ? "text-amber-600 dark:text-amber-400"
-                                  : "text-emerald-600 dark:text-emerald-400"
-                              }`}
-                            >
-                              {remaining}
-                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: remainColor, fontVariantNumeric: "tabular-nums" }}>{remaining}</span>
                           ) : (
-                            <span className="text-slate-300 dark:text-slate-600">-</span>
+                            <span style={{ color: "var(--c-border)" }}>–</span>
                           )}
                         </td>
                       </tr>
@@ -342,34 +226,29 @@ export default function UurcodesPage() {
                 </tbody>
               </table>
             </div>
-
-            {/* Footer with save */}
-            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+            <div style={{ padding: "10px 18px", borderTop: "1px solid var(--c-border)", background: "var(--c-panel-2)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "var(--c-muted)" }}>
                 {allocations.filter((a) => a.annualBudget > 0).length} van {tasks.length} uurcodes ingesteld
               </span>
               {hasChanges && (
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors"
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}
                 >
-                  <Save className="w-3.5 h-3.5" />
-                  {saving ? "Opslaan..." : "Wijzigingen opslaan"}
+                  <Save size={12} /> {saving ? "Opslaan..." : "Wijzigingen opslaan"}
                 </button>
               )}
             </div>
           </div>
         </>
       ) : (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-16 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-            <Users className="w-7 h-7 text-slate-400" />
+        <div style={{ ...panelStyle, padding: "56px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Users size={22} color="var(--c-muted)" />
           </div>
-          <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Selecteer een medewerker</p>
-          <p className="text-sm text-slate-500 mt-1">
-            Kies hierboven een teamlid om hun uurcode budgetten in te stellen
-          </p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Selecteer een medewerker</p>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Kies hierboven een teamlid om hun uurcode budgetten in te stellen</p>
         </div>
       )}
     </div>

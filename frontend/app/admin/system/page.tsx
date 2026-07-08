@@ -2,155 +2,101 @@
 
 import { useState, useEffect } from "react";
 import { Activity, Settings, AlertCircle, RefreshCw } from "lucide-react";
-import {
-  getSystemHealth,
-  getSystemConfig,
-  updateSystemConfig,
-} from "@/lib/api";
+import { getSystemHealth, getSystemConfig, updateSystemConfig } from "@/lib/api";
 
 export default function SystemPage() {
   const [health, setHealth] = useState<any>(null);
   const [config, setConfig] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadHealth();
-    loadConfig();
-  }, []);
+  useEffect(() => { loadHealth(); loadConfig(); }, []);
 
   const loadHealth = async () => {
-    try {
-      const data = await getSystemHealth();
-      setHealth(data);
-    } catch {}
+    try { setHealth(await getSystemHealth()); } catch {}
   };
-
   const loadConfig = async () => {
-    try {
-      const data = await getSystemConfig();
-      setConfig(data);
-    } catch {}
+    try { setConfig(await getSystemConfig()); } catch {}
   };
-
   const handleUpdateConfig = async () => {
     setLoading(true);
-    try {
-      await updateSystemConfig(config);
-      alert("Config bijgewerkt!");
-    } catch {
-    } finally {
-      setLoading(false);
-    }
+    try { await updateSystemConfig(config); alert("Config bijgewerkt!"); } catch {} finally { setLoading(false); }
   };
 
-  const handleConfigChange = (key: string, value: any) => {
-    setConfig({ ...config, [key]: value });
-  };
+  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "20px 22px" };
+  const inputStyle: React.CSSProperties = { height: 34, width: "100%", padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
 
   return (
-    <div className="p-6 space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Systeem Status
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Monitor systeemgezondheid en beheer configuratie
-          </p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Systeem Status</h1>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Monitor systeemgezondheid en beheer configuratie</p>
         </div>
         <button
           onClick={loadHealth}
-          className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}
         >
-          <RefreshCw className="w-4 h-4" />
-          Vernieuwen
+          <RefreshCw size={14} /> Vernieuwen
         </button>
       </div>
 
-      {/* System Health */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-slate-500" />
-          Systeem Gezondheid
-        </h2>
+      {/* Health */}
+      <div style={panelStyle}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 6 }}>
+          <Activity size={14} color="var(--c-muted)" /> Systeem Gezondheid
+        </p>
         {health ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-              <div
-                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  health.databaseStatus === "Healthy"
-                    ? "bg-emerald-500"
-                    : "bg-red-500"
-                }`}
-              />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--c-panel-2)", borderRadius: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: health.databaseStatus === "Healthy" ? "var(--c-green)" : "var(--c-red)", flexShrink: 0 }} />
               <div>
-                <p className="text-xs text-slate-500">Database Status</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {health.databaseStatus}
-                </p>
+                <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>Database Status</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "2px 0 0" }}>{health.databaseStatus}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-              <Activity className="w-4 h-4 text-blue-500 flex-shrink-0" />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--c-panel-2)", borderRadius: 8 }}>
+              <Activity size={14} color="var(--c-accent)" />
               <div>
-                <p className="text-xs text-slate-500">Latency</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                  {health.latencyMs} ms
-                </p>
+                <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>Latency</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>{health.latencyMs} ms</p>
               </div>
             </div>
             {health.lastError && (
-              <div className="sm:col-span-2 flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20">
-                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--c-red-weak)", borderRadius: 8 }}>
+                <AlertCircle size={14} color="var(--c-red)" />
                 <div>
-                  <p className="text-xs text-slate-500">Laatste Fout</p>
-                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                    {health.lastError}
-                  </p>
+                  <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>Laatste Fout</p>
+                  <p style={{ fontSize: 13, color: "var(--c-red)", margin: "2px 0 0" }}>{health.lastError}</p>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
-            Klik op vernieuwen om de systeemstatus te laden...
-          </p>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Klik op vernieuwen om de systeemstatus te laden...</p>
         )}
       </div>
 
-      {/* System Config */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-          <Settings className="w-4 h-4 text-slate-500" />
-          Systeem Configuratie
-        </h2>
-        <div className="space-y-4">
+      {/* Config */}
+      <div style={panelStyle}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 6 }}>
+          <Settings size={14} color="var(--c-muted)" /> Systeem Configuratie
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {Object.entries(config).map(([key, value]) => (
-            <div key={key} className="space-y-1.5">
-              <label
-                htmlFor={key}
-                className="text-xs font-medium text-slate-600 dark:text-slate-400"
-              >
-                {key}
-              </label>
-              <input
-                id={key}
-                value={value as string}
-                onChange={(e) => handleConfigChange(key, e.target.value)}
-                className="h-9 w-full px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div key={key}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", marginBottom: 5 }}>{key}</label>
+              <input id={key} value={value as string} onChange={(e) => setConfig({ ...config, [key]: e.target.value })} style={inputStyle} />
             </div>
           ))}
           {Object.keys(config).length === 0 && (
-            <p className="text-sm text-slate-500">
-              Geen configuratie-items geladen.
-            </p>
+            <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Geen configuratie-items geladen.</p>
           )}
           <button
             onClick={handleUpdateConfig}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors mt-2"
+            style={{ alignSelf: "flex-start", padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, marginTop: 4 }}
           >
             {loading ? "Bijwerken..." : "Configuratie Bijwerken"}
           </button>

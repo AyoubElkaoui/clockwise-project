@@ -1,259 +1,136 @@
 "use client";
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toast";
-import {
-  Bell,
-  Shield,
-  Database,
-  Save,
-  CheckCircle,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
+import { Bell, Shield, Database, Save, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { API_URL } from "@/lib/api";
 
 export default function AdminSettingsPage() {
   const { t } = useTranslation();
-
-  // Notification settings (local only)
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
-
-  // Security settings (from database)
   const [require2FA, setRequire2FA] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState(false);
-
-  // UI State
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  useEffect(() => { loadSettings(); }, []);
 
   const loadSettings = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/system-settings`, {
-        headers: {
-          "X-USER-ID": userId || "",
-          "ngrok-skip-browser-warning": "1",
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
+      const res = await fetch(`${API_URL}/system-settings`, { headers: { "X-USER-ID": userId || "", "ngrok-skip-browser-warning": "1" } });
+      if (res.ok) {
+        const data = await res.json();
         setRequire2FA(data.require_2fa === "true");
         setSessionTimeout(data.session_timeout_minutes !== "0");
       }
-      const localSettings = localStorage.getItem("adminSettings");
-      if (localSettings) {
-        const parsed = JSON.parse(localSettings);
-        setEmailNotifications(parsed.emailNotifications ?? true);
-        setPushNotifications(parsed.pushNotifications ?? true);
-      }
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    } finally {
-      setLoading(false);
-    }
+      const local = localStorage.getItem("adminSettings");
+      if (local) { const p = JSON.parse(local); setEmailNotifications(p.emailNotifications ?? true); setPushNotifications(p.pushNotifications ?? true); }
+    } catch {} finally { setLoading(false); }
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/system-settings`, {
+      const res = await fetch(`${API_URL}/system-settings`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-USER-ID": userId || "",
-          "ngrok-skip-browser-warning": "1",
-        },
-        body: JSON.stringify({
-          require_2fa: require2FA.toString(),
-          session_timeout_minutes: sessionTimeout ? "60" : "0",
-        }),
+        headers: { "Content-Type": "application/json", "X-USER-ID": userId || "", "ngrok-skip-browser-warning": "1" },
+        body: JSON.stringify({ require_2fa: require2FA.toString(), session_timeout_minutes: sessionTimeout ? "60" : "0" }),
       });
-      if (!response.ok) throw new Error("Failed to save settings");
-      const localSettings = {
-        emailNotifications,
-        pushNotifications,
-        lastUpdated: new Date().toISOString(),
-      };
-      localStorage.setItem("adminSettings", JSON.stringify(localSettings));
-      setSaved(true);
-      showToast("Instellingen opgeslagen!", "success");
+      if (!res.ok) throw new Error();
+      localStorage.setItem("adminSettings", JSON.stringify({ emailNotifications, pushNotifications, lastUpdated: new Date().toISOString() }));
+      setSaved(true); showToast("Instellingen opgeslagen!", "success");
       setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      showToast("Fout bij opslaan instellingen", "error");
-    } finally {
-      setSaving(false);
-    }
+    } catch { showToast("Fout bij opslaan instellingen", "error"); } finally { setSaving(false); }
   };
 
-  const handleBackup = () => {
-    showToast("Database backup gestart...", "info");
-  };
+  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "20px 22px" };
+  const SectionTitle = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
+    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 7 }}>
+      <Icon size={14} color="var(--c-muted)" /> {title}
+    </p>
+  );
+  const CheckRow = ({ label, sub, checked, onChange }: { label: string; sub?: string; checked: boolean; onChange: (v: boolean) => void }) => (
+    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", padding: "8px 0" }}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 15, height: 15, marginTop: 2, accentColor: "var(--c-accent)", cursor: "pointer", flexShrink: 0 }} />
+      <div>
+        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)" }}>{label}</span>
+        {sub && <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "2px 0 0" }}>{sub}</p>}
+      </div>
+    </label>
+  );
 
   if (loading) {
     return (
-      <div className="p-6 flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 240 }}>
+        <Loader2 size={28} color="var(--c-accent)" style={{ animation: "spin 0.7s linear infinite" }} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          {t("admin.settings.title")}
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          {t("admin.settings.subtitle")}
-        </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 800 }}>
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>{t("admin.settings.title")}</h1>
+        <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>{t("admin.settings.subtitle")}</p>
       </div>
 
-      <div className="space-y-6 max-w-4xl">
-        {/* Security */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-blue-600" />
-            Beveiliging
-          </h2>
+      {/* Security */}
+      <div style={panelStyle}>
+        <SectionTitle icon={Shield} title="Beveiliging" />
+        <CheckRow
+          label="2FA Verplicht voor alle gebruikers"
+          sub="Wanneer ingeschakeld, moeten alle gebruikers tweestapsverificatie instellen voordat ze kunnen inloggen."
+          checked={require2FA}
+          onChange={setRequire2FA}
+        />
+        {require2FA && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "var(--c-accent-weak)", border: "1px solid color-mix(in srgb, var(--c-accent) 20%, transparent)", borderRadius: 8, padding: "10px 14px", margin: "8px 0" }}>
+            <AlertTriangle size={14} color="var(--c-accent)" style={{ marginTop: 2, flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: "var(--c-text)", margin: 0 }}>
+              <strong>Let op:</strong> Gebruikers zonder 2FA worden na inloggen doorgestuurd naar de 2FA setup pagina.
+            </p>
+          </div>
+        )}
+        <CheckRow
+          label="Automatische sessie timeout (60 minuten)"
+          sub="Log gebruikers automatisch uit na 60 minuten inactiviteit."
+          checked={sessionTimeout}
+          onChange={setSessionTimeout}
+        />
+      </div>
 
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              id="require2fa"
-              checked={require2FA}
-              onChange={(e) => setRequire2FA(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <div>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                2FA Verplicht voor alle gebruikers
-              </span>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Wanneer ingeschakeld, moeten alle gebruikers
-                tweestapsverificatie instellen voordat ze kunnen inloggen.
-              </p>
-            </div>
-          </label>
+      {/* Notifications */}
+      <div style={panelStyle}>
+        <SectionTitle icon={Bell} title="Notificaties" />
+        <CheckRow label="Email notificaties voor nieuwe aanvragen" checked={emailNotifications} onChange={setEmailNotifications} />
+        <CheckRow label="Push notificaties inschakelen" checked={pushNotifications} onChange={setPushNotifications} />
+      </div>
 
-          {require2FA && (
-            <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <AlertTriangle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-900 dark:text-blue-100">
-                <strong>Let op:</strong> Gebruikers zonder 2FA worden na het
-                inloggen doorgestuurd naar de 2FA setup pagina en kunnen pas
-                verder als 2FA is ingesteld.
-              </p>
-            </div>
-          )}
+      {/* Database */}
+      <div style={panelStyle}>
+        <SectionTitle icon={Database} title="Database" />
+        <button
+          onClick={() => showToast("Database backup gestart...", "info")}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}
+        >
+          <Database size={14} /> Database Backup Maken
+        </button>
+      </div>
 
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              id="sessionTimeout"
-              checked={sessionTimeout}
-              onChange={(e) => setSessionTimeout(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <div>
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Automatische sessie timeout (60 minuten)
-              </span>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Log gebruikers automatisch uit na 60 minuten inactiviteit.
-              </p>
-            </div>
-          </label>
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-            <Bell className="w-4 h-4 text-slate-500" />
-            Notificaties
-          </h2>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              id="emailNotifications"
-              checked={emailNotifications}
-              onChange={(e) => setEmailNotifications(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-300">
-              Email notificaties voor nieuwe aanvragen
-            </span>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              id="pushNotifications"
-              checked={pushNotifications}
-              onChange={(e) => setPushNotifications(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-300">
-              Push notificaties inschakelen
-            </span>
-          </label>
-        </div>
-
-        {/* Database */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-            <Database className="w-4 h-4 text-emerald-600" />
-            Database
-          </h2>
-          <button
-            onClick={handleBackup}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <Database className="w-4 h-4" />
-            Database Backup Maken
-          </button>
-        </div>
-
-        {/* Save */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleSave}
-            disabled={saving || saved}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Opslaan...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                Opgeslagen!
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Instellingen Opslaan
-              </>
-            )}
-          </button>
-          {saved && (
-            <span className="text-xs text-emerald-600 dark:text-emerald-400">
-              Instellingen zijn succesvol opgeslagen
-            </span>
-          )}
-        </div>
+      {/* Save */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          onClick={handleSave}
+          disabled={saving || saved}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", background: saved ? "var(--c-green)" : "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving || saved ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
+        >
+          {saving ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Opslaan...</> : saved ? <><CheckCircle size={14} /> Opgeslagen!</> : <><Save size={14} /> Instellingen Opslaan</>}
+        </button>
+        {saved && <span style={{ fontSize: 12, color: "var(--c-green)" }}>Instellingen zijn succesvol opgeslagen</span>}
       </div>
     </div>
   );

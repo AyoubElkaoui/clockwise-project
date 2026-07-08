@@ -2,14 +2,19 @@
 "use client";
 import { ReactNode } from "react";
 import "./globals.css";
-import { Poppins } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastContainer } from "@/components/ui/toast";
 import "@/lib/i18n"; // Initialize i18next
 
-const poppins = Poppins({
-  weight: ["400", "600", "700"],
+const geist = Geist({
   subsets: ["latin"],
+  variable: "--font-geist",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -18,9 +23,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
-      <body className={poppins.className}>
+      <body className={`${geist.variable} ${geistMono.variable} ${geist.className}`}>
         <ThemeProvider>
-          <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-x-hidden">
+          <div className="min-h-screen overflow-x-hidden transition-colors duration-200">
             {children}
           </div>
           <ToastContainer />

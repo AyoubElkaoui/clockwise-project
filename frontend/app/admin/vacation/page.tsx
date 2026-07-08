@@ -2,14 +2,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { API_URL } from "@/lib/api";
 import { showToast } from "@/components/ui/toast";
-import {
-  Calendar,
-  Search,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-} from "lucide-react";
+import { Calendar, Search, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import dayjs from "dayjs";
+
+const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
+  approved: { label: "Goedgekeurd",    color: "var(--c-green)", bg: "var(--c-green-weak)" },
+  pending:  { label: "In behandeling", color: "var(--c-amber)", bg: "var(--c-amber-weak)" },
+  rejected: { label: "Afgekeurd",      color: "var(--c-red)",   bg: "var(--c-red-weak)"   },
+};
+function StatusBadge({ status }: { status: string }) {
+  const m = statusMeta[status] || { label: status, color: "var(--c-muted)", bg: "var(--c-hover)" };
+  return <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: m.bg, color: m.color }}>{m.label}</span>;
+}
 
 export default function AdminVacationPage() {
   const [loading, setLoading] = useState(true);
@@ -18,333 +22,186 @@ export default function AdminVacationPage() {
   const [filterStatus, setFilterStatus] = useState("pending");
   const [selectedRequest, setSelectedRequest] = useState<number | null>(null);
   const [comment, setComment] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
+  useEffect(() => { loadRequests(); }, []);
 
   const loadRequests = async () => {
     try {
       const res = await fetch(`${API_URL}/vacation-requests`);
-      if (!res.ok) throw new Error("Laden mislukt");
-      const data = await res.json();
-      setRequests(data);
-    } catch {
-      showToast("Fout bij laden vakantieaanvragen", "error");
-    } finally {
-      setLoading(false);
-    }
+      if (!res.ok) throw new Error();
+      setRequests(await res.json());
+    } catch { showToast("Fout bij laden vakantieaanvragen", "error"); } finally { setLoading(false); }
   };
 
   const filteredRequests = useMemo(() => {
-    let filtered = requests;
-    if (filterStatus !== "all") {
-      filtered = filtered.filter((req) => req.status === filterStatus);
-    }
+    let f = requests;
+    if (filterStatus !== "all") f = f.filter((r) => r.status === filterStatus);
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (req) =>
-          req.user?.firstName?.toLowerCase().includes(query) ||
-          req.user?.lastName?.toLowerCase().includes(query),
-      );
+      const q = searchQuery.toLowerCase();
+      f = f.filter((r) => r.user?.firstName?.toLowerCase().includes(q) || r.user?.lastName?.toLowerCase().includes(q));
     }
-    return filtered.sort(
-      (a, b) =>
-        new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
-    );
+    return f.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }, [requests, filterStatus, searchQuery]);
 
-  const handleApprove = async (id: number, managerComment: string) => {
+  const handleApprove = async (id: number) => {
     try {
       const res = await fetch(`${API_URL}/vacation-requests/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "approved",
-          managerComment: managerComment || undefined,
-        }),
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved", managerComment: comment || undefined }),
       });
-      if (!res.ok) throw new Error("Goedkeuren mislukt");
+      if (!res.ok) throw new Error();
       showToast("Vakantie aanvraag goedgekeurd!", "success");
-      setSelectedRequest(null);
-      setComment("");
-      loadRequests();
-    } catch {
-      showToast("Fout bij goedkeuren", "error");
-    }
+      setSelectedRequest(null); setComment(""); loadRequests();
+    } catch { showToast("Fout bij goedkeuren", "error"); }
   };
 
-  const handleReject = async (id: number, managerComment: string) => {
+  const handleReject = async (id: number) => {
     try {
       await fetch(`${API_URL}/vacation-requests/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "rejected",
-          managerComment: managerComment || undefined,
-        }),
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected", managerComment: comment || undefined }),
       });
-      setSuccessMessage("Vakantie aanvraag afgekeurd!");
-      setTimeout(() => setSuccessMessage(""), 3000);
-      setSelectedRequest(null);
-      setComment("");
-      loadRequests();
+      showToast("Vakantie aanvraag afgekeurd.", "success");
+      setSelectedRequest(null); setComment(""); loadRequests();
     } catch {}
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
-            Goedgekeurd
-          </span>
-        );
-      case "pending":
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-            In behandeling
-          </span>
-        );
-      case "rejected":
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-            Afgekeurd
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-            {status}
-          </span>
-        );
-    }
-  };
-
-  const calculateDays = (start: string, end: string) =>
-    dayjs(end).diff(dayjs(start), "day") + 1;
-
-  const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const pendingCount  = requests.filter((r) => r.status === "pending").length;
   const approvedCount = requests.filter((r) => r.status === "approved").length;
   const rejectedCount = requests.filter((r) => r.status === "rejected").length;
 
+  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10 };
+  const btnPrimary = (color: string): React.CSSProperties => ({
+    display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: color, color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer",
+  });
+
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-blue-600" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 240 }}>
+        <div style={{ width: 32, height: 32, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Vakantie Aanvragen
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
-          {pendingCount} in behandeling
-        </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Vakantie Aanvragen</h1>
+        <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>{pendingCount} in behandeling</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            In Behandeling
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {pendingCount}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            Goedgekeurd
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {approvedCount}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            Afgekeurd
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {rejectedCount}
-          </p>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+        {[
+          { label: "In Behandeling", value: pendingCount,  color: "var(--c-amber)" },
+          { label: "Goedgekeurd",    value: approvedCount, color: "var(--c-green)" },
+          { label: "Afgekeurd",      value: rejectedCount, color: "var(--c-red)"   },
+        ].map((s) => (
+          <div key={s.label} style={{ ...panelStyle, padding: "18px 20px" }}>
+            <p style={{ fontSize: 11, color: "var(--c-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{s.label}</p>
+            <p style={{ fontSize: 26, fontWeight: 700, color: s.color, margin: "4px 0 0" }}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Success message */}
-      {successMessage && (
-        <div className="flex items-center gap-2 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-800 dark:text-emerald-200 text-sm">
-          <CheckCircle className="w-4 h-4 flex-shrink-0" />
-          {successMessage}
-        </div>
-      )}
-
       {/* Search + filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
+          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
           <input
             placeholder="Zoek op naam..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 w-full pl-9 pr-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{ height: 34, width: "100%", paddingLeft: 32, paddingRight: 10, fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {(["pending", "approved", "rejected", "all"] as const).map(
-            (status) => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  filterStatus === status
-                    ? "bg-blue-600 text-white"
-                    : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
-                }`}
-              >
-                {status === "pending"
-                  ? "In behandeling"
-                  : status === "approved"
-                    ? "Goedgekeurd"
-                    : status === "rejected"
-                      ? "Afgekeurd"
-                      : "Alles"}
+        <div style={{ display: "flex", gap: 6 }}>
+          {(["pending", "approved", "rejected", "all"] as const).map((s) => {
+            const labels = { pending: "In behandeling", approved: "Goedgekeurd", rejected: "Afgekeurd", all: "Alles" };
+            const active = filterStatus === s;
+            return (
+              <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: "6px 12px", borderRadius: 7, fontSize: 13, fontWeight: active ? 600 : 400, background: active ? "var(--c-accent)" : "var(--c-hover)", color: active ? "#fff" : "var(--c-text-2)", border: "none", cursor: "pointer" }}>
+                {labels[s]}
               </button>
-            ),
-          )}
+            );
+          })}
         </div>
       </div>
 
       {/* Requests */}
-      <div className="space-y-3">
-        {filteredRequests.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
-              <AlertCircle className="w-6 h-6 text-slate-400" />
-            </div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Geen aanvragen
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              Er zijn geen vakantie aanvragen gevonden voor de huidige filter.
-            </p>
+      {filteredRequests.length === 0 ? (
+        <div style={{ ...panelStyle, padding: "56px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <AlertCircle size={20} color="var(--c-muted)" />
           </div>
-        ) : (
-          filteredRequests.map((request) => (
-            <div
-              key={request.id}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {request.user?.firstName?.charAt(0)}
-                    {request.user?.lastName?.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {request.user?.firstName} {request.user?.lastName}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {request.user?.function || "Werknemer"}
-                      </span>
-                      {getStatusBadge(request.status)}
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen aanvragen</p>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Er zijn geen vakantie aanvragen gevonden voor de huidige filter.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {filteredRequests.map((req) => {
+            const days = dayjs(req.endDate).diff(dayjs(req.startDate), "day") + 1;
+            const isSelected = selectedRequest === req.id;
+            return (
+              <div key={req.id} style={{ ...panelStyle, padding: "18px 20px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--c-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                      {req.user?.firstName?.charAt(0)}{req.user?.lastName?.charAt(0)}
                     </div>
-
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {dayjs(request.startDate).format("DD MMM YYYY")} –{" "}
-                        {dayjs(request.endDate).format("DD MMM YYYY")}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)" }}>{req.user?.firstName} {req.user?.lastName}</span>
+                        <span style={{ fontSize: 12, color: "var(--c-muted)" }}>{req.user?.function || "Werknemer"}</span>
+                        <StatusBadge status={req.status} />
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-                        {calculateDays(request.startDate, request.endDate)}{" "}
-                        dagen
-                      </span>
-                    </div>
-
-                    {request.reason && (
-                      <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                        <p className="text-xs text-slate-500 mb-0.5">Reden</p>
-                        <p className="text-sm text-slate-900 dark:text-slate-100">
-                          {request.reason}
-                        </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--c-text-2)" }}>
+                          <Calendar size={12} />
+                          {dayjs(req.startDate).format("DD MMM YYYY")} – {dayjs(req.endDate).format("DD MMM YYYY")}
+                        </span>
+                        <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: "var(--c-hover)", color: "var(--c-text-2)" }}>{days} dagen</span>
                       </div>
-                    )}
-
-                    {request.managerComment && (
-                      <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="text-xs text-blue-500 mb-0.5">
-                          Manager opmerking
-                        </p>
-                        <p className="text-sm text-slate-900 dark:text-slate-100">
-                          {request.managerComment}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedRequest === request.id && (
-                      <div className="mt-3 space-y-3">
-                        <textarea
-                          placeholder="Optionele opmerking..."
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px] resize-none"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() =>
-                              handleApprove(request.id, comment)
-                            }
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-md transition-colors"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Goedkeuren
-                          </button>
-                          <button
-                            onClick={() => handleReject(request.id, comment)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md transition-colors"
-                          >
-                            <XCircle className="w-3.5 h-3.5" />
-                            Afkeuren
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedRequest(null);
-                              setComment("");
-                            }}
-                            className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                          >
-                            Annuleren
-                          </button>
+                      {req.reason && (
+                        <div style={{ background: "var(--c-panel-2)", borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
+                          <p style={{ fontSize: 11, color: "var(--c-muted)", margin: "0 0 3px" }}>Reden</p>
+                          <p style={{ fontSize: 13, color: "var(--c-text)", margin: 0 }}>{req.reason}</p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      {req.managerComment && (
+                        <div style={{ background: "var(--c-accent-weak)", borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
+                          <p style={{ fontSize: 11, color: "var(--c-accent)", margin: "0 0 3px" }}>Manager opmerking</p>
+                          <p style={{ fontSize: 13, color: "var(--c-text)", margin: 0 }}>{req.managerComment}</p>
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                          <textarea
+                            placeholder="Optionele opmerking..."
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            rows={3}
+                            style={{ width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", resize: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                          />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button onClick={() => handleApprove(req.id)} style={btnPrimary("var(--c-green)")}><CheckCircle size={13} /> Goedkeuren</button>
+                            <button onClick={() => handleReject(req.id)} style={btnPrimary("var(--c-red)")}><XCircle size={13} /> Afkeuren</button>
+                            <button onClick={() => { setSelectedRequest(null); setComment(""); }} style={{ padding: "7px 12px", background: "none", border: "1px solid var(--c-border)", borderRadius: 7, fontSize: 13, color: "var(--c-text-2)", cursor: "pointer" }}>Annuleren</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                {request.status === "pending" &&
-                  selectedRequest !== request.id && (
-                    <button
-                      onClick={() => setSelectedRequest(request.id)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors flex-shrink-0"
-                    >
-                      Behandelen
-                    </button>
+                  {req.status === "pending" && !isSelected && (
+                    <button onClick={() => setSelectedRequest(req.id)} style={btnPrimary("var(--c-accent)")}>Behandelen</button>
                   )}
+                </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

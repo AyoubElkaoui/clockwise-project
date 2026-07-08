@@ -11,7 +11,6 @@ import {
   type UserProject,
 } from "@/lib/api/userProjectApi";
 import { showToast } from "@/components/ui/toast";
-import { LoadingSpinner } from "@/components/ui/loading";
 import {
   Search,
   UserPlus,
@@ -276,41 +275,49 @@ export default function ManagerProjectToewijzingPage() {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10 };
+  const inputStyle: React.CSSProperties = { height: 34, padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 240 }}>
+        <div style={{ width: 32, height: 32, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Project Toewijzingen</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Wijs medewerkers toe aan projecten</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Project Toewijzingen</h1>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Wijs medewerkers toe aan projecten</p>
         </div>
-        <div className="flex gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            <FolderOpen className="w-3.5 h-3.5" />
-            {projects.length} projecten
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-            <Users className="w-3.5 h-3.5" />
-            {users.length} medewerkers
-          </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { icon: FolderOpen, label: `${projects.length} projecten` },
+            { icon: Users,      label: `${users.length} medewerkers` },
+          ].map(({ icon: Icon, label }) => (
+            <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 99, fontSize: 12, fontWeight: 500, background: "var(--c-hover)", color: "var(--c-text-2)" }}>
+              <Icon size={13} /> {label}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Project zoeken */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Search className="w-3.5 h-3.5" />
-          Project Selecteren
+      {/* Project selecteren */}
+      <div style={{ ...panelStyle, padding: "18px 20px" }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+          <Search size={12} /> Project Selecteren
         </p>
-        <div ref={projectSearchRef} className="relative">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div ref={projectSearchRef} style={{ position: "relative" }}>
+          <div style={{ position: "relative" }}>
+            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
             <input
               type="text"
               placeholder="Zoek op projectnaam of code..."
-              className="w-full pl-9 pr-10 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={projectSearch}
               onChange={(e) => {
                 setProjectSearch(e.target.value);
@@ -318,53 +325,51 @@ export default function ManagerProjectToewijzingPage() {
                 if (!e.target.value) setSelectedProject(null);
               }}
               onFocus={() => setProjectDropdownOpen(true)}
+              style={{ ...inputStyle, paddingLeft: 34, paddingRight: 60 }}
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 4 }}>
               {selectedProject && (
                 <button
                   onClick={handleClearProject}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                  style={{ padding: 4, background: "none", border: "none", cursor: "pointer", color: "var(--c-muted)", display: "flex", alignItems: "center" }}
                 >
-                  <X className="w-4 h-4 text-slate-400" />
+                  <X size={14} />
                 </button>
               )}
               <ChevronDown
-                className={`w-4 h-4 text-slate-400 transition-transform ${projectDropdownOpen ? "rotate-180" : ""}`}
+                size={14}
+                color="var(--c-muted)"
+                style={{ transition: "transform 0.15s", transform: projectDropdownOpen ? "rotate(180deg)" : "none" }}
               />
             </div>
           </div>
 
           {projectDropdownOpen && !selectedProject && (
-            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+            <div style={{ position: "absolute", zIndex: 50, width: "100%", marginTop: 4, background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,.12)", maxHeight: 320, overflowY: "auto" }}>
               {filteredProjects.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-slate-500 text-center">
+                <div style={{ padding: "14px 16px", fontSize: 13, color: "var(--c-muted)", textAlign: "center" }}>
                   Geen projecten gevonden
                 </div>
               ) : (
                 groupedFilteredProjects.map(group => (
                   <div key={group.groupId}>
-                    <div className="sticky top-0 px-4 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600">
+                    <div style={{ position: "sticky", top: 0, padding: "6px 14px", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--c-hover)", borderBottom: "1px solid var(--c-border)" }}>
                       {group.groupName}
-                      <span className="ml-1.5 text-slate-400 font-normal normal-case">
-                        ({group.projects.length})
-                      </span>
+                      <span style={{ marginLeft: 6, fontWeight: 400, textTransform: "none", opacity: 0.7 }}>({group.projects.length})</span>
                     </div>
-                    {group.projects.slice(0, 30).map(project => {
-                      const pid = getProjectId(project);
-                      return (
-                        <button
-                          key={pid}
-                          className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
-                          onClick={() => handleSelectProject(project)}
-                        >
-                          <span className="font-medium text-slate-900 dark:text-slate-100">
-                            {getProjectDisplayName(project)}
-                          </span>
-                        </button>
-                      );
-                    })}
+                    {group.projects.slice(0, 30).map(project => (
+                      <button
+                        key={getProjectId(project)}
+                        onClick={() => handleSelectProject(project)}
+                        style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 14px", fontSize: 13, color: "var(--c-text)", background: "none", border: "none", borderBottom: "1px solid var(--c-border)", cursor: "pointer", fontFamily: "inherit" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--c-hover)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                      >
+                        <span style={{ fontWeight: 500 }}>{getProjectDisplayName(project)}</span>
+                      </button>
+                    ))}
                     {group.projects.length > 30 && (
-                      <div className="px-4 py-1.5 text-xs text-slate-500 bg-slate-50 dark:bg-slate-700/50">
+                      <div style={{ padding: "6px 14px", fontSize: 12, color: "var(--c-muted)", background: "var(--c-hover)" }}>
                         +{group.projects.length - 30} meer in deze groep
                       </div>
                     )}
@@ -372,7 +377,7 @@ export default function ManagerProjectToewijzingPage() {
                 ))
               )}
               {filteredProjects.length > 200 && (
-                <div className="px-4 py-2 text-xs text-center text-slate-500 bg-slate-50 dark:bg-slate-700">
+                <div style={{ padding: "8px 14px", fontSize: 12, color: "var(--c-muted)", textAlign: "center", background: "var(--c-hover)" }}>
                   Verfijn je zoekopdracht voor betere resultaten
                 </div>
               )}
@@ -381,14 +386,12 @@ export default function ManagerProjectToewijzingPage() {
         </div>
 
         {selectedProject && (
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span className="font-medium text-slate-700 dark:text-slate-200">
-              {getProjectDisplayName(selectedProject)}
-            </span>
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <CheckCircle2 size={15} color="var(--c-green)" />
+            <span style={{ fontWeight: 500, color: "var(--c-text)" }}>{getProjectDisplayName(selectedProject)}</span>
             <button
               onClick={handleClearProject}
-              className="ml-auto text-xs text-slate-500 hover:text-slate-700 underline"
+              style={{ marginLeft: "auto", fontSize: 12, color: "var(--c-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
             >
               Wijzig
             </button>
@@ -398,26 +401,26 @@ export default function ManagerProjectToewijzingPage() {
 
       {/* Toewijzingen */}
       {selectedProject && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
           {/* Huidige medewerkers */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Toegewezen ({projectAssignments.length})
-              </p>
+          <div style={{ ...panelStyle, overflow: "hidden" }}>
+            <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", display: "flex", alignItems: "center", gap: 7 }}>
+                <Users size={14} /> Toegewezen ({projectAssignments.length})
+              </span>
             </div>
-            <div className="p-4">
+            <div style={{ padding: 16 }}>
               {projectAssignments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
-                    <Users className="w-6 h-6 text-slate-400" />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", textAlign: "center", gap: 10 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Users size={20} color="var(--c-muted)" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen medewerkers</p>
-                  <p className="text-xs text-slate-500 mt-1">Nog geen medewerkers toegewezen aan dit project</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen medewerkers</p>
+                  <p style={{ fontSize: 12, color: "var(--c-muted)", margin: 0 }}>Nog geen medewerkers toegewezen aan dit project</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 400, overflowY: "auto" }}>
                   {projectAssignments.map(assignment => {
                     const user = users.find(u => u.id === assignment.userId);
                     const name = assignment.userName ||
@@ -427,34 +430,34 @@ export default function ManagerProjectToewijzingPage() {
                     return (
                       <div
                         key={assignment.id || assignment.userId}
-                        className="py-2.5 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 group border border-slate-100 dark:border-slate-700"
+                        style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--c-border)", position: "relative" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--c-hover)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--c-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
                               {getInitials(name)}
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                                {name}
-                              </div>
-                              {user?.email && (
-                                <div className="text-xs text-slate-500 truncate">{user.email}</div>
-                              )}
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</p>
+                              {user?.email && <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>}
                             </div>
                           </div>
                           <button
                             onClick={() => handleRemove(assignment.userId)}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                            style={{ padding: 5, background: "none", border: "none", cursor: "pointer", color: "var(--c-red)", borderRadius: 6, display: "flex", alignItems: "center", flexShrink: 0 }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "var(--c-red-weak)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "none")}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 size={13} />
                           </button>
                         </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-xs text-slate-500">Max uren:</span>
+                        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                          <Clock size={12} color="var(--c-muted)" />
+                          <span style={{ fontSize: 11, color: "var(--c-muted)" }}>Max uren:</span>
                           {isEditing ? (
-                            <div className="flex items-center gap-1">
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                               <input
                                 type="number"
                                 step="0.5"
@@ -462,29 +465,27 @@ export default function ManagerProjectToewijzingPage() {
                                 placeholder="Geen limiet"
                                 value={maxHoursValue}
                                 onChange={(e) => setMaxHoursValue(e.target.value)}
-                                className="w-20 h-6 text-xs px-2 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                style={{ width: 76, height: 24, padding: "0 8px", fontSize: 12, border: "1px solid var(--c-border)", borderRadius: 6, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit" }}
                               />
                               <button
                                 onClick={() => handleSaveMaxHours(assignment.userId)}
-                                className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                                style={{ padding: 4, background: "var(--c-accent)", border: "none", borderRadius: 5, cursor: "pointer", display: "flex", alignItems: "center" }}
                               >
-                                <Save className="w-3 h-3" />
+                                <Save size={11} color="#fff" />
                               </button>
                               <button
                                 onClick={() => setEditingMaxHours(null)}
-                                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                                style={{ padding: 4, background: "none", border: "1px solid var(--c-border)", borderRadius: 5, cursor: "pointer", display: "flex", alignItems: "center" }}
                               >
-                                <X className="w-3 h-3" />
+                                <X size={11} color="var(--c-muted)" />
                               </button>
                             </div>
                           ) : (
                             <button
                               onClick={() => handleEditMaxHours(assignment.userId, assignment.maxHours)}
-                              className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                              style={{ fontSize: 11, color: "var(--c-accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit" }}
                             >
-                              {assignment.maxHours
-                                ? `${assignment.maxHours} uur`
-                                : "Geen limiet (klik om in te stellen)"}
+                              {assignment.maxHours ? `${assignment.maxHours} uur` : "Geen limiet (klik om in te stellen)"}
                             </button>
                           )}
                         </div>
@@ -497,42 +498,39 @@ export default function ManagerProjectToewijzingPage() {
           </div>
 
           {/* Medewerkers toevoegen */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Toevoegen
-              </p>
+          <div style={{ ...panelStyle, overflow: "hidden" }}>
+            <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", display: "flex", alignItems: "center", gap: 7 }}>
+                <UserPlus size={14} /> Toevoegen
+              </span>
             </div>
-            <div className="p-4 space-y-3">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ position: "relative" }}>
+                <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
                 <input
                   type="text"
                   placeholder="Zoek medewerker..."
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={searchUser}
                   onChange={(e) => setSearchUser(e.target.value)}
+                  style={{ ...inputStyle, paddingLeft: 30 }}
                 />
               </div>
 
               {availableUsers.length > 0 && (
-                <div className="flex items-center justify-between text-xs text-slate-500">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12, color: "var(--c-muted)" }}>
                   <span>{availableUsers.length} beschikbaar</span>
                   <button
                     onClick={handleSelectAll}
-                    className="hover:text-slate-700 dark:hover:text-slate-300 underline"
+                    style={{ fontSize: 12, color: "var(--c-accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "inherit" }}
                   >
-                    {selectedUsers.length === availableUsers.length
-                      ? "Deselecteer alles"
-                      : "Selecteer alles"}
+                    {selectedUsers.length === availableUsers.length ? "Deselecteer alles" : "Selecteer alles"}
                   </button>
                 </div>
               )}
 
-              <div className="space-y-1 max-h-[300px] overflow-y-auto">
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 300, overflowY: "auto" }}>
                 {availableUsers.length === 0 ? (
-                  <div className="text-center py-4 text-sm text-slate-500">
+                  <div style={{ textAlign: "center", padding: "20px 0", fontSize: 13, color: "var(--c-muted)" }}>
                     {searchUser ? "Geen resultaten" : "Iedereen is al toegewezen"}
                   </div>
                 ) : (
@@ -541,33 +539,25 @@ export default function ManagerProjectToewijzingPage() {
                     return (
                       <label
                         key={user.id}
-                        className={`flex items-center gap-3 py-2 px-3 rounded-lg cursor-pointer transition-colors ${
-                          selected
-                            ? "bg-blue-50 dark:bg-blue-900/20"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-700/30"
-                        }`}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, cursor: "pointer", background: selected ? "var(--c-accent-weak)" : "transparent" }}
+                        onMouseEnter={e => { if (!selected) e.currentTarget.style.background = "var(--c-hover)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = selected ? "var(--c-accent-weak)" : "transparent"; }}
                       >
                         <input
                           type="checkbox"
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                           checked={selected}
                           onChange={() => handleToggleUser(user.id)}
+                          style={{ width: 14, height: 14, accentColor: "var(--c-accent)", cursor: "pointer", flexShrink: 0 }}
                         />
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--c-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
                           {getInitials(getUserDisplayName(user))}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                            {getUserDisplayName(user)}
-                          </div>
-                          {user.email && (
-                            <div className="text-xs text-slate-500 truncate">{user.email}</div>
-                          )}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserDisplayName(user)}</p>
+                          {user.email && <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>}
                         </div>
                         {user.role === "manager" && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400">
-                            Manager
-                          </span>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: "var(--c-text-2)", border: "1px solid var(--c-border)", borderRadius: 4, padding: "1px 5px", flexShrink: 0 }}>Manager</span>
                         )}
                       </label>
                     );
@@ -578,9 +568,9 @@ export default function ManagerProjectToewijzingPage() {
               <button
                 onClick={handleAssignUsers}
                 disabled={selectedUsers.length === 0 || assigning}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "9px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: selectedUsers.length === 0 || assigning ? "not-allowed" : "pointer", opacity: selectedUsers.length === 0 || assigning ? 0.5 : 1 }}
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus size={14} />
                 {assigning ? "Bezig..." : `${selectedUsers.length} toewijzen`}
               </button>
             </div>
@@ -590,14 +580,12 @@ export default function ManagerProjectToewijzingPage() {
 
       {/* Placeholder als geen project geselecteerd */}
       {!selectedProject && (
-        <div className="bg-white dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-16 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-            <FolderOpen className="w-7 h-7 text-slate-400" />
+        <div style={{ ...panelStyle, borderStyle: "dashed", padding: "64px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FolderOpen size={24} color="var(--c-muted)" />
           </div>
-          <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen project geselecteerd</p>
-          <p className="text-sm text-slate-500 mt-1">
-            Selecteer een project hierboven om medewerkers toe te wijzen
-          </p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen project geselecteerd</p>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Selecteer een project hierboven om medewerkers toe te wijzen</p>
         </div>
       )}
     </div>

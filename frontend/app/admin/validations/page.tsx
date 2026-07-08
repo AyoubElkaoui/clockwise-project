@@ -2,19 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/ui/toast";
-import {
-  getValidations,
-  runValidations,
-  getValidationsHistory,
-} from "@/lib/api";
-import {
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Search,
-  AlertCircle,
-  Info,
-} from "lucide-react";
+import { getValidations, runValidations, getValidationsHistory } from "@/lib/api";
+import { AlertTriangle, CheckCircle, RefreshCw, Search, AlertCircle, Info } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/nl";
@@ -22,32 +11,31 @@ import "dayjs/locale/nl";
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
 
-interface ValidationRule {
-  id: string;
-  name: string;
-  description: string;
-  severity: "error" | "warning" | "info";
-  enabled: boolean;
+interface ValidationRule    { id: string; name: string; description: string; severity: "error" | "warning" | "info"; enabled: boolean; }
+interface ValidationResult  { id: string; rule: string; severity: "error" | "warning" | "info"; message: string; userId?: number; date?: string; details?: string; }
+interface ValidationHistory { id: number; runTimestamp: string; totalValidations: number; errorCount: number; warningCount: number; results?: ValidationResult[]; }
+
+const severityMeta: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
+  error:   { label: "Fout",          color: "var(--c-red)",    bg: "var(--c-red-weak)",   Icon: AlertTriangle },
+  warning: { label: "Waarschuwing",  color: "var(--c-amber)",  bg: "var(--c-amber-weak)", Icon: AlertCircle   },
+  info:    { label: "Info",          color: "var(--c-accent)", bg: "var(--c-accent-weak)", Icon: Info          },
+};
+function SeverityBadge({ severity }: { severity: string }) {
+  const m = severityMeta[severity] || { label: severity, color: "var(--c-muted)", bg: "var(--c-hover)", Icon: Info };
+  return <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 600, background: m.bg, color: m.color }}>{m.label}</span>;
+}
+function SeverityIcon({ severity }: { severity: string }) {
+  const m = severityMeta[severity];
+  if (!m) return null;
+  return <m.Icon size={15} color={m.color} />;
 }
 
-interface ValidationResult {
-  id: string;
-  rule: string;
-  severity: "error" | "warning" | "info";
-  message: string;
-  userId?: number;
-  date?: string;
-  details?: string;
-}
-
-interface ValidationHistory {
-  id: number;
-  runTimestamp: string;
-  totalValidations: number;
-  errorCount: number;
-  warningCount: number;
-  results?: ValidationResult[];
-}
+const validationRules: ValidationRule[] = [
+  { id: "excessive_hours",    name: "Excessieve Uren",           description: "Controleert of medewerkers niet meer dan 24 uur per dag registreren", severity: "error",   enabled: true },
+  { id: "overlapping_entries",name: "Overlappende Registraties", description: "Detecteert overlappende tijdregistraties voor dezelfde medewerker",    severity: "warning", enabled: true },
+  { id: "missing_break",      name: "Ontbrekende Pauze",         description: "Controleert of lange werkdagen (>8 uur) een pauze bevatten",           severity: "warning", enabled: true },
+  { id: "future_entries",     name: "Toekomstige Registraties",  description: "Detecteert tijdregistraties die in de toekomst liggen",                severity: "info",    enabled: true },
+];
 
 export default function ValidationsPage() {
   const [validations, setValidations] = useState<ValidationResult[]>([]);
@@ -55,65 +43,17 @@ export default function ValidationsPage() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [severityFilter, setSeverityFilter] = useState("all");
   const [lastRun, setLastRun] = useState<string | null>(null);
 
-  const validationRules: ValidationRule[] = [
-    {
-      id: "excessive_hours",
-      name: "Excessieve Uren",
-      description:
-        "Controleert of medewerkers niet meer dan 24 uur per dag registreren",
-      severity: "error",
-      enabled: true,
-    },
-    {
-      id: "overlapping_entries",
-      name: "Overlappende Registraties",
-      description:
-        "Detecteert overlappende tijdregistraties voor dezelfde medewerker",
-      severity: "warning",
-      enabled: true,
-    },
-    {
-      id: "missing_break",
-      name: "Ontbrekende Pauze",
-      description:
-        "Controleert of lange werkdagen (>8 uur) een pauze bevatten",
-      severity: "warning",
-      enabled: true,
-    },
-    {
-      id: "future_entries",
-      name: "Toekomstige Registraties",
-      description: "Detecteert tijdregistraties die in de toekomst liggen",
-      severity: "info",
-      enabled: true,
-    },
-  ];
-
-  useEffect(() => {
-    loadValidations();
-    loadHistory();
-  }, []);
+  useEffect(() => { loadValidations(); loadHistory(); }, []);
 
   const loadValidations = async () => {
-    try {
-      setLoading(true);
-      const data = await getValidations();
-      setValidations(Array.isArray(data) ? data : []);
-    } catch {
-      showToast("Fout bij laden validaties", "error");
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    try { const d = await getValidations(); setValidations(Array.isArray(d) ? d : []); } catch { showToast("Fout bij laden validaties", "error"); } finally { setLoading(false); }
   };
-
   const loadHistory = async () => {
-    try {
-      const data = await getValidationsHistory();
-      setHistory(Array.isArray(data) ? data : []);
-    } catch {}
+    try { const d = await getValidationsHistory(); setHistory(Array.isArray(d) ? d : []); } catch {}
   };
 
   const handleRunValidations = async () => {
@@ -121,213 +61,101 @@ export default function ValidationsPage() {
     try {
       const result = await runValidations();
       setLastRun(dayjs().toISOString());
-      if (result && result.validations) {
-        setValidations(result.validations);
-      }
+      if (result?.validations) setValidations(result.validations);
       await loadHistory();
-      const errorCount = result?.errorCount || 0;
-      const warningCount = result?.warningCount || 0;
-      if (errorCount > 0) {
-        showToast(`${errorCount} fouten gevonden`, "error");
-      } else if (warningCount > 0) {
-        showToast(`${warningCount} waarschuwingen gevonden`, "warning");
-      } else {
-        showToast("Alle validaties geslaagd!", "success");
-      }
-    } catch {
-      showToast("Fout bij uitvoeren validaties", "error");
-    } finally {
-      setRunning(false);
-    }
+      const errors = result?.errorCount || 0, warnings = result?.warningCount || 0;
+      if (errors > 0) showToast(`${errors} fouten gevonden`, "error");
+      else if (warnings > 0) showToast(`${warnings} waarschuwingen gevonden`, "warning");
+      else showToast("Alle validaties geslaagd!", "success");
+    } catch { showToast("Fout bij uitvoeren validaties", "error"); } finally { setRunning(false); }
   };
 
   const filteredValidations = validations.filter((v) => {
-    const matchesSearch =
-      !searchQuery ||
-      v.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.rule.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSeverity =
-      severityFilter === "all" || v.severity === severityFilter;
-    return matchesSearch && matchesSeverity;
+    const ms = !searchQuery || v.message.toLowerCase().includes(searchQuery.toLowerCase()) || v.rule.toLowerCase().includes(searchQuery.toLowerCase());
+    const mv = severityFilter === "all" || v.severity === severityFilter;
+    return ms && mv;
   });
 
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "error":
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      case "warning":
-        return <AlertCircle className="w-4 h-4 text-amber-500" />;
-      case "info":
-        return <Info className="w-4 h-4 text-blue-500" />;
-      default:
-        return <Info className="w-4 h-4 text-slate-400" />;
-    }
-  };
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "error":
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-            Fout
-          </span>
-        );
-      case "warning":
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-            Waarschuwing
-          </span>
-        );
-      case "info":
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-            Info
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-            {severity}
-          </span>
-        );
-    }
-  };
-
   const stats = {
-    total: validations.length,
-    errors: validations.filter((v) => v.severity === "error").length,
+    total:    validations.length,
+    errors:   validations.filter((v) => v.severity === "error").length,
     warnings: validations.filter((v) => v.severity === "warning").length,
-    info: validations.filter((v) => v.severity === "info").length,
+    info:     validations.filter((v) => v.severity === "info").length,
   };
+
+  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10 };
+  const inputStyle: React.CSSProperties = { height: 34, padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit" };
 
   return (
-    <div className="p-6 space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="mb-6">
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Validaties
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Controleer de integriteit van tijdregistraties
-            {lastRun && ` · Laatste controle: ${dayjs(lastRun).fromNow()}`}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Validaties</h1>
+          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>
+            Controleer de integriteit van tijdregistraties{lastRun ? ` · Laatste controle: ${dayjs(lastRun).fromNow()}` : ""}
           </p>
         </div>
         <button
           onClick={handleRunValidations}
           disabled={running}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: running ? "not-allowed" : "pointer", opacity: running ? 0.7 : 1 }}
         >
-          {running ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-              Bezig...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4" />
-              Validaties Uitvoeren
-            </>
-          )}
+          {running ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} /> Bezig...</> : <><RefreshCw size={14} /> Validaties Uitvoeren</>}
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            Totaal
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {stats.total}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            Fouten
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {stats.errors}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            Waarschuwingen
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {stats.warnings}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wider text-slate-500 font-medium">
-            Info
-          </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-            {stats.info}
-          </p>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
+        {[
+          { label: "Totaal",         value: stats.total,    color: "var(--c-text)"  },
+          { label: "Fouten",         value: stats.errors,   color: "var(--c-red)"   },
+          { label: "Waarschuwingen", value: stats.warnings, color: "var(--c-amber)" },
+          { label: "Info",           value: stats.info,     color: "var(--c-accent)"},
+        ].map((s) => (
+          <div key={s.label} style={{ ...panelStyle, padding: "18px 20px" }}>
+            <p style={{ fontSize: 11, color: "var(--c-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{s.label}</p>
+            <p style={{ fontSize: 26, fontWeight: 700, color: s.color, margin: "4px 0 0" }}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Validation Rules */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">
-          Validatie Regels
-        </h2>
-        <div className="space-y-1">
-          {validationRules.map((rule) => (
-            <div
-              key={rule.id}
-              className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-700/50 last:border-0"
-            >
-              <div className="flex items-center gap-3">
-                {getSeverityIcon(rule.severity)}
+      {/* Rules */}
+      <div style={{ ...panelStyle, padding: "18px 20px" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 12px" }}>Validatie Regels</p>
+        {validationRules.map((rule, idx) => {
+          const m = severityMeta[rule.severity] || severityMeta.info;
+          return (
+            <div key={rule.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: idx < validationRules.length - 1 ? "1px solid var(--c-border)" : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <m.Icon size={15} color={m.color} />
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {rule.name}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {rule.description}
-                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)", margin: 0 }}>{rule.name}</p>
+                  <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "2px 0 0" }}>{rule.description}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {getSeverityBadge(rule.severity)}
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                    rule.enabled
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
-                  }`}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <SeverityBadge severity={rule.severity} />
+                <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 600, background: rule.enabled ? "var(--c-green-weak)" : "var(--c-hover)", color: rule.enabled ? "var(--c-green)" : "var(--c-muted)" }}>
                   {rule.enabled ? "Ingeschakeld" : "Uitgeschakeld"}
                 </span>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Current Validations */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Huidige Validaties ({filteredValidations.length})
-          </h2>
-          <div className="flex gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                placeholder="Zoeken..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-9 pr-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 w-52"
-              />
+      {/* Current validations */}
+      <div style={{ ...panelStyle, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: "1px solid var(--c-border)" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>Huidige Validaties ({filteredValidations.length})</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ position: "relative" }}>
+              <Search size={13} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
+              <input placeholder="Zoeken..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ ...inputStyle, paddingLeft: 26, width: 180 }} />
             </div>
-            <select
-              value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value)}
-              className="h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} style={inputStyle}>
               <option value="all">Alle Ernst</option>
               <option value="error">Fouten</option>
               <option value="warning">Waarschuwingen</option>
@@ -335,49 +163,34 @@ export default function ValidationsPage() {
             </select>
           </div>
         </div>
-        <div className="p-6">
+        <div style={{ padding: "16px 18px" }}>
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-blue-600 mb-4" />
-              <p className="text-sm text-slate-500">Validaties laden...</p>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 12 }}>
+              <div style={{ width: 28, height: 28, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+              <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Validaties laden...</p>
             </div>
           ) : filteredValidations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <CheckCircle className="w-10 h-10 text-emerald-500 mb-3" />
-              <p className="text-sm text-slate-500">
-                Geen validatieproblemen gevonden
-              </p>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 10 }}>
+              <CheckCircle size={32} color="var(--c-green)" />
+              <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Geen validatieproblemen gevonden</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredValidations.map((validation) => (
-                <div
-                  key={validation.id}
-                  className="flex items-start gap-3 p-4 border border-slate-100 dark:border-slate-700 rounded-lg"
-                >
-                  {getSeverityIcon(validation.severity)}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {validation.rule}
-                      </span>
-                      {getSeverityBadge(validation.severity)}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {filteredValidations.map((v) => (
+                <div key={v.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", border: "1px solid var(--c-border)", borderRadius: 8 }}>
+                  <SeverityIcon severity={v.severity} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>{v.rule}</span>
+                      <SeverityBadge severity={v.severity} />
                     </div>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">
-                      {validation.message}
-                    </p>
-                    {validation.details && (
-                      <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-md">
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {validation.details}
-                        </p>
+                    <p style={{ fontSize: 13, color: "var(--c-text-2)", margin: 0 }}>{v.message}</p>
+                    {v.details && (
+                      <div style={{ marginTop: 8, background: "var(--c-panel-2)", borderRadius: 7, padding: "8px 12px" }}>
+                        <p style={{ fontSize: 12, color: "var(--c-muted)", margin: 0 }}>{v.details}</p>
                       </div>
                     )}
-                    {validation.date && (
-                      <p className="text-xs text-slate-500 mt-2">
-                        Datum: {dayjs(validation.date).format("DD MMMM YYYY")}
-                      </p>
-                    )}
+                    {v.date && <p style={{ fontSize: 11, color: "var(--c-muted)", margin: "6px 0 0" }}>Datum: {dayjs(v.date).format("DD MMMM YYYY")}</p>}
                   </div>
                 </div>
               ))}
@@ -386,49 +199,27 @@ export default function ValidationsPage() {
         </div>
       </div>
 
-      {/* Validation History */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Validatie Geschiedenis
-          </h2>
+      {/* History */}
+      <div style={{ ...panelStyle, overflow: "hidden" }}>
+        <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>Validatie Geschiedenis</span>
         </div>
-        <div className="p-6">
+        <div style={{ padding: "16px 18px" }}>
           {history.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              Nog geen validaties uitgevoerd
-            </p>
+            <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Nog geen validaties uitgevoerd</p>
           ) : (
-            <div className="space-y-1">
-              {history.map((run) => (
-                <div
-                  key={run.id}
-                  className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-700/50 last:border-0"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {dayjs(run.runTimestamp).format("DD MMMM YYYY HH:mm")}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {run.totalValidations} validaties · {run.errorCount}{" "}
-                      fouten · {run.warningCount} waarschuwingen
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {run.errorCount > 0 && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                        {run.errorCount} fouten
-                      </span>
-                    )}
-                    {run.warningCount > 0 && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-                        {run.warningCount} waarschuwingen
-                      </span>
-                    )}
-                  </div>
+            history.map((run, idx) => (
+              <div key={run.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: idx < history.length - 1 ? "1px solid var(--c-border)" : "none" }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)", margin: 0 }}>{dayjs(run.runTimestamp).format("DD MMMM YYYY HH:mm")}</p>
+                  <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "2px 0 0" }}>{run.totalValidations} validaties · {run.errorCount} fouten · {run.warningCount} waarschuwingen</p>
                 </div>
-              ))}
-            </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  {run.errorCount > 0 && <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 600, background: "var(--c-red-weak)", color: "var(--c-red)" }}>{run.errorCount} fouten</span>}
+                  {run.warningCount > 0 && <span style={{ display: "inline-block", padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 600, background: "var(--c-amber-weak)", color: "var(--c-amber)" }}>{run.warningCount} waarschuwingen</span>}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

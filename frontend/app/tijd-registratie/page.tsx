@@ -5,26 +5,10 @@ import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import axios from "axios";
 import {
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Plus,
-  Save,
-  Send,
   Trash2,
-  Calendar,
-  Copy,
-  Clipboard,
-  Car,
-  Ticket,
-  Euro,
-  FileText,
-  Wrench,
-  Ruler,
-  Moon,
-  Clock,
   Star,
-  Heart,
 } from "lucide-react";
 import {
   getCompanies,
@@ -37,8 +21,6 @@ import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
 import { getProjects as getAllProjectsFlat, API_URL } from "@/lib/api";
 import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ModernLayout from "@/components/ModernLayout";
 
 interface Company {
   id: number;
@@ -176,7 +158,6 @@ export default function TimeRegistrationPage() {
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
   const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
   const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
@@ -192,6 +173,7 @@ export default function TimeRegistrationPage() {
   const [selectedMobileWeek, setSelectedMobileWeek] = useState(0);
   const [indirectTasks, setIndirectTasks] = useState<IndirectTask[]>([]);
   const [indirectEntries, setIndirectEntries] = useState<Record<string, IndirectEntry>>({});
+  const [openRows, setOpenRows] = useState<Set<number>>(new Set());
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -503,7 +485,7 @@ export default function TimeRegistrationPage() {
       const allEntries = [...drafts, ...submitted, ...rejected];
 
       // Check if any entries are submitted or approved (locks the whole period)
-      const hasLockedEntries = allEntries.some((e: any) => 
+      const hasLockedEntries = allEntries.some((e: any) =>
         e.status === 'SUBMITTED' || e.status === 'APPROVED'
       );
       setHasSubmittedEntries(hasLockedEntries);
@@ -748,18 +730,6 @@ export default function TimeRegistrationPage() {
     });
   };
 
-  const toggleCellExpanded = (projectId: number, date: string) => {
-    const key = `${date}-${projectId}`;
-    setExpandedCells((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const isCellExpanded = (projectId: number, date: string) => {
-    const key = `${date}-${projectId}`;
-    return expandedCells[key] || false;
-  };
 
   const getTotalDay = (date: string) =>
     (Object.values(entries) as TimeEntry[])
@@ -1071,8 +1041,8 @@ export default function TimeRegistrationPage() {
       await new Promise(resolve => setTimeout(resolve, 500));
       await loadEntries();
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
+      const errorMessage = error instanceof Error
+        ? error.message
         : "Kan uren niet indienen. Controleer of alle velden correct zijn ingevuld.";
       showToast("❌ " + errorMessage, "error");
     } finally {
@@ -1080,7 +1050,7 @@ export default function TimeRegistrationPage() {
     }
   };
 
-  // selectedDay for new design
+  // selectedDay for legacy day-view helpers (kept for compatibility)
   const [selectedDay, setSelectedDay] = useState(() => {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1;
@@ -1100,258 +1070,399 @@ export default function TimeRegistrationPage() {
     return getTotalDay(date);
   };
 
-  return (
-    <ProtectedRoute>
-      <ModernLayout>
-        <div className="p-6 space-y-5 animate-fadeIn">
-          {/* Toast */}
-          {toast && (
-            <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium flex items-center gap-2 ${toast.type === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
-              <span>{toast.type === "success" ? "✓" : "✕"}</span>
-              {toast.message}
-            </div>
-          )}
+  const toggleOpenRow = (projectId: number) => {
+    setOpenRows(prev => {
+      const next = new Set(prev);
+      if (next.has(projectId)) next.delete(projectId);
+      else next.add(projectId);
+      return next;
+    });
+  };
 
-          {/* Project picker modal */}
-          {showProjectPicker && (
-            <div className="fixed inset-0 z-50 flex">
-              <div className="absolute inset-0 bg-black/50" onClick={() => setShowProjectPicker(false)} />
-              <div className="relative w-80 bg-white dark:bg-slate-800 shadow-xl overflow-y-auto">
-                <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">Project kiezen</h3>
-                  <button onClick={() => setShowProjectPicker(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-500">&times;</button>
+  const PROJECT_COLORS = ["var(--c-accent)","#1f9d74","#d08a2b","#9b59b6","#e74c3c","#2ecc71","#1abc9c","#f39c12"];
+  const getProjectColor = (projectId: number) => PROJECT_COLORS[projectId % PROJECT_COLORS.length];
+
+  // ─── Style constants ───────────────────────────────────────────────────────
+  const primaryBtnStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: "8px",
+    padding: "9px 16px", border: "1px solid transparent",
+    background: "var(--c-accent)", color: "#fff",
+    borderRadius: "9px", fontSize: "13px", fontWeight: 600,
+    cursor: "pointer", fontFamily: "var(--font-geist, sans-serif)",
+  };
+  const secondaryBtnStyle: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: "7px",
+    padding: "9px 15px", border: "1px solid var(--c-border)",
+    background: "var(--c-panel)", color: "var(--c-text)",
+    borderRadius: "9px", fontSize: "13px", fontWeight: 600,
+    cursor: "pointer", boxShadow: "var(--c-shadow)",
+    fontFamily: "var(--font-geist, sans-serif)",
+  };
+  const secondaryBtnSmStyle: React.CSSProperties = {
+    padding: "0 13px", height: "32px", border: "1px solid var(--c-border)",
+    background: "var(--c-panel)", borderRadius: "8px",
+    color: "var(--c-text-2)", fontSize: "12.5px", fontWeight: 600,
+    cursor: "pointer", boxShadow: "var(--c-shadow)",
+    fontFamily: "var(--font-geist, sans-serif)",
+  };
+  const iconBtnStyle: React.CSSProperties = {
+    width: "32px", height: "32px", display: "flex", alignItems: "center",
+    justifyContent: "center", border: "1px solid var(--c-border)",
+    background: "var(--c-panel)", borderRadius: "8px",
+    color: "var(--c-text-2)", cursor: "pointer", boxShadow: "var(--c-shadow)",
+    fontSize: "18px", fontFamily: "var(--font-geist, sans-serif)",
+  };
+  const colHeaderStyle: React.CSSProperties = {
+    padding: "12px 16px", fontSize: "11px", fontWeight: 600,
+    letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-muted)",
+  };
+  const extraLabelStyle: React.CSSProperties = {
+    display: "flex", flexDirection: "column", gap: "5px",
+  };
+  const extraLabelTextStyle: React.CSSProperties = {
+    fontSize: "10.5px", fontWeight: 600, textTransform: "uppercase",
+    letterSpacing: "0.06em", color: "var(--c-muted)",
+  };
+  const extraInputStyle: React.CSSProperties = {
+    width: "130px", padding: "8px 11px", border: "1px solid var(--c-border)",
+    borderRadius: "8px", background: "var(--c-panel)", color: "var(--c-text)",
+    fontSize: "13px", fontFamily: "var(--font-geist-mono, monospace)",
+    outline: "none",
+  };
+
+  // ─── Computed values ───────────────────────────────────────────────────────
+  const shortMonths = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+  const weekTotal = getTotalWeek();
+  const firstDay = weekDays[0];
+  const lastDay = weekDays[6];
+  const rangeLabel = `${firstDay.getDate()} ${shortMonths[firstDay.getMonth()]} – ${lastDay.getDate()} ${shortMonths[lastDay.getMonth()]} ${lastDay.getFullYear()}`;
+  const prevWeek = () => { const d = new Date(currentWeek); d.setDate(d.getDate() - 7); setCurrentWeek(d); };
+  const nextWeek = () => { const d = new Date(currentWeek); d.setDate(d.getDate() + 7); setCurrentWeek(d); };
+  const goToday = () => setCurrentWeek(new Date());
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: "fixed", top: "16px", right: "16px", zIndex: 50,
+          padding: "12px 18px", borderRadius: "10px",
+          background: toast.type === "success" ? "#059669" : "#dc2626",
+          color: "#fff", fontSize: "13.5px", fontWeight: 500,
+          display: "flex", alignItems: "center", gap: "8px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+          fontFamily: "var(--font-geist, sans-serif)",
+        }}>
+          <span>{toast.type === "success" ? "✓" : "✕"}</span>
+          {toast.message}
+        </div>
+      )}
+
+      {/* Page header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+        <div>
+          <h1 style={{ margin: 0, font: "700 22px var(--font-geist, sans-serif)", letterSpacing: "-0.015em", color: "var(--c-text)" }}>
+            Uren registreren
+          </h1>
+          <p style={{ margin: "5px 0 0", fontSize: "13.5px", color: "var(--c-muted)" }}>
+            Vul je uren per project in en lever je week in ter goedkeuring.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "9px" }}>
+          <button onClick={saveAll} disabled={saving} style={secondaryBtnStyle}>
+            {saving ? "Opslaan…" : "Concept opslaan"}
+          </button>
+          <button onClick={submitAll} disabled={saving} style={primaryBtnStyle}>
+            ↑ Week inleveren
+          </button>
+        </div>
+      </div>
+
+      {/* Week navigator + status */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+          <button onClick={prevWeek} style={iconBtnStyle}>‹</button>
+          <div style={{ textAlign: "center", minWidth: "168px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--c-text)" }}>Week {weekNumber}</div>
+            <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>{rangeLabel}</div>
+          </div>
+          <button onClick={nextWeek} style={iconBtnStyle}>›</button>
+          <button onClick={goToday} style={secondaryBtnSmStyle}>Vandaag</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 700, fontSize: "16px", fontFamily: "var(--font-geist-mono, monospace)", color: "var(--c-text)", fontVariantNumeric: "tabular-nums" }}>
+              {weekTotal}u <span style={{ fontWeight: 500, fontSize: "13px", color: "var(--c-muted)" }}>/ 40u</span>
+            </div>
+            <div style={{ width: "154px", height: "5px", background: "var(--c-border)", borderRadius: "99px", marginTop: "6px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(100, Math.round(weekTotal / 40 * 100))}%`, background: "var(--c-accent)", borderRadius: "99px", transition: "width 0.2s" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Spreadsheet grid */}
+      <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: "13px", boxShadow: "var(--c-shadow)", overflowX: "auto" }}>
+        {/* Header row */}
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(232px,1.5fr) repeat(7,minmax(58px,1fr)) 88px", minWidth: "748px", borderBottom: "1px solid var(--c-border)", background: "var(--c-panel-2)" }}>
+          <div style={colHeaderStyle}>Project</div>
+          {weekDays.map((day, i) => {
+            const date = formatDate(day);
+            const isWknd = isWeekend(day);
+            return (
+              <div key={date} style={{ padding: "11px 4px", textAlign: "center", borderLeft: "1px solid var(--c-border)", background: isWknd ? "var(--c-panel-2)" : "transparent" }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--c-text-2)", textTransform: "capitalize" }}>{dayNames[i]}</div>
+                <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "2px" }}>{day.getDate()} {shortMonths[day.getMonth()]}</div>
+              </div>
+            );
+          })}
+          <div style={{ ...colHeaderStyle, borderLeft: "1px solid var(--c-border)", textAlign: "center" }}>Totaal</div>
+        </div>
+
+        {/* Project rows */}
+        {projectRows.map((row) => {
+          const rowOpen = openRows.has(row.projectId);
+          const rowTotal = getTotalProject(row.projectId);
+          const projectColor = getProjectColor(row.projectId);
+          return (
+            <div key={row.projectId} style={{ borderBottom: "1px solid var(--c-border)" }}>
+              {/* Main row */}
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(232px,1.5fr) repeat(7,minmax(58px,1fr)) 88px", minWidth: "748px", alignItems: "stretch" }}>
+                {/* Project info cell */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 12px", minWidth: 0 }}>
+                  <button
+                    onClick={() => toggleOpenRow(row.projectId)}
+                    title="Extra velden"
+                    style={{ width: "20px", height: "20px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "transparent", color: "var(--c-muted)", borderRadius: "5px", cursor: "pointer", fontSize: "11px" }}
+                  >
+                    {rowOpen ? "▾" : "▸"}
+                  </button>
+                  <span style={{ width: "8px", height: "8px", flexShrink: 0, borderRadius: "50%", background: projectColor }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--c-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.projectName}</div>
+                    <div style={{ fontSize: "11px", fontFamily: "var(--font-geist-mono, monospace)", color: "var(--c-muted)", marginTop: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.companyName}</div>
+                  </div>
+                  <button
+                    onClick={() => removeProject(row.projectId)}
+                    title="Verwijderen"
+                    style={{ flexShrink: 0, padding: "4px", border: "none", background: "transparent", color: "var(--c-muted)", borderRadius: "6px", cursor: "pointer", display: "flex", opacity: 0.6 }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-red)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.6"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-muted)"; }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <div className="p-3 space-y-1">
-                  {favoriteProjects.length > 0 && (
-                    <div className="mb-3">
-                      <p className="px-3 py-1 text-xs font-semibold text-amber-600 uppercase tracking-wider flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> Favorieten</p>
-                      {favoriteProjects.map(fav => (
-                        <div key={fav.projectGcId} className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={() => { addFavoriteToRows(fav); setShowProjectPicker(false); }}>
-                          <Star className="w-3 h-3 text-amber-500 fill-current flex-shrink-0" />
-                          <span className="text-sm text-slate-700 dark:text-slate-200">{fav.projectName || fav.projectCode}</span>
-                        </div>
-                      ))}
-                      <div className="border-b border-slate-200 dark:border-slate-700 my-2" />
+
+                {/* Day input cells */}
+                {weekDays.map((day) => {
+                  const date = formatDate(day);
+                  const key = `${date}-${row.projectId}`;
+                  const entry = entries[key];
+                  const editable = isEditable(entry?.status);
+                  const isWknd = isWeekend(day);
+                  const isClosed = isClosedDay(date);
+                  return (
+                    <div key={date} style={{ borderLeft: "1px solid var(--c-border)", background: (isWknd || isClosed) ? "var(--c-panel-2)" : (entry?.status === "APPROVED" ? "rgba(31,157,107,0.06)" : entry?.status === "SUBMITTED" ? "rgba(58,91,208,0.04)" : entry?.status === "REJECTED" ? "rgba(220,82,82,0.06)" : "transparent"), display: "flex" }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        value={entry?.hours || ""}
+                        placeholder="–"
+                        disabled={!editable || isClosed}
+                        onChange={e => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          textAlign: "center",
+                          fontSize: "14px",
+                          fontFamily: "var(--font-geist-mono, monospace)",
+                          fontVariantNumeric: "tabular-nums",
+                          color: "var(--c-text)",
+                          padding: "12px 2px",
+                          outline: "none",
+                          cursor: editable && !isClosed ? "text" : "not-allowed",
+                          opacity: editable && !isClosed ? 1 : 0.5,
+                        }}
+                        onFocus={e => { e.currentTarget.style.background = "var(--c-panel)"; e.currentTarget.style.boxShadow = "inset 0 0 0 2px var(--c-accent)"; }}
+                        onBlur={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.boxShadow = "none"; }}
+                      />
                     </div>
-                  )}
-                  {companies.map(company => (
-                    <div key={company.id}>
-                      <div className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={() => toggleCompany(company.id)}>
-                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`} />
-                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}</span>
+                  );
+                })}
+
+                {/* Total cell */}
+                <div style={{ borderLeft: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontFamily: "var(--font-geist-mono, monospace)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: rowTotal === 0 ? "var(--c-muted)" : "var(--c-text)" }}>
+                  {rowTotal > 0 ? rowTotal : "–"}
+                </div>
+              </div>
+
+              {/* Expandable extra fields */}
+              {rowOpen && (
+                <div style={{ padding: "14px 18px 16px 43px", background: "var(--c-panel-2)", borderTop: "1px dashed var(--c-border)", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <label style={extraLabelStyle}>
+                    <span style={extraLabelTextStyle}>Kilometers</span>
+                    <input
+                      type="number" min="0" placeholder="0"
+                      value={(() => { const firstEntry = weekDays.map(d => entries[`${formatDate(d)}-${row.projectId}`]).find(e => e?.distanceKm); return firstEntry?.distanceKm || ""; })()}
+                      onChange={e => weekDays.forEach(d => { const key = `${formatDate(d)}-${row.projectId}`; if (entries[key]?.hours) updateEntry(row.projectId, formatDate(d), "distanceKm", parseFloat(e.target.value) || 0); })}
+                      style={extraInputStyle}
+                    />
+                  </label>
+                  <label style={extraLabelStyle}>
+                    <span style={extraLabelTextStyle}>Onkosten (€)</span>
+                    <input
+                      type="number" min="0" step="0.01" placeholder="0,00"
+                      value={(() => { const firstEntry = weekDays.map(d => entries[`${formatDate(d)}-${row.projectId}`]).find(e => e?.otherExpenses); return firstEntry?.otherExpenses || ""; })()}
+                      onChange={e => weekDays.forEach(d => { const key = `${formatDate(d)}-${row.projectId}`; if (entries[key]?.hours) updateEntry(row.projectId, formatDate(d), "otherExpenses", parseFloat(e.target.value) || 0); })}
+                      style={extraInputStyle}
+                    />
+                  </label>
+                  <label style={{ ...extraLabelStyle, flex: 1, minWidth: "220px" }}>
+                    <span style={extraLabelTextStyle}>Opmerking</span>
+                    <input
+                      type="text" placeholder="Korte toelichting op de werkzaamheden…"
+                      value={(() => { const firstEntry = weekDays.map(d => entries[`${formatDate(d)}-${row.projectId}`]).find(e => e?.notes); return firstEntry?.notes || ""; })()}
+                      onChange={e => weekDays.forEach(d => { const key = `${formatDate(d)}-${row.projectId}`; if (entries[key]?.hours) updateEntry(row.projectId, formatDate(d), "notes", e.target.value); })}
+                      style={{ ...extraInputStyle, width: "100%", fontFamily: "var(--font-geist, sans-serif)" }}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Add project button */}
+        <button
+          onClick={() => setShowProjectPicker(true)}
+          style={{ display: "flex", alignItems: "center", gap: "9px", width: "100%", minWidth: "748px", padding: "12px 16px", border: "none", background: "transparent", color: "var(--c-muted)", fontSize: "13px", fontWeight: 600, cursor: "pointer", borderBottom: "1px solid var(--c-border)", fontFamily: "var(--font-geist, sans-serif)" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--c-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-accent)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-muted)"; }}
+        >
+          <Plus size={16} /> Project toevoegen
+        </button>
+
+        {/* Day totals row */}
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(232px,1.5fr) repeat(7,minmax(58px,1fr)) 88px", minWidth: "748px", background: "var(--c-panel-2)" }}>
+          <div style={{ padding: "12px 16px", fontSize: "12.5px", fontWeight: 600, color: "var(--c-text)" }}>Totaal per dag</div>
+          {weekDays.map((day) => {
+            const date = formatDate(day);
+            const total = getTotalDay(date);
+            const isWknd = isWeekend(day);
+            return (
+              <div key={date} style={{ borderLeft: "1px solid var(--c-border)", background: isWknd ? "var(--c-panel-2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontFamily: "var(--font-geist-mono, monospace)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: total === 0 ? "var(--c-muted)" : (total > 8 ? "var(--c-red)" : "var(--c-text)") }}>
+                {total > 0 ? total : "–"}
+              </div>
+            );
+          })}
+          <div style={{ borderLeft: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontFamily: "var(--font-geist-mono, monospace)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "var(--c-accent)" }}>
+            {weekTotal}
+          </div>
+        </div>
+      </div>
+
+      {/* Info hint */}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: "var(--c-muted)" }}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        Klik op ▸ naast een project om kilometers, onkosten en een opmerking toe te voegen.
+      </div>
+
+      {/* Project picker modal */}
+      {showProjectPicker && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex" }}>
+          <div
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }}
+            onClick={() => setShowProjectPicker(false)}
+          />
+          <div style={{ position: "relative", width: "320px", background: "var(--c-panel)", boxShadow: "0 8px 40px rgba(0,0,0,0.22)", overflowY: "auto" }}>
+            <div style={{ position: "sticky", top: 0, background: "var(--c-panel)", borderBottom: "1px solid var(--c-border)", padding: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "var(--c-text)", fontFamily: "var(--font-geist, sans-serif)" }}>Project kiezen</h3>
+              <button
+                onClick={() => setShowProjectPicker(false)}
+                style={{ padding: "4px 8px", border: "none", background: "transparent", color: "var(--c-muted)", cursor: "pointer", fontSize: "18px", lineHeight: 1, borderRadius: "6px" }}
+              >
+                &times;
+              </button>
+            </div>
+            <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "2px" }}>
+              {favoriteProjects.length > 0 && (
+                <div style={{ marginBottom: "8px" }}>
+                  <p style={{ margin: "0 0 4px", padding: "4px 12px", fontSize: "11px", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Star size={11} style={{ fill: "currentColor" }} /> Favorieten
+                  </p>
+                  {favoriteProjects.map(fav => (
+                    <div
+                      key={fav.projectGcId}
+                      style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", color: "var(--c-text)", fontFamily: "var(--font-geist, sans-serif)" }}
+                      onClick={() => { addFavoriteToRows(fav); setShowProjectPicker(false); }}
+                      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
+                      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                    >
+                      <Star size={11} style={{ color: "#d97706", fill: "#d97706", flexShrink: 0 }} />
+                      <span>{fav.projectName || fav.projectCode}</span>
+                    </div>
+                  ))}
+                  <div style={{ borderBottom: "1px solid var(--c-border)", margin: "8px 0" }} />
+                </div>
+              )}
+              {companies.map(company => (
+                <div key={company.id}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" }}
+                    onClick={() => toggleCompany(company.id)}
+                    onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
+                    onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                  >
+                    <ChevronDown
+                      size={14}
+                      style={{ color: "var(--c-muted)", flexShrink: 0, transform: expandedCompanies.includes(company.id) ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}
+                    />
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--c-text)", fontFamily: "var(--font-geist, sans-serif)" }}>
+                      {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
+                    </span>
+                  </div>
+                  {expandedCompanies.includes(company.id) && projectGroups[company.id]?.filter(g => assignedGroupIds === null || assignedGroupIds.has(g.id)).map(group => (
+                    <div key={group.id} style={{ marginLeft: "16px" }}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "8px", cursor: "pointer" }}
+                        onClick={() => toggleGroup(group.id)}
+                        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
+                        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                      >
+                        <ChevronDown
+                          size={12}
+                          style={{ color: "var(--c-muted)", flexShrink: 0, transform: expandedGroups.includes(group.id) ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}
+                        />
+                        <span style={{ fontSize: "12.5px", color: "var(--c-text-2)", fontFamily: "var(--font-geist, sans-serif)" }}>{group.name}</span>
                       </div>
-                      {expandedCompanies.includes(company.id) && projectGroups[company.id]?.filter(g => assignedGroupIds === null || assignedGroupIds.has(g.id)).map(group => (
-                        <div key={group.id} className="ml-4">
-                          <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md cursor-pointer" onClick={() => toggleGroup(group.id)}>
-                            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`} />
-                            <span className="text-xs text-slate-600 dark:text-slate-300">{group.name}</span>
-                          </div>
-                          {expandedGroups.includes(group.id) && getVisibleProjects(group.id).map(project => (
-                            <div key={project.id} className="ml-4 flex items-center gap-2 px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-md cursor-pointer group" onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}>
-                              <button className={`flex-shrink-0 transition-colors ${favoriteProjectIds.has(project.id) ? "text-amber-500" : "text-slate-300 group-hover:text-amber-400"}`} onClick={e => { e.stopPropagation(); toggleFavorite(project.id, project.name); }}>
-                                <Star className={`w-3 h-3 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
-                              </button>
-                              <span className="text-xs text-slate-600 dark:text-slate-300 group-hover:text-emerald-600">{project.name}</span>
-                            </div>
-                          ))}
+                      {expandedGroups.includes(group.id) && getVisibleProjects(group.id).map(project => (
+                        <div
+                          key={project.id}
+                          style={{ marginLeft: "16px", display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "8px", cursor: "pointer" }}
+                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
+                          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
+                          onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                        >
+                          <button
+                            style={{ flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", color: favoriteProjectIds.has(project.id) ? "#d97706" : "var(--c-muted)" }}
+                            onClick={e => { e.stopPropagation(); toggleFavorite(project.id, project.name); }}
+                          >
+                            <Star size={11} style={{ fill: favoriteProjectIds.has(project.id) ? "currentColor" : "none" }} />
+                          </button>
+                          <span style={{ fontSize: "12.5px", color: "var(--c-text-2)", fontFamily: "var(--font-geist, sans-serif)" }}>{project.name}</span>
                         </div>
                       ))}
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Uren Registreren</h1>
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-md p-0.5">
-                <button onClick={() => setViewMode("week")} className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${viewMode === "week" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>Week</button>
-                <button onClick={() => setViewMode("month")} className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${viewMode === "month" ? "bg-white dark:bg-slate-700 text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>Maand</button>
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => { const d = new Date(currentWeek); d.setDate(d.getDate() - 7); setCurrentWeek(d); }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"><ChevronLeft className="w-4 h-4 text-slate-500" /></button>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 min-w-[64px] text-center">Week {weekNumber}</span>
-                <button onClick={() => { const d = new Date(currentWeek); d.setDate(d.getDate() + 7); setCurrentWeek(d); }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"><ChevronRight className="w-4 h-4 text-slate-500" /></button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={saveAll} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md disabled:opacity-50 transition-colors">
-                <Save className="w-4 h-4" />{saving ? "Bezig..." : "Opslaan"}
-              </button>
-              <button onClick={submitAll} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md disabled:opacity-50 transition-colors">
-                <Send className="w-4 h-4" />Inleveren
-              </button>
-            </div>
-          </div>
-
-          {/* Day tabs */}
-          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-            {weekDays.map((day, i) => {
-              const names = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
-              const total = getDayTotal(i);
-              const isToday = formatDate(day) === formatDate(new Date());
-              const isSel = selectedDay === i;
-              const closed = isClosedDay(formatDate(day));
-              return (
-                <button key={i} onClick={() => setSelectedDay(i)} className={`flex-1 flex flex-col items-center py-2.5 px-2 rounded-md text-sm transition-colors ${isSel ? "bg-white dark:bg-slate-700 shadow-sm" : "hover:bg-white/50 dark:hover:bg-slate-700/50"} ${closed ? "opacity-40" : ""}`}>
-                  <span className={`text-xs font-medium ${isSel ? "text-blue-600" : "text-slate-500"}`}>{names[i]}</span>
-                  <span className={`text-base font-bold ${isSel ? "text-blue-600" : isToday ? "text-blue-500" : "text-slate-700 dark:text-slate-300"}`}>{day.getDate()}</span>
-                  {total > 0 ? <span className={`text-xs font-semibold ${isSel ? "text-blue-500" : "text-emerald-600"}`}>{total}u</span> : <span className="text-xs text-slate-300">—</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Day content */}
-          <div className="space-y-3">
-            {(() => {
-              const date = formatDate(weekDays[selectedDay]);
-              const dayEntryList = getDayEntries(selectedDay);
-              const dayTotal = getDayTotal(selectedDay);
-              const overMax = dayTotal > MAX_HOURS_PER_DAY;
-
-              return (
-                <>
-                  {dayEntryList.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                        <Clock className="w-6 h-6 text-slate-400" />
-                      </div>
-                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen projecten voor deze dag</p>
-                      <p className="text-xs text-slate-500 mt-1">Voeg een project toe om uren te registreren</p>
-                      <button onClick={() => setShowProjectPicker(true)} className="mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
-                        <Plus className="w-4 h-4" />Project toevoegen
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      {dayEntryList.map(row => {
-                        const key = `${date}-${row.projectId}`;
-                        const entry = entries[key];
-                        const status = entry?.status;
-                        const editable = isEditable(status);
-                        const expanded = isCellExpanded(row.projectId, date);
-                        return (
-                          <div key={row.projectId} className={`bg-white dark:bg-slate-800 border rounded-xl p-4 transition-colors ${
-                            status === "APPROVED" ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-900/10" :
-                            status === "SUBMITTED" ? "border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-900/10" :
-                            status === "REJECTED" ? "border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-900/10" :
-                            "border-slate-200 dark:border-slate-700"
-                          }`}>
-                            <div className="flex items-start gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{row.projectName}</span>
-                                  {row.companyName && <span className="text-xs text-slate-400">{row.companyName}</span>}
-                                  {status === "APPROVED" && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Goedgekeurd</span>}
-                                  {status === "SUBMITTED" && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Ingediend</span>}
-                                  {status === "REJECTED" && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Afgewezen</span>}
-                                </div>
-                                {entry?.rejectionReason && <p className="text-xs text-red-600 mt-1">{entry.rejectionReason}</p>}
-                                <input
-                                  type="text"
-                                  placeholder="Opmerkingen toevoegen..."
-                                  disabled={!editable}
-                                  value={entry?.notes || ""}
-                                  onChange={e => updateEntry(row.projectId, date, "notes", e.target.value)}
-                                  className="mt-2 w-full text-xs text-slate-500 bg-transparent border-none outline-none placeholder:text-slate-300 disabled:cursor-not-allowed"
-                                />
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {shouldShowTaskDropdown() && (
-                                  <select
-                                    disabled={!editable}
-                                    value={entry?.taskType || getDefaultTaskType()}
-                                    onChange={e => updateEntry(row.projectId, date, "taskType", e.target.value)}
-                                    className="h-8 text-xs border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 disabled:cursor-not-allowed"
-                                  >
-                                    <option value="MONTAGE">Montage</option>
-                                    <option value="TEKENKAMER">Tekenkamer</option>
-                                  </select>
-                                )}
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="number"
-                                    min="0" max="24" step="0.5"
-                                    disabled={!editable}
-                                    value={entry?.hours || 0}
-                                    onChange={e => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
-                                    className="w-16 h-9 text-center border border-slate-200 dark:border-slate-600 rounded-md text-sm font-bold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-700 disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                  <span className="text-xs text-slate-400 font-medium">u</span>
-                                </div>
-                                <button onClick={() => toggleCellExpanded(row.projectId, date)} className={`p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${expanded ? "text-blue-500" : "text-slate-400"}`} title="Extra velden">
-                                  <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
-                                </button>
-                                <button onClick={() => removeProject(row.projectId)} className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-300 hover:text-red-500 transition-colors" title="Verwijder project">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                            {expanded && (
-                              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-slate-500 flex items-center gap-1"><Moon className="w-3 h-3" />Nacht</label>
-                                  <input type="number" min="0" step="0.5" disabled={!editable} value={entry?.eveningNightHours || 0} onChange={e => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)} className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 disabled:cursor-not-allowed" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-slate-500 flex items-center gap-1"><Car className="w-3 h-3" />Km</label>
-                                  <input type="number" min="0" disabled={!editable} value={entry?.distanceKm || 0} onChange={e => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)} className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 disabled:cursor-not-allowed" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-slate-500 flex items-center gap-1"><Ticket className="w-3 h-3" />Reiskosten</label>
-                                  <input type="number" min="0" step="0.01" disabled={!editable} value={entry?.travelCosts || 0} onChange={e => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)} className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 disabled:cursor-not-allowed" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs font-medium text-slate-500 flex items-center gap-1"><Euro className="w-3 h-3" />Onkosten</label>
-                                  <input type="number" min="0" step="0.01" disabled={!editable} value={entry?.otherExpenses || 0} onChange={e => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)} className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 disabled:cursor-not-allowed" />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      <button onClick={() => setShowProjectPicker(true)} className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 hover:border-blue-300 hover:text-blue-600 dark:hover:border-blue-700 dark:hover:text-blue-400 transition-colors">
-                        <Plus className="w-4 h-4" />Project toevoegen
-                      </button>
-
-                      <div className={`flex justify-between items-center py-3 px-4 rounded-lg ${overMax ? "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800" : "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700"}`}>
-                        <span className={`text-sm font-medium ${overMax ? "text-red-600" : "text-slate-600 dark:text-slate-400"}`}>Totaal vandaag {overMax ? `— let op: max ${MAX_HOURS_PER_DAY}u` : ""}</span>
-                        <span className={`text-lg font-bold ${overMax ? "text-red-600" : "text-slate-900 dark:text-slate-100"}`}>{dayTotal}u</span>
-                      </div>
-                    </>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-
-          {/* Week totaal */}
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Week totaal</span>
-              <span className="text-base font-bold text-slate-900 dark:text-slate-100">{getTotalWeek()}u</span>
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {weekDays.map((day, i) => {
-                const names = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
-                const total = getDayTotal(i);
-                const isSel = selectedDay === i;
-                return (
-                  <button key={i} onClick={() => setSelectedDay(i)} className={`flex flex-col items-center py-2 rounded-lg transition-colors ${isSel ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}>
-                    <span className="text-xs text-slate-400">{names[i]}</span>
-                    <span className={`text-sm font-bold mt-0.5 ${total > 0 ? "text-blue-600" : "text-slate-300"}`}>{total > 0 ? `${total}u` : "—"}</span>
-                  </button>
-                );
-              })}
+              ))}
             </div>
           </div>
         </div>
-      </ModernLayout>
-    </ProtectedRoute>
+      )}
+    </div>
   );
 }
