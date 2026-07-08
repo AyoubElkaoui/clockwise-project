@@ -2,22 +2,15 @@
 import { useState } from "react";
 import {
   BarChart3,
-  TrendingUp,
   Users,
   Clock,
   Building2,
   Download,
-  FileText,
   Loader2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
-import { PageHeader } from "@/components/ui/page-header";
-import { getUsers } from "@/lib/api";
-import { getCompanies } from "@/lib/api";
-import { getTimeEntries } from "@/lib/api";
+import { getUsers, getCompanies, getTimeEntries } from "@/lib/api";
 import dayjs from "dayjs";
 
 export default function AdminReportsPage() {
@@ -52,14 +45,12 @@ export default function AdminReportsPage() {
           ].join(","),
         ),
       ].join("\n");
-
       downloadCSV(
         csvContent,
         `gebruikers-rapport-${dayjs().format("YYYY-MM-DD")}.csv`,
       );
       showToast(t("admin.reports.usersGenerated"), "success");
-    } catch (error) {
-      
+    } catch {
       showToast(t("admin.reports.generateError"), "error");
     } finally {
       setGenerating(null);
@@ -104,14 +95,12 @@ export default function AdminReportsPage() {
           ].join(","),
         ),
       ].join("\n");
-
       downloadCSV(
         csvContent,
         `uren-rapport-${dayjs().format("YYYY-MM-DD")}.csv`,
       );
       showToast(t("admin.reports.hoursGenerated"), "success");
-    } catch (error) {
-      
+    } catch {
       showToast(t("admin.reports.generateError"), "error");
     } finally {
       setGenerating(null);
@@ -146,14 +135,12 @@ export default function AdminReportsPage() {
           ].join(","),
         ),
       ].join("\n");
-
       downloadCSV(
         csvContent,
         `bedrijven-rapport-${dayjs().format("YYYY-MM-DD")}.csv`,
       );
       showToast(t("admin.reports.companiesGenerated"), "success");
-    } catch (error) {
-      
+    } catch {
       showToast(t("admin.reports.generateError"), "error");
     } finally {
       setGenerating(null);
@@ -190,171 +177,155 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <PageHeader
-        title={t("admin.reports.title")}
-        description={t("admin.reports.subtitle")}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="card-hover">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">
-                  {t("admin.reports.users")}
-                </CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              {t("admin.reports.usersDesc")}
-            </p>
-            <Button
-              className="w-full"
-              onClick={() => handleGenerateReport(t("admin.reports.users"))}
-              disabled={generating === "users"}
-            >
-              {generating === "users" ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("admin.reports.generating")}
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  {t("admin.reports.download")}
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="card-hover">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">
-                  {t("admin.reports.hours")}
-                </CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              {t("admin.reports.hoursDesc")}
-            </p>
-            <Button
-              className="w-full"
-              onClick={() => handleGenerateReport(t("admin.reports.hours"))}
-              disabled={generating === "hours"}
-            >
-              {generating === "hours" ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("admin.reports.generating")}
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  {t("admin.reports.download")}
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="card-hover">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">
-                  {t("admin.reports.companies")}
-                </CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              {t("admin.reports.companiesDesc")}
-            </p>
-            <Button
-              className="w-full"
-              onClick={() => handleGenerateReport(t("admin.reports.companies"))}
-              disabled={generating === "companies"}
-            >
-              {generating === "companies" ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t("admin.reports.generating")}
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  {t("admin.reports.download")}
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {t("admin.reports.title")}
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {t("admin.reports.subtitle")}
+        </p>
       </div>
 
-      {/* Additional Report Options */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-slate-600" />
-            {t("admin.reports.advanced")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                {t("admin.reports.monthly")}
-              </h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                {t("admin.reports.monthlyDesc")}
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => showToast(t("admin.reports.comingSoon"), "info")}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {t("common.download")}
-              </Button>
+      {/* Report cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Users Report */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-
-            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                {t("admin.reports.yearly")}
-              </h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                {t("admin.reports.yearlyDesc")}
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => showToast(t("admin.reports.comingSoon"), "info")}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {t("common.download")}
-              </Button>
-            </div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {t("admin.reports.users")}
+            </h3>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-slate-500 mb-4">
+            {t("admin.reports.usersDesc")}
+          </p>
+          <button
+            onClick={() => handleGenerateReport(t("admin.reports.users"))}
+            disabled={generating === "users"}
+            className="flex items-center gap-2 w-full justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            {generating === "users" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t("admin.reports.generating")}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                {t("admin.reports.download")}
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Hours Report */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {t("admin.reports.hours")}
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            {t("admin.reports.hoursDesc")}
+          </p>
+          <button
+            onClick={() => handleGenerateReport(t("admin.reports.hours"))}
+            disabled={generating === "hours"}
+            className="flex items-center gap-2 w-full justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            {generating === "hours" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t("admin.reports.generating")}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                {t("admin.reports.download")}
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Companies Report */}
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {t("admin.reports.companies")}
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            {t("admin.reports.companiesDesc")}
+          </p>
+          <button
+            onClick={() => handleGenerateReport(t("admin.reports.companies"))}
+            disabled={generating === "companies"}
+            className="flex items-center gap-2 w-full justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            {generating === "companies" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t("admin.reports.generating")}
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                {t("admin.reports.download")}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Advanced Reports */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-slate-500" />
+          {t("admin.reports.advanced")}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">
+              {t("admin.reports.monthly")}
+            </h4>
+            <p className="text-xs text-slate-500 mb-3">
+              {t("admin.reports.monthlyDesc")}
+            </p>
+            <button
+              onClick={() => showToast(t("admin.reports.comingSoon"), "info")}
+              className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {t("common.download")}
+            </button>
+          </div>
+          <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">
+              {t("admin.reports.yearly")}
+            </h4>
+            <p className="text-xs text-slate-500 mb-3">
+              {t("admin.reports.yearlyDesc")}
+            </p>
+            <button
+              onClick={() => showToast(t("admin.reports.comingSoon"), "info")}
+              className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {t("common.download")}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
