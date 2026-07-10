@@ -1,16 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Check, Loader2, User, FileText, CheckCircle, XCircle, CalendarDays, Settings } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Bell, Check, Trash2, Loader2, Users, User } from "lucide-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import { API_URL } from "@/lib/api";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 
 dayjs.extend(relativeTime);
 dayjs.locale("nl");
+
+async function safeJsonParse(response: Response): Promise<any> {
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    const bodyText = await response.text();
+    throw new Error(`Expected JSON response but got ${contentType || 'unknown'}: ${bodyText.substring(0, 100)}`);
+  }
+  return response.json();
+}
 
 interface Activity {
   id: number;
@@ -21,50 +36,61 @@ interface Activity {
   details: string;
   read: boolean;
   timestamp: string;
-  user?: { id: number; firstName: string; lastName: string };
-}
-
-function getIcon(type: string) {
-  const t = type.toLowerCase();
-  if (t === "workflow")   return <FileText   size={15} color="var(--c-amber)" />;
-  if (t === "approval")  return <CheckCircle size={15} color="var(--c-green)" />;
-  if (t === "rejection") return <XCircle     size={15} color="var(--c-red)"   />;
-  if (t === "vacation")  return <CalendarDays size={15} color="var(--c-accent)" />;
-  if (t === "system")    return <Settings    size={15} color="var(--c-muted)" />;
-  return <Bell size={15} color="var(--c-muted)" />;
-}
-
-function getTypeColor(type: string): string {
-  const t = type.toLowerCase();
-  if (t === "workflow")   return "var(--c-amber)";
-  if (t === "approval")  return "var(--c-green)";
-  if (t === "rejection") return "var(--c-red)";
-  if (t === "vacation")  return "var(--c-accent)";
-  return "var(--c-muted)";
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export default function ManagerNotificatiesPage() {
   const [notifications, setNotifications] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRank, setUserRank] = useState<string>("manager");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const readCount   = notifications.filter((n) => n.read).length;
+  const readCount = notifications.filter((n) => n.read).length;
 
-  useEffect(() => { loadNotifications(); }, []);
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   const loadNotifications = async () => {
     try {
       const userId = authUtils.getUserId();
-      if (!userId) { showToast("Gebruiker niet ingelogd", "error"); setLoading(false); return; }
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/notifications`, {
-        headers: { "X-USER-ID": userId.toString(), "ngrok-skip-browser-warning": "1" },
+        headers: {
+          "X-USER-ID": userId.toString(),
+          "ngrok-skip-browser-warning": "1",
+        },
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
-      setNotifications(Array.isArray(data)
-        ? data.map((n: any) => ({ id: n.id, userId, type: n.type, action: n.type, message: n.message, details: n.title || "", read: n.isRead, timestamp: n.createdAt }))
-        : []);
-    } catch {
+      
+      // Map notifications to Activity format for compatibility
+      const mappedData = data.map((n: any) => ({
+        id: n.id,
+        userId: userId,
+        type: n.type,
+        action: n.type,
+        message: n.message,
+        details: n.title || "",
+        read: n.isRead,
+        timestamp: n.createdAt,
+      }));
+      
+      setNotifications(Array.isArray(mappedData) ? mappedData : []);
+    } catch (error) {
       showToast("Kon notificaties niet laden", "error");
       setNotifications([]);
     } finally {
@@ -75,142 +101,235 @@ export default function ManagerNotificatiesPage() {
   const handleMarkRead = async (id: number) => {
     try {
       const userId = authUtils.getUserId();
-      const res = await fetch(`${API_URL}/notifications/${id}/read`, {
+      const response = await fetch(`${API_URL}/notifications/${id}/read`, {
         method: "PUT",
-        headers: { "X-USER-ID": userId?.toString() || "", "ngrok-skip-browser-warning": "1" },
+        headers: {
+          "X-USER-ID": userId?.toString() || "",
+          "ngrok-skip-browser-warning": "1",
+        },
       });
-      if (!res.ok) throw new Error();
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+
+      if (!response.ok) {
+        throw new Error("Failed to mark as read");
+      }
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
       showToast("Gemarkeerd als gelezen", "success");
-    } catch { showToast("Fout bij markeren", "error"); }
+    } catch (error) {
+      showToast("Fout bij markeren", "error");
+    }
   };
 
   const handleMarkAllRead = async () => {
     try {
       const userId = authUtils.getUserId();
-      const res = await fetch(`${API_URL}/notifications/mark-all-read`, {
+      
+      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
         method: "PUT",
-        headers: { "X-USER-ID": userId?.toString() || "", "ngrok-skip-browser-warning": "1" },
+        headers: {
+          "X-USER-ID": userId?.toString() || "",
+          "ngrok-skip-browser-warning": "1",
+        },
       });
-      if (!res.ok) throw new Error();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+      if (!response.ok) {
+        throw new Error("Failed to mark all as read");
+      }
+
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true }))
+      );
       showToast("Alle notificaties gemarkeerd als gelezen", "success");
-    } catch { showToast("Fout bij markeren", "error"); }
+    } catch (error) {
+      showToast("Fout bij markeren", "error");
+    }
   };
 
-  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10 };
+  const getNotificationIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "workflow":
+        return "📝";
+      case "approval":
+        return "✅";
+      case "rejection":
+        return "❌";
+      case "vacation":
+        return "🏖️";
+      case "system":
+        return "⚙️";
+      default:
+        return "🔔";
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "workflow":
+        return "text-amber-600 dark:text-amber-600";
+      case "approval":
+        return "text-green-600 dark:text-green-400";
+      case "rejection":
+        return "text-red-600 dark:text-red-400";
+      case "vacation":
+        return "text-blue-600 dark:text-blue-600";
+      default:
+        return "text-slate-600 dark:text-slate-400";
+    }
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Notificaties</h1>
-          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>
-            Team notificaties en updates{unreadCount > 0 ? ` · ${unreadCount} ongelezen` : ""}
-          </p>
-        </div>
-        <button
-          onClick={handleMarkAllRead}
-          disabled={unreadCount === 0}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: unreadCount === 0 ? "not-allowed" : "pointer", opacity: unreadCount === 0 ? 0.4 : 1 }}
-        >
-          <Check size={14} /> Alles gelezen
-        </button>
-      </div>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Notificaties"
+        description={`Team notificaties en updates${unreadCount > 0 ? ` • ${unreadCount} ongelezen` : ""}`}
+        actions={
+          <>
+            <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <Users className="w-4 h-4" />
+              <span>Team overzicht</span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={unreadCount === 0}
+            >
+              <Check className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Alles Gelezen</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-        {[
-          { label: "Totaal",    value: notifications.length },
-          { label: "Ongelezen", value: unreadCount, color: "var(--c-amber)" },
-          { label: "Gelezen",   value: readCount,   color: "var(--c-green)" },
-        ].map((s) => (
-          <div key={s.label} style={{ ...panelStyle, padding: "18px 20px" }}>
-            <p style={{ fontSize: 11, color: "var(--c-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{s.label}</p>
-            <p style={{ fontSize: 26, fontWeight: 700, color: s.color || "var(--c-text)", margin: "4px 0 0" }}>{loading ? "—" : s.value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+        <StatCard
+          title="Totaal"
+          value={loading ? "..." : notifications.length}
+          icon={Bell}
+          color="amber"
+        />
+        <StatCard
+          title="Ongelezen"
+          value={loading ? "..." : unreadCount}
+          icon={Bell}
+          color="amber"
+        />
+        <StatCard
+          title="Gelezen"
+          value={loading ? "..." : readCount}
+          icon={Check}
+          color="emerald"
+        />
       </div>
 
-      {/* List */}
-      <div style={{ ...panelStyle, overflow: "hidden" }}>
-        <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", gap: 7 }}>
-          <Bell size={14} color="var(--c-muted)" />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>Team Notificaties</span>
-        </div>
-
-        {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "56px 0" }}>
-            <Loader2 size={20} color="var(--c-muted)" style={{ animation: "spin 0.7s linear infinite" }} />
-            <span style={{ fontSize: 13, color: "var(--c-muted)" }}>Laden...</span>
-          </div>
-        ) : notifications.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "56px 24px", textAlign: "center", gap: 10 }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={22} color="var(--c-muted)" />
+      {/* Notifications List */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Team Notificaties
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center pt-8 py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+              <span className="ml-2 text-slate-600 dark:text-slate-400">
+                Notificaties laden...
+              </span>
             </div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen notificaties</p>
-            <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Er zijn nog geen team notificaties</p>
-          </div>
-        ) : (
-          <div>
-            {notifications.map((n, idx) => (
-              <div
-                key={n.id}
-                style={{
-                  display: "flex", alignItems: "flex-start", gap: 14, padding: "14px 18px",
-                  borderBottom: idx < notifications.length - 1 ? "1px solid var(--c-border)" : "none",
-                  background: !n.read ? "color-mix(in srgb, var(--c-amber) 5%, transparent)" : "transparent",
-                }}
-              >
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {getIcon(n.type)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>
-                          {n.details || n.message}
-                        </span>
-                        {!n.read && (
-                          <span style={{ display: "inline-block", padding: "1px 7px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: "var(--c-accent-weak)", color: "var(--c-accent)" }}>
-                            Nieuw
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Bell className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen notificaties</p>
+              <p className="text-sm text-slate-500 mt-1">Er zijn nog geen team notificaties</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {notifications.map((notification) => (
+                <Card
+                  key={notification.id}
+                  className={`transition-all duration-200 hover:shadow-md ${
+                    !notification.read
+                      ? "bg-amber-50/30 dark:bg-amber-50/10 border-amber-400 dark:border-amber-400"
+                      : "bg-slate-50/50 dark:bg-slate-800/50"
+                  }`}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          <span className="text-lg">
+                            {getNotificationIcon(notification.type)}
                           </span>
-                        )}
+                        </div>
                       </div>
-                      {n.details && n.message !== n.details && (
-                        <p style={{ fontSize: 12, color: "var(--c-text-2)", margin: "0 0 4px" }}>{n.message}</p>
-                      )}
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "var(--c-muted)" }}>
-                        <span>{dayjs(n.timestamp).fromNow()}</span>
-                        {n.user && (
-                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                            <User size={11} /> {n.user.firstName} {n.user.lastName}
-                          </span>
-                        )}
-                        <span style={{ color: getTypeColor(n.type), textTransform: "capitalize" }}>
-                          {n.type.replace("_", " ")}
-                        </span>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-slate-900 dark:text-slate-100">
+                                {notification.details || notification.message}
+                              </h4>
+                              {!notification.read && (
+                                <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                  Nieuw
+                                </Badge>
+                              )}
+                            </div>
+                            {notification.details && notification.message !== notification.details && (
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                                {notification.message}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                              <span>
+                                {dayjs(notification.timestamp).fromNow()}
+                              </span>
+                              {notification.user && (
+                                <span className="flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {notification.user.firstName}{" "}
+                                  {notification.user.lastName}
+                                </span>
+                              )}
+                              <span
+                                className={`capitalize ${getNotificationColor(notification.type)}`}
+                              >
+                                {notification.type.replace("_", " ")}
+                              </span>
+                            </div>
+                          </div>
+
+                          {!notification.read && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleMarkRead(notification.id)
+                              }
+                              className="flex-shrink-0 ml-2 md:ml-4"
+                            >
+                              <Check className="w-4 h-4 md:mr-1" />
+                              <span className="hidden md:inline">Markeren als gelezen</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    {!n.read && (
-                      <button
-                        onClick={() => handleMarkRead(n.id)}
-                        style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", fontSize: 12, color: "var(--c-text-2)", cursor: "pointer", flexShrink: 0 }}
-                      >
-                        <Check size={12} /> Gelezen
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

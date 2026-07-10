@@ -2,27 +2,24 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getAllUsers, getAllVacationRequests, updateVacationRequestStatus } from "@/lib/manager-api";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { showToast } from "@/components/ui/toast";
 import { LoadingSpinner } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
 import authUtils from "@/lib/auth-utils";
-import { CheckCircle, XCircle, Search, AlertCircle, Calendar } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Search,
+  AlertCircle,
+  Calendar,
+  User,
+} from "lucide-react";
 import dayjs from "dayjs";
-
-const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-  approved:  { label: "Goedgekeurd",   color: "var(--c-green)", bg: "var(--c-green-weak)" },
-  submitted: { label: "In afwachting", color: "var(--c-amber)", bg: "var(--c-amber-weak)" },
-  pending:   { label: "In afwachting", color: "var(--c-amber)", bg: "var(--c-amber-weak)" },
-  rejected:  { label: "Afgekeurd",     color: "var(--c-red)",   bg: "var(--c-red-weak)"   },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const meta = statusMeta[status?.toLowerCase()] || { label: status, color: "var(--c-muted)", bg: "var(--c-hover)" };
-  return (
-    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: meta.bg, color: meta.color }}>
-      {meta.label}
-    </span>
-  );
-}
 
 export default function ManagerVacationPage() {
   const searchParams = useSearchParams();
@@ -38,208 +35,344 @@ export default function ManagerVacationPage() {
   const filterRequests = () => {
     let filtered = requests;
     if (filterStatus !== "all") {
+      // Match both "pending" and "submitted" for pending filter
       if (filterStatus === "pending") {
-        filtered = filtered.filter((r) => ["pending", "submitted"].includes(r.status?.toLowerCase()));
+        filtered = filtered.filter((r) => 
+          r.status?.toLowerCase() === "pending" || 
+          r.status?.toLowerCase() === "submitted"
+        );
       } else {
-        filtered = filtered.filter((r) => r.status?.toLowerCase() === filterStatus);
+        filtered = filtered.filter((r) => r.status?.toLowerCase() === filterStatus.toLowerCase());
       }
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter((r) => r.userFirstName?.toLowerCase().includes(q) || r.userLastName?.toLowerCase().includes(q));
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          r.userFirstName?.toLowerCase().includes(query) ||
+          r.userLastName?.toLowerCase().includes(query),
+      );
     }
-    filtered.sort((a, b) => new Date(b.createdAt || b.startDate).getTime() - new Date(a.createdAt || a.startDate).getTime());
+    filtered.sort(
+      (a, b) =>
+        new Date(b.createdAt || b.startDate).getTime() -
+        new Date(a.createdAt || a.startDate).getTime(),
+    );
     setFilteredRequests(filtered);
   };
 
   useEffect(() => {
-    if (searchParams.get("userId")) setFilterStatus("all");
+    const userId = searchParams.get("userId");
+    if (userId) {
+      setFilterStatus("all"); // Show all statuses when filtering by user
+    }
     loadRequests();
   }, []);
-  useEffect(() => { filterRequests(); }, [requests, searchQuery, filterStatus]);
+
+  useEffect(() => {
+    filterRequests();
+  }, [requests, searchQuery, filterStatus]);
 
   const loadRequests = async () => {
     try {
       const managerId = authUtils.getUserId();
-      if (!managerId) { showToast("Gebruiker niet ingelogd", "error"); return; }
+      if (!managerId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
+
       const userId = searchParams.get("userId");
-      const [users, allRequests] = await Promise.all([getAllUsers(), getAllVacationRequests()]);
+      const [users, allRequests] = await Promise.all([
+        getAllUsers(),
+        getAllVacationRequests()
+      ]);
+
       const team = users.filter((u: any) => u.managerId === managerId);
       const teamIds = team.map((u: any) => u.id || u.medewGcId);
+
       let teamRequests;
+
       if (userId) {
+        // Filter for specific user
         const user = team.find((u: any) => u.id === Number(userId) || u.medewGcId === Number(userId));
-        if (user) { setFilteredUser(user); teamRequests = allRequests.filter((r: any) => r.userId === Number(userId)); }
-        else { showToast("Gebruiker niet gevonden in team", "error"); teamRequests = []; }
+        if (user) {
+          setFilteredUser(user);
+          teamRequests = allRequests.filter((r: any) => r.userId === Number(userId));
+        } else {
+          showToast("Gebruiker niet gevonden in team", "error");
+          teamRequests = [];
+        }
       } else {
+        // Filter for all team members
         teamRequests = allRequests.filter((r: any) => teamIds.includes(r.userId));
       }
+
       setRequests(teamRequests);
-    } catch { showToast("Fout bij laden vakantieaanvragen", "error"); } finally { setLoading(false); }
+    } catch (error) {
+      showToast("Fout bij laden vakantieaanvragen", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleApprove = async (id: number) => {
+  const handleApprove = async (id: number, comment: string) => {
     try {
       await updateVacationRequestStatus(id, "approved", comment);
-      showToast("Vakantie goedgekeurd! Werknemer ontvangt een notificatie.", "success");
-      setSelectedRequest(null); setComment(""); loadRequests();
-    } catch { showToast("Fout bij goedkeuren", "error"); }
+      showToast("✅ Vakantie succesvol goedgekeurd! Werknemer ontvangt een notificatie.", "success");
+      setSelectedRequest(null);
+      setComment("");
+      loadRequests();
+    } catch (error) {
+      showToast("Fout bij goedkeuren", "error");
+    }
   };
 
-  const handleReject = async (id: number) => {
+  const handleReject = async (id: number, comment: string) => {
     try {
       await updateVacationRequestStatus(id, "rejected", comment);
-      showToast("Vakantie afgekeurd. Werknemer ontvangt een notificatie.", "success");
-      setSelectedRequest(null); setComment(""); loadRequests();
-    } catch { showToast("Fout bij afkeuren", "error"); }
+      showToast("❌ Vakantie afgekeurd. Werknemer ontvangt een notificatie.", "success");
+      setSelectedRequest(null);
+      setComment("");
+      loadRequests();
+    } catch (error) {
+      showToast("Fout bij afkeuren", "error");
+    }
   };
 
-  const pendingCount = requests.filter((r) => ["pending", "submitted"].includes(r.status?.toLowerCase())).length;
+  const calculateDays = (startDate: string, endDate: string) => {
+    return dayjs(endDate).diff(dayjs(startDate), "day") + 1;
+  };
 
-  const btnPrimary = (color: string): React.CSSProperties => ({
-    display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: color, color: "#fff", border: "none", borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: "pointer",
-  });
-  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10 };
+  const getStatusBadge = (status: string) => {
+    const lowerStatus = status?.toLowerCase();
+    switch (lowerStatus) {
+      case "approved":
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+            Goedgekeurd
+          </Badge>
+        );
+      case "submitted":
+      case "pending":
+        return (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+            In afwachting
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800">
+            Afgekeurd
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
 
-  if (loading) return <LoadingSpinner />;
+  const pendingCount = requests.filter((r) => 
+    r.status?.toLowerCase() === "pending" || r.status?.toLowerCase() === "submitted"
+  ).length;
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={filteredUser ? `Vakantie - ${filteredUser.firstName} ${filteredUser.lastName}` : "Vakantie Verzoeken"}
+        description={`${pendingCount} verzoeken wachten op goedkeuring`}
+      />
 
-      {/* Header */}
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>
-          {filteredUser ? `Vakantie — ${filteredUser.firstName} ${filteredUser.lastName}` : "Vakantie Verzoeken"}
-        </h1>
-        <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>
-          {pendingCount} verzoeken wachten op goedkeuring
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div style={{ ...panelStyle, padding: "14px 16px" }}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
-            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
-            <input
-              type="text"
-              placeholder="Zoek op naam..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ height: 34, width: "100%", paddingLeft: 32, paddingRight: 10, fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-            />
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Zoek op naam..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={filterStatus === "pending" ? "default" : "outline"}
+                onClick={() => setFilterStatus("pending")}
+              >
+                <span className="hidden sm:inline">In afwachting</span>
+                <span className="sm:hidden">Wacht</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === "approved" ? "default" : "outline"}
+                onClick={() => setFilterStatus("approved")}
+              >
+                <span className="hidden sm:inline">Goedgekeurd</span>
+                <span className="sm:hidden">✓</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === "rejected" ? "default" : "outline"}
+                onClick={() => setFilterStatus("rejected")}
+              >
+                <span className="hidden sm:inline">Afgekeurd</span>
+                <span className="sm:hidden">✗</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === "all" ? "default" : "outline"}
+                onClick={() => setFilterStatus("all")}
+              >
+                Alles
+              </Button>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            {(["pending", "approved", "rejected", "all"] as const).map((s) => {
-              const labels = { pending: "In afwachting", approved: "Goedgekeurd", rejected: "Afgekeurd", all: "Alles" };
-              const active = filterStatus === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setFilterStatus(s)}
-                  style={{ padding: "6px 12px", borderRadius: 7, fontSize: 13, fontWeight: active ? 600 : 400, background: active ? "var(--c-accent)" : "var(--c-hover)", color: active ? "#fff" : "var(--c-text-2)", border: "none", cursor: "pointer" }}
-                >
-                  {labels[s]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Request list */}
       {filteredRequests.length === 0 ? (
-        <div style={{ ...panelStyle, padding: "56px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 10 }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <AlertCircle size={22} color="var(--c-muted)" />
-          </div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen verzoeken</p>
-          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Geen vakantie verzoeken gevonden voor de geselecteerde filters</p>
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <AlertCircle className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen verzoeken</p>
+              <p className="text-sm text-slate-500 mt-1">Geen vakantie verzoeken gevonden voor de geselecteerde filters</p>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {filteredRequests.map((req) => {
-            const isPending = ["pending", "submitted"].includes(req.status?.toLowerCase());
-            const isSelected = selectedRequest?.id === req.id;
-            const days = dayjs(req.endDate).diff(dayjs(req.startDate), "day") + 1;
-            const initials = `${req.userFirstName?.charAt(0) || ""}${req.userLastName?.charAt(0) || ""}`;
-            return (
-              <div key={req.id} style={{ ...panelStyle, padding: "18px 20px" }}>
-                {/* Name + status */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--c-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                    {initials}
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)" }}>{req.userFirstName} {req.userLastName}</span>
-                      <StatusBadge status={req.status} />
-                    </div>
-                    <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "2px 0 0" }}>{req.user?.function || "Medewerker"}</p>
-                  </div>
-                </div>
-
-                {/* Date grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, background: "var(--c-panel-2)", borderRadius: 8, padding: "12px 14px", marginBottom: 12 }}>
-                  {[
-                    { label: "Start datum",  value: dayjs(req.startDate).format("DD MMM YYYY") },
-                    { label: "Eind datum",   value: dayjs(req.endDate).format("DD MMM YYYY") },
-                    { label: "Aantal dagen", value: `${days} dagen`, accent: true },
-                  ].map((f) => (
-                    <div key={f.label}>
-                      <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0, display: "flex", alignItems: "center", gap: 4 }}>
-                        <Calendar size={10} /> {f.label}
-                      </p>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: f.accent ? "var(--c-accent)" : "var(--c-text)", margin: "3px 0 0" }}>{f.value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {req.reason && (
-                  <div style={{ background: "var(--c-panel-2)", borderRadius: 8, padding: "10px 14px", marginBottom: 10 }}>
-                    <p style={{ fontSize: 11, color: "var(--c-muted)", margin: "0 0 4px" }}>Reden:</p>
-                    <p style={{ fontSize: 13, color: "var(--c-text)", margin: 0 }}>{req.reason}</p>
-                  </div>
-                )}
-
-                {req.managerComment && (
-                  <div style={{ background: "var(--c-accent-weak)", borderRadius: 8, padding: "10px 14px", marginBottom: 10 }}>
-                    <p style={{ fontSize: 11, color: "var(--c-accent)", margin: "0 0 4px" }}>Manager Opmerking:</p>
-                    <p style={{ fontSize: 13, color: "var(--c-text)", margin: 0 }}>{req.managerComment}</p>
-                  </div>
-                )}
-
-                {isPending && (
-                  isSelected ? (
-                    <div style={{ background: "var(--c-panel-2)", borderRadius: 8, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-                      <textarea
-                        placeholder="Voeg een opmerking toe (optioneel)..."
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        rows={3}
-                        style={{ width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", resize: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-                      />
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={() => handleApprove(req.id)} style={btnPrimary("var(--c-green)")}>
-                          <CheckCircle size={14} /> Goedkeuren
-                        </button>
-                        <button onClick={() => handleReject(req.id)} style={btnPrimary("var(--c-red)")}>
-                          <XCircle size={14} /> Afkeuren
-                        </button>
-                        <button onClick={() => { setSelectedRequest(null); setComment(""); }} style={{ padding: "7px 14px", background: "none", border: "1px solid var(--c-border)", borderRadius: 7, fontSize: 13, color: "var(--c-text-2)", cursor: "pointer" }}>
-                          Annuleren
-                        </button>
+        <div className="space-y-3 md:space-y-4">
+          {filteredRequests.map((request) => (
+            <Card key={request.id} className="hover:shadow-md transition overflow-hidden">
+              <CardContent className="pt-4 md:pt-6">
+                <div className="space-y-3 md:space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {request.userFirstName?.charAt(0)}{request.userLastName?.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                            {request.userFirstName} {request.userLastName}
+                          </h3>
+                          {getStatusBadge(request.status)}
+                        </div>
+                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400">
+                          {request.user?.function || "Medewerker"}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <button onClick={() => setSelectedRequest(req)} style={btnPrimary("var(--c-accent)")}>
-                      Behandelen
-                    </button>
-                  )
-                )}
-              </div>
-            );
-          })}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 bg-slate-50 dark:bg-slate-800 rounded-lg p-3 md:p-4">
+                    <div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Start Datum
+                      </p>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">
+                        {dayjs(request.startDate).format("DD MMM YYYY")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Eind Datum
+                      </p>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">
+                        {dayjs(request.endDate).format("DD MMM YYYY")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        Aantal Dagen
+                      </p>
+                      <p className="font-medium text-blue-600 dark:text-blue-400">
+                        {calculateDays(request.startDate, request.endDate)}{" "}
+                        dagen
+                      </p>
+                    </div>
+                  </div>
+
+                  {request.reason && (
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        Reden:
+                      </p>
+                      <p className="text-sm text-slate-900 dark:text-slate-100">
+                        {request.reason}
+                      </p>
+                    </div>
+                  )}
+
+                  {request.managerComment && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+                        Manager Opmerking:
+                      </p>
+                      <p className="text-sm text-slate-900 dark:text-slate-100">
+                        {request.managerComment}
+                      </p>
+                    </div>
+                  )}
+
+                  {(request.status?.toLowerCase() === "pending" || request.status?.toLowerCase() === "submitted") &&
+                    (selectedRequest?.id === request.id ? (
+                      <div className="space-y-3 bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                        <Textarea
+                          placeholder="Voeg een opmerking toe (optioneel)..."
+                          value={comment}
+                          onChange={(e) => setComment(e.target.value)}
+                          rows={3}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApprove(request.id, comment)}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Goedkeuren
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="text-red-600 border-red-600"
+                            onClick={() => handleReject(request.id, comment)}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Afkeuren
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedRequest(null);
+                              setComment("");
+                            }}
+                          >
+                            Annuleren
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedRequest(request)}
+                        >
+                          Behandelen
+                        </Button>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

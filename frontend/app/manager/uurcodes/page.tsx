@@ -9,12 +9,16 @@ import {
   Search,
   Users,
   Save,
+  ChevronDown,
   Briefcase,
   Plane,
   AlertTriangle,
   Clock,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface TaskCode {
   id: number;
@@ -44,10 +48,10 @@ function getCategoryInfo(code: string) {
   if (code.startsWith("I"))
     return { label: "Indirect", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400", icon: Briefcase };
   if (code.startsWith("Z0") || code.startsWith("Z1") || code === "SLEEFTIJD")
-    return { label: "Verlof", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400", icon: Plane };
+    return { label: "Verlof", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: Plane };
   if (code.startsWith("Z2") || code.startsWith("Z3") || code.startsWith("Z4"))
     return { label: "Ziekte", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400", icon: AlertTriangle };
-  return { label: "Werk", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: Clock };
+  return { label: "Werk", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400", icon: Clock };
 }
 
 export default function UurcodesPage() {
@@ -72,6 +76,7 @@ export default function UurcodesPage() {
         getAllUsers(),
       ]);
 
+      // Filter to relevant uurcodes (I, Z, SLEEFTIJD)
       const allTasks = (tasksRes.data.tasks || []).filter(
         (t: TaskCode) =>
           t.code.startsWith("I") ||
@@ -134,6 +139,7 @@ export default function UurcodesPage() {
     if (!selectedMember) return;
     setSaving(true);
     try {
+      // Send all allocations that exist in state (including 0 to clear old values)
       await axios.put(
         `${API_URL}/users/${selectedMember.medewGcId}/hour-allocations`,
         {
@@ -176,55 +182,59 @@ export default function UurcodesPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Uurcode Toewijzingen</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Stel per medewerker het jaarlijks budget in per uurcode</p>
-        </div>
-        {selectedMember && hasChanges && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md transition-colors"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? "Opslaan..." : "Opslaan"}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="Uurcode Toewijzingen"
+        description="Stel per medewerker het jaarlijks budget in per uurcode"
+        actions={
+          selectedMember && hasChanges ? (
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="sm"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? "Opslaan..." : "Opslaan"}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Team Member Selection */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Users className="w-3.5 h-3.5" />
-          Selecteer medewerker
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {teamMembers.map((member) => (
-            <button
-              key={member.medewGcId}
-              onClick={() => handleSelectMember(member)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
-                selectedMember?.medewGcId === member.medewGcId
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
-                  : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
-              }`}
-            >
-              <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-              </div>
-              <span className="font-medium">
-                {member.firstName} {member.lastName}
-              </span>
-            </button>
-          ))}
-          {teamMembers.length === 0 && (
-            <p className="text-sm text-slate-400">Geen teamleden gevonden</p>
-          )}
-        </div>
-      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Selecteer medewerker
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {teamMembers.map((member) => (
+              <button
+                key={member.medewGcId}
+                onClick={() => handleSelectMember(member)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
+                  selectedMember?.medewGcId === member.medewGcId
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
+                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                  {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+                </div>
+                <span className="font-medium">
+                  {member.firstName} {member.lastName}
+                </span>
+              </button>
+            ))}
+            {teamMembers.length === 0 && (
+              <p className="text-sm text-slate-400">Geen teamleden gevonden</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Allocations Table */}
       {selectedMember ? (
@@ -241,136 +251,140 @@ export default function UurcodesPage() {
             />
           </div>
 
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ListChecks className="w-4 h-4" />
                 {selectedMember.firstName} {selectedMember.lastName}
-                <span className="text-slate-400 font-normal text-xs">
+                <span className="ml-1 text-slate-400 font-normal text-sm">
                   ({selectedMember.contractHours || 40} uur/week)
                 </span>
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">
-                      Code
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Omschrijving
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell w-28">
-                      Categorie
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-24">
-                      Budget
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">
-                      Gebruikt
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-20">
-                      Rest
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTasks.map((task) => {
-                    const alloc = getAllocation(task.code);
-                    const budget = alloc?.annualBudget ?? 0;
-                    const used = alloc?.used ?? 0;
-                    const remaining = budget - used;
-                    const cat = getCategoryInfo(task.code);
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 w-20">
+                        Code
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Omschrijving
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell w-24">
+                        Categorie
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-24">
+                        Budget
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-20">
+                        Gebruikt
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 w-20">
+                        Rest
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {filteredTasks.map((task) => {
+                      const alloc = getAllocation(task.code);
+                      const budget = alloc?.annualBudget ?? 0;
+                      const used = alloc?.used ?? 0;
+                      const remaining = budget - used;
+                      const cat = getCategoryInfo(task.code);
 
-                    return (
-                      <tr
-                        key={task.id}
-                        className={`border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${
-                          budget > 0 ? "" : "opacity-60 hover:opacity-100"
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                          <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs font-bold">
-                            {task.code}
-                          </code>
-                        </td>
-                        <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                          {task.description}
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cat.color}`}>
-                            {cat.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={budget || ""}
-                            placeholder="0"
-                            onChange={(e) =>
-                              updateBudget(task.code, task.description, parseFloat(e.target.value) || 0)
-                            }
-                            className="w-16 h-8 text-center text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mx-auto block"
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-center text-slate-500 dark:text-slate-400 text-sm font-mono">
-                          {used > 0 ? used : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {budget > 0 ? (
-                            <span
-                              className={`text-sm font-bold font-mono ${
-                                remaining < 0
-                                  ? "text-red-600 dark:text-red-400"
-                                  : remaining <= budget * 0.1
-                                  ? "text-amber-600 dark:text-amber-400"
-                                  : "text-emerald-600 dark:text-emerald-400"
-                              }`}
-                            >
-                              {remaining}
+                      return (
+                        <tr
+                          key={task.id}
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${
+                            budget > 0 ? "" : "opacity-60 hover:opacity-100"
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono text-xs font-bold">
+                              {task.code}
+                            </code>
+                          </td>
+                          <td className="px-4 py-3 text-slate-900 dark:text-white text-sm">
+                            {task.description}
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cat.color}`}>
+                              {cat.label}
                             </span>
-                          ) : (
-                            <span className="text-slate-300 dark:text-slate-600">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              value={budget || ""}
+                              placeholder="0"
+                              onChange={(e) =>
+                                updateBudget(task.code, task.description, parseFloat(e.target.value) || 0)
+                              }
+                              className="w-16 h-8 text-center text-sm border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mx-auto"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-center text-slate-500 dark:text-slate-400 text-sm font-mono">
+                            {used > 0 ? used : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {budget > 0 ? (
+                              <span
+                                className={`text-sm font-bold font-mono ${
+                                  remaining < 0
+                                    ? "text-rose-600 dark:text-rose-400"
+                                    : remaining <= budget * 0.1
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                                }`}
+                              >
+                                {remaining}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 dark:text-slate-600">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Footer with save */}
-            <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {allocations.filter((a) => a.annualBudget > 0).length} van {tasks.length} uurcodes ingesteld
-              </span>
-              {hasChanges && (
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {saving ? "Opslaan..." : "Wijzigingen opslaan"}
-                </button>
-              )}
-            </div>
-          </div>
+              {/* Footer with save */}
+              <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {allocations.filter((a) => a.annualBudget > 0).length} van {tasks.length} uurcodes ingesteld
+                </span>
+                {hasChanges && (
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    {saving ? "Opslaan..." : "Wijzigingen opslaan"}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </>
       ) : (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-16 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-            <Users className="w-7 h-7 text-slate-400" />
-          </div>
-          <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Selecteer een medewerker</p>
-          <p className="text-sm text-slate-500 mt-1">
-            Kies hierboven een teamlid om hun uurcode budgetten in te stellen
-          </p>
-        </div>
+        <Card>
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <Users className="w-7 h-7 text-slate-400" />
+              </div>
+              <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Selecteer een medewerker</p>
+              <p className="text-sm text-slate-500 mt-1">Kies hierboven een teamlid om hun uurcode budgetten in te stellen</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

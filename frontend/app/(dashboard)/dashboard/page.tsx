@@ -1,30 +1,33 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Clock, Plane, FileText, CheckCircle2, ChevronRight, Plus, BarChart2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Clock,
+  Plane,
+  FileText,
+  CheckCircle2,
+  List,
+} from "lucide-react";
 import { getVacationRequests } from "@/lib/api";
 import { getDrafts, getSubmitted } from "@/lib/api/workflowApi";
 import { getCurrentPeriodId } from "@/lib/manager-api";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
-import "dayjs/locale/nl";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui/toast";
 import authUtils from "@/lib/auth-utils";
+import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
-dayjs.locale("nl");
-
-const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-  goedgekeurd:  { label: "Goedgekeurd", color: "var(--c-green)",  bg: "var(--c-green-weak)"  },
-  SUBMITTED:    { label: "Ingediend",   color: "var(--c-amber)",  bg: "var(--c-amber-weak)"  },
-  ingeleverd:   { label: "Ingediend",   color: "var(--c-amber)",  bg: "var(--c-amber-weak)"  },
-  afgekeurd:    { label: "Afgewezen",   color: "var(--c-red)",    bg: "var(--c-red-weak)"    },
-};
 
 export default function Dashboard() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [stats, setStats] = useState({
@@ -37,273 +40,304 @@ export default function Dashboard() {
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [upcomingVacation, setUpcomingVacation] = useState<any>(null);
 
-  useEffect(() => { loadDashboardData(); }, []);
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
   const loadDashboardData = async () => {
     try {
       const userId = authUtils.getUserId();
-      if (!userId) { router.push("/login"); return; }
+      if (!userId) {
+        router.push("/login");
+        return;
+      }
       const userName = authUtils.getUserName();
-      setFirstName(userName?.firstName || "Gebruiker");
+      setFirstName(userName?.firstName || t("dashboard.defaultUserName"));
 
+      // Load time entries from workflow API
       const urenperGcId = await getCurrentPeriodId();
-      const [drafts, submitted] = await Promise.all([getDrafts(urenperGcId), getSubmitted(urenperGcId)]);
+      const [drafts, submitted] = await Promise.all([
+        getDrafts(urenperGcId),
+        getSubmitted(urenperGcId),
+      ]);
       const allEntries = [...drafts, ...submitted];
 
+      // Calculate week hours
       const weekStart = dayjs().startOf("isoWeek");
-      const weekEnd   = dayjs().endOf("isoWeek");
-      const weekHours = allEntries
-        .filter((e: any) => dayjs(e.datum).isBetween(weekStart, weekEnd, null, "[]"))
-        .reduce((s: number, e: any) => s + (e.aantal || 0), 0);
+      const weekEnd = dayjs().endOf("isoWeek");
+      const weekEntries = allEntries.filter((e: any) => {
+        const date = dayjs(e.datum);
+        return date.isBetween(weekStart, weekEnd, null, "[]");
+      });
+      const weekHours = weekEntries.reduce((sum: number, e: any) => sum + (e.aantal || 0), 0);
 
+      // Calculate month hours
       const monthStart = dayjs().startOf("month");
-      const monthEnd   = dayjs().endOf("month");
-      const monthHours = allEntries
-        .filter((e: any) => dayjs(e.datum).isBetween(monthStart, monthEnd, null, "[]"))
-        .reduce((s: number, e: any) => s + (e.aantal || 0), 0);
+      const monthEnd = dayjs().endOf("month");
+      const monthEntries = allEntries.filter((e: any) => {
+        const date = dayjs(e.datum);
+        return date.isBetween(monthStart, monthEnd, null, "[]");
+      });
+      const monthHours = monthEntries.reduce((sum: number, e: any) => sum + (e.aantal || 0), 0);
 
-      const pending = allEntries.filter((e: any) => e.status === "SUBMITTED").length;
-      const recent  = [...allEntries]
-        .sort((a: any, b: any) => dayjs(b.datum).diff(dayjs(a.datum)))
-        .slice(0, 6);
+      // Pending approvals - check SUBMITTED status
+      const pending = allEntries.filter(
+        (e: any) => e.status === "SUBMITTED",
+      ).length;
+
+      // Recent entries (last 5)
+      const recent = allEntries
+        .sort((a: any, b: any) => {
+          const dateA = dayjs(a.datum);
+          const dateB = dayjs(b.datum);
+          return dateB.diff(dateA);
+        })
+        .slice(0, 5);
+
       setRecentEntries(recent);
 
+      // Load vacation data
       try {
-        const vacations   = await getVacationRequests();
+        const vacations = await getVacationRequests();
         const userVacations = vacations.filter((v: any) => v.userId === userId);
+
+        // Find upcoming approved vacation
         const upcoming = userVacations
-          .filter((v: any) => v.status === "goedgekeurd" && dayjs(v.startDate).isAfter(dayjs()))
-          .sort((a: any, b: any) => dayjs(a.startDate).diff(dayjs(b.startDate)))[0];
-        setUpcomingVacation(upcoming || null);
+          .filter(
+            (v: any) =>
+              v.status === "goedgekeurd" && dayjs(v.startDate).isAfter(dayjs()),
+          )
+          .sort((a: any, b: any) =>
+            dayjs(a.startDate).diff(dayjs(b.startDate)),
+          )[0];
+
+        setUpcomingVacation(upcoming);
+
+        // Count remaining vacation days (mock - should come from user profile)
         const usedDays = userVacations
           .filter((v: any) => v.status === "goedgekeurd")
-          .reduce((s: number, v: any) => s + dayjs(v.endDate).diff(dayjs(v.startDate), "day") + 1, 0);
-        setStats({ weekHours: Math.round(weekHours * 10) / 10, monthHours: Math.round(monthHours * 10) / 10, vacationDays: 25 - usedDays, pendingApprovals: pending, weekTarget: 40 });
+          .reduce((sum: number, v: any) => {
+            const start = dayjs(v.startDate);
+            const end = dayjs(v.endDate);
+            return sum + end.diff(start, "day") + 1;
+          }, 0);
+
+        setStats({
+          weekHours: Math.round(weekHours * 10) / 10,
+          monthHours: Math.round(monthHours * 10) / 10,
+          vacationDays: 25 - usedDays,
+          pendingApprovals: pending,
+          weekTarget: 40,
+        });
       } catch {
-        setStats({ weekHours: Math.round(weekHours * 10) / 10, monthHours: Math.round(monthHours * 10) / 10, vacationDays: 25, pendingApprovals: pending, weekTarget: 40 });
+        setStats({
+          weekHours: Math.round(weekHours * 10) / 10,
+          monthHours: Math.round(monthHours * 10) / 10,
+          vacationDays: 25,
+          pendingApprovals: pending,
+          weekTarget: 40,
+        });
       }
-    } catch {
-      showToast("Fout bij laden dashboard", "error");
+    } catch (error) {
+      showToast(t("dashboard.loadError"), "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const weekPct = Math.min(100, Math.round((stats.weekHours / stats.weekTarget) * 100));
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "goedgekeurd":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            Goedgekeurd
+          </span>
+        );
+      case "ingeleverd":
+      case "SUBMITTED":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            Ingediend
+          </span>
+        );
+      case "afgekeurd":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            Afgewezen
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+            Concept
+          </span>
+        );
+    }
+  };
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 320 }}>
-        <div style={{ width: 36, height: 36, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   const approvedCount = recentEntries.filter((e: any) => e.status === "goedgekeurd").length;
 
-  const statCards = [
-    { label: "Uren deze week", value: `${stats.weekHours}u`, sub: `van ${stats.weekTarget}u target`, icon: Clock,        color: "var(--c-accent)",  bg: "var(--c-accent-weak)",  href: "/tijd-registratie" },
-    { label: "Uren deze maand", value: `${stats.monthHours}u`, sub: "totaal geregistreerd",          icon: BarChart2,    color: "var(--c-green)",   bg: "var(--c-green-weak)",   href: "/uren-overzicht" },
-    { label: "Vakantiedagen",   value: stats.vacationDays,     sub: "resterend dit jaar",             icon: Plane,        color: "#9b59b6",          bg: "#f3eaff",               href: "/vakantie" },
-    { label: "Ingediend",       value: stats.pendingApprovals, sub: "wacht op beoordeling",           icon: FileText,     color: "var(--c-amber)",   bg: "var(--c-amber-weak)",   href: "/uren-overzicht" },
-  ];
-
-  const hour = dayjs().hour();
-  const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="p-6 space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Dashboard"
+        description={dayjs().format("dddd D MMMM YYYY")}
+      />
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-        <div>
-          <p style={{ fontSize: 13, color: "var(--c-muted)", marginBottom: 4 }}>
-            {dayjs().format("dddd D MMMM YYYY")}
-          </p>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>
-            {greeting}, {firstName} 👋
-          </h1>
-        </div>
-        <button
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Uren deze week"
+          value={`${stats.weekHours}u`}
+          icon={Clock}
+          color="blue"
           onClick={() => router.push("/tijd-registratie")}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-        >
-          <Plus size={15} />
-          Uren registreren
-        </button>
+        />
+        <StatCard
+          title="Vakantiedagen"
+          value={stats.vacationDays}
+          icon={Plane}
+          color="emerald"
+          onClick={() => router.push("/vakantie")}
+        />
+        <StatCard
+          title="Ingediend"
+          value={stats.pendingApprovals}
+          icon={FileText}
+          color="amber"
+          onClick={() => router.push("/uren-overzicht")}
+        />
+        <StatCard
+          title="Goedgekeurd"
+          value={approvedCount}
+          icon={CheckCircle2}
+          color="emerald"
+          onClick={() => router.push("/uren-overzicht")}
+        />
       </div>
 
-      {/* Week progress */}
-      <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "14px 18px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>Voortgang deze week</span>
-          <span style={{ fontSize: 13, color: "var(--c-muted)" }}>{stats.weekHours}u / {stats.weekTarget}u</span>
-        </div>
-        <div style={{ height: 6, background: "var(--c-border)", borderRadius: 99, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${weekPct}%`, background: weekPct >= 100 ? "var(--c-green)" : "var(--c-accent)", borderRadius: 99, transition: "width 0.4s ease" }} />
-        </div>
-        <p style={{ fontSize: 12, color: "var(--c-muted)", marginTop: 6, marginBottom: 0 }}>
-          {weekPct >= 100 ? "Weekdoel bereikt 🎉" : `Nog ${stats.weekTarget - stats.weekHours}u te gaan`}
-        </p>
-      </div>
-
-      {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
-        {statCards.map((s) => (
-          <div
-            key={s.label}
-            onClick={() => router.push(s.href)}
-            style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "16px 18px", cursor: "pointer", transition: "border-color 0.15s", display: "flex", flexDirection: "column", gap: 10 }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = s.color)}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--c-border)")}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 12, color: "var(--c-muted)", fontWeight: 500 }}>{s.label}</span>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <s.icon size={15} color={s.color} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recente Tijdregistraties — 2/3 breedte */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                Recente Tijdregistraties
+              </CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push("/uren-overzicht")}
+              >
+                Alles bekijken
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {recentEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                  <Clock className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen registraties</p>
+                <p className="text-xs text-slate-500 mt-1">Er zijn nog geen tijdregistraties beschikbaar.</p>
               </div>
-            </div>
-            <div>
-              <p style={{ fontSize: 26, fontWeight: 700, color: "var(--c-text)", margin: 0, lineHeight: 1.1 }}>{s.value}</p>
-              <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "3px 0 0" }}>{s.sub}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
-
-        {/* Recent entries */}
-        <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: "1px solid var(--c-border)" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", display: "flex", alignItems: "center", gap: 7 }}>
-              <Clock size={14} color="var(--c-muted)" />
-              Recente Tijdregistraties
-            </span>
-            <button
-              onClick={() => router.push("/uren-overzicht")}
-              style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--c-accent)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}
-            >
-              Alles bekijken <ChevronRight size={13} />
-            </button>
-          </div>
-
-          {recentEntries.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "56px 24px", textAlign: "center", gap: 10 }}>
-              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Clock size={20} color="var(--c-muted)" />
-              </div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen registraties</p>
-              <p style={{ fontSize: 12, color: "var(--c-muted)", margin: 0 }}>Nog geen tijdregistraties in deze periode.</p>
-            </div>
-          ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: "var(--c-panel-2)" }}>
-                  {["Datum", "Project", "Status", "Uren"].map((h, i) => (
-                    <th key={h} style={{ padding: "9px 18px", textAlign: i === 3 ? "right" : "left", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid var(--c-border)" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {recentEntries.map((entry: any, idx: number) => {
-                  const d = dayjs(entry.datum || entry.startTime || entry.date);
-                  const meta = statusMeta[entry.status] || { label: "Concept", color: "var(--c-muted)", bg: "var(--c-hover)" };
-                  return (
-                    <tr
-                      key={entry.id || idx}
-                      onClick={() => router.push("/uren-overzicht")}
-                      style={{ borderBottom: "1px solid var(--c-border)", cursor: "pointer" }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "var(--c-hover)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <td style={{ padding: "10px 18px", whiteSpace: "nowrap" }}>
-                        <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0, textTransform: "uppercase" }}>{d.format("ddd")}</p>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>{d.format("D MMM")}</p>
-                      </td>
-                      <td style={{ padding: "10px 18px", maxWidth: 200 }}>
-                        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || "?"}`}
-                        </p>
-                        <p style={{ fontSize: 12, color: "var(--c-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {entry.omschrijving || entry.notes || "—"}
-                        </p>
-                      </td>
-                      <td style={{ padding: "10px 18px" }}>
-                        <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: meta.bg, color: meta.color }}>
-                          {meta.label}
-                        </span>
-                      </td>
-                      <td style={{ padding: "10px 18px", textAlign: "right", fontWeight: 700, color: "var(--c-text)" }}>
-                        {entry.aantal || entry.hours || 0}u
-                      </td>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Project</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {recentEntries.map((entry: any) => (
+                      <tr
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                        onClick={() => router.push("/uren-overzicht")}
+                      >
+                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">
+                            {dayjs(entry.datum || entry.startTime || entry.date).format("ddd")}
+                          </p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">
+                            {dayjs(entry.datum || entry.startTime || entry.date).format("D MMM")}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                          <p className="font-medium truncate max-w-[160px]">
+                            {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || "?"}`}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
+                            {entry.omschrijving || entry.notes || "Geen omschrijving"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          {getStatusBadge(entry.status)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            {entry.aantal || entry.hours || 0}u
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Right column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-
-          {/* Quick actions */}
-          <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--c-border)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>Snelle Acties</span>
+        {/* Snelle Acties — 1/3 breedte */}
+        <Card>
+          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <List className="w-4 h-4 text-slate-400" />
+              Snelle Acties
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <Button
+                className="w-full justify-start"
+                onClick={() => router.push("/tijd-registratie")}
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Uren Registreren
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => router.push("/vakantie")}
+              >
+                <Plane className="w-4 h-4 mr-2" />
+                Verlof Aanvragen
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => router.push("/uren-overzicht")}
+              >
+                <List className="w-4 h-4 mr-2" />
+                Mijn Overzicht
+              </Button>
             </div>
-            <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { label: "Uren registreren",   href: "/tijd-registratie", icon: Clock,       primary: true },
-                { label: "Verlof aanvragen",    href: "/vakantie",         icon: Plane,       primary: false },
-                { label: "Mijn uren overzicht", href: "/uren-overzicht",   icon: CheckCircle2, primary: false },
-              ].map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => router.push(action.href)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 9, padding: "9px 13px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left", justifyContent: "flex-start",
-                    background: action.primary ? "var(--c-accent)" : "transparent",
-                    color:      action.primary ? "#fff" : "var(--c-text)",
-                    border:     action.primary ? "none" : "1px solid var(--c-border)",
-                    transition: "background 0.15s, border-color 0.15s",
-                  }}
-                  onMouseEnter={e => { if (!action.primary) e.currentTarget.style.background = "var(--c-hover)"; }}
-                  onMouseLeave={e => { if (!action.primary) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <action.icon size={15} />
-                  {action.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Upcoming vacation */}
-          {upcomingVacation && (
-            <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "14px 18px" }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>Volgende vakantie</p>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)", margin: "0 0 4px" }}>
-                {dayjs(upcomingVacation.startDate).format("D MMM")} – {dayjs(upcomingVacation.endDate).format("D MMM YYYY")}
-              </p>
-              <p style={{ fontSize: 12, color: "var(--c-muted)", margin: 0 }}>
-                {dayjs(upcomingVacation.startDate).diff(dayjs(), "day")} dagen te gaan
-              </p>
-            </div>
-          )}
-
-          {/* This week stat */}
-          <div style={{ background: "var(--c-accent-weak)", border: "1px solid color-mix(in srgb, var(--c-accent) 20%, transparent)", borderRadius: 10, padding: "14px 18px" }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--c-accent)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 4px" }}>Goedgekeurd</p>
-            <p style={{ fontSize: 28, fontWeight: 800, color: "var(--c-accent)", margin: "0 0 2px" }}>{approvedCount}</p>
-            <p style={{ fontSize: 12, color: "var(--c-accent)", opacity: 0.7, margin: 0 }}>registraties goedgekeurd</p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-
     </div>
   );
 }

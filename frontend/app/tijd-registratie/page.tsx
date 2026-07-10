@@ -5,10 +5,26 @@ import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import axios from "axios";
 import {
+  ChevronLeft,
+  ChevronRight,
   ChevronDown,
   Plus,
+  Save,
+  Send,
   Trash2,
+  Calendar,
+  Copy,
+  Clipboard,
+  Car,
+  Ticket,
+  Euro,
+  FileText,
+  Wrench,
+  Ruler,
+  Moon,
+  Clock,
   Star,
+  Heart,
 } from "lucide-react";
 import {
   getCompanies,
@@ -21,6 +37,8 @@ import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
 import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
 import { getProjects as getAllProjectsFlat, API_URL } from "@/lib/api";
 import { getCurrentPeriodId as fetchCurrentPeriodId } from "@/lib/manager-api";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import ModernLayout from "@/components/ModernLayout";
 
 interface Company {
   id: number;
@@ -158,6 +176,7 @@ export default function TimeRegistrationPage() {
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
   const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
   const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
@@ -173,7 +192,6 @@ export default function TimeRegistrationPage() {
   const [selectedMobileWeek, setSelectedMobileWeek] = useState(0);
   const [indirectTasks, setIndirectTasks] = useState<IndirectTask[]>([]);
   const [indirectEntries, setIndirectEntries] = useState<Record<string, IndirectEntry>>({});
-  const [openRows, setOpenRows] = useState<Set<number>>(new Set());
 
   const weekDays = getWeekDays(currentWeek);
   const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -485,7 +503,7 @@ export default function TimeRegistrationPage() {
       const allEntries = [...drafts, ...submitted, ...rejected];
 
       // Check if any entries are submitted or approved (locks the whole period)
-      const hasLockedEntries = allEntries.some((e: any) =>
+      const hasLockedEntries = allEntries.some((e: any) => 
         e.status === 'SUBMITTED' || e.status === 'APPROVED'
       );
       setHasSubmittedEntries(hasLockedEntries);
@@ -730,6 +748,18 @@ export default function TimeRegistrationPage() {
     });
   };
 
+  const toggleCellExpanded = (projectId: number, date: string) => {
+    const key = `${date}-${projectId}`;
+    setExpandedCells((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const isCellExpanded = (projectId: number, date: string) => {
+    const key = `${date}-${projectId}`;
+    return expandedCells[key] || false;
+  };
 
   const getTotalDay = (date: string) =>
     (Object.values(entries) as TimeEntry[])
@@ -1041,8 +1071,8 @@ export default function TimeRegistrationPage() {
       await new Promise(resolve => setTimeout(resolve, 500));
       await loadEntries();
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
+      const errorMessage = error instanceof Error 
+        ? error.message 
         : "Kan uren niet indienen. Controleer of alle velden correct zijn ingevuld.";
       showToast("❌ " + errorMessage, "error");
     } finally {
@@ -1050,419 +1080,1609 @@ export default function TimeRegistrationPage() {
     }
   };
 
-  // selectedDay for legacy day-view helpers (kept for compatibility)
-  const [selectedDay, setSelectedDay] = useState(() => {
-    const today = new Date().getDay();
-    return today === 0 ? 6 : today - 1;
-  });
-
-  const getDayEntries = (dayIndex: number) => {
-    const date = formatDate(weekDays[dayIndex]);
-    return projectRows.map(row => ({
-      ...row,
-      date,
-      entry: entries[`${date}-${row.projectId}`],
-    }));
-  };
-
-  const getDayTotal = (dayIndex: number) => {
-    const date = formatDate(weekDays[dayIndex]);
-    return getTotalDay(date);
-  };
-
-  const toggleOpenRow = (projectId: number) => {
-    setOpenRows(prev => {
-      const next = new Set(prev);
-      if (next.has(projectId)) next.delete(projectId);
-      else next.add(projectId);
-      return next;
-    });
-  };
-
-  const PROJECT_COLORS = ["var(--c-accent)","#1f9d74","#d08a2b","#9b59b6","#e74c3c","#2ecc71","#1abc9c","#f39c12"];
-  const getProjectColor = (projectId: number) => PROJECT_COLORS[projectId % PROJECT_COLORS.length];
-
-  // ─── Style constants ───────────────────────────────────────────────────────
-  const primaryBtnStyle: React.CSSProperties = {
-    display: "flex", alignItems: "center", gap: "8px",
-    padding: "9px 16px", border: "1px solid transparent",
-    background: "var(--c-accent)", color: "#fff",
-    borderRadius: "9px", fontSize: "13px", fontWeight: 600,
-    cursor: "pointer", fontFamily: "var(--font-geist, sans-serif)",
-  };
-  const secondaryBtnStyle: React.CSSProperties = {
-    display: "flex", alignItems: "center", gap: "7px",
-    padding: "9px 15px", border: "1px solid var(--c-border)",
-    background: "var(--c-panel)", color: "var(--c-text)",
-    borderRadius: "9px", fontSize: "13px", fontWeight: 600,
-    cursor: "pointer", boxShadow: "var(--c-shadow)",
-    fontFamily: "var(--font-geist, sans-serif)",
-  };
-  const secondaryBtnSmStyle: React.CSSProperties = {
-    padding: "0 13px", height: "32px", border: "1px solid var(--c-border)",
-    background: "var(--c-panel)", borderRadius: "8px",
-    color: "var(--c-text-2)", fontSize: "12.5px", fontWeight: 600,
-    cursor: "pointer", boxShadow: "var(--c-shadow)",
-    fontFamily: "var(--font-geist, sans-serif)",
-  };
-  const iconBtnStyle: React.CSSProperties = {
-    width: "32px", height: "32px", display: "flex", alignItems: "center",
-    justifyContent: "center", border: "1px solid var(--c-border)",
-    background: "var(--c-panel)", borderRadius: "8px",
-    color: "var(--c-text-2)", cursor: "pointer", boxShadow: "var(--c-shadow)",
-    fontSize: "18px", fontFamily: "var(--font-geist, sans-serif)",
-  };
-  const colHeaderStyle: React.CSSProperties = {
-    padding: "12px 16px", fontSize: "11px", fontWeight: 600,
-    letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--c-muted)",
-  };
-  const extraLabelStyle: React.CSSProperties = {
-    display: "flex", flexDirection: "column", gap: "5px",
-  };
-  const extraLabelTextStyle: React.CSSProperties = {
-    fontSize: "10.5px", fontWeight: 600, textTransform: "uppercase",
-    letterSpacing: "0.06em", color: "var(--c-muted)",
-  };
-  const extraInputStyle: React.CSSProperties = {
-    width: "130px", padding: "8px 11px", border: "1px solid var(--c-border)",
-    borderRadius: "8px", background: "var(--c-panel)", color: "var(--c-text)",
-    fontSize: "13px", fontFamily: "var(--font-geist-mono, monospace)",
-    outline: "none",
-  };
-
-  // ─── Computed values ───────────────────────────────────────────────────────
-  const shortMonths = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
-  const weekTotal = getTotalWeek();
-  const firstDay = weekDays[0];
-  const lastDay = weekDays[6];
-  const rangeLabel = `${firstDay.getDate()} ${shortMonths[firstDay.getMonth()]} – ${lastDay.getDate()} ${shortMonths[lastDay.getMonth()]} ${lastDay.getFullYear()}`;
-  const prevWeek = () => { const d = new Date(currentWeek); d.setDate(d.getDate() - 7); setCurrentWeek(d); };
-  const nextWeek = () => { const d = new Date(currentWeek); d.setDate(d.getDate() + 7); setCurrentWeek(d); };
-  const goToday = () => setCurrentWeek(new Date());
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: "fixed", top: "16px", right: "16px", zIndex: 50,
-          padding: "12px 18px", borderRadius: "10px",
-          background: toast.type === "success" ? "#059669" : "#dc2626",
-          color: "#fff", fontSize: "13.5px", fontWeight: 500,
-          display: "flex", alignItems: "center", gap: "8px",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
-          fontFamily: "var(--font-geist, sans-serif)",
-        }}>
-          <span>{toast.type === "success" ? "✓" : "✕"}</span>
-          {toast.message}
-        </div>
-      )}
-
-      {/* Page header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ margin: 0, font: "700 22px var(--font-geist, sans-serif)", letterSpacing: "-0.015em", color: "var(--c-text)" }}>
-            Uren registreren
-          </h1>
-          <p style={{ margin: "5px 0 0", fontSize: "13.5px", color: "var(--c-muted)" }}>
-            Vul je uren per project in en lever je week in ter goedkeuring.
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: "9px" }}>
-          <button onClick={saveAll} disabled={saving} style={secondaryBtnStyle}>
-            {saving ? "Opslaan…" : "Concept opslaan"}
-          </button>
-          <button onClick={submitAll} disabled={saving} style={primaryBtnStyle}>
-            ↑ Week inleveren
-          </button>
-        </div>
-      </div>
-
-      {/* Week navigator + status */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-          <button onClick={prevWeek} style={iconBtnStyle}>‹</button>
-          <div style={{ textAlign: "center", minWidth: "168px" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--c-text)" }}>Week {weekNumber}</div>
-            <div style={{ fontSize: "11.5px", color: "var(--c-muted)" }}>{rangeLabel}</div>
-          </div>
-          <button onClick={nextWeek} style={iconBtnStyle}>›</button>
-          <button onClick={goToday} style={secondaryBtnSmStyle}>Vandaag</button>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontWeight: 700, fontSize: "16px", fontFamily: "var(--font-geist-mono, monospace)", color: "var(--c-text)", fontVariantNumeric: "tabular-nums" }}>
-              {weekTotal}u <span style={{ fontWeight: 500, fontSize: "13px", color: "var(--c-muted)" }}>/ 40u</span>
-            </div>
-            <div style={{ width: "154px", height: "5px", background: "var(--c-border)", borderRadius: "99px", marginTop: "6px", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(100, Math.round(weekTotal / 40 * 100))}%`, background: "var(--c-accent)", borderRadius: "99px", transition: "width 0.2s" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Spreadsheet grid */}
-      <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: "13px", boxShadow: "var(--c-shadow)", overflowX: "auto" }}>
-        {/* Header row */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(232px,1.5fr) repeat(7,minmax(58px,1fr)) 88px", minWidth: "748px", borderBottom: "1px solid var(--c-border)", background: "var(--c-panel-2)" }}>
-          <div style={colHeaderStyle}>Project</div>
-          {weekDays.map((day, i) => {
-            const date = formatDate(day);
-            const isWknd = isWeekend(day);
-            return (
-              <div key={date} style={{ padding: "11px 4px", textAlign: "center", borderLeft: "1px solid var(--c-border)", background: isWknd ? "var(--c-panel-2)" : "transparent" }}>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--c-text-2)", textTransform: "capitalize" }}>{dayNames[i]}</div>
-                <div style={{ fontSize: "11px", color: "var(--c-muted)", marginTop: "2px" }}>{day.getDate()} {shortMonths[day.getMonth()]}</div>
+    <ProtectedRoute>
+      <ModernLayout>
+        <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
+          {toast && (
+            <div
+              className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
+                toast.type === "success" ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {toast.type === "success" ? "✓" : "✕"}
+                </span>
+                <span className="font-medium">{toast.message}</span>
               </div>
-            );
-          })}
-          <div style={{ ...colHeaderStyle, borderLeft: "1px solid var(--c-border)", textAlign: "center" }}>Totaal</div>
-        </div>
+            </div>
+          )}
 
-        {/* Project rows */}
-        {projectRows.map((row) => {
-          const rowOpen = openRows.has(row.projectId);
-          const rowTotal = getTotalProject(row.projectId);
-          const projectColor = getProjectColor(row.projectId);
-          return (
-            <div key={row.projectId} style={{ borderBottom: "1px solid var(--c-border)" }}>
-              {/* Main row */}
-              <div style={{ display: "grid", gridTemplateColumns: "minmax(232px,1.5fr) repeat(7,minmax(58px,1fr)) 88px", minWidth: "748px", alignItems: "stretch" }}>
-                {/* Project info cell */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "9px 12px", minWidth: 0 }}>
+          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-30">
+            <div className="px-3 md:px-6 py-3 md:py-4 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                <h1 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  Uren Registreren
+                </h1>
+
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                   <button
-                    onClick={() => toggleOpenRow(row.projectId)}
-                    title="Extra velden"
-                    style={{ width: "20px", height: "20px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "transparent", color: "var(--c-muted)", borderRadius: "5px", cursor: "pointer", fontSize: "11px" }}
+                    onClick={() => setViewMode("week")}
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-sm font-medium transition-colors ${
+                      viewMode === "week"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
                   >
-                    {rowOpen ? "▾" : "▸"}
+                    Week
                   </button>
-                  <span style={{ width: "8px", height: "8px", flexShrink: 0, borderRadius: "50%", background: projectColor }} />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--c-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.projectName}</div>
-                    <div style={{ fontSize: "11px", fontFamily: "var(--font-geist-mono, monospace)", color: "var(--c-muted)", marginTop: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.companyName}</div>
+                  <button
+                    onClick={() => setViewMode("month")}
+                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-sm font-medium transition-colors ${
+                      viewMode === "month"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    Maand
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                  <button
+                    onClick={() => {
+                      const d = new Date(currentWeek);
+                      if (viewMode === "week") {
+                        d.setDate(d.getDate() - 7);
+                      } else {
+                        d.setMonth(d.getMonth() - 1);
+                      }
+                      setCurrentWeek(d);
+                    }}
+                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
+                  </button>
+                  <div className="px-2 md:px-4 py-1 md:py-2 font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 min-w-[80px] text-center">
+                    {viewMode === "week"
+                      ? `Week ${weekNumber}`
+                      : monthNames[currentWeek.getMonth()]}
                   </div>
                   <button
-                    onClick={() => removeProject(row.projectId)}
-                    title="Verwijderen"
-                    style={{ flexShrink: 0, padding: "4px", border: "none", background: "transparent", color: "var(--c-muted)", borderRadius: "6px", cursor: "pointer", display: "flex", opacity: 0.6 }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-red)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.6"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-muted)"; }}
+                    onClick={() => {
+                      const d = new Date(currentWeek);
+                      if (viewMode === "week") {
+                        d.setDate(d.getDate() + 7);
+                      } else {
+                        d.setMonth(d.getMonth() + 1);
+                      }
+                      setCurrentWeek(d);
+                    }}
+                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
                   </button>
                 </div>
-
-                {/* Day input cells */}
-                {weekDays.map((day) => {
-                  const date = formatDate(day);
-                  const key = `${date}-${row.projectId}`;
-                  const entry = entries[key];
-                  const editable = isEditable(entry?.status);
-                  const isWknd = isWeekend(day);
-                  const isClosed = isClosedDay(date);
-                  return (
-                    <div key={date} style={{ borderLeft: "1px solid var(--c-border)", background: (isWknd || isClosed) ? "var(--c-panel-2)" : (entry?.status === "APPROVED" ? "rgba(31,157,107,0.06)" : entry?.status === "SUBMITTED" ? "rgba(58,91,208,0.04)" : entry?.status === "REJECTED" ? "rgba(220,82,82,0.06)" : "transparent"), display: "flex" }}>
-                      <input
-                        type="number"
-                        min="0"
-                        max="24"
-                        step="0.5"
-                        value={entry?.hours || ""}
-                        placeholder="–"
-                        disabled={!editable || isClosed}
-                        onChange={e => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
-                        style={{
-                          width: "100%",
-                          border: "none",
-                          background: "transparent",
-                          textAlign: "center",
-                          fontSize: "14px",
-                          fontFamily: "var(--font-geist-mono, monospace)",
-                          fontVariantNumeric: "tabular-nums",
-                          color: "var(--c-text)",
-                          padding: "12px 2px",
-                          outline: "none",
-                          cursor: editable && !isClosed ? "text" : "not-allowed",
-                          opacity: editable && !isClosed ? 1 : 0.5,
-                        }}
-                        onFocus={e => { e.currentTarget.style.background = "var(--c-panel)"; e.currentTarget.style.boxShadow = "inset 0 0 0 2px var(--c-accent)"; }}
-                        onBlur={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.boxShadow = "none"; }}
-                      />
-                    </div>
-                  );
-                })}
-
-                {/* Total cell */}
-                <div style={{ borderLeft: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontFamily: "var(--font-geist-mono, monospace)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: rowTotal === 0 ? "var(--c-muted)" : "var(--c-text)" }}>
-                  {rowTotal > 0 ? rowTotal : "–"}
-                </div>
               </div>
-
-              {/* Expandable extra fields */}
-              {rowOpen && (
-                <div style={{ padding: "14px 18px 16px 43px", background: "var(--c-panel-2)", borderTop: "1px dashed var(--c-border)", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "flex-end" }}>
-                  <label style={extraLabelStyle}>
-                    <span style={extraLabelTextStyle}>Kilometers</span>
-                    <input
-                      type="number" min="0" placeholder="0"
-                      value={(() => { const firstEntry = weekDays.map(d => entries[`${formatDate(d)}-${row.projectId}`]).find(e => e?.distanceKm); return firstEntry?.distanceKm || ""; })()}
-                      onChange={e => weekDays.forEach(d => { const key = `${formatDate(d)}-${row.projectId}`; if (entries[key]?.hours) updateEntry(row.projectId, formatDate(d), "distanceKm", parseFloat(e.target.value) || 0); })}
-                      style={extraInputStyle}
-                    />
-                  </label>
-                  <label style={extraLabelStyle}>
-                    <span style={extraLabelTextStyle}>Onkosten (€)</span>
-                    <input
-                      type="number" min="0" step="0.01" placeholder="0,00"
-                      value={(() => { const firstEntry = weekDays.map(d => entries[`${formatDate(d)}-${row.projectId}`]).find(e => e?.otherExpenses); return firstEntry?.otherExpenses || ""; })()}
-                      onChange={e => weekDays.forEach(d => { const key = `${formatDate(d)}-${row.projectId}`; if (entries[key]?.hours) updateEntry(row.projectId, formatDate(d), "otherExpenses", parseFloat(e.target.value) || 0); })}
-                      style={extraInputStyle}
-                    />
-                  </label>
-                  <label style={{ ...extraLabelStyle, flex: 1, minWidth: "220px" }}>
-                    <span style={extraLabelTextStyle}>Opmerking</span>
-                    <input
-                      type="text" placeholder="Korte toelichting op de werkzaamheden…"
-                      value={(() => { const firstEntry = weekDays.map(d => entries[`${formatDate(d)}-${row.projectId}`]).find(e => e?.notes); return firstEntry?.notes || ""; })()}
-                      onChange={e => weekDays.forEach(d => { const key = `${formatDate(d)}-${row.projectId}`; if (entries[key]?.hours) updateEntry(row.projectId, formatDate(d), "notes", e.target.value); })}
-                      style={{ ...extraInputStyle, width: "100%", fontFamily: "var(--font-geist, sans-serif)" }}
-                    />
-                  </label>
-                </div>
-              )}
+              <div className="hidden md:flex gap-3">
+                <button
+                  onClick={saveAll}
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                >
+                  <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
+                </button>
+                <button
+                  onClick={submitAll}
+                  disabled={saving}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
+                >
+                  <Send className="w-4 h-4" /> Inleveren
+                </button>
+              </div>
             </div>
-          );
-        })}
-
-        {/* Add project button */}
-        <button
-          onClick={() => setShowProjectPicker(true)}
-          style={{ display: "flex", alignItems: "center", gap: "9px", width: "100%", minWidth: "748px", padding: "12px 16px", border: "none", background: "transparent", color: "var(--c-muted)", fontSize: "13px", fontWeight: 600, cursor: "pointer", borderBottom: "1px solid var(--c-border)", fontFamily: "var(--font-geist, sans-serif)" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--c-hover)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-accent)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--c-muted)"; }}
-        >
-          <Plus size={16} /> Project toevoegen
-        </button>
-
-        {/* Day totals row */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(232px,1.5fr) repeat(7,minmax(58px,1fr)) 88px", minWidth: "748px", background: "var(--c-panel-2)" }}>
-          <div style={{ padding: "12px 16px", fontSize: "12.5px", fontWeight: 600, color: "var(--c-text)" }}>Totaal per dag</div>
-          {weekDays.map((day) => {
-            const date = formatDate(day);
-            const total = getTotalDay(date);
-            const isWknd = isWeekend(day);
-            return (
-              <div key={date} style={{ borderLeft: "1px solid var(--c-border)", background: isWknd ? "var(--c-panel-2)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontFamily: "var(--font-geist-mono, monospace)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: total === 0 ? "var(--c-muted)" : (total > 8 ? "var(--c-red)" : "var(--c-text)") }}>
-                {total > 0 ? total : "–"}
-              </div>
-            );
-          })}
-          <div style={{ borderLeft: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontFamily: "var(--font-geist-mono, monospace)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: "var(--c-accent)" }}>
-            {weekTotal}
           </div>
-        </div>
-      </div>
 
-      {/* Info hint */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", color: "var(--c-muted)" }}>
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-        Klik op ▸ naast een project om kilometers, onkosten en een opmerking toe te voegen.
-      </div>
-
-      {/* Project picker modal */}
-      {showProjectPicker && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex" }}>
-          <div
-            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }}
-            onClick={() => setShowProjectPicker(false)}
-          />
-          <div style={{ position: "relative", width: "320px", background: "var(--c-panel)", boxShadow: "0 8px 40px rgba(0,0,0,0.22)", overflowY: "auto" }}>
-            <div style={{ position: "sticky", top: 0, background: "var(--c-panel)", borderBottom: "1px solid var(--c-border)", padding: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "var(--c-text)", fontFamily: "var(--font-geist, sans-serif)" }}>Project kiezen</h3>
-              <button
-                onClick={() => setShowProjectPicker(false)}
-                style={{ padding: "4px 8px", border: "none", background: "transparent", color: "var(--c-muted)", cursor: "pointer", fontSize: "18px", lineHeight: 1, borderRadius: "6px" }}
-              >
-                &times;
-              </button>
-            </div>
-            <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: "2px" }}>
-              {favoriteProjects.length > 0 && (
-                <div style={{ marginBottom: "8px" }}>
-                  <p style={{ margin: "0 0 4px", padding: "4px 12px", fontSize: "11px", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "4px" }}>
-                    <Star size={11} style={{ fill: "currentColor" }} /> Favorieten
-                  </p>
-                  {favoriteProjects.map(fav => (
-                    <div
-                      key={fav.projectGcId}
-                      style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", cursor: "pointer", fontSize: "13px", color: "var(--c-text)", fontFamily: "var(--font-geist, sans-serif)" }}
-                      onClick={() => { addFavoriteToRows(fav); setShowProjectPicker(false); }}
-                      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
-                      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+          <div className="flex flex-col md:flex-row md:h-[calc(100vh-5rem)]">
+            {/* Mobile Project Picker Overlay */}
+            {showProjectPicker && (
+              <div className="fixed inset-0 z-50 md:hidden">
+                <div className="absolute inset-0 bg-black/60" onClick={() => setShowProjectPicker(false)} />
+                <div className="absolute top-0 left-0 h-full w-80 max-w-[85vw] bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto">
+                  <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">Project kiezen</h3>
+                    <button
+                      onClick={() => setShowProjectPicker(false)}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
                     >
-                      <Star size={11} style={{ color: "#d97706", fill: "#d97706", flexShrink: 0 }} />
-                      <span>{fav.projectName || fav.projectCode}</span>
-                    </div>
-                  ))}
-                  <div style={{ borderBottom: "1px solid var(--c-border)", margin: "8px 0" }} />
-                </div>
-              )}
-              {companies.map(company => (
-                <div key={company.id}>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "8px", cursor: "pointer" }}
-                    onClick={() => toggleCompany(company.id)}
-                    onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
-                    onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
-                  >
-                    <ChevronDown
-                      size={14}
-                      style={{ color: "var(--c-muted)", flexShrink: 0, transform: expandedCompanies.includes(company.id) ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}
-                    />
-                    <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--c-text)", fontFamily: "var(--font-geist, sans-serif)" }}>
-                      {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
-                    </span>
+                      <span className="text-xl text-slate-500">&times;</span>
+                    </button>
                   </div>
-                  {expandedCompanies.includes(company.id) && projectGroups[company.id]?.filter(g => assignedGroupIds === null || assignedGroupIds.has(g.id)).map(group => (
-                    <div key={group.id} style={{ marginLeft: "16px" }}>
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "8px", cursor: "pointer" }}
-                        onClick={() => toggleGroup(group.id)}
-                        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
-                        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
-                      >
-                        <ChevronDown
-                          size={12}
-                          style={{ color: "var(--c-muted)", flexShrink: 0, transform: expandedGroups.includes(group.id) ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}
-                        />
-                        <span style={{ fontSize: "12.5px", color: "var(--c-text-2)", fontFamily: "var(--font-geist, sans-serif)" }}>{group.name}</span>
+                  <div className="p-4 space-y-1">
+                    {/* Favoriete Projecten sectie */}
+                    {favoriteProjects.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
+                          <Star className="w-4 h-4 fill-current" />
+                          <span>Favorieten</span>
+                        </div>
+                        <div className="space-y-1">
+                          {favoriteProjects.map((favorite) => (
+                            <div
+                              key={`mob-fav-${favorite.projectGcId}`}
+                              className="flex items-center gap-2 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
+                                }}
+                                className="text-amber-500 hover:text-amber-600"
+                              >
+                                <Star className="w-4 h-4 fill-current" />
+                              </button>
+                              <span
+                                onClick={() => { addFavoriteToRows(favorite); setShowProjectPicker(false); }}
+                                className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
+                              >
+                                {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
+                              </span>
+                              <Plus
+                                onClick={() => { addFavoriteToRows(favorite); setShowProjectPicker(false); }}
+                                className="w-4 h-4 text-emerald-600 cursor-pointer"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
                       </div>
-                      {expandedGroups.includes(group.id) && getVisibleProjects(group.id).map(project => (
+                    )}
+
+                    {/* Bedrijven en projecten (mobile overlay) */}
+                    {companies.map((company) => (
+                      <div key={`mob-${company.id}`}>
                         <div
-                          key={project.id}
-                          style={{ marginLeft: "16px", display: "flex", alignItems: "center", gap: "8px", padding: "6px 12px", borderRadius: "8px", cursor: "pointer" }}
-                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
-                          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = "var(--c-hover)"}
-                          onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = "transparent"}
+                          onClick={() => toggleCompany(company.id)}
+                          className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                        >
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
+                          />
+                          <span className="font-medium group-hover:text-blue-600">
+                            {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
+                          </span>
+                        </div>
+                        {expandedCompanies.includes(company.id) && (
+                          <div className="ml-5 space-y-1">
+                            {projectGroups[company.id]?.filter(group =>
+                              assignedGroupIds === null || assignedGroupIds.has(group.id)
+                            ).map((group, index) => (
+                              <div key={group.id || `mob-group-${index}`}>
+                                <div
+                                  onClick={() => toggleGroup(group.id)}
+                                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-600-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                                >
+                                  <ChevronDown
+                                    className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                                  />
+                                  <span className="text-sm group-hover:text-blue-600">
+                                    {group.name}
+                                  </span>
+                                </div>
+                                {expandedGroups.includes(group.id) && (
+                                  <div className="ml-5 space-y-1">
+                                    {getVisibleProjects(group.id).map((project) => (
+                                      <div
+                                        key={`mob-proj-${project.id}`}
+                                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                                      >
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleFavorite(project.id, project.name);
+                                          }}
+                                          className={`transition-colors ${
+                                            favoriteProjectIds.has(project.id)
+                                              ? "text-amber-500"
+                                              : "text-slate-300 hover:text-amber-400"
+                                          }`}
+                                        >
+                                          <Star className={`w-4 h-4 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
+                                        </button>
+                                        <span
+                                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
+                                          className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 cursor-pointer flex-1"
+                                        >
+                                          {project.name}
+                                        </span>
+                                        <Plus
+                                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
+                                          className="w-4 h-4 text-emerald-600 cursor-pointer"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Desktop Sidebar */}
+            <div className="hidden md:block w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
+              <div className="p-4 space-y-1">
+                {/* Favoriete Projecten sectie */}
+                {favoriteProjects.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span>Favorieten</span>
+                    </div>
+                    <div className="space-y-1">
+                      {favoriteProjects.map((favorite) => (
+                        <div
+                          key={`fav-${favorite.projectGcId}`}
+                          className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
                         >
                           <button
-                            style={{ flexShrink: 0, background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", color: favoriteProjectIds.has(project.id) ? "#d97706" : "var(--c-muted)" }}
-                            onClick={e => { e.stopPropagation(); toggleFavorite(project.id, project.name); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
+                            }}
+                            className="text-amber-500 hover:text-amber-600"
                           >
-                            <Star size={11} style={{ fill: favoriteProjectIds.has(project.id) ? "currentColor" : "none" }} />
+                            <Star className="w-3 h-3 fill-current" />
                           </button>
-                          <span style={{ fontSize: "12.5px", color: "var(--c-text-2)", fontFamily: "var(--font-geist, sans-serif)" }}>{project.name}</span>
+                          <span
+                            onClick={() => addFavoriteToRows(favorite)}
+                            className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
+                          >
+                            {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
+                          </span>
+                          <Plus
+                            onClick={() => addFavoriteToRows(favorite)}
+                            className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          />
                         </div>
                       ))}
                     </div>
-                  ))}
+                    <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
+                  </div>
+                )}
+
+                {/* Bedrijven en projecten */}
+                {companies.map((company) => (
+                  <div key={company.id}>
+                    <div
+                      onClick={() => toggleCompany(company.id)}
+                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                    >
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
+                      />
+                      <span className="font-medium group-hover:text-blue-600">
+                        {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
+                      </span>
+                    </div>
+                    {expandedCompanies.includes(company.id) && (
+                      <div className="ml-5 space-y-1">
+                        {projectGroups[company.id]?.filter(group =>
+                          assignedGroupIds === null || assignedGroupIds.has(group.id)
+                        ).map((group, index) => (
+                          <div key={group.id || `group-${index}`}>
+                            <div
+                              onClick={() => toggleGroup(group.id)}
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-blue-600-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
+                            >
+                              <ChevronDown
+                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
+                              />
+                              <span className="text-sm group-hover:text-blue-600">
+                                {group.name}
+                              </span>
+                            </div>
+                            {expandedGroups.includes(group.id) && (
+                              <div className="ml-5 space-y-1">
+                                {getVisibleProjects(group.id).map((project) => (
+                                  <div
+                                    key={project.id}
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
+                                  >
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(project.id, project.name);
+                                      }}
+                                      className={`transition-colors ${
+                                        favoriteProjectIds.has(project.id)
+                                          ? "text-amber-500"
+                                          : "text-slate-300 hover:text-amber-400"
+                                      }`}
+                                    >
+                                      <Star className={`w-3 h-3 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
+                                    </button>
+                                    <span
+                                      onClick={() => addProject(company, group, project)}
+                                      className="text-sm text-slate-600 group-hover:text-emerald-600 cursor-pointer flex-1"
+                                    >
+                                      {project.name}
+                                    </span>
+                                    <Plus
+                                      onClick={() => addProject(company, group, project)}
+                                      className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto p-3 md:p-6">
+              {/* Mobile: Add project button */}
+              <div className="md:hidden mb-3">
+                <button
+                  onClick={() => setShowProjectPicker(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  Project toevoegen
+                </button>
+              </div>
+
+              {projectRows.length === 0 ? (
+                <div className="h-full flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">
+                      Geen projecten geselecteerd
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400">
+                      Selecteer een project {typeof window !== 'undefined' && window.innerWidth < 768 ? 'via de knop hierboven' : 'in de sidebar'}
+                    </p>
+                  </div>
                 </div>
-              ))}
+              ) : viewMode === "month" ? (
+                <>
+                {/* ===== MOBILE MONTH VIEW ===== */}
+                <div className="md:hidden space-y-3">
+                  {/* Week selector tabs */}
+                  <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                    {monthWeeks.map((ws, i) => {
+                      const wn = getWeekNumber(ws);
+                      const isSelected = selectedMobileWeek === i;
+                      const wdForWeek = getWeekDays(ws);
+                      const weekTotal = wdForWeek.reduce((sum, d) =>
+                        sum + projectRows.reduce((s, row) => {
+                          const k = `${formatDate(d)}-${row.projectId}`;
+                          return s + (entries[k]?.hours || 0);
+                        }, 0), 0
+                      );
+                      return (
+                        <button
+                          key={`mob-week-${i}`}
+                          onClick={() => { setSelectedMobileWeek(i); setSelectedMobileDay(0); }}
+                          className={`flex-1 min-w-[56px] py-2 px-1.5 rounded-xl text-center transition-all ${
+                            isSelected
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          <div className="text-[9px] font-medium uppercase">Week</div>
+                          <div className="text-lg font-bold">{wn}</div>
+                          {weekTotal > 0 && (
+                            <div className={`text-[10px] font-semibold ${isSelected ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
+                              {weekTotal}u
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Day tabs for selected week */}
+                  {(() => {
+                    const selWeekStart = monthWeeks[selectedMobileWeek] || monthWeeks[0];
+                    if (!selWeekStart) return null;
+                    const wdForWeek = getWeekDays(selWeekStart);
+                    const curMonth = currentWeek.getMonth();
+                    const curYear = currentWeek.getFullYear();
+
+                    return (
+                      <>
+                        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+                          {wdForWeek.map((day, i) => {
+                            const isToday = formatDate(day) === formatDate(new Date());
+                            const isSel = selectedMobileDay === i;
+                            const dayTotal = getTotalDay(formatDate(day));
+                            const closed = isClosedDay(formatDate(day));
+                            const weekend = isWeekend(day);
+                            const inMonth = day.getMonth() === curMonth && day.getFullYear() === curYear;
+                            return (
+                              <button
+                                key={`mob-mday-${i}`}
+                                onClick={() => setSelectedMobileDay(i)}
+                                className={`flex-1 min-w-[48px] py-2 px-1 rounded-xl text-center transition-all ${
+                                  !inMonth
+                                    ? "opacity-40 bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                    : isSel
+                                    ? "bg-blue-600 text-white shadow-md"
+                                    : isToday
+                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
+                                    : closed || weekend
+                                    ? "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
+                                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                <div className="text-[10px] font-medium uppercase">{dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}</div>
+                                <div className="text-lg font-bold">{day.getDate()}</div>
+                                {dayTotal > 0 && (
+                                  <div className={`text-[10px] font-semibold ${isSel ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
+                                    {dayTotal}u
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Month total */}
+                        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700">
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Maandtotaal</span>
+                          <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                            {monthWeeks.reduce((total, ws) => {
+                              const wd = getWeekDays(ws);
+                              return total + wd.reduce((sum, d) => {
+                                if (d.getMonth() !== curMonth || d.getFullYear() !== curYear) return sum;
+                                return sum + projectRows.reduce((s, row) => {
+                                  const k = `${formatDate(d)}-${row.projectId}`;
+                                  return s + (entries[k]?.hours || 0);
+                                }, 0);
+                              }, 0);
+                            }, 0)}u
+                          </span>
+                        </div>
+
+                        {/* Project cards for selected day */}
+                        {(() => {
+                          const day = wdForWeek[selectedMobileDay];
+                          if (!day) return null;
+                          const date = formatDate(day);
+                          const inMonth = day.getMonth() === curMonth && day.getFullYear() === curYear;
+                          const closed = isClosedDay(date);
+                          const weekend = isWeekend(day);
+
+                          if (!inMonth) {
+                            return (
+                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="font-medium">Andere maand</p>
+                              </div>
+                            );
+                          }
+                          if (closed) {
+                            return (
+                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="font-medium">Gesloten dag</p>
+                              </div>
+                            );
+                          }
+                          if (weekend) {
+                            return (
+                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="font-medium">Weekend</p>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-3">
+                              {projectRows.map((row) => {
+                                const key = `${date}-${row.projectId}`;
+                                const entry = entries[key] || {
+                                  date,
+                                  projectId: row.projectId,
+                                  hours: 0,
+                                  taskType: getDefaultTaskType(),
+                                  distanceKm: 0,
+                                  travelCosts: 0,
+                                  otherExpenses: 0,
+                                  notes: "",
+                                  status: "opgeslagen",
+                                };
+                                const entryEditable = isEditable(entry.status);
+                                const maxInfo = getProjectMaxInfo(row.projectId);
+                                const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                                const isDisabled = !entryEditable || isAtMaxHours;
+
+                                return (
+                                  <div
+                                    key={`mob-month-entry-${row.projectId}`}
+                                    className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm ${getEntryClassName(entry.status)} ${isAtMaxHours ? "opacity-50" : ""}`}
+                                  >
+                                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                          {row.companyName}{row.projectGroupName && ` › ${row.projectGroupName}`}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{row.projectName}</span>
+                                          {maxInfo.hasMax && (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${maxInfo.isAtMax ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
+                                              {maxInfo.currentHours}/{maxInfo.maxHours}u
+                                            </span>
+                                          )}
+                                        </div>
+                                        {entry.status === "SUBMITTED" && (
+                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">Ingeleverd</span>
+                                        )}
+                                        {entry.status === "APPROVED" && (
+                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">Goedgekeurd</span>
+                                        )}
+                                        {entry.status === "REJECTED" && (
+                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded font-medium">Afgekeurd</span>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => toggleFavorite(row.projectId, row.projectName)} className="p-1.5">
+                                          <Heart className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
+                                        </button>
+                                        <button onClick={() => removeProject(row.projectId)} className="p-1.5 text-red-500">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="p-4 space-y-3">
+                                      {shouldShowTaskDropdown() && !isDisabled && (
+                                        <select
+                                          value={entry.taskType || getDefaultTaskType()}
+                                          onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as 'MONTAGE' | 'TEKENKAMER')}
+                                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
+                                        >
+                                          <option value="MONTAGE">Montage</option>
+                                          <option value="TEKENKAMER">Tekenkamer</option>
+                                        </select>
+                                      )}
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
+                                          <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
+                                            value={entry.hours || ""} onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
+                                            value={entry.eveningNightHours || ""} onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Clock className="w-3 h-3 text-blue-500" /> Reisuren
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.5" min="0"
+                                            value={entry.travelHours || ""} onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Car className="w-3 h-3 text-green-500" /> Kilometers
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="1" min="0"
+                                            value={entry.distanceKm || ""} onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="0"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Ticket className="w-3 h-3 text-yellow-500" /> Reiskosten
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.01" min="0"
+                                            value={entry.travelCosts || ""} onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="€0"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                            <Euro className="w-3 h-3 text-orange-500" /> Onkosten
+                                          </label>
+                                          <input type="number" inputMode="decimal" step="0.01" min="0"
+                                            value={entry.otherExpenses || ""} onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                            placeholder="€0"
+                                          />
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                          <FileText className="w-3 h-3 text-slate-500" /> Opmerkingen
+                                        </label>
+                                        <textarea
+                                          value={entry.notes || ""} onChange={(e) => updateEntry(row.projectId, date, "notes", e.target.value)}
+                                          disabled={isDisabled}
+                                          className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm resize-none bg-white dark:bg-slate-700", entry.status)}
+                                          placeholder="Opmerkingen..." rows={2}
+                                        />
+                                      </div>
+                                      {entry.status === "REJECTED" && entry.rejectionReason && (
+                                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                          <p className="text-xs font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                          <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">{entry.rejectionReason}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* ===== DESKTOP MONTH VIEW ===== */}
+                <div className="hidden md:block space-y-6 overflow-x-auto">
+                  {monthWeeks.map((weekStart, idx) => {
+                    const weekDaysForWeek = getWeekDays(weekStart);
+                    const currentMonth = currentWeek.getMonth();
+                    const currentYear = currentWeek.getFullYear();
+                    const weekNum = getWeekNumber(weekStart);
+                    return (
+                      <div
+                        key={`week-${weekStart.toISOString()}`}
+                        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden min-w-[900px]"
+                      >
+                        <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
+                          <div className="font-semibold text-slate-900">
+                            Week {weekNum}
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            {formatDate(weekDaysForWeek[0])} -{" "}
+                            {formatDate(weekDaysForWeek[6])}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4 bg-slate-100 dark:bg-slate-800">
+                            <div />
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              Project
+                            </div>
+                            {weekDaysForWeek.map((day, i) => {
+                              const isInCurrentMonth =
+                                day.getMonth() === currentMonth &&
+                                day.getFullYear() === currentYear;
+                              return (
+                                <div
+                                  key={`day-${day.toISOString()}`}
+                                  className={
+                                    "text-center" +
+                                    (!isInCurrentMonth ? " opacity-50" : "")
+                                  }
+                                >
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                    {
+                                      dayNames[
+                                        day.getDay() === 0
+                                          ? 6
+                                          : day.getDay() - 1
+                                      ]
+                                    }
+                                  </div>
+                                  <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                                    {day.getDate()}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div className="text-center font-bold text-slate-800 dark:text-slate-200">
+                              Totaal
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="divide-y divide-slate-200">
+                          {projectRows.map((row, idx) => (
+                            <div
+                              key={`${weekStart.toISOString()}-${row.projectId}`}
+                              className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
+                            >
+                              <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
+                                <div />
+                                <div>
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5 font-medium">
+                                    {row.companyName}
+                                    {row.projectGroupName && ` › ${row.projectGroupName}`}
+                                  </div>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <button
+                                      onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                                      title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Toevoegen aan favorieten"}
+                                    >
+                                      <Heart
+                                        className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`}
+                                      />
+                                    </button>
+                                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">
+                                      {row.projectName}
+                                    </span>
+                                    {(() => {
+                                      const maxInfo = getProjectMaxInfo(row.projectId);
+                                      if (maxInfo.hasMax) {
+                                        return (
+                                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
+                                            max {maxInfo.currentHours}/{maxInfo.maxHours}
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() =>
+                                        removeProject(row.projectId)
+                                      }
+                                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 transition-colors"
+                                      title="Verwijder project"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                                {weekDaysForWeek.map((day) => {
+                                  const date = formatDate(day);
+                                  const key = `${date}-${row.projectId}`;
+                                  const entry = entries[key] || {
+                                    date,
+                                    projectId: row.projectId,
+                                    hours: 0,
+                                    taskType: getDefaultTaskType(),
+                                    distanceKm: 0,
+                                    travelCosts: 0,
+                                    otherExpenses: 0,
+                                    notes: "",
+                                    status: "opgeslagen",
+                                  };
+                                  const isInCurrentMonth =
+                                    day.getMonth() === currentMonth &&
+                                    day.getFullYear() === currentYear;
+                                  const entryEditable = isEditable(entry.status);
+                                  const isClosed = isClosedDay(date);
+                                  const isWeekendDay = isWeekend(day);
+                                  const maxInfo = getProjectMaxInfo(row.projectId);
+                                  const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                                  const isDisabled =
+                                    !isInCurrentMonth ||
+                                    !entryEditable ||
+                                    isClosed ||
+                                    isWeekendDay ||
+                                    isAtMaxHours;
+                                  return (
+                                    <div
+                                      key={`entry-${date}-${row.projectId}`}
+                                      className={
+                                        "space-y-1.5 p-2 rounded " +
+                                        getEntryClassName(entry.status) +
+                                        (!isInCurrentMonth ? " opacity-30" : "") +
+                                        (isAtMaxHours ? " opacity-50" : "")
+                                      }
+                                    >
+                                      {/* Task type selector (alleen voor users met BOTH) */}
+                                      {shouldShowTaskDropdown() && !isDisabled && (
+                                        <select
+                                          value={entry.taskType || getDefaultTaskType()}
+                                          onChange={(e) =>
+                                            updateEntry(
+                                              row.projectId,
+                                              date,
+                                              "taskType",
+                                              e.target.value as 'MONTAGE' | 'TEKENKAMER',
+                                            )
+                                          }
+                                          className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
+                                          title="Selecteer taaktype"
+                                        >
+                                          <option value="MONTAGE">⚙️ Montage</option>
+                                          <option value="TEKENKAMER">📐 Tekenkamer</option>
+                                        </select>
+                                      )}
+
+                                      {/* Uren + Avond/Nacht (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div>
+                                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">Uren</label>
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.hours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "hours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                            placeholder="0"
+                                            title={
+                                              isClosed
+                                                ? "Gesloten dag"
+                                                : entry.status === "SUBMITTED" ? "Ingeleverd"
+                                                : entry.status === "APPROVED" ? "Goedgekeurd"
+                                                : "Gewerkte uren"
+                                            }
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5 flex items-center gap-0.5">
+                                            <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                          </label>
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="24"
+                                            value={entry.eveningNightHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "eveningNightHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1.5 border rounded text-center text-lg font-bold", entry.status)}
+                                            placeholder="0"
+                                            title="Avond/nacht uren"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Reisuren + KM (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                          <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            value={entry.travelHours || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "travelHours",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="reisu"
+                                            title="Reisuren"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Car className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                          <input
+                                            type="number"
+                                            step="1"
+                                            min="0"
+                                            value={entry.distanceKm || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "distanceKm",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="km"
+                                            title="Kilometers"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Reiskosten + Onkosten (naast elkaar) */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1">
+                                          <Ticket className="w-3 h-3 text-yellow-500 flex-shrink-0" />
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={entry.travelCosts || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "travelCosts",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="€reis"
+                                            title="Reiskosten"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Euro className="w-3 h-3 text-orange-500 flex-shrink-0" />
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={entry.otherExpenses || ""}
+                                            onChange={(e) =>
+                                              updateEntry(
+                                                row.projectId,
+                                                date,
+                                                "otherExpenses",
+                                                parseFloat(e.target.value) || 0,
+                                              )
+                                            }
+                                            disabled={isDisabled}
+                                            className={getInputClassName("w-full px-1 py-1 border rounded text-xs", entry.status)}
+                                            placeholder="€onk"
+                                            title="Onkosten"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Opmerkingen */}
+                                      <div>
+                                        <textarea
+                                          value={entry.notes || ""}
+                                          onChange={(e) =>
+                                            updateEntry(
+                                              row.projectId,
+                                              date,
+                                              "notes",
+                                              e.target.value,
+                                            )
+                                          }
+                                          disabled={isDisabled}
+                                          className={getInputClassName("w-full px-1.5 py-1 border rounded text-xs resize-none", entry.status)}
+                                          placeholder="Opmerkingen..."
+                                          rows={2}
+                                          title="Opmerkingen"
+                                        />
+                                      </div>
+
+                                      {/* Afkeur reden */}
+                                      {entry.status === "REJECTED" && entry.rejectionReason && (
+                                        <div className="p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-[10px]">
+                                          <p className="font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
+                                          <p className="text-red-700 dark:text-red-400">{entry.rejectionReason}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                <div className="flex flex-col items-center justify-center gap-0.5">
+                                  <span className="text-sm font-bold text-blue-600">
+                                    {weekDaysForWeek.reduce((sum, day) => {
+                                      const key = `${formatDate(day)}-${row.projectId}`;
+                                      return sum + (entries[key]?.hours || 0);
+                                    }, 0)}
+                                    u
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                          <div className="grid grid-cols-[40px_250px_repeat(7,1fr)_120px] gap-3 p-4">
+                            <div />
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              Totaal per dag
+                            </div>
+                            {weekDaysForWeek.map((day) => {
+                              const dayTotal = projectRows.reduce(
+                                (sum, row) => {
+                                  const key = `${formatDate(day)}-${row.projectId}`;
+                                  return sum + (entries[key]?.hours || 0);
+                                },
+                                0,
+                              );
+                              const dayKmTotal = projectRows.reduce(
+                                (sum, row) => {
+                                  const key = `${formatDate(day)}-${row.projectId}`;
+                                  return sum + (entries[key]?.km || 0);
+                                },
+                                0,
+                              );
+                              const dayExpensesTotal = projectRows.reduce(
+                                (sum, row) => {
+                                  const key = `${formatDate(day)}-${row.projectId}`;
+                                  return sum + (entries[key]?.expenses || 0);
+                                },
+                                0,
+                              );
+                              return (
+                                <div
+                                  key={`total-${formatDate(day)}`}
+                                  className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-slate-700 rounded-lg"
+                                >
+                                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                    {dayTotal}u
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            <div className="flex flex-col items-center gap-1 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                                {weekDaysForWeek.reduce(
+                                  (sum, day) =>
+                                    sum +
+                                    projectRows.reduce((s, row) => {
+                                      const key = `${formatDate(day)}-${row.projectId}`;
+                                      return s + (entries[key]?.hours || 0);
+                                    }, 0),
+                                  0,
+                                )}
+                                u
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                </>
+              ) : (
+                <>
+                {/* ===== UNIFIED DAY-BY-DAY VIEW ===== */}
+                <div className="space-y-4">
+                  {/* Day tabs strip */}
+                  <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                    {weekDays.map((day, i) => {
+                      const isToday = formatDate(day) === formatDate(new Date());
+                      const isSelected = selectedMobileDay === i;
+                      const dayTotal = getTotalDay(formatDate(day));
+                      const isClosed = isClosedDay(formatDate(day));
+                      const isWeekendDay = isWeekend(day);
+                      return (
+                        <button
+                          key={`day-tab-${i}`}
+                          onClick={() => setSelectedMobileDay(i)}
+                          className={`flex-1 flex flex-col items-center py-2 px-1 rounded-md transition-colors ${
+                            isSelected
+                              ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600"
+                              : isToday
+                              ? "text-blue-500 dark:text-blue-400"
+                              : isClosed || isWeekendDay
+                              ? "text-slate-400 dark:text-slate-500"
+                              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                          }`}
+                        >
+                          <span className="text-[10px] font-medium uppercase">{dayNames[i]}</span>
+                          <span className={`text-base font-bold ${isToday ? "text-blue-500 dark:text-blue-400" : ""}`}>{day.getDate()}</span>
+                          {dayTotal > 0 && (
+                            <span className={`text-[10px] font-semibold ${isSelected ? "text-blue-600" : "text-blue-500 dark:text-blue-400"}`}>{dayTotal}u</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected day content */}
+                  {(() => {
+                    const day = weekDays[selectedMobileDay];
+                    const date = formatDate(day);
+                    const isClosed = isClosedDay(date);
+                    const isWeekendDay = isWeekend(day);
+                    const dayTotal = getTotalDay(date);
+
+                    if (isClosed) return (
+                      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                        <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="font-medium">Gesloten dag</p>
+                      </div>
+                    );
+                    if (isWeekendDay) return (
+                      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                        <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="font-medium">Weekend</p>
+                      </div>
+                    );
+
+                    return (
+                      <div className="space-y-2">
+                        {projectRows.map((row) => {
+                          const key = `${date}-${row.projectId}`;
+                          const entry = entries[key] || {
+                            date,
+                            projectId: row.projectId,
+                            hours: 0,
+                            taskType: getDefaultTaskType(),
+                            distanceKm: 0,
+                            travelCosts: 0,
+                            otherExpenses: 0,
+                            notes: "",
+                          };
+                          const entryEditable = isEditable(entry.status);
+                          const maxInfo = getProjectMaxInfo(row.projectId);
+                          const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
+                          const isDisabled = !entryEditable || isAtMaxHours;
+
+                          return (
+                            <div
+                              key={`day-entry-${row.projectId}`}
+                              className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden ${getEntryClassName(entry.status)} ${isAtMaxHours ? "opacity-50" : ""}`}
+                            >
+                              {/* Main row */}
+                              <div className="p-4 flex items-start gap-4">
+                                {/* Left: project info + notes */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                                    {row.companyName}{row.projectGroupName && ` › ${row.projectGroupName}`}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">{row.projectName}</span>
+                                    {maxInfo.hasMax && (
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
+                                        {maxInfo.currentHours}/{maxInfo.maxHours}u
+                                      </span>
+                                    )}
+                                    {entry.status === "SUBMITTED" && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded font-medium">Ingeleverd</span>}
+                                    {entry.status === "APPROVED" && <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">Goedgekeurd</span>}
+                                    {entry.status === "REJECTED" && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded font-medium">Afgekeurd</span>}
+                                  </div>
+                                  {shouldShowTaskDropdown() && !isDisabled && (
+                                    <select
+                                      value={entry.taskType || getDefaultTaskType()}
+                                      onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as 'MONTAGE' | 'TEKENKAMER')}
+                                      className="mt-2 px-2 py-1 border border-slate-200 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
+                                    >
+                                      <option value="MONTAGE">Montage</option>
+                                      <option value="TEKENKAMER">Tekenkamer</option>
+                                    </select>
+                                  )}
+                                  <input
+                                    className={`mt-2 text-xs w-full bg-transparent border-none outline-none placeholder:text-slate-400 ${isDisabled ? "cursor-not-allowed text-slate-400" : "text-slate-600 dark:text-slate-300"}`}
+                                    placeholder="Opmerkingen..."
+                                    value={entry.notes || ""}
+                                    onChange={(e) => !isDisabled && updateEntry(row.projectId, date, "notes", e.target.value)}
+                                    disabled={isDisabled}
+                                  />
+                                  {entry.status === "REJECTED" && entry.rejectionReason && (
+                                    <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs">
+                                      <span className="font-semibold text-red-800 dark:text-red-300">Afgekeurd: </span>
+                                      <span className="text-red-700 dark:text-red-400">{entry.rejectionReason}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Desktop extra fields (inline) */}
+                                <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                                  <div className="flex items-center gap-1" title="Avond/nacht uren">
+                                    <Moon className="w-3 h-3 text-indigo-400" />
+                                    <input type="number" step="0.5" min="0" max="24"
+                                      value={entry.eveningNightHours || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-12 h-7 text-center text-xs border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1" title="Reisuren">
+                                    <Clock className="w-3 h-3 text-blue-400" />
+                                    <input type="number" step="0.5" min="0"
+                                      value={entry.travelHours || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-12 h-7 text-center text-xs border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1" title="Kilometers">
+                                    <Car className="w-3 h-3 text-green-400" />
+                                    <input type="number" step="1" min="0"
+                                      value={entry.distanceKm || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-14 h-7 text-center text-xs border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1" title="Reiskosten">
+                                    <Ticket className="w-3 h-3 text-yellow-400" />
+                                    <input type="number" step="0.01" min="0"
+                                      value={entry.travelCosts || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-14 h-7 text-center text-xs border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="€0"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1" title="Onkosten">
+                                    <Euro className="w-3 h-3 text-orange-400" />
+                                    <input type="number" step="0.01" min="0"
+                                      value={entry.otherExpenses || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-14 h-7 text-center text-xs border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="€0"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Hours + actions */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number" step="0.5" min="0" max="24"
+                                      value={entry.hours || ""}
+                                      onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
+                                      disabled={isDisabled}
+                                      className={getInputClassName("w-16 h-9 text-center border border-slate-200 dark:border-slate-600 rounded-md text-sm font-bold bg-white dark:bg-slate-700", entry.status)}
+                                      placeholder="0"
+                                    />
+                                    <span className="text-xs text-slate-400">u</span>
+                                  </div>
+                                  <button
+                                    onClick={() => toggleFavorite(row.projectId, row.projectName)}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                    title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Voeg toe aan favorieten"}
+                                  >
+                                    <Heart className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : ""}`} />
+                                  </button>
+                                  <button
+                                    onClick={() => removeProject(row.projectId)}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
+                                    title="Verwijder project"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Mobile: extra fields */}
+                              <div className="md:hidden px-4 pb-4 grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <Moon className="w-3 h-3 text-indigo-500" /> Nacht
+                                  </label>
+                                  <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
+                                    value={entry.eveningNightHours || ""} onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-sm font-bold bg-white dark:bg-slate-700", entry.status)}
+                                    placeholder="0"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-blue-500" /> Reisuren
+                                  </label>
+                                  <input type="number" inputMode="decimal" step="0.5" min="0"
+                                    value={entry.travelHours || ""} onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                    placeholder="0"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <Car className="w-3 h-3 text-green-500" /> Kilometers
+                                  </label>
+                                  <input type="number" inputMode="decimal" step="1" min="0"
+                                    value={entry.distanceKm || ""} onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                    placeholder="0"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <Ticket className="w-3 h-3 text-yellow-500" /> Reiskosten
+                                  </label>
+                                  <input type="number" inputMode="decimal" step="0.01" min="0"
+                                    value={entry.travelCosts || ""} onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                    placeholder="€0"
+                                  />
+                                </div>
+                                <div className="col-span-2">
+                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <Euro className="w-3 h-3 text-orange-500" /> Onkosten
+                                  </label>
+                                  <input type="number" inputMode="decimal" step="0.01" min="0"
+                                    value={entry.otherExpenses || ""} onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
+                                    disabled={isDisabled}
+                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
+                                    placeholder="€0"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Add project button - mobile only (desktop uses sidebar) */}
+                        <button
+                          onClick={() => setShowProjectPicker(true)}
+                          className="md:hidden w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-4 text-sm text-slate-500 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Project toevoegen
+                        </button>
+
+                        {/* Day total */}
+                        <div className="flex justify-between items-center py-3 border-t border-slate-200 dark:border-slate-700 text-sm">
+                          <span className="font-medium text-slate-600 dark:text-slate-400">Totaal vandaag</span>
+                          <span className={`font-bold text-lg ${dayTotal > MAX_HOURS_PER_DAY ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-slate-100"}`}>{dayTotal}u</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Week total strip */}
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Week totaal</span>
+                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{getTotalWeek()}u</span>
+                    </div>
+                    <div className="flex gap-1">
+                      {weekDays.map((day, i) => {
+                        const dt = getTotalDay(formatDate(day));
+                        return (
+                          <div key={i} className="flex-1 text-center">
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500">{dayNames[i]}</div>
+                            <div className={`text-xs font-semibold ${dt > 0 ? "text-blue-600 dark:text-blue-400" : "text-slate-300 dark:text-slate-600"}`}>{dt > 0 ? `${dt}u` : "–"}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                </>
+              )}
+
+              {/* Indirect hours section (Verlof, ATV, Ziekte) */}
+              {indirectTasks.length > 0 && (
+                <div className="mt-4 mx-2 md:mx-0 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Verlof & Indirecte uren
+                    </h3>
+                  </div>
+
+                  {/* Desktop: table layout */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-700">
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 min-w-[180px]">
+                            Uurcode
+                          </th>
+                          {(viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek)).map((day) => (
+                            <th key={formatDate(day)} className="text-center px-1 py-2 font-medium text-slate-500 dark:text-slate-400 w-16">
+                              {dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}
+                              <div className="text-[10px] text-slate-400">{day.getDate()}</div>
+                            </th>
+                          ))}
+                          <th className="text-center px-2 py-2 font-semibold text-slate-600 dark:text-slate-400 w-16">Tot</th>
+                          <th className="text-center px-2 py-2 font-semibold text-slate-600 dark:text-slate-400 w-20">Rest</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {indirectTasks.map((task) => {
+                          const weekTotal = getIndirectTotalForCode(task.code);
+                          const remaining = task.budget - task.used - weekTotal;
+                          return (
+                            <tr key={task.code} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20">
+                              <td className="px-3 py-1.5">
+                                <div className="flex items-center gap-2">
+                                  <code className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                                    {task.code}
+                                  </code>
+                                  <span className="text-xs text-slate-700 dark:text-slate-300 truncate max-w-[120px]">
+                                    {task.description}
+                                  </span>
+                                </div>
+                              </td>
+                              {(viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek)).map((day) => {
+                                const dateStr = formatDate(day);
+                                const ie = getIndirectEntry(task.code, dateStr);
+                                const closed = isClosedDay(dateStr);
+                                return (
+                                  <td key={dateStr} className="px-1 py-1.5 text-center">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="8"
+                                      step="0.5"
+                                      value={ie?.hours || ""}
+                                      placeholder={closed ? "X" : "-"}
+                                      disabled={closed}
+                                      onChange={(e) =>
+                                        updateIndirectEntry(task.taakGcId, task.code, dateStr, parseFloat(e.target.value) || 0)
+                                      }
+                                      className={`w-12 h-7 text-center text-xs border rounded ${
+                                        closed
+                                          ? "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                                          : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                      }`}
+                                    />
+                                  </td>
+                                );
+                              })}
+                              <td className="px-2 py-1.5 text-center">
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                                  {weekTotal > 0 ? `${weekTotal}u` : "-"}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1.5 text-center">
+                                <span className={`text-xs font-bold ${
+                                  remaining < 0
+                                    ? "text-red-600 dark:text-red-400"
+                                    : remaining <= task.budget * 0.1
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-green-600 dark:text-green-400"
+                                }`}>
+                                  {remaining}/{task.budget}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: card layout */}
+                  <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {indirectTasks.map((task) => {
+                      const weekTotal = getIndirectTotalForCode(task.code);
+                      const remaining = task.budget - task.used - weekTotal;
+                      const activeDays = viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek);
+                      return (
+                        <div key={task.code} className="p-3">
+                          {/* Code + description + budget */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <code className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex-shrink-0">
+                                {task.code}
+                              </code>
+                              <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                                {task.description}
+                              </span>
+                            </div>
+                            <span className={`text-xs font-bold flex-shrink-0 ml-2 ${
+                              remaining < 0
+                                ? "text-red-600 dark:text-red-400"
+                                : remaining <= task.budget * 0.1
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-green-600 dark:text-green-400"
+                            }`}>
+                              {remaining}/{task.budget}u
+                            </span>
+                          </div>
+                          {/* Day inputs in a row */}
+                          <div className="flex gap-1">
+                            {activeDays.map((day) => {
+                              const dateStr = formatDate(day);
+                              const ie = getIndirectEntry(task.code, dateStr);
+                              const closed = isClosedDay(dateStr);
+                              const dayIdx = day.getDay() === 0 ? 6 : day.getDay() - 1;
+                              return (
+                                <div key={dateStr} className="flex-1 text-center">
+                                  <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">
+                                    {dayNames[dayIdx].substring(0, 2)}
+                                  </div>
+                                  <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    max="8"
+                                    step="0.5"
+                                    value={ie?.hours || ""}
+                                    placeholder={closed ? "X" : "-"}
+                                    disabled={closed}
+                                    onChange={(e) =>
+                                      updateIndirectEntry(task.taakGcId, task.code, dateStr, parseFloat(e.target.value) || 0)
+                                    }
+                                    className={`w-full h-9 text-center text-sm border rounded-lg ${
+                                      closed
+                                        ? "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
+                                        : ie?.hours
+                                        ? "border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold"
+                                        : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                                    } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+                                  />
+                                </div>
+                              );
+                            })}
+                            {/* Week total */}
+                            <div className="w-10 text-center flex-shrink-0">
+                              <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">Tot</div>
+                              <div className="h-9 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
+                                {weekTotal > 0 ? `${weekTotal}` : "-"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Mobile floating action buttons */}
+              <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-3 py-3 flex gap-2 safe-area-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
+                <button
+                  onClick={saveAll}
+                  disabled={saving}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
+                >
+                  <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
+                </button>
+                <button
+                  onClick={submitAll}
+                  disabled={saving}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
+                >
+                  <Send className="w-4 h-4" /> Inleveren
+                </button>
+              </div>
+              {/* Spacer to prevent content behind floating buttons on mobile */}
+              <div className="md:hidden h-20" />
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </ModernLayout>
+    </ProtectedRoute>
   );
 }

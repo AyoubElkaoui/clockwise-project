@@ -1,11 +1,21 @@
 "use client";
-import { useState, useEffect, JSX } from "react";
+import {useState, useEffect, JSX} from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getUser, updateUser } from "@/lib/api";
 import AdminRoute from "@/components/AdminRoute";
 import ToastNotification from "@/components/ToastNotification";
 import { User } from "@/lib/types";
-import { UserCircle, Mail, MapPin, KeyRound, ArrowLeft, Check, AlertTriangle } from "lucide-react";
+import {
+    UserCircleIcon,
+    EnvelopeIcon,
+    MapPinIcon,
+    KeyIcon,
+    ArrowLeftIcon,
+    CheckCircleIcon,
+    ExclamationTriangleIcon
+} from "@heroicons/react/24/outline";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function EditUserPage(): JSX.Element {
     const router = useRouter();
@@ -37,6 +47,8 @@ export default function EditUserPage(): JSX.Element {
             try {
                 const userData = await getUser(parseInt(userId));
                 setUser(userData);
+
+                // Populate form fields
                 setFirstName(userData.firstName || "");
                 setLastName(userData.lastName || "");
                 setEmail(userData.email || "");
@@ -47,6 +59,7 @@ export default function EditUserPage(): JSX.Element {
                 setCity(userData.city || "");
                 setRank(userData.rank || "employee");
             } catch (error) {
+                
                 setToastMessage("Fout bij laden gebruiker");
                 setToastType("error");
                 setTimeout(() => setToastMessage(""), 3000);
@@ -83,18 +96,21 @@ export default function EditUserPage(): JSX.Element {
                 postalCode,
                 city,
                 rank,
-                ...(password.trim() && { password }),
+                ...(password.trim() && { password }) // Only include password if provided
             };
 
             await updateUser(parseInt(userId), updateData);
             setToastMessage("Gebruiker succesvol bijgewerkt");
             setToastType("success");
+
+            // Clear password field after successful update
             setPassword("");
 
             setTimeout(() => {
                 router.push("/admin/users");
             }, 1500);
         } catch (error) {
+            
             setToastMessage("Fout bij bijwerken gebruiker");
             setToastType("error");
         } finally {
@@ -105,23 +121,26 @@ export default function EditUserPage(): JSX.Element {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-16">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Gebruiker laden...</p>
+                </div>
             </div>
         );
     }
 
     if (!user) {
         return (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="flex flex-col items-center justify-center min-h-screen text-center">
                 <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                    <AlertTriangle className="w-7 h-7 text-slate-400" />
+                    <ExclamationTriangleIcon className="w-7 h-7 text-slate-400" />
                 </div>
                 <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Gebruiker niet gevonden</p>
                 <p className="text-sm text-slate-500 mt-1">De gebruiker die je zoekt bestaat niet of is verwijderd.</p>
                 <button
                     onClick={() => router.push("/admin/users")}
-                    className="mt-6 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                    className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
                     Terug naar Gebruikers
                 </button>
@@ -129,143 +148,156 @@ export default function EditUserPage(): JSX.Element {
         );
     }
 
-    const inputClass = "h-9 w-full px-3 text-sm border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-
     return (
         <AdminRoute>
-            <div className="p-6 space-y-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-6">
-                    <div>
-                        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Gebruiker Bewerken</h1>
-                        <p className="text-xs text-slate-500 mt-0.5">Bewerk gegevens van {firstName} {lastName}</p>
-                    </div>
-                    <button
-                        onClick={() => router.push("/admin/users")}
-                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 text-sm font-medium rounded-md transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Terug
-                    </button>
-                </div>
+            <div className="space-y-6 animate-fadeIn">
+                <PageHeader
+                    title="Gebruiker Bewerken"
+                    description={`Bewerk gegevens van ${firstName} ${lastName}`}
+                    actions={
+                        <button
+                            onClick={() => router.push("/admin/users")}
+                            className="flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            <ArrowLeftIcon className="w-4 h-4" />
+                            Terug
+                        </button>
+                    }
+                />
 
+                {/* Main Form */}
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                        {/* User Info Sidebar */}
+                        {/* User Info Card */}
                         <div className="xl:col-span-1">
-                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <UserCircle className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Gebruiker Info</h2>
-                                </div>
-                                <div className="text-center">
-                                    <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
-                                        {firstName.charAt(0)}{lastName.charAt(0)}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <UserCircleIcon className="w-5 h-5" />
+                                        Gebruiker Info
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="text-center">
+                                        <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold mx-auto mb-3">
+                                            {firstName.charAt(0)}{lastName.charAt(0)}
+                                        </div>
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{firstName} {lastName}</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{email}</p>
+                                        <div className="mt-2">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                                rank === "admin"
+                                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400"
+                                                    : rank === "manager"
+                                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                                                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                                            }`}>
+                                                {rank || 'employee'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{firstName} {lastName}</h3>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">{email}</p>
-                                    <div className="mt-2">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                            rank === "admin"
-                                                ? "bg-rose-100 text-rose-700"
-                                                : rank === "manager"
-                                                ? "bg-amber-100 text-amber-700"
-                                                : "bg-blue-100 text-blue-700"
-                                        }`}>
-                                            {rank || "employee"}
-                                        </span>
+
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-2 text-sm">
+                                        <p className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Account Details</p>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Gebruiker ID:</span>
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{user.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Login naam:</span>
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{loginName}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-500">Rol:</span>
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{rank || 'employee'}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="mt-5 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 space-y-2 text-sm">
-                                    <p className="font-semibold text-slate-700 dark:text-slate-300 mb-2">Account Details</p>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Gebruiker ID:</span>
-                                        <span className="font-medium text-slate-900 dark:text-slate-100">{user.id}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Login naam:</span>
-                                        <span className="font-medium text-slate-900 dark:text-slate-100">{loginName}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-500">Rol:</span>
-                                        <span className="font-medium text-slate-900 dark:text-slate-100">{rank || "employee"}</span>
-                                    </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </div>
 
                         {/* Edit Form */}
-                        <div className="xl:col-span-2 space-y-5">
+                        <div className="xl:col-span-2 space-y-6">
                             {/* Personal Info */}
-                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <UserCircle className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Persoonlijke Gegevens</h2>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Voornaam *</label>
-                                        <input
-                                            type="text"
-                                            className={inputClass}
-                                            value={firstName}
-                                            onChange={(e) => setFirstName(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Achternaam *</label>
-                                        <input
-                                            type="text"
-                                            className={inputClass}
-                                            value={lastName}
-                                            onChange={(e) => setLastName(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Contact Info */}
-                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Mail className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact Gegevens</h2>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">E-mail *</label>
-                                    <input
-                                        type="email"
-                                        className={inputClass}
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Address Info */}
-                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <MapPin className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Adres Gegevens</h2>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div className="md:col-span-3 space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Adres</label>
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <UserCircleIcon className="w-5 h-5" />
+                                        Persoonlijke Gegevens
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Voornaam *</label>
                                             <input
                                                 type="text"
-                                                className={inputClass}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={firstName}
+                                                onChange={(e) => setFirstName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Achternaam *</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Contact Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <EnvelopeIcon className="w-5 h-5" />
+                                        Contact Gegevens
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-1.5">
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">E-mail *</label>
+                                        <input
+                                            type="email"
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Address Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <MapPinIcon className="w-5 h-5" />
+                                        Adres Gegevens
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="md:col-span-3 space-y-1.5">
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Adres</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                                 value={address}
                                                 onChange={(e) => setAddress(e.target.value)}
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Nr.</label>
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nr.</label>
                                             <input
                                                 type="text"
-                                                className={inputClass}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                                 value={houseNumber}
                                                 onChange={(e) => setHouseNumber(e.target.value)}
                                             />
@@ -273,49 +305,51 @@ export default function EditUserPage(): JSX.Element {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Postcode</label>
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Postcode</label>
                                             <input
                                                 type="text"
-                                                className={inputClass}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                                 value={postalCode}
                                                 onChange={(e) => setPostalCode(e.target.value)}
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Plaats</label>
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Plaats</label>
                                             <input
                                                 type="text"
-                                                className={inputClass}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                                 value={city}
                                                 onChange={(e) => setCity(e.target.value)}
                                             />
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
 
-                            {/* Login & Security */}
-                            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <KeyRound className="w-5 h-5 text-slate-400" />
-                                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Login &amp; Beveiliging</h2>
-                                </div>
-                                <div className="space-y-4">
+                            {/* Login Info */}
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                        <KeyIcon className="w-5 h-5" />
+                                        Login &amp; Beveiliging
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Inlognaam *</label>
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Inlognaam *</label>
                                             <input
                                                 type="text"
-                                                className={inputClass}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                                 value={loginName}
                                                 onChange={(e) => setLoginName(e.target.value)}
                                                 required
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Gebruikersrol *</label>
+                                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Gebruikersrol *</label>
                                             <select
-                                                className={inputClass}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                                 value={rank}
                                                 onChange={(e) => setRank(e.target.value)}
                                                 required
@@ -327,10 +361,10 @@ export default function EditUserPage(): JSX.Element {
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Nieuw wachtwoord</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nieuw wachtwoord</label>
                                         <input
                                             type="password"
-                                            className={inputClass}
+                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="Laat leeg om ongewijzigd te laten"
@@ -338,10 +372,11 @@ export default function EditUserPage(): JSX.Element {
                                         <p className="text-xs text-slate-500">Alleen invullen als je het wachtwoord wilt wijzigen</p>
                                     </div>
 
+                                    {/* Submit Buttons */}
                                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                                         <button
                                             type="button"
-                                            className="px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 text-sm font-medium rounded-md transition-colors disabled:opacity-50"
+                                            className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                                             onClick={() => router.push("/admin/users")}
                                             disabled={isSubmitting}
                                         >
@@ -349,24 +384,24 @@ export default function EditUserPage(): JSX.Element {
                                         </button>
                                         <button
                                             type="submit"
-                                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50"
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
                                             disabled={isSubmitting}
                                         >
                                             {isSubmitting ? (
                                                 <>
-                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                                     Opslaan...
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Check className="w-4 h-4" />
+                                                    <CheckCircleIcon className="w-4 h-4" />
                                                     Wijzigingen Opslaan
                                                 </>
                                             )}
                                         </button>
                                     </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
                 </form>

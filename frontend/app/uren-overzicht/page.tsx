@@ -3,16 +3,36 @@
 import { useState, useEffect, useMemo } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Clock, Filter, Download, Search, Calendar,
-  ChevronLeft, ChevronRight, CalendarDays, BarChart3,
+  Clock,
+  Filter,
+  Download,
+  Search,
+  Loader2,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  Table,
+  List,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { getEnrichedTimeEntries } from "@/lib/api";
 import { getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
 import "dayjs/locale/nl";
 import { showToast } from "@/components/ui/toast";
+import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 
 dayjs.extend(isoWeek);
@@ -41,405 +61,755 @@ interface TimeEntryWithDetails {
   endTime?: string;
 }
 
-const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
-  goedgekeurd: { label: "Goedgekeurd",    color: "var(--c-green)",  bg: "var(--c-green-weak)"  },
-  ingeleverd:  { label: "In Behandeling", color: "var(--c-amber)",  bg: "var(--c-amber-weak)"  },
-  SUBMITTED:   { label: "In Behandeling", color: "var(--c-amber)",  bg: "var(--c-amber-weak)"  },
-  afgekeurd:   { label: "Afgekeurd",      color: "var(--c-red)",    bg: "var(--c-red-weak)"    },
-};
-
-function getStatusMeta(status: string) {
-  return statusMeta[status] || { label: "Concept", color: "var(--c-muted)", bg: "var(--c-hover)" };
-}
-
-function getStatusLabel(status: string) {
-  return getStatusMeta(status).label;
-}
-
 export default function UrenOverzichtPage() {
   const [entries, setEntries] = useState<TimeEntryWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [currentPeriod, setCurrentPeriod] = useState(dayjs().startOf("isoWeek"));
+  const [currentPeriod, setCurrentPeriod] = useState(
+    dayjs().startOf("isoWeek"),
+  );
   const [viewMode, setViewMode] = useState<"week" | "month" | "year">("month");
+  const [displayView, setDisplayView] = useState<"cards" | "table">("table");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
 
-  useEffect(() => { loadEntries(); }, []);
-  useEffect(() => { if (startDate && endDate) loadEntries(startDate, endDate); }, [startDate, endDate]);
+  useEffect(() => {
+    loadEntries();
+  }, []);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      loadEntries(startDate, endDate);
+    }
+  }, [startDate, endDate]);
 
   const loadEntries = async (from?: string, to?: string) => {
     try {
       const userId = authUtils.getUserId();
-      if (!userId) { showToast("Gebruiker niet ingelogd", "error"); return; }
-      const urenperGcId = 100426;
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
+      
+      // Load ALL workflow entries (DRAFT, SUBMITTED, APPROVED, REJECTED)
+      const urenperGcId = 100426; // Current period
+      
       const [drafts, submitted, rejected] = await Promise.all([
-        getDrafts(urenperGcId), getSubmitted(urenperGcId), getRejected(urenperGcId),
+        getDrafts(urenperGcId),
+        getSubmitted(urenperGcId),
+        getRejected(urenperGcId)
       ]);
+      
       const allEntries = [...drafts, ...submitted, ...rejected];
+      
+      // Transform to expected format
       const transformed = allEntries.map((e: any) => ({
         id: e.id,
-        userId,
-        date: e.datum.split("T")[0],
+        userId: userId,
+        date: e.datum.split('T')[0],
         projectId: e.werkGcId || 0,
-        projectCode: e.werkCode || "",
+        projectCode: e.werkCode || '',
         projectName: e.werkDescription || `Project ${e.werkGcId}`,
-        taskName: e.taakDescription || "",
+        taskName: e.taakDescription || '',
         hours: e.aantal,
-        km: 0, expenses: 0, breakMinutes: 0,
-        notes: e.omschrijving || "",
+        km: 0,
+        expenses: 0,
+        breakMinutes: 0,
+        notes: e.omschrijving || '',
         status: e.status,
-        startTime: e.datum, endTime: e.datum,
-        companyId: 0, companyName: "", projectGroupId: 0, projectGroupName: "",
+        startTime: e.datum,
+        endTime: e.datum,
+        companyId: 0,
+        companyName: '',
+        projectGroupId: 0,
+        projectGroupName: '',
       }));
+      
       setEntries(transformed);
-    } catch {
+    } catch (error) {
       showToast("Fout bij laden uren", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // Fast filtering with useMemo
   const filteredEntries = useMemo(() => {
     let filtered = entries;
+
+    // Custom date range filter
     if (startDate && endDate) {
-      const start = dayjs(startDate), end = dayjs(endDate);
-      filtered = filtered.filter((e) => dayjs(e.date || e.startTime).isBetween(start, end, null, "[]"));
+      const start = dayjs(startDate);
+      const end = dayjs(endDate);
+      filtered = filtered.filter((entry) => {
+        const entryDate = dayjs(entry.date || entry.startTime);
+        return entryDate.isBetween(start, end, null, "[]");
+      });
     } else {
+      // Period filter
       if (viewMode === "week") {
-        const ws = currentPeriod.startOf("day"), we = currentPeriod.add(6, "day").endOf("day");
-        filtered = filtered.filter((e) => dayjs(e.date || e.startTime).isBetween(ws, we, null, "[]"));
+        const weekStart = currentPeriod.startOf("day");
+        const weekEnd = currentPeriod.add(6, "day").endOf("day");
+        filtered = filtered.filter((entry) => {
+          const entryDate = dayjs(entry.date || entry.startTime);
+          return entryDate.isBetween(weekStart, weekEnd, null, "[]");
+        });
       } else if (viewMode === "month") {
-        const ms = currentPeriod.startOf("month"), me = currentPeriod.endOf("month");
-        filtered = filtered.filter((e) => dayjs(e.date || e.startTime).isBetween(ms, me, null, "[]"));
-      } else {
-        const ys = currentPeriod.startOf("year"), ye = currentPeriod.endOf("year");
-        filtered = filtered.filter((e) => dayjs(e.date || e.startTime).isBetween(ys, ye, null, "[]"));
+        const monthStart = currentPeriod.startOf("month");
+        const monthEnd = currentPeriod.endOf("month");
+        filtered = filtered.filter((entry) => {
+          const entryDate = dayjs(entry.date || entry.startTime);
+          return entryDate.isBetween(monthStart, monthEnd, null, "[]");
+        });
+      } else if (viewMode === "year") {
+        const yearStart = currentPeriod.startOf("year");
+        const yearEnd = currentPeriod.endOf("year");
+        filtered = filtered.filter((entry) => {
+          const entryDate = dayjs(entry.date || entry.startTime);
+          return entryDate.isBetween(yearStart, yearEnd, null, "[]");
+        });
       }
     }
-    if (statusFilter !== "all") filtered = filtered.filter((e) => e.status === statusFilter);
+
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((entry) => entry.status === statusFilter);
+    }
+
+    // Search filter
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter((e) =>
-        e.projectName?.toLowerCase().includes(q) || e.companyName?.toLowerCase().includes(q) || e.notes?.toLowerCase().includes(q)
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (entry) =>
+          entry.projectName?.toLowerCase().includes(query) ||
+          entry.companyName?.toLowerCase().includes(query) ||
+          entry.notes?.toLowerCase().includes(query),
       );
     }
+
     return filtered;
-  }, [entries, currentPeriod, viewMode, statusFilter, searchQuery, startDate, endDate]);
+  }, [
+    entries,
+    currentPeriod,
+    viewMode,
+    statusFilter,
+    searchQuery,
+    startDate,
+    endDate,
+  ]);
 
+  // Pagination
   const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
-  const paginatedEntries = useMemo(() => filteredEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filteredEntries, currentPage, itemsPerPage]);
+  const paginatedEntries = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredEntries.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredEntries, currentPage, itemsPerPage]);
 
+  // Chart data
   const chartData = useMemo(() => {
     const days = viewMode === "week" ? 7 : dayjs(currentPeriod).daysInMonth();
-    return Array.from({ length: days }, (_, i) => {
-      const date = viewMode === "week" ? currentPeriod.add(i, "day") : currentPeriod.date(i + 1);
-      const hours = filteredEntries.filter((e) => dayjs(e.date || e.startTime).isSame(date, "day")).reduce((s, e) => s + (e.hours || 0), 0);
-      return { day: date.format("DD/MM"), hours, fullDate: date.format("YYYY-MM-DD") };
-    });
+    const data = [];
+    for (let i = 0; i < days; i++) {
+      const date =
+        viewMode === "week"
+          ? currentPeriod.add(i, "day")
+          : currentPeriod.date(i + 1);
+      const dayEntries = filteredEntries.filter((entry) => {
+        const entryDate = dayjs(entry.date || entry.startTime);
+        return entryDate.isSame(date, "day");
+      });
+      const totalHours = dayEntries.reduce((sum, e) => sum + (e.hours || 0), 0);
+      data.push({
+        day: date.format("DD/MM"),
+        hours: totalHours,
+        fullDate: date.format("YYYY-MM-DD"),
+      });
+    }
+    return data;
   }, [filteredEntries, currentPeriod, viewMode]);
 
-  const stats = useMemo(() => ({
-    total:    filteredEntries.reduce((s, e) => s + (e.hours || 0), 0),
-    approved: filteredEntries.filter((e) => e.status === "goedgekeurd").reduce((s, e) => s + (e.hours || 0), 0),
-    pending:  filteredEntries.filter((e) => e.status === "ingeleverd").reduce((s, e) => s + (e.hours || 0), 0),
-  }), [filteredEntries]);
+  const stats = useMemo(
+    () => ({
+      total: filteredEntries.reduce((sum, e) => sum + (e.hours || 0), 0),
+      approved: filteredEntries
+        .filter((e) => e.status === "goedgekeurd")
+        .reduce((sum, e) => sum + (e.hours || 0), 0),
+      pending: filteredEntries
+        .filter((e) => e.status === "ingeleverd")
+        .reduce((sum, e) => sum + (e.hours || 0), 0),
+    }),
+    [filteredEntries],
+  );
 
-  const weekGroups = useMemo(() => {
-    const groups = new Map<string, { label: string; entries: TimeEntryWithDetails[]; total: number }>();
-    paginatedEntries.forEach((entry) => {
-      const d = dayjs(entry.date || entry.startTime);
-      const key = `${d.year()}-W${String(d.isoWeek()).padStart(2, "0")}`;
-      if (!groups.has(key)) {
-        const ws = d.startOf("isoWeek");
-        groups.set(key, { label: `Week ${d.isoWeek()} · ${ws.format("DD/MM")} – ${ws.add(6, "day").format("DD/MM")}`, entries: [], total: 0 });
-      }
-      const g = groups.get(key)!;
-      g.entries.push(entry);
-      g.total += entry.hours || 0;
-    });
-    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
-  }, [paginatedEntries]);
-
-  const handlePrev = () => setCurrentPeriod((p) => p.subtract(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"));
-  const handleNext = () => setCurrentPeriod((p) => p.add(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"));
-  const handleToday = () => setCurrentPeriod(dayjs().startOf(viewMode === "week" ? "isoWeek" : viewMode === "month" ? "month" : "year"));
-  const toggleView = () => {
-    setViewMode((prev) => {
-      const next = prev === "week" ? "month" : prev === "month" ? "year" : "week";
-      setCurrentPeriod(dayjs().startOf(next === "week" ? "isoWeek" : next === "month" ? "month" : "year"));
-      return next;
-    });
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
+
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
-    setStartDate(`${year}-01-01`);
-    setEndDate(`${year + 1}-01-01`);
+    const from = `${year}-01-01`;
+    const to = `${year + 1}-01-01`;
+    setStartDate(from);
+    setEndDate(to);
     setViewMode("year");
     setCurrentPeriod(dayjs().year(year).startOf("year"));
   };
-  const resetFilters = () => { setSearchQuery(""); setStatusFilter("all"); setStartDate(""); setEndDate(""); setCurrentPage(1); };
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setStartDate("");
+    setEndDate("");
+    setCurrentPage(1);
+  };
+
+  const handlePrev = () => {
+    setCurrentPeriod((p) =>
+      p.subtract(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"),
+    );
+  };
+
+  const handleNext = () => {
+    setCurrentPeriod((p) => p.add(1, viewMode === "week" ? "week" : viewMode === "month" ? "month" : "year"));
+  };
+
+  const handleToday = () => {
+    setCurrentPeriod(
+      dayjs().startOf(viewMode === "week" ? "isoWeek" : viewMode === "month" ? "month" : "year"),
+    );
+  };
+
+  const toggleView = () => {
+    setViewMode((prev) => {
+      let newMode: "week" | "month" | "year";
+      if (prev === "week") newMode = "month";
+      else if (prev === "month") newMode = "year";
+      else newMode = "week";
+      setCurrentPeriod(
+        dayjs().startOf(newMode === "week" ? "isoWeek" : newMode === "month" ? "month" : "year"),
+      );
+      return newMode;
+    });
+  };
 
   const exportToCSV = () => {
-    const rows = [["Datum","Groep","Project","Uren","KM","Onkosten","Status","Opmerkingen"].join(","),
-      ...filteredEntries.map((e) => [e.date, e.projectGroupName||"", e.projectName, e.hours, e.km, e.expenses, getStatusLabel(e.status), `"${e.notes||""}"`].join(","))].join("\n");
-    const url = URL.createObjectURL(new Blob([rows], { type: "text/csv;charset=utf-8;" }));
-    const a = document.createElement("a"); a.href = url;
-    a.download = `uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.csv`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    const csvContent = [
+      [
+        "Datum",
+        "Groep",
+        "Project",
+        "Uren",
+        "KM",
+        "Onkosten",
+        "Status",
+        "Opmerkingen",
+      ].join(","),
+      ...filteredEntries.map((entry) =>
+        [
+          entry.date,
+          entry.projectGroupName || "",
+          entry.projectName,
+          entry.hours,
+          entry.km,
+          entry.expenses,
+          getStatusLabel(entry.status),
+          `"${entry.notes || ""}"`,
+        ].join(","),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  const periodLabel = viewMode === "week"
-    ? `Week ${currentPeriod.isoWeek()} • ${currentPeriod.format("DD/MM")} – ${currentPeriod.add(6, "day").format("DD/MM/YYYY")}`
-    : viewMode === "month" ? currentPeriod.format("MMMM YYYY") : currentPeriod.format("YYYY");
-
-  const inputStyle: React.CSSProperties = {
-    height: 34, padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)",
-    borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)",
-    outline: "none", fontFamily: "inherit",
-  };
-  const panelStyle: React.CSSProperties = {
-    background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10,
-  };
-  const thStyle: React.CSSProperties = {
-    padding: "9px 16px", textAlign: "left", fontSize: 11, fontWeight: 600,
-    color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em",
-    borderBottom: "1px solid var(--c-border)", background: "var(--c-panel-2)",
-  };
-
-  const SimpleBarChart = ({ data }: { data: { day: string; hours: number }[] }) => {
-    const maxH = Math.max(...data.map((d) => d.hours), 1);
+  const SimpleBarChart = ({ data }: { data: any[] }) => {
+    const maxHours = Math.max(...data.map((d) => d.hours), 1);
+    const barCount = data.length;
+    // On mobile with many bars (month/year), make scrollable
+    const needsScroll = barCount > 10;
     return (
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 112, overflowX: "auto" }}>
-        {data.map((item, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, minWidth: 24 }}>
-            <div
-              title={`${item.day}: ${item.hours}u`}
-              style={{
-                width: "100%", background: "var(--c-accent)", borderRadius: "3px 3px 0 0",
-                height: `${(item.hours / maxH) * 80}px`, minHeight: item.hours > 0 ? 4 : 0,
-                opacity: item.hours > 0 ? 1 : 0.15, transition: "height 0.3s",
-              }}
-            />
-            <span style={{ fontSize: 9, color: "var(--c-muted)", marginTop: 3, whiteSpace: "nowrap" }}>{item.day}</span>
-          </div>
-        ))}
+      <div className={needsScroll ? "overflow-x-auto -mx-2 px-2" : ""}>
+        <div
+          className="flex items-end gap-1 md:gap-2 h-28 md:h-32"
+          style={needsScroll ? { minWidth: `${barCount * 28}px` } : undefined}
+        >
+          {data.map((item, index) => (
+            <div key={index} className="flex flex-col items-center flex-1 min-w-0">
+              <div
+                className="bg-blue-500 dark:bg-blue-400 rounded-t w-full transition-all hover:bg-blue-600"
+                style={{
+                  height: `${(item.hours / maxHours) * 100}%`,
+                  minHeight: item.hours > 0 ? "4px" : "0px",
+                }}
+                title={`${item.day}: ${item.hours}u`}
+              ></div>
+              <span className="text-[9px] md:text-xs text-slate-500 mt-1 truncate w-full text-center">{item.day}</span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
 
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "goedgekeurd":
+        return "success";
+      case "ingeleverd":
+        return "warning";
+      case "afgekeurd":
+        return "danger";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "goedgekeurd":
+        return "Goedgekeurd";
+      case "ingeleverd":
+        return "In Behandeling";
+      case "afgekeurd":
+        return "Afgekeurd";
+      default:
+        return "Concept";
+    }
+  };
+
+  const periodLabel =
+    viewMode === "week"
+      ? `Week ${currentPeriod.isoWeek()} • ${currentPeriod.format("DD/MM")} - ${currentPeriod.add(6, "day").format("DD/MM/YYYY")}`
+      : viewMode === "month"
+      ? currentPeriod.format("MMMM YYYY")
+      : currentPeriod.format("YYYY");
+
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="space-y-6 animate-fadeIn">
+          <PageHeader
+            title="Uren Overzicht"
+            description="Bekijk en beheer al je tijdregistraties"
+            actions={
+              <Button
+                size="sm"
+                onClick={exportToCSV}
+                disabled={filteredEntries.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exporteren
+              </Button>
+            }
+          />
 
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Uren Overzicht</h1>
-              <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Bekijk en beheer al je tijdregistraties</p>
-            </div>
-            <button
-              onClick={exportToCSV}
-              disabled={filteredEntries.length === 0}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: filteredEntries.length === 0 ? "not-allowed" : "pointer", opacity: filteredEntries.length === 0 ? 0.5 : 1 }}
-            >
-              <Download size={14} /> Exporteren
-            </button>
-          </div>
+          {/* Period Navigation */}
+          <Card variant="elevated" padding="md">
+            <div className="flex items-center justify-between gap-1 md:gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrev}
+                className="text-slate-700 dark:text-slate-300 flex-shrink-0"
+              >
+                <ChevronLeft className="w-4 h-4 md:mr-1" />
+                <span className="hidden md:inline">Vorige</span>
+              </Button>
 
-          {/* Period navigation */}
-          <div style={{ ...panelStyle, padding: "12px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button onClick={handlePrev} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "none", border: "1px solid var(--c-border)", borderRadius: 7, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}>
-                <ChevronLeft size={15} /> Vorige
-              </button>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
-                <button onClick={handleToday} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "none", border: "none", borderRadius: 6, fontSize: 12, color: "var(--c-muted)", cursor: "pointer" }}>
-                  <Calendar size={13} /> Vandaag
-                </button>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--c-text)" }}>{periodLabel}</span>
-                <button onClick={toggleView} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "none", border: "1px solid var(--c-border)", borderRadius: 6, fontSize: 12, color: "var(--c-text-2)", cursor: "pointer" }}>
-                  <CalendarDays size={13} />
-                  {viewMode === "week" ? "Maand" : viewMode === "month" ? "Jaar" : "Week"}
-                </button>
+              <div className="flex items-center gap-1.5 md:gap-4 min-w-0 flex-1 justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToday}
+                  className="text-slate-700 dark:text-slate-300 hidden sm:flex flex-shrink-0"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Vandaag
+                </Button>
+                <div className="text-center min-w-0">
+                  <p className="font-semibold text-xs md:text-base text-slate-900 dark:text-slate-100 truncate">
+                    {periodLabel}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleView}
+                  className="text-slate-700 dark:text-slate-300 flex-shrink-0 text-xs md:text-sm"
+                >
+                  <CalendarDays className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">{viewMode === "week" ? "Maand" : viewMode === "month" ? "Jaar" : "Week"}</span>
+                </Button>
                 {viewMode === "year" && (
-                  <select value={selectedYear} onChange={(e) => handleYearChange(parseInt(e.target.value))} style={inputStyle}>
-                    {Array.from({ length: dayjs().year() - 2017 }, (_, i) => 2018 + i).map((y) => (
-                      <option key={y} value={y}>{y}</option>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => handleYearChange(parseInt(e.target.value))}
+                    className="hidden sm:block px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    {Array.from({ length: dayjs().year() - 2017 }, (_, i) => 2018 + i).map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
                     ))}
                   </select>
                 )}
               </div>
-              <button onClick={handleNext} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", background: "none", border: "1px solid var(--c-border)", borderRadius: 7, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}>
-                Volgende <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
 
-          {/* Stat cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-            {[
-              { label: "Totaal Uren",     value: `${stats.total.toFixed(1)}u`,    color: "var(--c-accent)" },
-              { label: "Goedgekeurd",     value: `${stats.approved.toFixed(1)}u`, color: "var(--c-green)" },
-              { label: "In Behandeling",  value: `${stats.pending.toFixed(1)}u`,  color: "var(--c-amber)" },
-            ].map((s) => (
-              <div key={s.label} style={{ ...panelStyle, padding: "18px 20px" }}>
-                <p style={{ fontSize: 11, color: "var(--c-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>{s.label}</p>
-                <p style={{ fontSize: 26, fontWeight: 700, color: s.color, margin: "4px 0 0" }}>{loading ? "—" : s.value}</p>
-              </div>
-            ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNext}
+                className="text-slate-700 dark:text-slate-300 flex-shrink-0"
+              >
+                <span className="hidden md:inline">Volgende</span>
+                <ChevronRight className="w-4 h-4 md:ml-1" />
+              </Button>
+            </div>
+          </Card>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 md:gap-6">
+            <StatCard
+              title="Totaal Uren"
+              value={loading ? "..." : `${stats.total.toFixed(1)}u`}
+              icon={Clock}
+              color="blue"
+            />
+            <StatCard
+              title="Goedgekeurd"
+              value={loading ? "..." : `${stats.approved.toFixed(1)}u`}
+              icon={Clock}
+              color="emerald"
+            />
+            <StatCard
+              title="In Behandeling"
+              value={loading ? "..." : `${stats.pending.toFixed(1)}u`}
+              icon={Clock}
+              color="amber"
+            />
           </div>
 
           {/* Filters */}
-          <div style={{ ...panelStyle, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ flex: 1, position: "relative" }}>
-                <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--c-muted)", pointerEvents: "none" }} />
-                <input
-                  style={{ ...inputStyle, width: "100%", paddingLeft: 32, boxSizing: "border-box" }}
-                  placeholder="Zoek project, bedrijf..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={inputStyle}>
-                <option value="all">Alle statussen</option>
-                <option value="concept">Concept</option>
-                <option value="ingeleverd">In Behandeling</option>
-                <option value="goedgekeurd">Goedgekeurd</option>
-                <option value="afgekeurd">Afgekeurd</option>
-              </select>
-            </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
-              {[{ label: "Start", state: startDate, set: setStartDate }, { label: "Eind", state: endDate, set: setEndDate }].map((f) => (
-                <div key={f.label}>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", marginBottom: 4 }}>{f.label}</label>
-                  <input type="date" value={f.state} onChange={(e) => f.set(e.target.value)} style={inputStyle} />
+          <Card variant="elevated" padding="md">
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
+                <div className="flex-1">
+                  <Input
+                    icon={<Search className="w-5 h-5" />}
+                    placeholder="Zoek project, bedrijf..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
-              ))}
-              <button onClick={resetFilters} style={{ display: "flex", alignItems: "center", gap: 5, height: 34, padding: "0 12px", background: "none", border: "1px solid var(--c-border)", borderRadius: 7, fontSize: 13, color: "var(--c-text-2)", cursor: "pointer" }}>
-                <Filter size={13} /> Reset
-              </button>
-            </div>
-          </div>
-
-          {/* Bar chart */}
-          <div style={{ ...panelStyle, padding: "16px 18px" }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 6 }}>
-              <BarChart3 size={14} color="var(--c-muted)" /> Uren per dag
-            </p>
-            <SimpleBarChart data={chartData} />
-          </div>
-
-          {/* Entries table */}
-          <div style={{ ...panelStyle, overflow: "hidden" }}>
-            <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)" }}>
-                Registraties <span style={{ color: "var(--c-muted)", fontWeight: 400, fontSize: 12 }}>({filteredEntries.length})</span>
-              </span>
-            </div>
-
-            {loading ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "56px 0" }}>
-                <div style={{ width: 28, height: 28, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 md:px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="all">Alle Statussen</option>
+                  <option value="concept">Concept</option>
+                  <option value="ingeleverd">In Behandeling</option>
+                  <option value="goedgekeurd">Goedgekeurd</option>
+                  <option value="afgekeurd">Afgekeurd</option>
+                </select>
               </div>
-            ) : filteredEntries.length === 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "56px 24px", textAlign: "center", gap: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--c-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Calendar size={20} color="var(--c-muted)" />
+              <div className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] gap-2 md:gap-4">
+                <div>
+                  <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Start
+                  </label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: 0 }}>Geen registraties</p>
-                <p style={{ fontSize: 12, color: "var(--c-muted)", margin: 0 }}>
-                  {searchQuery || statusFilter !== "all" || startDate || endDate ? "Probeer andere filters" : "Start met het registreren van je uren"}
+                <div>
+                  <label className="block text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Eind
+                  </label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1 flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={resetFilters}
+                    className="text-slate-700 dark:text-slate-300 w-full sm:w-auto"
+                    size="sm"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Chart */}
+          <Card variant="elevated" padding="md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Uren per Dag
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SimpleBarChart data={chartData} />
+            </CardContent>
+          </Card>
+
+          {/* Summary Card + Entries */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-6">
+            <Card variant="elevated" padding="md" className="hidden lg:block lg:col-span-1">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  Deze Periode
+                </h3>
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                  {stats.total.toFixed(1)}u
                 </p>
+                <div className="space-y-1 text-sm text-slate-600 dark:text-slate-400">
+                  <p>Goedgekeurd: {stats.approved.toFixed(1)}u</p>
+                  <p>In Behandeling: {stats.pending.toFixed(1)}u</p>
+                </div>
               </div>
-            ) : (
-              <>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>Datum</th>
-                      <th style={thStyle}>Project</th>
-                      <th style={{ ...thStyle }}>Taak</th>
-                      <th style={{ ...thStyle, textAlign: "right" }}>Uren</th>
-                      <th style={thStyle}>Status</th>
-                      <th style={thStyle}>Notitie</th>
-                    </tr>
-                  </thead>
-                  {weekGroups.map((group, gi) => (
-                    <tbody key={gi}>
-                      {group.entries.map((entry) => {
-                        const meta = getStatusMeta(entry.status);
-                        return (
-                          <tr
-                            key={entry.id}
-                            style={{ borderBottom: "1px solid var(--c-border)" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "var(--c-hover)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                          >
-                            <td style={{ padding: "10px 16px", color: "var(--c-text)", whiteSpace: "nowrap" }}>
-                              {dayjs(entry.date || entry.startTime).format("ddd DD/MM")}
-                            </td>
-                            <td style={{ padding: "10px 16px", maxWidth: 200 }}>
-                              <p style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            </Card>
+
+            {/* Entries */}
+            <Card variant="elevated" padding="md" className="lg:col-span-3">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">Registraties ({filteredEntries.length})</CardTitle>
+                  <div className="hidden md:flex items-center gap-2">
+                    <Button
+                      variant={displayView === "cards" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setDisplayView("cards")}
+                      className={
+                        displayView === "cards"
+                          ? "text-slate-900 dark:text-white"
+                          : "text-slate-700 dark:text-slate-300"
+                      }
+                    >
+                      <List className="w-4 h-4 mr-2" />
+                      Kaarten
+                    </Button>
+                    <Button
+                      variant={displayView === "table" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setDisplayView("table")}
+                      className={
+                        displayView === "table"
+                          ? "text-slate-900 dark:text-white"
+                          : "text-slate-700 dark:text-slate-300"
+                      }
+                    >
+                      <Table className="w-4 h-4 mr-2" />
+                      Tabel
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <span className="ml-3 text-slate-600 dark:text-slate-400">
+                      Laden...
+                    </span>
+                  </div>
+                ) : filteredEntries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                      <Calendar className="w-7 h-7 text-slate-400" />
+                    </div>
+                    <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen registraties</p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {searchQuery || statusFilter !== "all" || startDate || endDate
+                        ? "Probeer andere filters"
+                        : "Start met het registreren van je uren"}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Mobile: always cards */}
+                    <div className={`space-y-2 md:space-y-3 ${displayView === "table" ? "md:hidden" : ""}`}>
+                      {paginatedEntries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          <div className="w-14 md:w-20 text-center flex-shrink-0">
+                            <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 uppercase">
+                              {dayjs(entry.date || entry.startTime).format("ddd")}
+                            </p>
+                            <p className="text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                              {dayjs(entry.date || entry.startTime).format("DD/MM")}
+                            </p>
+                            <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                              {entry.hours}u
+                            </p>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
+                              <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate">
                                 {entry.projectName}
                               </p>
-                              {entry.projectCode && <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>{entry.projectCode}</p>}
-                            </td>
-                            <td style={{ padding: "10px 16px", color: "var(--c-muted)" }}>{entry.taskName}</td>
-                            <td style={{ padding: "10px 16px", textAlign: "right", fontWeight: 700, color: "var(--c-accent)" }}>
-                              {entry.hours}u
-                            </td>
-                            <td style={{ padding: "10px 16px" }}>
-                              <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: meta.bg, color: meta.color }}>
-                                {meta.label}
-                              </span>
-                            </td>
-                            <td style={{ padding: "10px 16px", color: "var(--c-muted)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {entry.notes}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      <tr style={{ background: "var(--c-panel-2)", borderBottom: "1px solid var(--c-border)" }}>
-                        <td colSpan={6} style={{ padding: "7px 16px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{group.label}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--c-text)" }}>{group.total.toFixed(1)}u totaal</span>
+                              <Badge
+                                variant={getStatusBadgeVariant(entry.status)}
+                                size="sm"
+                              >
+                                {getStatusLabel(entry.status)}
+                              </Badge>
+                            </div>
+                            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">
+                              {entry.projectGroupName ||
+                                `Groep ${entry.projectId}`}
+                            </p>
+                            {entry.notes && (
+                              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 italic mt-0.5 truncate">
+                                {entry.notes}
+                              </p>
+                            )}
+                            {(entry.km > 0 || entry.expenses > 0) && (
+                              <div className="flex gap-3 mt-1 text-[11px] md:text-xs text-slate-500 dark:text-slate-400">
+                                {entry.km > 0 && <span>{entry.km} km</span>}
+                                {entry.expenses > 0 && (
+                                  <span>€{entry.expenses.toFixed(2)}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  ))}
-                </table>
-
-                {totalPages > 1 && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderTop: "1px solid var(--c-border)" }}>
-                    <span style={{ fontSize: 12, color: "var(--c-muted)" }}>Pagina {currentPage} van {totalPages} · {filteredEntries.length} registraties</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", fontSize: 12, color: "var(--c-text-2)", cursor: currentPage === 1 ? "not-allowed" : "pointer", opacity: currentPage === 1 ? 0.4 : 1 }}>
-                        <ChevronLeft size={13} /> Vorige
-                      </button>
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i).map((page) => (
-                        <button key={page} onClick={() => setCurrentPage(page)} style={{ padding: "5px 10px", border: `1px solid ${page === currentPage ? "var(--c-accent)" : "var(--c-border)"}`, borderRadius: 7, background: page === currentPage ? "var(--c-accent)" : "none", color: page === currentPage ? "#fff" : "var(--c-text-2)", fontSize: 12, fontWeight: page === currentPage ? 700 : 400, cursor: "pointer" }}>
-                          {page}
-                        </button>
+                        </div>
                       ))}
-                      <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", fontSize: 12, color: "var(--c-text-2)", cursor: currentPage === totalPages ? "not-allowed" : "pointer", opacity: currentPage === totalPages ? 0.4 : 1 }}>
-                        Volgende <ChevronRight size={13} />
-                      </button>
+                    </div>
+
+                    {/* Desktop: table view (when selected) */}
+                    {displayView === "table" && (
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectcode</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectnaam</th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Taak</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            {paginatedEntries.map((entry) => (
+                              <tr
+                                key={entry.id}
+                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                              >
+                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                                  {dayjs(entry.date || entry.startTime).format("DD/MM/YYYY")}
+                                </td>
+                                <td className="px-4 py-3 font-semibold text-blue-600 dark:text-blue-400">
+                                  {entry.hours}u
+                                </td>
+                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                                  {entry.projectCode}
+                                </td>
+                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
+                                  {entry.projectName}
+                                </td>
+                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                                  {entry.taskName}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 md:mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400">
+                      {currentPage}/{totalPages} ({filteredEntries.length} totaal)
+                    </p>
+                    <div className="flex items-center gap-1 md:gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="text-slate-700 dark:text-slate-300 disabled:text-slate-400"
+                      >
+                        <ChevronLeft className="w-4 h-4 md:mr-1" />
+                        <span className="hidden md:inline">Vorige</span>
+                      </Button>
+                      <div className="hidden sm:flex items-center gap-1 md:gap-2">
+                        {Array.from(
+                          { length: Math.min(5, totalPages) },
+                          (_, i) => {
+                            const page =
+                              Math.max(
+                                1,
+                                Math.min(totalPages - 4, currentPage - 2),
+                              ) + i;
+                            return (
+                              <Button
+                                key={page}
+                                variant={
+                                  page === currentPage ? "default" : "outline"
+                                }
+                                size="sm"
+                                onClick={() => handlePageChange(page)}
+                                className={
+                                  page === currentPage
+                                    ? "text-slate-900 dark:text-white"
+                                    : "text-slate-700 dark:text-slate-300"
+                                }
+                              >
+                                {page}
+                              </Button>
+                            );
+                          },
+                        )}
+                      </div>
+                      <span className="sm:hidden text-sm font-medium text-slate-700 dark:text-slate-300 px-2">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="text-slate-700 dark:text-slate-300 disabled:text-slate-400"
+                      >
+                        <span className="hidden md:inline">Volgende</span>
+                        <ChevronRight className="w-4 h-4 md:ml-1" />
+                      </Button>
                     </div>
                   </div>
                 )}
-              </>
-            )}
+              </CardContent>
+            </Card>
           </div>
-
         </div>
       </ModernLayout>
     </ProtectedRoute>

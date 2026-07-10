@@ -42,4 +42,3 @@ next-env.d.ts
 
 # Firebird database
 backend/CLOCKWISE.FDB
-.env*.local

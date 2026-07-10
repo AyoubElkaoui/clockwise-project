@@ -1,118 +1,360 @@
 "use client";
 import { useState } from "react";
-import { BarChart3, Users, Clock, Building2, Download, Loader2 } from "lucide-react";
+import {
+  BarChart3,
+  TrendingUp,
+  Users,
+  Clock,
+  Building2,
+  Download,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/toast";
-import { getUsers, getCompanies, getTimeEntries } from "@/lib/api";
+import { PageHeader } from "@/components/ui/page-header";
+import { getUsers } from "@/lib/api";
+import { getCompanies } from "@/lib/api";
+import { getTimeEntries } from "@/lib/api";
 import dayjs from "dayjs";
 
 export default function AdminReportsPage() {
   const { t } = useTranslation();
   const [generating, setGenerating] = useState<string | null>(null);
 
-  const downloadCSV = (content: string, filename: string) => {
-    const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8;" }));
-    const a = document.createElement("a"); a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  };
-
   const generateUsersReport = async () => {
     setGenerating("users");
     try {
       const users = await getUsers();
-      const csv = [["ID","Voornaam","Achternaam","Email","Functie","Rol","Status","Aangemaakt"].join(","),
-        ...users.map((u: any) => [u.id, `"${u.firstName||""}"`, `"${u.lastName||""}"`, u.email||"", `"${u.function||""}"`, u.rank||"", u.active!==false?"Actief":"Inactief", u.createdAt?dayjs(u.createdAt).format("YYYY-MM-DD"):""].join(","))].join("\n");
-      downloadCSV(csv, `gebruikers-rapport-${dayjs().format("YYYY-MM-DD")}.csv`);
+      const csvContent = [
+        [
+          "ID",
+          "Voornaam",
+          "Achternaam",
+          "Email",
+          "Functie",
+          "Rol",
+          "Status",
+          "Aangemaakt",
+        ].join(","),
+        ...users.map((user: any) =>
+          [
+            user.id,
+            `"${user.firstName || ""}"`,
+            `"${user.lastName || ""}"`,
+            user.email || "",
+            `"${user.function || ""}"`,
+            user.rank || "",
+            user.active !== false ? "Actief" : "Inactief",
+            user.createdAt ? dayjs(user.createdAt).format("YYYY-MM-DD") : "",
+          ].join(","),
+        ),
+      ].join("\n");
+
+      downloadCSV(
+        csvContent,
+        `gebruikers-rapport-${dayjs().format("YYYY-MM-DD")}.csv`,
+      );
       showToast(t("admin.reports.usersGenerated"), "success");
-    } catch { showToast(t("admin.reports.generateError"), "error"); } finally { setGenerating(null); }
+    } catch (error) {
+      
+      showToast(t("admin.reports.generateError"), "error");
+    } finally {
+      setGenerating(null);
+    }
   };
 
   const generateHoursReport = async () => {
     setGenerating("hours");
     try {
       const entries = await getTimeEntries();
-      const csv = [["ID","Gebruiker","Project","Bedrijf","Datum","Start","Eind","Uren","Pauze","Status","Notities"].join(","),
-        ...entries.map((e: any) => [e.id, `"${e.user?.firstName} ${e.user?.lastName}"`, `"${e.project?.name||""}"`, `"${e.project?.projectGroup?.company?.name||""}"`, dayjs(e.startTime).format("YYYY-MM-DD"), dayjs(e.startTime).format("HH:mm"), dayjs(e.endTime).format("HH:mm"), ((dayjs(e.endTime).diff(dayjs(e.startTime),"minute")-(e.breakMinutes||0))/60).toFixed(2), e.breakMinutes||0, e.status||"", `"${e.notes||""}"`].join(","))].join("\n");
-      downloadCSV(csv, `uren-rapport-${dayjs().format("YYYY-MM-DD")}.csv`);
+      const csvContent = [
+        [
+          "ID",
+          "Gebruiker",
+          "Project",
+          "Bedrijf",
+          "Datum",
+          "Start",
+          "Eind",
+          "Uren",
+          "Pauze",
+          "Status",
+          "Notities",
+        ].join(","),
+        ...entries.map((entry: any) =>
+          [
+            entry.id,
+            `"${entry.user?.firstName} ${entry.user?.lastName}"`,
+            `"${entry.project?.name || ""}"`,
+            `"${entry.project?.projectGroup?.company?.name || ""}"`,
+            dayjs(entry.startTime).format("YYYY-MM-DD"),
+            dayjs(entry.startTime).format("HH:mm"),
+            dayjs(entry.endTime).format("HH:mm"),
+            (
+              (dayjs(entry.endTime).diff(dayjs(entry.startTime), "minute") -
+                (entry.breakMinutes || 0)) /
+              60
+            ).toFixed(2),
+            entry.breakMinutes || 0,
+            entry.status || "",
+            `"${entry.notes || ""}"`,
+          ].join(","),
+        ),
+      ].join("\n");
+
+      downloadCSV(
+        csvContent,
+        `uren-rapport-${dayjs().format("YYYY-MM-DD")}.csv`,
+      );
       showToast(t("admin.reports.hoursGenerated"), "success");
-    } catch { showToast(t("admin.reports.generateError"), "error"); } finally { setGenerating(null); }
+    } catch (error) {
+      
+      showToast(t("admin.reports.generateError"), "error");
+    } finally {
+      setGenerating(null);
+    }
   };
 
   const generateCompaniesReport = async () => {
     setGenerating("companies");
     try {
       const companies = await getCompanies();
-      const csv = [["ID","Naam","Email","Telefoon","Adres","Status","Aangemaakt"].join(","),
-        ...companies.map((c: any) => [c.id, `"${c.name||""}"`, c.email||"", c.phone||"", `"${c.address||""}"`, c.active!==false?"Actief":"Inactief", c.createdAt?dayjs(c.createdAt).format("YYYY-MM-DD"):""].join(","))].join("\n");
-      downloadCSV(csv, `bedrijven-rapport-${dayjs().format("YYYY-MM-DD")}.csv`);
+      const csvContent = [
+        [
+          "ID",
+          "Naam",
+          "Email",
+          "Telefoon",
+          "Adres",
+          "Status",
+          "Aangemaakt",
+        ].join(","),
+        ...companies.map((company: any) =>
+          [
+            company.id,
+            `"${company.name || ""}"`,
+            company.email || "",
+            company.phone || "",
+            `"${company.address || ""}"`,
+            company.active !== false ? "Actief" : "Inactief",
+            company.createdAt
+              ? dayjs(company.createdAt).format("YYYY-MM-DD")
+              : "",
+          ].join(","),
+        ),
+      ].join("\n");
+
+      downloadCSV(
+        csvContent,
+        `bedrijven-rapport-${dayjs().format("YYYY-MM-DD")}.csv`,
+      );
       showToast(t("admin.reports.companiesGenerated"), "success");
-    } catch { showToast(t("admin.reports.generateError"), "error"); } finally { setGenerating(null); }
+    } catch (error) {
+      
+      showToast(t("admin.reports.generateError"), "error");
+    } finally {
+      setGenerating(null);
+    }
   };
 
-  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "20px" };
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
-  const reports = [
-    { key: "users",     icon: Users,     color: "var(--c-accent)",  bg: "var(--c-accent-weak)", label: t("admin.reports.users"),     desc: t("admin.reports.usersDesc"),     fn: generateUsersReport },
-    { key: "hours",     icon: Clock,     color: "var(--c-muted)",   bg: "var(--c-hover)",       label: t("admin.reports.hours"),     desc: t("admin.reports.hoursDesc"),     fn: generateHoursReport },
-    { key: "companies", icon: Building2, color: "var(--c-green)",   bg: "var(--c-green-weak)",  label: t("admin.reports.companies"), desc: t("admin.reports.companiesDesc"), fn: generateCompaniesReport },
-  ];
-
-  const DownloadBtn = ({ reportKey, fn }: { reportKey: string; fn: () => Promise<void> }) => (
-    <button
-      onClick={fn}
-      disabled={generating === reportKey}
-      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: "9px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: generating === reportKey ? "not-allowed" : "pointer", opacity: generating === reportKey ? 0.7 : 1 }}
-    >
-      {generating === reportKey
-        ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> {t("admin.reports.generating")}</>
-        : <><Download size={14} /> {t("admin.reports.download")}</>}
-    </button>
-  );
+  const handleGenerateReport = async (reportType: string) => {
+    switch (reportType) {
+      case t("admin.reports.users"):
+        await generateUsersReport();
+        break;
+      case t("admin.reports.hours"):
+        await generateHoursReport();
+        break;
+      case t("admin.reports.companies"):
+        await generateCompaniesReport();
+        break;
+      default:
+        showToast(t("admin.reports.unknownReport"), "error");
+    }
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title={t("admin.reports.title")}
+        description={t("admin.reports.subtitle")}
+      />
 
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>{t("admin.reports.title")}</h1>
-        <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>{t("admin.reports.subtitle")}</p>
-      </div>
-
-      {/* Report cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
-        {reports.map((r) => (
-          <div key={r.key} style={panelStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: r.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <r.icon size={18} color={r.color} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="card-hover">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)" }}>{r.label}</span>
+              <div>
+                <CardTitle className="text-lg">
+                  {t("admin.reports.users")}
+                </CardTitle>
+              </div>
             </div>
-            <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "0 0 14px" }}>{r.desc}</p>
-            <DownloadBtn reportKey={r.key} fn={r.fn} />
-          </div>
-        ))}
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              {t("admin.reports.usersDesc")}
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => handleGenerateReport(t("admin.reports.users"))}
+              disabled={generating === "users"}
+            >
+              {generating === "users" ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t("admin.reports.generating")}
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  {t("admin.reports.download")}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">
+                  {t("admin.reports.hours")}
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              {t("admin.reports.hoursDesc")}
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => handleGenerateReport(t("admin.reports.hours"))}
+              disabled={generating === "hours"}
+            >
+              {generating === "hours" ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t("admin.reports.generating")}
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  {t("admin.reports.download")}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">
+                  {t("admin.reports.companies")}
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              {t("admin.reports.companiesDesc")}
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => handleGenerateReport(t("admin.reports.companies"))}
+              disabled={generating === "companies"}
+            >
+              {generating === "companies" ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t("admin.reports.generating")}
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  {t("admin.reports.download")}
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Advanced */}
-      <div style={panelStyle}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 6 }}>
-          <BarChart3 size={14} color="var(--c-muted)" /> {t("admin.reports.advanced")}
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {[{ key: "monthly", label: t("admin.reports.monthly"), desc: t("admin.reports.monthlyDesc") }, { key: "yearly", label: t("admin.reports.yearly"), desc: t("admin.reports.yearlyDesc") }].map((r) => (
-            <div key={r.key} style={{ border: "1px solid var(--c-border)", borderRadius: 8, padding: "14px 16px" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 4px" }}>{r.label}</p>
-              <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "0 0 12px" }}>{r.desc}</p>
-              <button
+      {/* Additional Report Options */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-slate-600" />
+            {t("admin.reports.advanced")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                {t("admin.reports.monthly")}
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                {t("admin.reports.monthlyDesc")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => showToast(t("admin.reports.comingSoon"), "info")}
-                style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", fontSize: 12, color: "var(--c-text-2)", cursor: "pointer" }}
               >
-                <Download size={13} /> {t("common.download")}
-              </button>
+                <Download className="w-4 h-4 mr-2" />
+                {t("common.download")}
+              </Button>
             </div>
-          ))}
-        </div>
-      </div>
+
+            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+              <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                {t("admin.reports.yearly")}
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                {t("admin.reports.yearlyDesc")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => showToast(t("admin.reports.comingSoon"), "info")}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t("common.download")}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

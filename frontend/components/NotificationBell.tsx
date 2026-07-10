@@ -237,88 +237,96 @@ const NotificationBell = () => {
 
   return (
     <div ref={dropdownRef} className="relative">
-      <button onClick={toggleDropdown} className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-        <BellIcon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold bg-blue-600 text-white rounded-full">
-            {unreadCount}
-          </span>
-        )}
+      <button onClick={toggleDropdown} className="btn btn-ghost btn-circle">
+        <div className="indicator">
+          <BellIcon className="h-6 w-6" />
+          {unreadCount > 0 && (
+            <span className="indicator-item badge badge-primary badge-sm">
+              {unreadCount}
+            </span>
+          )}
+        </div>
       </button>
 
       {showDropdown && (
-        <div className="fixed inset-x-3 top-14 md:absolute md:inset-x-auto md:top-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-slate-800 shadow-xl rounded-xl overflow-hidden z-[60] border border-slate-200 dark:border-slate-700">
-          <div className="flex justify-between items-center p-3 border-b border-slate-200 dark:border-slate-700">
-            <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100">Notificaties</h3>
+        <div className="fixed inset-x-3 top-14 md:absolute md:inset-x-auto md:top-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden z-[60] border border-gray-200 dark:border-gray-700 opacity-100">
+          <div className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Notificaties</h3>
             <button
               onClick={() => setShowDropdown(false)}
-              className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+              className="btn btn-ghost btn-sm btn-circle"
             >
               ✕
             </button>
           </div>
 
-          <div className="flex border-b border-slate-200 dark:border-slate-700 text-xs font-medium">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <button
-              className={`flex-1 py-2 px-3 text-center transition-colors ${activeTab === "all" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+              className={`flex-1 py-2 px-4 text-center ${activeTab === "all" ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
               onClick={() => setActiveTab("all")}
             >
               Alle ({notifications.length})
             </button>
+
             <button
-              className={`flex-1 py-2 px-3 text-center transition-colors ${activeTab === "unread" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+              className={`flex-1 py-2 px-4 text-center ${activeTab === "unread" ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
               onClick={() => setActiveTab("unread")}
             >
               <div className="flex items-center justify-center gap-1">
-                <EnvelopeIcon className="h-3.5 w-3.5" />
+                <EnvelopeIcon className="h-4 w-4" />
                 <span>Ongelezen ({unreadCount})</span>
               </div>
             </button>
+
             <button
-              className={`flex-1 py-2 px-3 text-center transition-colors ${activeTab === "read" ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+              className={`flex-1 py-2 px-4 text-center ${activeTab === "read" ? "bg-gray-100 dark:bg-gray-700 font-semibold" : ""}`}
               onClick={() => setActiveTab("read")}
             >
               <div className="flex items-center justify-center gap-1">
-                <EnvelopeOpenIcon className="h-3.5 w-3.5" />
+                <EnvelopeOpenIcon className="h-4 w-4" />
                 <span>Gelezen ({notifications.length - unreadCount})</span>
               </div>
             </button>
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center p-8">
-              <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
+            <div className="flex justify-center p-4 bg-white dark:bg-gray-800">
+              <div className="loading loading-spinner loading-md" />
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800">
               Geen notificaties gevonden
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto bg-white dark:bg-gray-800">
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 flex gap-3 items-start cursor-pointer border-b border-slate-100 dark:border-slate-700/50 last:border-0 transition-colors ${!notification.isRead ? "bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-700/30"}`}
-                  onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                  className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex gap-3 items-start cursor-pointer ${!notification.isRead ? "bg-blue-50 dark:bg-gray-700" : ""}`}
+                  onClick={() =>
+                    !notification.isRead && handleMarkAsRead(notification.id)
+                  }
                 >
-                  <div className="shrink-0 mt-0.5">
+                  <div className="shrink-0 mt-1">
                     {getNotificationIcon(notification.type)}
                   </div>
+
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200 line-clamp-2">
+                    <div className="flex justify-between items-start">
+                      <span className="font-medium line-clamp-2">
                         {notification.title}
                       </span>
                       {!notification.isRead && (
-                        <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                        <span className="badge badge-primary badge-sm ml-1 shrink-0">
                           nieuw
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                       {notification.message}
                     </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       {formatTimestamp(notification.createdAt)}
                     </p>
                   </div>
@@ -328,20 +336,20 @@ const NotificationBell = () => {
           )}
 
           {unreadCount > 0 && (
-            <div className="p-3 border-t border-slate-200 dark:border-slate-700">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <button
                 onClick={handleMarkAllAsRead}
-                className="w-full py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                className="btn btn-sm btn-outline w-full"
               >
                 Alles markeren als gelezen
               </button>
             </div>
           )}
 
-          <div className="p-3 border-t border-slate-200 dark:border-slate-700">
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <button
               onClick={fetchNotifications}
-              className="w-full py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="btn btn-sm btn-outline w-full"
             >
               Vernieuwen
             </button>

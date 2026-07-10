@@ -1,24 +1,37 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getHolidays, createHoliday, updateHoliday, deleteHoliday, toggleWorkAllowed, generateHolidaysForYear, Holiday } from "@/lib/api/holidaysApi";
+import {
+  getHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
+  toggleWorkAllowed,
+  generateHolidaysForYear,
+  Holiday
+} from "@/lib/api/holidaysApi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { showToast } from "@/components/ui/toast";
-import { ChevronLeft, ChevronRight, Plus, X, Check, Lock, Unlock, Trash2, AlertCircle } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/loading";
+import authUtils from "@/lib/auth-utils";
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  Check,
+  Lock,
+  Unlock,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/nl";
 
 dayjs.locale("nl");
-
-function getDayStyle(holiday: Holiday | undefined, isWeekend: boolean, isToday: boolean): React.CSSProperties {
-  let bg = "var(--c-panel)", border = "1px solid var(--c-border)";
-  if (holiday) {
-    if (holiday.type === "national")       { bg = "var(--c-accent-weak)"; border = "1px solid color-mix(in srgb, var(--c-accent) 30%, transparent)"; }
-    else if (holiday.isWorkAllowed)        { bg = "var(--c-green-weak)";  border = "1px solid color-mix(in srgb, var(--c-green) 30%, transparent)"; }
-    else                                   { bg = "var(--c-red-weak)";    border = "1px solid color-mix(in srgb, var(--c-red) 30%, transparent)"; }
-  } else if (isWeekend) {
-    bg = "var(--c-panel-2)";
-  }
-  return { background: bg, border, outline: isToday ? "2px solid var(--c-accent)" : "none", outlineOffset: 1 };
-}
 
 export default function JaarkalenderPage() {
   const [loading, setLoading] = useState(true);
@@ -27,192 +40,359 @@ export default function JaarkalenderPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [formData, setFormData] = useState({ name: "", type: "company" as "company" | "closed", isWorkAllowed: false, notes: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "company" as "company" | "closed",
+    isWorkAllowed: false,
+    notes: "",
+  });
 
-  useEffect(() => { loadHolidays(); }, [currentYear]);
+  useEffect(() => {
+    loadHolidays();
+  }, [currentYear]);
 
   const loadHolidays = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const data = await getHolidays(currentYear);
       setHolidays(Array.isArray(data) ? data : []);
-      if (data.length === 0) showToast("Geen feestdagen gevonden — migration 012 uitgevoerd?", "info");
-    } catch { showToast("Kon feestdagen niet laden", "error"); setHolidays([]); } finally { setLoading(false); }
+      if (data.length === 0) {
+        showToast("Geen feestdagen gevonden - migration 012 uitgevoerd?", "info");
+      }
+    } catch (error) {
+      showToast("Kon feestdagen niet laden", "error");
+      setHolidays([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDateClick = (dateStr: string) => {
-    const existing = holidays.find(h => h.holidayDate === dateStr);
-    setSelectedDate(dateStr);
-    if (existing) {
-      setFormData({ name: existing.name, type: existing.type === "national" ? "company" : (existing.type as "company" | "closed"), isWorkAllowed: existing.isWorkAllowed, notes: existing.notes || "" });
+  const handleDateClick = (date: string) => {
+    const existingHoliday = holidays.find(h => h.holidayDate === date);
+    
+    if (existingHoliday) {
+      // Show holiday details
+      setSelectedDate(date);
+      setFormData({
+        name: existingHoliday.name,
+        type: existingHoliday.type === "national" ? "company" : (existingHoliday.type as "company" | "closed"),
+        isWorkAllowed: existingHoliday.isWorkAllowed,
+        notes: existingHoliday.notes || "",
+      });
       setModalMode("edit");
+      setShowModal(true);
     } else {
-      setFormData({ name: "", type: "closed", isWorkAllowed: false, notes: "" });
+      // Add new holiday
+      setSelectedDate(date);
+      setFormData({
+        name: "",
+        type: "closed",
+        isWorkAllowed: false,
+        notes: "",
+      });
       setModalMode("add");
+      setShowModal(true);
     }
-    setShowModal(true);
   };
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
+
     try {
       if (modalMode === "add") {
-        const finalName = formData.name.trim() || (formData.type === "closed" ? `Gesloten dag ${selectedDate}` : "");
-        if (!finalName) { showToast("Naam is verplicht", "error"); return; }
-        await createHoliday({ holidayDate: selectedDate, name: finalName, type: formData.type, isWorkAllowed: formData.isWorkAllowed, notes: formData.notes });
+        // Auto-generate name if empty for closed days
+        const finalName = formData.name.trim() || 
+          (formData.type === "closed" ? `Gesloten dag ${selectedDate}` : "");
+        
+        if (!finalName) {
+          showToast("Naam is verplicht", "error");
+          return;
+        }
+        
+        await createHoliday({
+          holidayDate: selectedDate,
+          name: finalName,
+          type: formData.type,
+          isWorkAllowed: formData.isWorkAllowed,
+          notes: formData.notes,
+        });
         showToast("Feestdag toegevoegd", "success");
       } else {
         const holiday = holidays.find(h => h.holidayDate === selectedDate);
-        if (holiday) { await updateHoliday(holiday.id, { isWorkAllowed: formData.isWorkAllowed, notes: formData.notes }); showToast("Feestdag bijgewerkt", "success"); }
+        if (holiday) {
+          await updateHoliday(holiday.id, {
+            isWorkAllowed: formData.isWorkAllowed,
+            notes: formData.notes,
+          });
+          showToast("Feestdag bijgewerkt", "success");
+        }
       }
-      setShowModal(false); loadHolidays();
-    } catch (e: any) { showToast(e.message || "Fout bij opslaan", "error"); }
+      setShowModal(false);
+      loadHolidays();
+    } catch (error: any) {
+      showToast(error.message || "Fout bij opslaan", "error");
+    }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (holidayId: number) => {
     if (!confirm("Weet je zeker dat je deze dag wilt verwijderen?")) return;
-    try { await deleteHoliday(id); showToast("Dag verwijderd", "success"); setShowModal(false); loadHolidays(); }
-    catch (e: any) { showToast(e.message || "Fout bij verwijderen", "error"); }
+
+    try {
+      await deleteHoliday(holidayId);
+      showToast("Dag verwijderd", "success");
+      setShowModal(false);
+      loadHolidays();
+    } catch (error: any) {
+      showToast(error.message || "Fout bij verwijderen", "error");
+    }
+  };
+
+  const handleToggleWork = async (holidayId: number) => {
+    try {
+      await toggleWorkAllowed(holidayId);
+      showToast("Status gewijzigd", "success");
+      loadHolidays();
+    } catch (error: any) {
+      showToast(error.message || "Fout bij wijzigen", "error");
+    }
   };
 
   const handleGenerateHolidays = async () => {
     if (!confirm(`Wil je de Nederlandse feestdagen genereren voor ${currentYear}?`)) return;
-    try { const r = await generateHolidaysForYear(currentYear); showToast(r.message, "success"); loadHolidays(); }
-    catch (e: any) { showToast(e.message || "Fout bij genereren", "error"); }
+
+    try {
+      const result = await generateHolidaysForYear(currentYear);
+      showToast(result.message, "success");
+      loadHolidays();
+    } catch (error: any) {
+      showToast(error.message || "Fout bij genereren", "error");
+    }
   };
 
-  const renderCalendar = () =>
-    Array.from({ length: 12 }, (_, month) => {
+  const renderCalendar = () => {
+    const months = [];
+    
+    for (let month = 0; month < 12; month++) {
       const firstDay = dayjs().year(currentYear).month(month).startOf("month");
       const daysInMonth = firstDay.daysInMonth();
-      const startOffset = (firstDay.day() === 0 ? 6 : firstDay.day() - 1);
-      return (
-        <div key={month} style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: 14 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 10px" }}>{firstDay.format("MMMM YYYY")}</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
-            {["Ma","Di","Wo","Do","Vr","Za","Zo"].map(d => (
-              <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 700, color: "var(--c-muted)", paddingBottom: 3 }}>{d}</div>
-            ))}
+      const startDay = firstDay.day(); // 0 = Sunday
+      const days = [];
+
+      // Add empty cells for days before month starts
+      for (let i = 0; i < (startDay === 0 ? 6 : startDay - 1); i++) {
+        days.push(<div key={`empty-${i}`} className="p-2"></div>);
+      }
+
+      // Add days of month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = firstDay.date(day);
+        const dateStr = date.format("YYYY-MM-DD");
+        const holiday = holidays.find(h => h.holidayDate === dateStr);
+        const isWeekend = date.day() === 0 || date.day() === 6;
+        const isToday = date.isSame(dayjs(), "day");
+
+        days.push(
+          <div
+            key={day}
+            onClick={() => handleDateClick(dateStr)}
+            className={`
+              p-2 text-center cursor-pointer rounded-lg border transition-all
+              ${isToday ? "ring-2 ring-blue-500" : ""}
+              ${holiday
+                ? holiday.type === "national"
+                  ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300"
+                  : holiday.isWorkAllowed
+                  ? "bg-green-100 dark:bg-green-900/30 border-green-300"
+                  : "bg-pink-100 dark:bg-pink-900/30 border-pink-300"
+                : isWeekend
+                ? "bg-slate-100 dark:bg-slate-800"
+                : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+              }
+              border-slate-200 dark:border-slate-700
+            `}
+          >
+            <div className="font-semibold text-sm">{day}</div>
+            {holiday && (
+              <div className="flex items-center justify-center gap-1 mt-1">
+                {holiday.isWorkAllowed ? (
+                  <Unlock className="w-3 h-3 text-green-600 dark:text-green-400" />
+                ) : (
+                  <Lock className="w-3 h-3 text-red-600 dark:text-red-400" />
+                )}
+              </div>
+            )}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
-            {Array.from({ length: startOffset }, (_, i) => <div key={`e${i}`} />)}
-            {Array.from({ length: daysInMonth }, (_, d) => {
-              const date = firstDay.date(d + 1);
-              const dateStr = date.format("YYYY-MM-DD");
-              const holiday = holidays.find(h => h.holidayDate === dateStr);
-              const isWeekend = date.day() === 0 || date.day() === 6;
-              const isToday = date.isSame(dayjs(), "day");
-              return (
-                <div
-                  key={d}
-                  onClick={() => handleDateClick(dateStr)}
-                  style={{ ...getDayStyle(holiday, isWeekend, isToday), padding: "3px 2px", textAlign: "center", cursor: "pointer", borderRadius: 5, transition: "opacity 0.1s" }}
-                  onMouseEnter={e => { if (!holiday && !isWeekend) e.currentTarget.style.opacity = "0.7"; }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
-                >
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--c-text)" }}>{d + 1}</span>
-                  {holiday && (
-                    <div style={{ display: "flex", justifyContent: "center", marginTop: 1 }}>
-                      {holiday.isWorkAllowed
-                        ? <Unlock size={8} color="var(--c-green)" />
-                        : <Lock    size={8} color="var(--c-red)"   />}
-                    </div>
-                  )}
+        );
+      }
+
+      months.push(
+        <Card key={month} className="flex-1 min-w-[280px]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">
+              {firstDay.format("MMMM YYYY")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"].map(day => (
+                <div key={day} className="text-xs font-semibold text-center text-slate-600 dark:text-slate-400">
+                  {day}
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {days}
+            </div>
+          </CardContent>
+        </Card>
       );
-    });
+    }
+
+    return months;
+  };
 
   const selectedHoliday = selectedDate ? holidays.find(h => h.holidayDate === selectedDate) : null;
-  const inputStyle: React.CSSProperties = { height: 34, width: "100%", padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
-  const labelStyle: React.CSSProperties = { display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", marginBottom: 5 };
 
-  if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 320 }}>
-      <div style={{ width: 32, height: 32, border: "3px solid var(--c-border)", borderTopColor: "var(--c-accent)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
+    <div className="space-y-6 animate-fadeIn pb-20">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Jaarkalender</h1>
-          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Beheer feestdagen en gesloten dagen</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => setCurrentYear(y => y - 1)} style={{ padding: "7px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", cursor: "pointer", display: "flex" }}>
-            <ChevronLeft size={16} color="var(--c-text)" />
-          </button>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "var(--c-text)", minWidth: 56, textAlign: "center" }}>{currentYear}</span>
-          <button onClick={() => setCurrentYear(y => y + 1)} style={{ padding: "7px 10px", border: "1px solid var(--c-border)", borderRadius: 7, background: "none", cursor: "pointer", display: "flex" }}>
-            <ChevronRight size={16} color="var(--c-text)" />
-          </button>
-          <button
-            onClick={handleGenerateHolidays}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", marginLeft: 4 }}
-          >
-            <Plus size={14} /> Feestdagen Genereren
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Jaarkalender"
+        description="Beheer feestdagen en gesloten dagen"
+        actions={
+          <div className="flex items-center gap-2 md:gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentYear(currentYear - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-lg md:text-xl font-bold min-w-[60px] md:min-w-[100px] text-center">
+              {currentYear}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentYear(currentYear + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleGenerateHolidays}
+              className="ml-2 md:ml-4"
+            >
+              <Plus className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Feestdagen Genereren</span>
+            </Button>
+          </div>
+        }
+      />
 
       {/* Legend */}
-      <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "12px 18px", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center" }}>
-        {[
-          { bg: "var(--c-accent-weak)", border: "color-mix(in srgb, var(--c-accent) 30%, transparent)", label: "Nationale feestdag" },
-          { bg: "var(--c-red-weak)",    border: "color-mix(in srgb, var(--c-red) 30%, transparent)",    label: "Gesloten (geen uren)" },
-          { bg: "var(--c-green-weak)",  border: "color-mix(in srgb, var(--c-green) 30%, transparent)",  label: "Feestdag (uren toegestaan)" },
-        ].map((l) => (
-          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <div style={{ width: 18, height: 18, borderRadius: 4, background: l.bg, border: `1px solid ${l.border}` }} />
-            <span style={{ fontSize: 12, color: "var(--c-text-2)" }}>{l.label}</span>
+      <Card>
+        <CardContent className="p-3 md:pt-6 md:p-6">
+          <div className="flex flex-wrap gap-3 md:gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 rounded"></div>
+              <span className="text-sm">Nationale feestdag</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-pink-100 dark:bg-pink-900/30 border border-pink-300 rounded"></div>
+              <span className="text-sm">Gesloten (geen uren)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border border-green-300 rounded"></div>
+              <span className="text-sm">Feestdag (uren toegestaan)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border border-red-300 rounded flex items-center justify-center">
+                <Lock className="w-3 h-3 text-red-600" />
+              </div>
+              <span className="text-sm">Uren geblokkeerd</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border border-green-300 rounded flex items-center justify-center">
+                <Unlock className="w-3 h-3 text-green-600" />
+              </div>
+              <span className="text-sm">Uren toegestaan</span>
+            </div>
           </div>
-        ))}
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}><Lock size={12} color="var(--c-red)" /><span style={{ fontSize: 12, color: "var(--c-text-2)" }}>Uren geblokkeerd</span></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}><Unlock size={12} color="var(--c-green)" /><span style={{ fontSize: 12, color: "var(--c-text-2)" }}>Uren toegestaan</span></div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Calendar grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {renderCalendar()}
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 12, width: "100%", maxWidth: 440, boxShadow: "var(--c-shadow)" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "18px 20px", borderBottom: "1px solid var(--c-border)" }}>
-              <div>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>{modalMode === "add" ? "Dag Toevoegen" : "Dag Bewerken"}</p>
-                <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "3px 0 0" }}>{dayjs(selectedDate).format("dddd D MMMM YYYY")}</p>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  {modalMode === "add" ? "Dag Toevoegen" : "Dag Bewerken"}
+                </CardTitle>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button onClick={() => setShowModal(false)} style={{ padding: 6, background: "none", border: "none", cursor: "pointer", color: "var(--c-muted)" }}><X size={18} /></button>
-            </div>
-            <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {dayjs(selectedDate).format("dddd D MMMM YYYY")}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {selectedHoliday?.type === "national" && (
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "var(--c-accent-weak)", borderRadius: 8, padding: "10px 14px" }}>
-                  <AlertCircle size={14} color="var(--c-accent)" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: "var(--c-accent)", margin: "0 0 3px" }}>Nationale Feestdag</p>
-                    <p style={{ fontSize: 12, color: "var(--c-text-2)", margin: 0 }}>Je kunt aangeven of uren registratie toegestaan is op deze dag.</p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+                        Nationale Feestdag
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Je kunt aangeven of uren registratie toegestaan is op deze dag. De feestdag zelf kan niet worden verwijderd.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
+
               {modalMode === "add" ? (
                 <>
                   <div>
-                    <label style={labelStyle}>Naam</label>
-                    <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Bijv. Bedrijfsuitje" style={inputStyle} />
+                    <label className="block text-sm font-medium mb-2">Naam</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg"
+                      placeholder="Bijv. Bedrijfsuitje"
+                    />
                   </div>
+
                   <div>
-                    <label style={labelStyle}>Type</label>
-                    <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as "company" | "closed" })} style={inputStyle}>
+                    <label className="block text-sm font-medium mb-2">Type</label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value as "company" | "closed" })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg"
+                    >
                       <option value="closed">Gesloten Dag</option>
                       <option value="company">Bedrijfsdag</option>
                     </select>
@@ -220,34 +400,60 @@ export default function JaarkalenderPage() {
                 </>
               ) : (
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--c-text)", margin: "0 0 6px" }}>{selectedHoliday?.name}</p>
-                  <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: "var(--c-hover)", color: "var(--c-muted)" }}>
-                    {selectedHoliday?.type === "national" ? "Nationale Feestdag" : selectedHoliday?.type === "company" ? "Bedrijfsdag" : "Gesloten Dag"}
-                  </span>
+                  <p className="text-sm font-medium mb-2">{selectedHoliday?.name}</p>
+                  <Badge variant="outline">
+                    {selectedHoliday?.type === "national" ? "Nationale Feestdag" : 
+                     selectedHoliday?.type === "company" ? "Bedrijfsdag" : "Gesloten Dag"}
+                  </Badge>
                 </div>
               )}
-              <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                <input type="checkbox" id="workAllowed" checked={formData.isWorkAllowed} onChange={(e) => setFormData({ ...formData, isWorkAllowed: e.target.checked })} style={{ width: 15, height: 15, accentColor: "var(--c-accent)" }} />
-                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--c-text)" }}>Uren registratie toegestaan</span>
-              </label>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="workAllowed"
+                  checked={formData.isWorkAllowed}
+                  onChange={(e) => setFormData({ ...formData, isWorkAllowed: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <label htmlFor="workAllowed" className="text-sm font-medium">
+                  Uren registratie toegestaan
+                </label>
+              </div>
+
               <div>
-                <label style={labelStyle}>Notities</label>
-                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={3} placeholder="Optionele notities..." style={{ ...inputStyle, height: "auto", padding: "8px 10px", resize: "none" }} />
+                <label className="block text-sm font-medium mb-2">Notities</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg"
+                  rows={3}
+                  placeholder="Optionele notities..."
+                />
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4 }}>
+
+              <div className="flex gap-3 pt-4">
                 {selectedHoliday && selectedHoliday.type !== "national" && (
-                  <button onClick={() => handleDelete(selectedHoliday.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "none", border: "1px solid var(--c-red)", color: "var(--c-red)", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                    <Trash2 size={13} /> Verwijderen
-                  </button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDelete(selectedHoliday.id)}
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Verwijderen
+                  </Button>
                 )}
-                <div style={{ flex: 1 }} />
-                <button onClick={() => setShowModal(false)} style={{ padding: "8px 14px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text-2)", cursor: "pointer" }}>Annuleren</button>
-                <button onClick={handleSubmit} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  <Check size={13} /> Opslaan
-                </button>
+                <div className="flex-1"></div>
+                <Button variant="outline" onClick={() => setShowModal(false)}>
+                  Annuleren
+                </Button>
+                <Button onClick={handleSubmit}>
+                  <Check className="w-4 h-4 mr-2" />
+                  Opslaan
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

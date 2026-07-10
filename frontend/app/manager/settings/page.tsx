@@ -1,7 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun } from "lucide-react";
+import { Bell, User, Save, CheckCircle, Shield, Globe, Moon, Sun, Lock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { showToast } from "@/components/ui/toast";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslation } from "react-i18next";
@@ -14,185 +19,390 @@ export default function ManagerSettingsPage() {
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
 
+  // Notification settings
   const [emailOnRequests, setEmailOnRequests] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [dailySummary, setDailySummary] = useState(false);
+
+  // Password change
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // UI State
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
 
+  // Load settings from localStorage
   useEffect(() => {
-    try {
-      const s = localStorage.getItem("managerSettings");
-      if (s) {
-        const p = JSON.parse(s);
-        setEmailOnRequests(p.emailOnRequests ?? true);
-        setPushNotifications(p.pushNotifications ?? true);
-        setDailySummary(p.dailySummary ?? false);
+    const loadSettings = () => {
+      try {
+        const settings = localStorage.getItem("managerSettings");
+        if (settings) {
+          const parsed = JSON.parse(settings);
+          setEmailOnRequests(parsed.emailOnRequests ?? true);
+          setPushNotifications(parsed.pushNotifications ?? true);
+          setDailySummary(parsed.dailySummary ?? false);
+        }
+      } catch (error) {
+        // Settings could not be loaded
       }
-    } catch {}
+    };
+    loadSettings();
   }, []);
 
   const handleSave = () => {
     setSaving(true);
-    localStorage.setItem("managerSettings", JSON.stringify({ emailOnRequests, pushNotifications, dailySummary, lastUpdated: new Date().toISOString() }));
-    setTimeout(() => { setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 3000); }, 500);
+
+    const settings = {
+      emailOnRequests,
+      pushNotifications,
+      dailySummary,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    localStorage.setItem("managerSettings", JSON.stringify(settings));
+
+    setTimeout(() => {
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }, 500);
   };
 
   const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) { showToast("Nieuwe wachtwoorden komen niet overeen", "error"); return; }
-    if (!newPassword || newPassword.length < 6) { showToast("Nieuw wachtwoord moet minimaal 6 karakters bevatten", "error"); return; }
+    if (newPassword !== confirmPassword) {
+      showToast("Nieuwe wachtwoorden komen niet overeen", "error");
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      showToast("Nieuw wachtwoord moet minimaal 6 karakters bevatten", "error");
+      return;
+    }
+
     setChangingPassword(true);
     try {
       const userId = authUtils.getUserId();
-      if (!userId) { showToast("Gebruiker niet ingelogd", "error"); return; }
-      const res = await fetch(`${API_URL}/users/${userId}/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      if (res.ok) {
+      if (!userId) {
+        showToast("Gebruiker niet ingelogd", "error");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/users/${userId}/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+        },
+      );
+
+      if (response.ok) {
         showToast("Wachtwoord succesvol gewijzigd", "success");
         setPasswordChanged(true);
-        setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
         setTimeout(() => setPasswordChanged(false), 3000);
       } else {
-        showToast(`Fout bij wijzigen: ${await res.text()}`, "error");
+        const error = await response.text();
+        showToast(`Fout bij wijzigen wachtwoord: ${error}`, "error");
       }
-    } catch { showToast("Fout bij wijzigen wachtwoord", "error"); } finally { setChangingPassword(false); }
+    } catch (error) {
+      showToast("Fout bij wijzigen wachtwoord", "error");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
-  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "20px" };
-  const inputStyle: React.CSSProperties = { height: 34, width: "100%", padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
-  const labelStyle: React.CSSProperties = { display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", marginBottom: 5 };
-
-  const ToggleBtn = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
-    <button
-      onClick={onClick}
-      style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 7, fontSize: 13, fontWeight: active ? 600 : 400, background: active ? "var(--c-accent)" : "transparent", color: active ? "#fff" : "var(--c-text-2)", border: `1px solid ${active ? "var(--c-accent)" : "var(--c-border)"}`, cursor: "pointer" }}
-    >
-      {children}
-    </button>
-  );
-
-  const SectionTitle = ({ icon: Icon, title, sub }: { icon: React.ElementType; title: string; sub: string }) => (
-    <div style={{ marginBottom: 14 }}>
-      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
-        <Icon size={14} color="var(--c-muted)" /> {title}
-      </p>
-      <p style={{ fontSize: 12, color: "var(--c-muted)", margin: "3px 0 0" }}>{sub}</p>
-    </div>
-  );
-
-  const CheckRow = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "6px 0" }}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 15, height: 15, accentColor: "var(--c-accent)", cursor: "pointer" }} />
-      <span style={{ fontSize: 13, color: "var(--c-text)" }}>{label}</span>
-    </label>
-  );
+  const handleEditProfile = () => {
+    router.push("/account");
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="space-y-6 animate-fadeIn">
+        <PageHeader title="Instellingen" description="Manager voorkeuren en account beheer" />
 
-      {/* Header */}
-      <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Instellingen</h1>
-        <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Manager voorkeuren en account beheer</p>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-
-        {/* Language */}
-        <div style={panelStyle}>
-          <SectionTitle icon={Globe} title={t("settings.language")} sub="Kies de taal van de applicatie" />
-          <div style={{ display: "flex", gap: 8 }}>
-            <ToggleBtn active={i18n.language === "nl"} onClick={() => i18n.changeLanguage("nl")}>Nederlands</ToggleBtn>
-            <ToggleBtn active={i18n.language === "en"} onClick={() => i18n.changeLanguage("en")}>English</ToggleBtn>
-          </div>
-        </div>
-
-        {/* Theme */}
-        <div style={panelStyle}>
-          <SectionTitle icon={theme === "dark" ? Moon : Sun} title={t("settings.theme")} sub="Wissel tussen lichte en donkere modus" />
-          <div style={{ display: "flex", gap: 8 }}>
-            <ToggleBtn active={theme === "light"} onClick={() => setTheme("light")}><Sun size={13} /> {t("settings.light")}</ToggleBtn>
-            <ToggleBtn active={theme === "dark"}  onClick={() => setTheme("dark")} ><Moon size={13} /> {t("settings.dark")}</ToggleBtn>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <div style={panelStyle}>
-          <SectionTitle icon={Bell} title="Notificaties" sub="Beheer je notificatievoorkeuren" />
-          <div style={{ marginBottom: 14 }}>
-            <CheckRow label="Email bij nieuwe aanvragen" checked={emailOnRequests} onChange={setEmailOnRequests} />
-            <CheckRow label="Push notificaties"          checked={pushNotifications} onChange={setPushNotifications} />
-            <CheckRow label="Dagelijkse samenvatting"   checked={dailySummary}     onChange={setDailySummary} />
-          </div>
-          <button
-            onClick={handleSave}
-            disabled={saving || saved}
-            style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", justifyContent: "center", padding: "9px 16px", background: saved ? "var(--c-green)" : "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving || saved ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
-          >
-            {saving ? "Opslaan..." : saved ? <><CheckCircle size={14} /> Opgeslagen!</> : <><Save size={14} /> Opslaan</>}
-          </button>
-        </div>
-
-        {/* 2FA */}
-        <div style={panelStyle}>
-          <SectionTitle icon={Shield} title="Tweestapsverificatie (2FA)" sub="Extra beveiliging voor je manager account" />
-          <div style={{ background: "var(--c-accent-weak)", border: "1px solid color-mix(in srgb, var(--c-accent) 20%, transparent)", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "var(--c-accent)", margin: "0 0 4px" }}>Waarom 2FA?</p>
-            <p style={{ fontSize: 12, color: "var(--c-text-2)", margin: 0 }}>
-              Als manager heb je toegang tot gevoelige teamgegevens. 2FA beschermt je account.
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/account/2fa")}
-            style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", padding: "9px 16px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}
-          >
-            <Shield size={14} /> 2FA Beheren
-          </button>
-        </div>
-
-        {/* Password */}
-        <div style={{ ...panelStyle, gridColumn: "1 / -1" }}>
-          <SectionTitle icon={User} title="Wachtwoord Wijzigen" sub="Wijzig je huidige wachtwoord" />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 14 }}>
-            {[
-              { label: "Huidig Wachtwoord",        val: currentPassword, set: setCurrentPassword },
-              { label: "Nieuw Wachtwoord",          val: newPassword,     set: setNewPassword },
-              { label: "Bevestig Nieuw Wachtwoord", val: confirmPassword,  set: setConfirmPassword },
-            ].map((f) => (
-              <div key={f.label}>
-                <label style={labelStyle}>{f.label}</label>
-                <input type="password" value={f.val} onChange={(e) => f.set(e.target.value)} style={inputStyle} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Language Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                {t("settings.language")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Kies de taal van de applicatie
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant={i18n.language === "nl" ? "default" : "outline"}
+                  onClick={() => i18n.changeLanguage("nl")}
+                >
+                  Nederlands
+                </Button>
+                <Button
+                  variant={i18n.language === "en" ? "default" : "outline"}
+                  onClick={() => i18n.changeLanguage("en")}
+                >
+                  English
+                </Button>
               </div>
-            ))}
-          </div>
-          <button
-            onClick={handleChangePassword}
-            disabled={changingPassword || passwordChanged}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: passwordChanged ? "var(--c-green)" : "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: changingPassword || passwordChanged ? "not-allowed" : "pointer", opacity: changingPassword ? 0.7 : 1 }}
-          >
-            {changingPassword ? "Wijzigen..." : passwordChanged ? <><CheckCircle size={14} /> Gewijzigd!</> : <><Save size={14} /> Wachtwoord Wijzigen</>}
-          </button>
-        </div>
+            </CardContent>
+          </Card>
 
-        {/* Profile */}
-        <div style={{ ...panelStyle, gridColumn: "1 / -1" }}>
-          <SectionTitle icon={User} title="Profiel Beheer" sub="Bewerk je persoonlijke gegevens, contactinformatie en meer" />
-          <button
-            onClick={() => router.push("/account")}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}
-          >
-            <User size={14} /> Naar Profiel Pagina
-          </button>
+          {/* Theme Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {theme === "dark" ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+                {t("settings.theme")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Wissel tussen lichte en donkere modus
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant={theme === "light" ? "default" : "outline"}
+                  onClick={() => setTheme("light")}
+                  className="flex items-center gap-2"
+                >
+                  <Sun className="h-4 w-4" />
+                  {t("settings.light")}
+                </Button>
+                <Button
+                  variant={theme === "dark" ? "default" : "outline"}
+                  onClick={() => setTheme("dark")}
+                  className="flex items-center gap-2"
+                >
+                  <Moon className="h-4 w-4" />
+                  {t("settings.dark")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notifications */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notificaties
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="emailOnRequests"
+                    checked={emailOnRequests}
+                    onCheckedChange={(checked) =>
+                      setEmailOnRequests(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="emailOnRequests"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Email bij nieuwe aanvragen
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="pushNotifications"
+                    checked={pushNotifications}
+                    onCheckedChange={(checked) =>
+                      setPushNotifications(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="pushNotifications"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Push notificaties
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="dailySummary"
+                    checked={dailySummary}
+                    onCheckedChange={(checked) =>
+                      setDailySummary(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="dailySummary"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Dagelijkse samenvatting
+                  </label>
+                </div>
+              </div>
+              <Button
+                onClick={handleSave}
+                disabled={saving || saved}
+                className="mt-4 w-full"
+              >
+                {saving ? (
+                  "Opslaan..."
+                ) : saved ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Opgeslagen!
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Opslaan
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* 2FA Security */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                Tweestapsverificatie (2FA)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Extra beveiliging voor je manager account. Bij inloggen heb je
+                  een tweede verificatiestap nodig.
+                </p>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                        Waarom 2FA?
+                      </h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        Als manager heb je toegang tot gevoelige teamgegevens.
+                        2FA beschermt je account tegen ongeautoriseerde toegang.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => router.push("/account/2fa")}
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  2FA Beheren
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Password Change */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Wachtwoord Wijzigen
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Huidig Wachtwoord
+                  </label>
+                  <Input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Nieuw Wachtwoord
+                  </label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Bevestig Nieuw Wachtwoord
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleChangePassword}
+                disabled={changingPassword || passwordChanged}
+                className="mt-4"
+              >
+                {changingPassword ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                    Wijzigen...
+                  </>
+                ) : passwordChanged ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Gewijzigd!
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Wachtwoord Wijzigen
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Profile */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Profiel Beheer
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Bewerk je persoonlijke gegevens, contactinformatie en meer
+              </p>
+              <Button onClick={handleEditProfile} variant="outline">
+                <User className="w-4 h-4 mr-2" />
+                Naar Profiel Pagina
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      </div>
     </div>
   );
 }

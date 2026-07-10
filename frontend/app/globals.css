@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========== LEGACY TOKENS ========== */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -11,126 +10,22 @@
   --elmar-success: #10b981;
   --elmar-warning: #f59e0b;
   --elmar-error: #ef4444;
-
-  /* ========== DESIGN SYSTEM TOKENS — LIGHT ========== */
-  --c-bg:          #f4f4f6;
-  --c-panel:       #ffffff;
-  --c-panel-2:     #fafafb;
-  --c-hover:       #f1f2f4;
-  --c-border:      #e7e8ea;
-  --c-text:        #17181a;
-  --c-text-2:      #54585f;
-  --c-muted:       #8b9098;
-  --c-accent:      #3a5bd0;
-  --c-accent-weak: color-mix(in srgb, #3a5bd0 9%, #fff);
-  --c-amber:       #b7791f;
-  --c-amber-weak:  #fbf3e2;
-  --c-green:       #1f9d6b;
-  --c-green-weak:  #e7f6ee;
-  --c-red:         #dc5252;
-  --c-red-weak:    #fdecec;
-  --c-brand:       #1e3f70;
-  --c-shadow:      0 1px 2px rgba(16,17,26,.05), 0 1px 3px rgba(16,17,26,.05);
 }
 
-/* ========== DESIGN SYSTEM TOKENS — DARK ========== */
-html.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-
-  --c-bg:          #0a0b0d;
-  --c-panel:       #131417;
-  --c-panel-2:     #16171a;
-  --c-hover:       #1d1f23;
-  --c-border:      #26282d;
-  --c-text:        #eef0f2;
-  --c-text-2:      #b3b8bf;
-  --c-muted:       #797f88;
-  --c-accent:      #617ff0;
-  --c-accent-weak: color-mix(in srgb, #617ff0 12%, #131417);
-  --c-amber:       #d99b3a;
-  --c-amber-weak:  #2a2113;
-  --c-green:       #3fb27f;
-  --c-green-weak:  #13241c;
-  --c-red:         #e06666;
-  --c-red-weak:    #2a1414;
-  --c-brand:       #8aa2f5;
-  --c-shadow:      0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.3);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
 }
 
 body {
-  font-family: var(--font-geist, 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   font-size: 14px;
-  background: var(--c-bg);
+  background-color: #f8fafc;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  color: var(--c-text);
-}
-
-/* ========== APP SIDEBAR NAV LINKS ========== */
-.app-nav-link {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 8px 11px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--c-text-2);
-  transition: background 0.13s ease, color 0.13s ease;
-  position: relative;
-}
-.app-nav-link:hover {
-  background: var(--c-hover);
-  color: var(--c-text);
-}
-.app-nav-link.active {
-  background: var(--c-accent-weak);
-  color: var(--c-accent);
-  font-weight: 600;
-}
-.app-nav-link.active:hover {
-  background: var(--c-accent-weak);
-  color: var(--c-accent);
-}
-
-/* ========== APP HEADER SEARCH ========== */
-.app-header-search {
-  background: var(--c-panel-2);
-  border: 1px solid var(--c-border);
-  border-radius: 9px;
-  color: var(--c-text);
-  outline: none;
-  font-size: 13px;
-  transition: border-color 0.15s;
-}
-.app-header-search::placeholder {
-  color: var(--c-muted);
-}
-.app-header-search:focus {
-  border-color: var(--c-accent);
-}
-
-/* ========== APP HEADER ICON BUTTON ========== */
-.app-icon-btn {
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--c-text-2);
-  transition: background 0.13s, color 0.13s;
-  flex-shrink: 0;
-}
-.app-icon-btn:hover {
-  background: var(--c-hover);
-  color: var(--c-text);
 }
 
 /* Custom scrollbar */

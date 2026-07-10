@@ -1,107 +1,143 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Activity, Settings, AlertCircle, RefreshCw } from "lucide-react";
-import { getSystemHealth, getSystemConfig, updateSystemConfig } from "@/lib/api";
+import { Activity, Settings, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+
+import {
+  getSystemHealth,
+  getSystemConfig,
+  updateSystemConfig,
+} from "@/lib/api";
 
 export default function SystemPage() {
-  const [health, setHealth] = useState<any>(null);
-  const [config, setConfig] = useState<Record<string, any>>({});
+  const [health, setHealth] = useState(null);
+  const [config, setConfig] = useState({});
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { loadHealth(); loadConfig(); }, []);
+  useEffect(() => {
+    loadHealth();
+    loadConfig();
+  }, []);
 
   const loadHealth = async () => {
-    try { setHealth(await getSystemHealth()); } catch {}
+    try {
+      const data = await getSystemHealth();
+      setHealth(data);
+    } catch (error) {
+      
+    }
   };
+
   const loadConfig = async () => {
-    try { setConfig(await getSystemConfig()); } catch {}
+    try {
+      const data = await getSystemConfig();
+      setConfig(data);
+    } catch (error) {
+      
+    }
   };
+
   const handleUpdateConfig = async () => {
     setLoading(true);
-    try { await updateSystemConfig(config); alert("Config bijgewerkt!"); } catch {} finally { setLoading(false); }
+    try {
+      await updateSystemConfig(config);
+      alert("Config bijgewerkt!");
+    } catch (error) {
+      
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const panelStyle: React.CSSProperties = { background: "var(--c-panel)", border: "1px solid var(--c-border)", borderRadius: 10, padding: "20px 22px" };
-  const inputStyle: React.CSSProperties = { height: 34, width: "100%", padding: "0 10px", fontSize: 13, border: "1px solid var(--c-border)", borderRadius: 7, background: "var(--c-panel)", color: "var(--c-text)", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+  const handleConfigChange = (key: string, value: any) => {
+    setConfig({ ...config, [key]: value });
+  };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div className="space-y-6 animate-fadeIn">
+      <PageHeader
+        title="Systeem Status"
+        description="Monitor systeemgezondheid en beheer configuratie"
+        actions={
+          <Button variant="outline" size="sm" onClick={loadHealth}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Vernieuwen
+          </Button>
+        }
+      />
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--c-text)", margin: 0 }}>Systeem Status</h1>
-          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: "3px 0 0" }}>Monitor systeemgezondheid en beheer configuratie</p>
-        </div>
-        <button
-          onClick={loadHealth}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "none", border: "1px solid var(--c-border)", borderRadius: 8, fontSize: 13, color: "var(--c-text)", cursor: "pointer" }}
-        >
-          <RefreshCw size={14} /> Vernieuwen
-        </button>
-      </div>
-
-      {/* Health */}
-      <div style={panelStyle}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 6 }}>
-          <Activity size={14} color="var(--c-muted)" /> Systeem Gezondheid
-        </p>
-        {health ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--c-panel-2)", borderRadius: 8 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: health.databaseStatus === "Healthy" ? "var(--c-green)" : "var(--c-red)", flexShrink: 0 }} />
-              <div>
-                <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>Database Status</p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "2px 0 0" }}>{health.databaseStatus}</p>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--c-panel-2)", borderRadius: 8 }}>
-              <Activity size={14} color="var(--c-accent)" />
-              <div>
-                <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>Latency</p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "2px 0 0", fontVariantNumeric: "tabular-nums" }}>{health.latencyMs} ms</p>
-              </div>
-            </div>
-            {health.lastError && (
-              <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--c-red-weak)", borderRadius: 8 }}>
-                <AlertCircle size={14} color="var(--c-red)" />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Activity className="w-4 h-4 text-slate-500" />
+            Systeem Gezondheid
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {health ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                <div className={`w-2.5 h-2.5 rounded-full ${(health as any).databaseStatus === "Healthy" ? "bg-emerald-500" : "bg-rose-500"}`} />
                 <div>
-                  <p style={{ fontSize: 11, color: "var(--c-muted)", margin: 0 }}>Laatste Fout</p>
-                  <p style={{ fontSize: 13, color: "var(--c-red)", margin: "2px 0 0" }}>{health.lastError}</p>
+                  <p className="text-xs text-slate-500">Database Status</p>
+                  <p className="text-sm font-semibold">{(health as any).databaseStatus}</p>
                 </div>
               </div>
-            )}
-          </div>
-        ) : (
-          <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Klik op vernieuwen om de systeemstatus te laden...</p>
-        )}
-      </div>
-
-      {/* Config */}
-      <div style={panelStyle}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--c-text)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 6 }}>
-          <Settings size={14} color="var(--c-muted)" /> Systeem Configuratie
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {Object.entries(config).map(([key, value]) => (
-            <div key={key}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--c-muted)", marginBottom: 5 }}>{key}</label>
-              <input id={key} value={value as string} onChange={(e) => setConfig({ ...config, [key]: e.target.value })} style={inputStyle} />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                <Activity className="w-4 h-4 text-blue-500" />
+                <div>
+                  <p className="text-xs text-slate-500">Latency</p>
+                  <p className="text-sm font-semibold tabular-nums">{(health as any).latencyMs} ms</p>
+                </div>
+              </div>
+              {(health as any).lastError && (
+                <div className="sm:col-span-2 flex items-center gap-3 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20">
+                  <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-500">Laatste Fout</p>
+                    <p className="text-sm font-medium text-rose-700 dark:text-rose-300">{(health as any).lastError}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
-          {Object.keys(config).length === 0 && (
-            <p style={{ fontSize: 13, color: "var(--c-muted)", margin: 0 }}>Geen configuratie-items geladen.</p>
+          ) : (
+            <p className="text-sm text-slate-500">Klik op vernieuwen om de systeemstatus te laden...</p>
           )}
-          <button
-            onClick={handleUpdateConfig}
-            disabled={loading}
-            style={{ alignSelf: "flex-start", padding: "8px 16px", background: "var(--c-accent)", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, marginTop: 4 }}
-          >
-            {loading ? "Bijwerken..." : "Configuratie Bijwerken"}
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Settings className="w-4 h-4 text-slate-500" />
+            Systeem Configuratie
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Object.entries(config).map(([key, value]) => (
+              <div key={key} className="space-y-1.5">
+                <label htmlFor={key} className="text-sm font-medium text-slate-700 dark:text-slate-300">{key}</label>
+                <Input
+                  id={key}
+                  value={value as string}
+                  onChange={(e) => handleConfigChange(key, e.target.value)}
+                />
+              </div>
+            ))}
+            {Object.keys(config).length === 0 && (
+              <p className="text-sm text-slate-500">Geen configuratie-items geladen.</p>
+            )}
+            <Button onClick={handleUpdateConfig} disabled={loading} className="mt-2">
+              {loading ? "Bijwerken..." : "Configuratie Bijwerken"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
