@@ -6,6 +6,7 @@ import { Poppins } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastContainer } from "@/components/ui/toast";
 import "@/lib/i18n"; // Initialize i18next
+import "@/lib/installFetchAuth"; // Attach Bearer token to raw fetch() API calls
 
 const poppins = Poppins({
   weight: ["400", "600", "700"],

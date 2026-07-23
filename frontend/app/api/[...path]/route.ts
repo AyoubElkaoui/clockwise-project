@@ -42,8 +42,16 @@ async function proxy(req: NextRequest, params: { path: string[] } | Promise<{ pa
   const userId = req.headers.get("x-user-id");
   if (userId) headers.set("X-User-ID", userId);
 
+  // Attach the bearer token: prefer an explicit Authorization header, otherwise fall
+  // back to the `token` cookie set at login. This lets raw fetch() calls that go through
+  // this proxy authenticate without each call site having to add the header itself.
   const auth = req.headers.get("authorization");
-  if (auth) headers.set("authorization", auth);
+  const tokenCookie = req.cookies.get("token")?.value;
+  if (auth) {
+    headers.set("authorization", auth);
+  } else if (tokenCookie) {
+    headers.set("authorization", `Bearer ${tokenCookie}`);
+  }
 
   const cookie = req.headers.get("cookie");
   if (cookie) headers.set("cookie", cookie);

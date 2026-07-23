@@ -198,6 +198,34 @@ public class FirebirdTimeEntryRepository : ITimeEntryRepository
                     $"No AT_URENSTAT record found for employee {command.MedewGcId}");
             }
 
+            // Idempotency guard: if an identical line already exists, return it instead of
+            // inserting a duplicate. Safe on retry after a partial failure. Leave lines have no
+            // project, so WERK_GC_ID is NULL - match that explicitly.
+            var werkClause = command.WerkGcId.HasValue ? "WERK_GC_ID = @werkGcId" : "WERK_GC_ID IS NULL";
+            var existingId = await connection.ExecuteScalarAsync<int?>(
+                $@"SELECT FIRST 1 GC_ID FROM AT_URENBREG
+                   WHERE DOCUMENT_GC_ID = @documentGcId AND TAAK_GC_ID = @taakGcId
+                     AND {werkClause}
+                     AND DATUM = @datum AND AANTAL = @uren
+                     AND COALESCE(GC_OMSCHRIJVING, '') = COALESCE(@omschrijving, '')",
+                new
+                {
+                    documentGcId,
+                    taakGcId = command.TaakGcId,
+                    werkGcId = command.WerkGcId,
+                    datum = command.Datum,
+                    uren = command.Uren,
+                    omschrijving = command.Omschrijving ?? string.Empty
+                });
+
+            if (existingId.HasValue)
+            {
+                _logger.LogWarning(
+                    "Idempotency: identical line already exists (GC_ID {GcId}) for employee {Medew}, taak {Taak}, {Datum:yyyy-MM-dd} - returning existing instead of inserting duplicate",
+                    existingId.Value, command.MedewGcId, command.TaakGcId, command.Datum);
+                return existingId.Value;
+            }
+
             // Stap 2: Insert time entry
             var newGcId = await connection.ExecuteScalarAsync<int>(insertSql, new
             {

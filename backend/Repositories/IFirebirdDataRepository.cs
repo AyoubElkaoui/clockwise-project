@@ -26,7 +26,6 @@ namespace ClockwiseProject.Backend.Repositories
         Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId, FbTransaction transaction = null);
         Task<int> GetNextRegelNrAsync(int documentGcId, FbTransaction transaction = null);
         Task InsertTimeEntryAsync(TimeEntry entry, FbTransaction transaction = null);
-        Task InsertVacationEntryAsync(VacationEntry entry, FbTransaction transaction = null);
         Task<bool> IsMedewActiveAsync(int medewGcId);
         Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving);
         Task<string> GetTaakCodeAsync(int taakGcId);

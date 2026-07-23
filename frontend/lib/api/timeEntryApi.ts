@@ -38,6 +38,10 @@ import { API_URL } from "../api";
 axios.defaults.headers.common["Content-Type"] = "application/json";
 axios.interceptors.request.use((request) => {
   if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token && !request.headers["Authorization"]) {
+      request.headers.set("Authorization", `Bearer ${token}`);
+    }
     const medewGcId = localStorage.getItem("medewGcId");
     if (medewGcId) {
       if (!request.headers["X-MEDEW-GC-ID"]) {

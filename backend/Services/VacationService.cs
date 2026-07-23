@@ -128,7 +128,10 @@ namespace ClockwiseProject.Backend.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to write vacation request {Id} to Firebird - approve still succeeded in PostgreSQL", id);
+                // Do NOT swallow this quietly: the request is APPROVED in PostgreSQL but the hours
+                // did NOT reach Syntess. FirebirdGcIds stays empty, which marks it as not-synced;
+                // the idempotency guard above makes a later re-sync safe (no double booking).
+                _logger.LogError(ex, "SYNC FAILED: vacation request {Id} is APPROVED in PostgreSQL but was NOT written to Firebird/Syntess. Needs re-sync.", id);
             }
         }
 
@@ -220,31 +223,48 @@ namespace ClockwiseProject.Backend.Services
                     // Skip weekends (Saturday = 6, Sunday = 0)
                     if (currentDate.DayOfWeek != DayOfWeek.Saturday && currentDate.DayOfWeek != DayOfWeek.Sunday)
                     {
-                        var nextGcId = await GetNextGcIdAsync(connection, transaction);
+                        // Idempotency: if this day is already booked in Firebird (a retry after a
+                        // partial or failed sync), skip it so approved vacation is never counted
+                        // twice. Runs in the same transaction, so it sees committed prior rows.
+                        var alreadyBooked = await connection.ExecuteScalarAsync<int>(
+                            "SELECT COUNT(*) FROM AT_URENBREG WHERE DOCUMENT_GC_ID = @DocumentGcId AND TAAK_GC_ID = @TaakGcId AND DATUM = @Datum",
+                            new { DocumentGcId = documentGcId, TaakGcId = taakGcId, Datum = currentDate },
+                            transaction);
 
-                        var insertSql = @"
-                            INSERT INTO AT_URENBREG (
-                                GC_ID, DOCUMENT_GC_ID, GC_REGEL_NR, DATUM, AANTAL, 
-                                TAAK_GC_ID, WERK_GC_ID, MEDEW_GC_ID, GC_OMSCHRIJVING
-                            ) VALUES (
-                                @GcId, @DocumentGcId, @GcRegelNr, @Datum, @Aantal,
-                                @TaakGcId, NULL, @MedewGcId, @GcOmschrijving
-                            )";
-
-                        await connection.ExecuteAsync(insertSql, new
+                        if (alreadyBooked > 0)
                         {
-                            GcId = nextGcId,
-                            DocumentGcId = documentGcId,
-                            GcRegelNr = regelNr++,
-                            Datum = currentDate,
-                            Aantal = 8.0m, // 8 hours per working day
-                            TaakGcId = taakGcId,
-                            MedewGcId = medewGcId,
-                            GcOmschrijving = $"Vakantie: {request.Notes ?? "Goedgekeurd door manager"}"
-                        }, transaction);
+                            _logger.LogWarning(
+                                "Idempotency: vacation day {Date} already booked for medew {Medew} (taak {Taak}) - skipping to prevent duplicate",
+                                currentDate, medewGcId, taakGcId);
+                        }
+                        else
+                        {
+                            var nextGcId = await GetNextGcIdAsync(connection, transaction);
 
-                        createdGcIds.Add(nextGcId);
-                        _logger.LogInformation("Created Firebird entry GC_ID {GcId} for date {Date}", nextGcId, currentDate);
+                            var insertSql = @"
+                                INSERT INTO AT_URENBREG (
+                                    GC_ID, DOCUMENT_GC_ID, GC_REGEL_NR, DATUM, AANTAL,
+                                    TAAK_GC_ID, WERK_GC_ID, MEDEW_GC_ID, GC_OMSCHRIJVING
+                                ) VALUES (
+                                    @GcId, @DocumentGcId, @GcRegelNr, @Datum, @Aantal,
+                                    @TaakGcId, NULL, @MedewGcId, @GcOmschrijving
+                                )";
+
+                            await connection.ExecuteAsync(insertSql, new
+                            {
+                                GcId = nextGcId,
+                                DocumentGcId = documentGcId,
+                                GcRegelNr = regelNr++,
+                                Datum = currentDate,
+                                Aantal = 8.0m, // 8 hours per working day
+                                TaakGcId = taakGcId,
+                                MedewGcId = medewGcId,
+                                GcOmschrijving = $"Vakantie: {request.Notes ?? "Goedgekeurd door manager"}"
+                            }, transaction);
+
+                            createdGcIds.Add(nextGcId);
+                            _logger.LogInformation("Created Firebird entry GC_ID {GcId} for date {Date}", nextGcId, currentDate);
+                        }
                     }
 
                     currentDate = currentDate.AddDays(1);

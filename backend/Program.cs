@@ -6,6 +6,10 @@ using FirebirdSql.Data.FirebirdClient;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -175,10 +179,107 @@ public class MedewGcIdMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<MedewGcIdMiddleware> _logger;
 
-    public MedewGcIdMiddleware(RequestDelegate next, ILogger<MedewGcIdMiddleware> logger)
+    // When true, a valid signed JWT is REQUIRED for every non-public request and the
+    // legacy X-MEDEW-GC-ID / X-USER-ROLE header-trust path is disabled. When false
+    // (default, migration mode) a valid JWT still wins and overrides any client headers,
+    // but requests without a JWT fall back to the old header behaviour so the pre-JWT
+    // frontend keeps working during rollout. Flip to true once the frontend sends Bearer.
+    private readonly bool _requireJwt;
+    private readonly TokenValidationParameters? _validationParameters;
+    private readonly JwtSecurityTokenHandler _tokenHandler = new();
+
+    public MedewGcIdMiddleware(RequestDelegate next, ILogger<MedewGcIdMiddleware> logger, IConfiguration configuration)
     {
         _next = next;
         _logger = logger;
+        _requireJwt = configuration.GetValue("Auth:RequireJwt", false);
+
+        var jwtKey = configuration["Jwt:Key"];
+        if (!string.IsNullOrEmpty(jwtKey))
+        {
+            _validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = "clockwise-backend",
+                ValidateAudience = true,
+                ValidAudience = "clockwise-frontend",
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
+        }
+        else if (_requireJwt)
+        {
+            _logger.LogError("Auth:RequireJwt is true but Jwt:Key is not configured - all requests will be rejected");
+        }
+    }
+
+    private ClaimsPrincipal? TryValidateToken(HttpContext context)
+    {
+        if (_validationParameters == null) return null;
+
+        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var token = authHeader.Substring("Bearer ".Length).Trim();
+        if (string.IsNullOrEmpty(token)) return null;
+
+        try
+        {
+            return _tokenHandler.ValidateToken(token, _validationParameters, out _);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("JWT validation failed: {Message}", ex.Message);
+            return null;
+        }
+    }
+
+    // Overwrite identity headers + HttpContext.Items with the VERIFIED claim values so that
+    // every downstream read site (whether it reads Items or the raw header) receives the
+    // authenticated identity and any client-supplied/forged header is discarded.
+    private void ApplyVerifiedIdentity(HttpContext context, ClaimsPrincipal principal)
+    {
+        var medew = principal.FindFirst("medew_gc_id")?.Value;
+        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? principal.FindFirst("nameid")?.Value;
+        var role = principal.FindFirst(ClaimTypes.Role)?.Value
+                   ?? principal.FindFirst("role")?.Value;
+
+        if (!string.IsNullOrEmpty(medew))
+        {
+            context.Request.Headers["X-MEDEW-GC-ID"] = medew;
+            if (int.TryParse(medew, out var m)) context.Items["MedewGcId"] = m;
+        }
+        if (!string.IsNullOrEmpty(userId))
+        {
+            context.Request.Headers["X-USER-ID"] = userId; // header dictionary is case-insensitive
+            if (int.TryParse(userId, out var u)) context.Items["UserId"] = u;
+        }
+        if (!string.IsNullOrEmpty(role))
+        {
+            context.Request.Headers["X-USER-ROLE"] = role;
+            context.Items["UserRole"] = role;
+        }
+    }
+
+    private static bool IsPublicPath(string? path, string method)
+    {
+        if (path == null) return false;
+        if (method == "POST" &&
+            (path.Contains("/api/users/login") ||
+             path.Contains("/api/auth/login") ||
+             path.Contains("/api/auth/hash-password")))
+            return true;
+        if (method == "GET" &&
+            (path.Contains("/api/holidays") ||
+             path.Contains("/api/periods") ||
+             path.Contains("/api/health") ||
+             path.Contains("/api/system-settings/require-2fa")))
+            return true;
+        return false;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -189,6 +290,39 @@ public class MedewGcIdMiddleware
             await _next(context);
             return;
         }
+
+        // Preferred path: a valid signed JWT. Its verified identity overrides any headers.
+        var principal = TryValidateToken(context);
+        if (principal != null)
+        {
+            ApplyVerifiedIdentity(context, principal);
+            await _next(context);
+            return;
+        }
+
+        // No valid JWT.
+        if (_requireJwt)
+        {
+            var strictPath = context.Request.Path.Value?.ToLower();
+            if (IsPublicPath(strictPath, context.Request.Method))
+            {
+                await _next(context);
+                return;
+            }
+            _logger.LogWarning("Rejected request without valid bearer token: {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new { error = "Missing or invalid bearer token" });
+            return;
+        }
+
+        // Migration fallback (Auth:RequireJwt=false): legacy header-trust behaviour.
+        await LegacyInvokeAsync(context);
+    }
+
+    // ===== Legacy header-based identity (INSECURE - only reachable when Auth:RequireJwt=false) =====
+    private async Task LegacyInvokeAsync(HttpContext context)
+    {
 
         // Skip authentication for login and auth endpoints
         var path = context.Request.Path.Value?.ToLower();

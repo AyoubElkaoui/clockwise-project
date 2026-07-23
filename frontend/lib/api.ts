@@ -23,6 +23,10 @@ axios.interceptors.request.use((config) => {
   const isLoginRequest = config.url?.includes('/api/users/login') || config.url?.includes('/api/auth/login');
 
   if (isApiRequest && !isLoginRequest) {
+    const token = localStorage.getItem('token');
+    if (token && !config.headers['Authorization']) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     const medewGcId = localStorage.getItem('medewGcId');
     if (medewGcId) {
       config.headers['X-MEDEW-GC-ID'] = medewGcId;

@@ -16,9 +16,13 @@ export interface FavoriteProject {
 // Ensure headers are set
 axios.interceptors.request.use((request) => {
   if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
     const medewGcId = localStorage.getItem("medewGcId");
 
+    if (token && !request.headers["Authorization"]) {
+      request.headers.set("Authorization", `Bearer ${token}`);
+    }
     if (userId && !request.headers["X-USER-ID"]) {
       request.headers.set("X-USER-ID", userId);
     }

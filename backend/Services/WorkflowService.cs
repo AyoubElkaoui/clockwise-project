@@ -384,6 +384,11 @@ public class WorkflowService
                     entry.ReviewedBy = reviewerMedewGcId;
                     entry.FirebirdGcId = firebirdGcId;
 
+                    // Persist THIS entry's approved state right after its Firebird commit, so a
+                    // crash before the batch save below cannot leave it SUBMITTED and trigger a
+                    // re-insert (double payment) on the next approval attempt.
+                    await _workflowRepo.UpdateEntriesAsync(new List<TimeEntryWorkflow> { entry });
+
                     // Update hour allocation 'used' for I/Z/SLEEFTIJD codes
                     await UpdateHourAllocationUsedAsync(entry);
 
@@ -632,6 +637,23 @@ public class WorkflowService
                 entry.MedewGcId,
                 entry.UrenperGcId,
                 transaction);
+
+            // Idempotency guard: if an identical line is already present in Firebird - e.g.
+            // a previous approval committed but crashed before the Postgres status was saved -
+            // do NOT insert it again. A duplicate urenregel means a duplicate payment and
+            // cannot be undone. Firebird is the source of truth here, so this is crash-safe.
+            var regularHours = entry.Aantal + entry.EveningNightHours;
+            if (regularHours > 0 &&
+                await _firebirdRepo.IsDuplicateEntryAsync(
+                    documentGcId.Value, entry.TaakGcId, entry.WerkGcId,
+                    entry.Datum, regularHours, entry.Omschrijving ?? string.Empty))
+            {
+                await transaction.CommitAsync();
+                _logger.LogWarning(
+                    "Idempotency: identical entry already present in Firebird (medew {Medew}, taak {Taak}, werk {Werk}, {Datum:yyyy-MM-dd}, {Hours}h) - skipping insert to prevent duplicate payment",
+                    entry.MedewGcId, entry.TaakGcId, entry.WerkGcId, entry.Datum, regularHours);
+                return documentGcId.Value;
+            }
 
             // Get next regel number
             var regelNr = await _firebirdRepo.GetNextRegelNrAsync(documentGcId.Value, transaction);

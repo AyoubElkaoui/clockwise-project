@@ -5,13 +5,18 @@ import { API_URL } from "../api";
 // Ensure X-MEDEW-GC-ID and X-USER-ROLE headers are set
 axios.interceptors.request.use((request) => {
   if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
     const medewGcId = localStorage.getItem("medewGcId");
     const userRole = localStorage.getItem("userRank");
-    
+
+    if (token && !request.headers["Authorization"]) {
+      request.headers.set("Authorization", `Bearer ${token}`);
+    }
+
     if (medewGcId && !request.headers["X-MEDEW-GC-ID"]) {
       request.headers.set("X-MEDEW-GC-ID", medewGcId);
     }
-    
+
     if (userRole && !request.headers["X-USER-ROLE"]) {
       request.headers.set("X-USER-ROLE", userRole);
     }

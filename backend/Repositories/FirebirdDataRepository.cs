@@ -414,33 +414,6 @@ namespace ClockwiseProject.Backend.Repositories
             if (transaction == null) connection.Close();
         }
 
-        public async Task InsertVacationEntryAsync(VacationEntry entry, FbTransaction transaction = null)
-        {
-            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
-            if (transaction == null) await connection.OpenAsync();
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
-            const string sql = @"
-                INSERT INTO AT_URENBREG (
-                    GC_ID, DOCUMENT_GC_ID, GC_REGEL_NR, DATUM, AANTAL, TAAK_GC_ID, WERK_GC_ID, MEDEW_GC_ID, GC_OMSCHRIJVING, KOSTSRT_GC_ID, BESTPAR_GC_ID
-                ) VALUES (
-                    @GcId, @DocumentGcId, @GcRegelNr, @Datum, @Aantal, @TaakGcId, NULL, @MedewGcId, @GcOmschrijving, @KostsrtGcId, @BestparGcId
-                )";
-            await connection.ExecuteAsync(sql, new
-            {
-                GcId = nextId,
-                entry.DocumentGcId,
-                entry.GcRegelNr,
-                entry.Datum,
-                entry.Aantal,
-                entry.TaakGcId,
-                entry.MedewGcId,
-                entry.GcOmschrijving,
-                entry.KostsrtGcId,
-                entry.BestparGcId
-            }, transaction: transaction);
-            if (transaction == null) connection.Close();
-        }
-
         public async Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving)
         {
             using var connection = _connectionFactory.CreateConnection();
