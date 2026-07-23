@@ -1,7 +1,9 @@
 import axios from "axios";
 import authUtils from "./auth-utils";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+// NEXT_PUBLIC_API_URL is the origin without /api (e.g. https://api.clockd.nl); append /api
+// here the same way lib/api.ts does, otherwise every /workflow/* call 404s on production.
+const API_URL = `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "")}/api`;
 
 // Types
 export interface SaveDraftRequest {
