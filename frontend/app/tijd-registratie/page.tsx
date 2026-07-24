@@ -1099,11 +1099,11 @@ export default function TimeRegistrationPage() {
             </div>
           )}
 
-          <div className="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-30">
+          <div className="bg-[var(--panel)] border-b border-[var(--border)] sticky top-0 z-30">
             <div className="px-3 md:px-6 py-3 md:py-4 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-2 md:gap-4">
-                <h1 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  Uren Registreren
+                <h1 className="text-lg md:text-[22px] font-bold text-[var(--text)] tracking-[-0.015em]">
+                  Uren registreren
                 </h1>
 
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
