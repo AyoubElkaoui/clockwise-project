@@ -12,14 +12,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, badge, className }: PageHeaderProps) {
   return (
-    <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border)]", className)}>
+    <div className={cn("flex flex-col sm:flex-row sm:items-start justify-between gap-3", className)}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold text-[var(--text)] truncate">{title}</h1>
+          <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }} className="truncate">{title}</h1>
           {badge}
         </div>
         {description && (
-          <p className="mt-0.5 text-xs text-[var(--text-2)]">{description}</p>
+          <p style={{ font: "400 13.5px 'Geist'", color: "var(--muted)", marginTop: 5 }}>{description}</p>
         )}
       </div>
       {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}

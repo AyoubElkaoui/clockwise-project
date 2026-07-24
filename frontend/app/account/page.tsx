@@ -106,10 +106,10 @@ export default function AccountPage(): JSX.Element {
   return (
     <ProtectedRoute>
       <div className="p-6 space-y-6 animate-fadeIn">
-        <PageHeader
-          title="Mijn Account"
-          description={fullName || "Beheer je persoonlijke gegevens en beveiliging"}
-        />
+        <div>
+          <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }}>Mijn account</h1>
+          <p style={{ font: "400 13.5px 'Geist'", color: "var(--muted)", marginTop: 5 }}>Beheer je persoonlijke gegevens en beveiliging.</p>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column — 2/3 */}
