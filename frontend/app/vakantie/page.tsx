@@ -387,26 +387,23 @@ export default function VakantiePage() {
             }
           />
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Resterend"
-              value={loading ? "..." : Math.max(0, Math.round(stats.availableDays))}
-              icon={Plane}
-              color="blue"
-            />
-            <StatCard
-              title="Opgenomen"
-              value={loading ? "..." : Math.round(stats.approvedDays)}
-              icon={CheckCircle2}
-              color="emerald"
-            />
-            <StatCard
-              title="In behandeling"
-              value={loading ? "..." : Math.round(stats.pendingDays)}
-              icon={Clock}
-              color="amber"
-            />
+          {/* Saldo — 1:1 design (Beschikbaar = accent-gevuld) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
+            <div style={{ background: "var(--accent)", borderRadius: 12, boxShadow: "var(--shadow)", padding: "16px 18px", color: "#fff" }}>
+              <span style={{ font: "500 12.5px 'Geist'", opacity: 0.85 }}>Beschikbaar</span>
+              <div style={{ font: "700 26px 'Geist'", marginTop: 10 }}>{loading ? "…" : Math.max(0, Math.round(stats.availableDays))} <span style={{ fontSize: 14, opacity: 0.8 }}>dagen</span></div>
+              <div style={{ font: "500 12px 'Geist'", opacity: 0.85, marginTop: 3 }}>van 25 dagen</div>
+            </div>
+            <div style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow)", padding: "16px 18px" }}>
+              <span style={{ font: "500 12.5px 'Geist'", color: "var(--muted)" }}>Opgenomen</span>
+              <div style={{ font: "700 26px 'Geist'", marginTop: 10, color: "var(--text)" }}>{loading ? "…" : Math.round(stats.approvedDays)} <span style={{ fontSize: 14, color: "var(--muted)" }}>dagen</span></div>
+              <div style={{ font: "500 12px 'Geist'", color: "var(--muted)", marginTop: 3 }}>dit kalenderjaar</div>
+            </div>
+            <div style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow)", padding: "16px 18px" }}>
+              <span style={{ font: "500 12.5px 'Geist'", color: "var(--muted)" }}>In behandeling</span>
+              <div style={{ font: "700 26px 'Geist'", marginTop: 10, color: "var(--amber)" }}>{loading ? "…" : Math.round(stats.pendingDays)} <span style={{ fontSize: 14, color: "var(--muted)" }}>dag(en)</span></div>
+              <div style={{ font: "500 12px 'Geist'", color: "var(--muted)", marginTop: 3 }}>wacht op goedkeuring</div>
+            </div>
           </div>
 
           {/* Aanvragen tabel */}
