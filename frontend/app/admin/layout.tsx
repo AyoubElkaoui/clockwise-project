@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AdminRoute>
-      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 overflow-x-hidden">
+      <div className="flex min-h-screen bg-[var(--bg)] overflow-x-hidden">
         <ModernSidebar collapsed={isCollapsed} onToggle={handleSidebarToggle} />
         <main
           className={`flex-1 transition-all duration-300 ease-in-out max-w-full overflow-x-hidden ${
