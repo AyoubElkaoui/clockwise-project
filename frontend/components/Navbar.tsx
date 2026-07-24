@@ -355,22 +355,41 @@ export default function Navbar(): JSX.Element {
             )}
           </button>
 
-          {/* Company Logo - desktop only */}
-          <div className="hidden md:block flex-shrink-0">
+          {/* Company Logos - desktop only: CLOCKD + Altum */}
+          <div className="hidden md:flex items-center gap-3 flex-shrink-0">
+            {/* CLOCKD (blue on light, white on dark) */}
             <Image
-              src="/altum-logo-new.png"
-              alt="Altum Technical Solutions"
-              width={150}
-              height={40}
-              className="dark:hidden"
+              src="/clockd-logo.png"
+              alt="CLOCKD"
+              width={120}
+              height={28}
+              className="block dark:hidden object-contain h-6 w-auto"
               priority
             />
             <Image
-              src="/altum-logo-white.png"
-              alt="Altum Technical Solutions"
-              width={150}
-              height={40}
-              className="hidden dark:block"
+              src="/clockd-logo-white.png"
+              alt="CLOCKD"
+              width={120}
+              height={28}
+              className="hidden dark:block object-contain h-6 w-auto"
+              priority
+            />
+            <span className="h-6 w-px bg-[var(--border)]" aria-hidden="true" />
+            {/* Altum (dark wordmark on light, white on dark) */}
+            <Image
+              src="/Altum-kaal-Photoroom.png"
+              alt="Altum"
+              width={110}
+              height={28}
+              className="block dark:hidden object-contain h-6 w-auto"
+              priority
+            />
+            <Image
+              src="/image-preview-Photoroom.png"
+              alt="Altum"
+              width={110}
+              height={28}
+              className="hidden dark:block object-contain h-6 w-auto"
               priority
             />
           </div>
