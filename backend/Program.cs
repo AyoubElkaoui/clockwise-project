@@ -6,6 +6,7 @@ using FirebirdSql.Data.FirebirdClient;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -170,6 +171,35 @@ app.MapGet("/api/projects/group/{groupId}", async (string groupId, IFirebirdData
         return Results.Ok(allProjects);
     }
 });
+
+// One-time-safe generator alignment on startup: the app now allocates GC_ID via the Atrium
+// generators (GEN_ID), but historical MAX+1 inserts may have left a generator BEHIND the
+// table's MAX id. Bump each generator UP to at least MAX so GEN_ID never returns an existing
+// id (which would collide on a payroll row). Bump-up-only + idempotent, so it is safe to run
+// on every boot (it is a no-op once aligned). Never lowers a generator, so it cannot disturb
+// Syntess if Syntess has already advanced it.
+try
+{
+    var fbFactory = app.Services.GetRequiredService<FirebirdConnectionFactory>();
+    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    using var alignConn = fbFactory.CreateConnection();
+    await alignConn.OpenAsync();
+    foreach (var (table, generator) in new[] { ("AT_URENBREG", "AG_URENBREG"), ("AT_DOCUMENT", "AG_DOCUMENT") })
+    {
+        // table/generator are fixed literals (no user input) - safe to interpolate.
+        var maxId = await alignConn.ExecuteScalarAsync<long>($"SELECT COALESCE(MAX(GC_ID), 0) FROM {table}");
+        var current = await alignConn.ExecuteScalarAsync<long>($"SELECT GEN_ID({generator}, 0) FROM RDB$DATABASE");
+        if (maxId > current)
+        {
+            await alignConn.ExecuteScalarAsync<long>($"SELECT GEN_ID({generator}, {maxId - current}) FROM RDB$DATABASE");
+            startupLogger.LogWarning("Generator {Generator} was behind ({Current}) - bumped up to table MAX ({Max})", generator, current, maxId);
+        }
+    }
+}
+catch (Exception ex)
+{
+    app.Services.GetRequiredService<ILogger<Program>>().LogError(ex, "Startup generator alignment failed - check Firebird connectivity");
+}
 
 app.Run();
 
