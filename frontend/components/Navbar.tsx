@@ -334,10 +334,10 @@ export default function Navbar(): JSX.Element {
     <>
     <nav
       className="
-        sticky top-0 z-40 h-12 px-3 md:px-6 flex items-center transition-colors w-full
-        bg-white dark:bg-slate-900
-        border-b border-slate-200 dark:border-slate-800
-        text-slate-900 dark:text-slate-100
+        sticky top-0 z-40 h-[60px] px-3 md:px-[22px] flex items-center transition-colors w-full
+        bg-[var(--panel)]
+        border-b border-[var(--border)]
+        text-[var(--text)]
       "
     >
       <div className="flex items-center justify-between gap-2 md:gap-4 w-full">
@@ -355,45 +355,25 @@ export default function Navbar(): JSX.Element {
             )}
           </button>
 
-          {/* CLOCKD logo - desktop only (blue on light, white on dark) */}
-          <div className="hidden md:flex items-center flex-shrink-0">
-            <Image
-              src="/clockd-logo.png"
-              alt="CLOCKD"
-              width={130}
-              height={30}
-              className="block dark:hidden object-contain h-7 w-auto"
-              priority
-            />
-            <Image
-              src="/clockd-logo-white.png"
-              alt="CLOCKD"
-              width={130}
-              height={30}
-              className="hidden dark:block object-contain h-7 w-auto"
-              priority
-            />
-          </div>
-
-          {/* Search bar - desktop only */}
-          <div className="relative hidden md:block flex-1 max-w-lg" ref={searchRef}>
+          {/* Search bar - desktop only (design: panel-2 pill, no logo in header) */}
+          <div className="relative hidden md:block flex-1 max-w-[400px]" ref={searchRef}>
             <MagnifyingGlassIcon
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]"
             />
             <input
               type="text"
-              placeholder={t("common.search") + "..."}
+              placeholder={t("common.search") + "…"}
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               onFocus={() => { if (searchQuery.trim()) performSearch(searchQuery); }}
               className="
-                w-full pl-10 pr-4 py-2 rounded-xl text-sm
-                bg-slate-100 dark:bg-slate-800
-                text-slate-800 dark:text-slate-100
-                border border-slate-300 dark:border-slate-700
-                placeholder-slate-500 dark:placeholder-slate-400
-                focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50
+                w-full pl-9 pr-4 py-2 rounded-[9px] text-sm
+                bg-[var(--panel-2)]
+                text-[var(--text)]
+                border border-[var(--border)]
+                placeholder-[var(--muted)]
+                focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/40
                 outline-none transition
               "
             />
