@@ -230,46 +230,62 @@ export function ModernSidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-slate-900 dark:bg-slate-950 border-r border-slate-800 z-50 transition-all duration-300",
+        "fixed left-0 top-0 h-screen bg-[var(--panel)] border-r border-[var(--border)] z-50 transition-all duration-300",
         "hidden md:block",
         collapsed ? "w-20" : "w-64",
       )}
     >
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="p-5 border-b border-slate-800">
+        <div className="px-4 py-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
             <Link
               href="/"
-              className="flex items-center gap-3 focus:outline-none"
+              className="flex items-center focus:outline-none"
               aria-label="Ga naar dashboard"
             >
+              {/* Light theme: dark Altum wordmark; dark theme: white Altum wordmark */}
               <Image
-                src="/clockd-logo-white.png"
-                alt="CLOCKD"
-                width={collapsed ? 80 : 130}
-                height={collapsed ? 16 : 26}
-                className="transition-all"
+                src="/Altum-kaal-Photoroom.png"
+                alt="ALTUM"
+                width={120}
+                height={32}
+                className={cn("block dark:hidden object-contain w-auto", collapsed ? "h-6" : "h-7")}
+                priority
+              />
+              <Image
+                src="/image-preview-Photoroom.png"
+                alt="ALTUM"
+                width={120}
+                height={32}
+                className={cn("hidden dark:block object-contain w-auto", collapsed ? "h-6" : "h-7")}
                 priority
               />
             </Link>
 
+            {!collapsed && (
+              <button
+                onClick={toggleCollapsed}
+                className="p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)] transition-colors"
+                aria-label="Toggle sidebar"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {collapsed && (
             <button
               onClick={toggleCollapsed}
-              className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-md transition-colors"
+              className="mt-3 w-full flex justify-center p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)] transition-colors"
               aria-label="Toggle sidebar"
             >
-              {collapsed ? (
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              ) : (
-                <ChevronLeft className="w-4 h-4 text-slate-400" />
-              )}
+              <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
+          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {menuItems.map((item: any) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -278,20 +294,21 @@ export function ModernSidebar({
               <Link
                 key={item.href}
                 href={item.href}
+                title={collapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md group relative transition-colors",
+                  "flex items-center gap-3 px-3 py-2 rounded-lg group relative transition-colors text-sm font-medium",
                   isActive
-                    ? "bg-slate-800 text-white border-l-2 border-blue-500"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-100 border-l-2 border-transparent",
+                    ? "bg-[var(--accent-weak)] text-[var(--accent)]"
+                    : "text-[var(--text-2)] hover:bg-[var(--hover)] hover:text-[var(--text)]",
                 )}
               >
-                <Icon className={cn("w-4 h-4 flex-shrink-0", collapsed && "mx-auto")} />
+                <Icon className={cn("w-[18px] h-[18px] flex-shrink-0", collapsed && "mx-auto")} />
 
                 {!collapsed && (
                   <>
-                    <span className="flex-1 text-sm">{item.label}</span>
+                    <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="px-1.5 py-0.5 text-xs font-medium bg-red-500 text-white rounded-full">
+                      <span className="min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[11px] font-semibold text-white bg-[var(--red)] rounded-full">
                         {item.badge}
                       </span>
                     )}
@@ -299,7 +316,7 @@ export function ModernSidebar({
                 )}
 
                 {collapsed && item.badge && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--red)] rounded-full" />
                 )}
               </Link>
             );
@@ -313,23 +330,26 @@ export function ModernSidebar({
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-slate-800 space-y-2">
+        <div className="px-3 py-3 border-t border-[var(--border)] space-y-2">
           <div className="flex items-center justify-center">
             <ThemeToggle />
           </div>
 
           {!collapsed && (
-            <div className="p-3 bg-slate-800 rounded-md">
+            <div className="p-3 rounded-lg bg-[var(--panel-2)] border border-[var(--border)]">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
+                  style={{ background: "var(--accent)" }}
+                >
                   {firstName.charAt(0)}
                   {lastName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-100 truncate">
+                  <p className="text-sm font-medium text-[var(--text)] truncate">
                     {firstName} {lastName}
                   </p>
-                  <p className="text-xs text-slate-400 capitalize">
+                  <p className="text-xs text-[var(--muted)] capitalize">
                     {userRank || "Medewerker"}
                   </p>
                 </div>
@@ -340,12 +360,12 @@ export function ModernSidebar({
           <button
             onClick={handleLogout}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-red-400 rounded-md transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--text-2)] hover:bg-[var(--red-weak)] hover:text-[var(--red)] transition-colors",
               collapsed && "justify-center",
             )}
           >
             <LogOut className="w-4 h-4" />
-            {!collapsed && <span className="text-sm">{t("nav.logout")}</span>}
+            {!collapsed && <span>{t("nav.logout")}</span>}
           </button>
         </div>
       </div>

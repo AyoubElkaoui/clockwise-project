@@ -7,9 +7,9 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700",
-        elevated: "bg-white dark:bg-slate-800 shadow-md hover:shadow-lg",
-        primary: "bg-blue-600 text-white",
+        default: "bg-[var(--panel)] border border-[var(--border)] shadow-[var(--shadow)]",
+        elevated: "bg-[var(--panel)] border border-[var(--border)] shadow-[var(--shadow)] hover:border-[var(--accent-border)]",
+        primary: "bg-[var(--accent)] text-white",
         ghost: "bg-transparent",
       },
       padding: {
@@ -68,7 +68,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-base font-semibold leading-none tracking-tight text-slate-900 dark:text-slate-100",
+      "text-base font-semibold leading-none tracking-tight text-[var(--text)]",
       className
     )}
     {...props}
@@ -82,7 +82,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-slate-600 dark:text-slate-400", className)}
+    className={cn("text-sm text-[var(--text-2)]", className)}
     {...props}
   />
 ));

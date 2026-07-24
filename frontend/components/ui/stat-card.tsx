@@ -34,18 +34,18 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-800 rounded-lg p-5 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-200",
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        "bg-[var(--panel)] rounded-lg p-5 border border-[var(--border)] shadow-[var(--shadow)] transition-all duration-200",
+        onClick && "cursor-pointer hover:border-[var(--accent-border)] hover:-translate-y-0.5",
         className,
       )}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
             {title}
           </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1.5 tabular-nums">
+          <p className="text-2xl font-bold text-[var(--text)] mt-1.5 tabular-nums">
             {value}
           </p>
           {(subtitle || trend) && (
@@ -55,25 +55,25 @@ export function StatCard({
                   className={cn(
                     "text-xs font-semibold",
                     trend.isPositive
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-rose-600 dark:text-rose-400",
+                      ? "text-[var(--green)]"
+                      : "text-[var(--red)]",
                   )}
                 >
                   {trend.isPositive ? "▲" : "▼"} {trend.value}
                 </span>
               )}
               {subtitle && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-[var(--text-2)]">
                   {subtitle}
                 </p>
               )}
             </div>
           )}
         </div>
-        <div className="p-2 rounded-lg ml-3 flex-shrink-0 bg-slate-100 dark:bg-slate-700">
+        <div className="p-2 rounded-lg ml-3 flex-shrink-0 bg-[var(--accent-weak)]">
           {isLucideIcon
             ? React.createElement(icon as LucideIcon, {
-                className: "w-4 h-4 text-blue-600 dark:text-blue-400",
+                className: "w-4 h-4 text-[var(--accent)]",
               })
             : icon}
         </div>

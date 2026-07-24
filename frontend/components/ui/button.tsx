@@ -3,24 +3,24 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors",
+  "inline-flex items-center justify-center gap-2 rounded-lg font-medium text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-all",
   {
     variants: {
       variant: {
         default:
-          "bg-blue-600 text-white hover:bg-blue-700",
+          "bg-[var(--accent)] text-white hover:brightness-105",
         secondary:
-          "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600",
+          "bg-[var(--panel)] text-[var(--text)] hover:bg-[var(--hover)] border border-[var(--border)]",
         outline:
-          "border border-slate-300 bg-transparent hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+          "border border-[var(--border)] bg-transparent hover:bg-[var(--hover)] text-[var(--text-2)] hover:text-[var(--text)]",
         ghost:
-          "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300",
+          "hover:bg-[var(--hover)] text-[var(--text-2)] hover:text-[var(--text)]",
         danger:
-          "bg-red-600 text-white hover:bg-red-700",
+          "bg-[var(--red)] text-white hover:brightness-105",
         destructive:
-          "bg-red-600 text-white hover:bg-red-700",
+          "bg-[var(--red)] text-white hover:brightness-105",
         success:
-          "bg-emerald-600 text-white hover:bg-emerald-700",
+          "bg-[var(--green)] text-white hover:brightness-105",
       },
       size: {
         sm: "h-8 px-3 text-xs",
