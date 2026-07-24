@@ -580,22 +580,26 @@ export default function ManagerReviewTimePage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-[7px]">
+                          <button
+                            onClick={() => handleSingleReject(entry.id)}
+                            disabled={processing}
+                            title="Afkeuren"
+                            className="flex items-center justify-center rounded-lg disabled:opacity-40"
+                            style={{ width: 32, height: 32, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--muted)" }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--red)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-weak)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "var(--panel)"; }}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => handleSingleApprove(entry.id)}
                             disabled={processing}
                             title="Goedkeuren"
-                            className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 transition-colors"
+                            className="flex items-center justify-center rounded-lg disabled:opacity-40"
+                            style={{ width: 32, height: 32, border: "1px solid transparent", background: "var(--green)", color: "#fff" }}
                           >
                             <CheckCircle className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleSingleReject(entry.id)}
-                            disabled={processing}
-                            title="Afwijzen"
-                            className="p-1.5 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 transition-colors"
-                          >
-                            <XCircle className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
