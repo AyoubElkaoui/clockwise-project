@@ -376,16 +376,10 @@ export default function VakantiePage() {
     <ProtectedRoute>
       <ModernLayout>
         <div className="p-6 space-y-6 animate-fadeIn">
-          <PageHeader
-            title="Verlof & Vakantie"
-            description="Beheer je verlofaanvragen"
-            actions={
-              <Button onClick={() => setShowModal(true)} size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Aanvragen
-              </Button>
-            }
-          />
+          <div>
+            <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }}>Vakantie</h1>
+            <p style={{ font: "400 13.5px 'Geist'", color: "var(--muted)", marginTop: 5 }}>Vraag verlof aan en bekijk je saldo.</p>
+          </div>
 
           {/* Saldo — 1:1 design (Beschikbaar = accent-gevuld) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
@@ -406,76 +400,79 @@ export default function VakantiePage() {
             </div>
           </div>
 
-          {/* Aanvragen tabel */}
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  Mijn Aanvragen
-                </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setShowModal(true)}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Nieuw
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
+          {/* 2-koloms: nieuwe aanvraag (inline) + mijn aanvragen (design 1:1) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-4 items-start">
+            {/* Nieuwe aanvraag */}
+            <div style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow)", padding: 18 }}>
+              <div style={{ font: "600 14px 'Geist'", color: "var(--text)", marginBottom: 14 }}>Nieuwe aanvraag</div>
+              <form onSubmit={handleSubmit}>
+                <div className="flex gap-3" style={{ marginBottom: 13 }}>
+                  <label className="flex-1 flex flex-col gap-[5px]">
+                    <span style={{ font: "600 10.5px 'Geist'", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--muted)" }}>Van</span>
+                    <input type="date" required value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} style={{ width: "100%", padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 9, background: "var(--panel)", color: "var(--text)", font: "400 13px 'Geist'", outline: "none" }} />
+                  </label>
+                  <label className="flex-1 flex flex-col gap-[5px]">
+                    <span style={{ font: "600 10.5px 'Geist'", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--muted)" }}>Tot</span>
+                    <input type="date" required value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} style={{ width: "100%", padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 9, background: "var(--panel)", color: "var(--text)", font: "400 13px 'Geist'", outline: "none" }} />
+                  </label>
+                </div>
+                <label className="flex flex-col gap-[5px]" style={{ marginBottom: 13 }}>
+                  <span style={{ font: "600 10.5px 'Geist'", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--muted)" }}>Type</span>
+                  <select value={formData.vacationType} onChange={(e) => setFormData({ ...formData, vacationType: e.target.value })} style={{ width: "100%", padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 9, background: "var(--panel)", color: "var(--text)", font: "400 13px 'Geist'", outline: "none" }}>
+                    {vacationTypes.length > 0
+                      ? vacationTypes.map((vt) => (<option key={vt.gcCode} value={vt.gcCode}>{vt.omschrijving}</option>))
+                      : <option value="Z03">Vakantie</option>}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-[5px]" style={{ marginBottom: 16 }}>
+                  <span style={{ font: "600 10.5px 'Geist'", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--muted)" }}>Opmerking</span>
+                  <textarea placeholder="Optionele toelichting…" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} style={{ width: "100%", minHeight: 70, padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 9, background: "var(--panel)", color: "var(--text)", font: "400 13px 'Geist'", outline: "none", resize: "vertical" }} />
+                </label>
+                {validationError && <div style={{ font: "500 12px 'Geist'", color: "var(--red)", marginBottom: 12 }}>{validationError}</div>}
+                <button type="submit" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 11, border: "none", background: "var(--accent)", color: "#fff", borderRadius: 9, font: "600 13.5px 'Geist'", cursor: "pointer" }}>
+                  <Plus className="w-4 h-4" /> Aanvraag indienen
+                </button>
+              </form>
+            </div>
+
+            {/* Mijn aanvragen */}
+            <div style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow)", overflow: "hidden" }}>
+              <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", font: "600 14px 'Geist'", color: "var(--text)" }}>Mijn aanvragen</div>
               {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-                  <span className="ml-2 text-sm text-slate-500">Laden...</span>
-                </div>
+                <div className="flex items-center justify-center py-12"><Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--muted)" }} /></div>
               ) : requests.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                    <Calendar className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen aanvragen</p>
-                  <p className="text-xs text-slate-500 mt-1">Er zijn nog geen verlofaanvragen beschikbaar.</p>
-                  <Button size="sm" className="mt-4" onClick={() => setShowModal(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Eerste aanvraag indienen
-                  </Button>
-                </div>
+                <div style={{ padding: 34, textAlign: "center", font: "500 13px 'Geist'", color: "var(--muted)" }}>Nog geen aanvragen.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Periode</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Dagen</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Reden</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                      {requests
-                        .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
-                        .map((request) => {
-                          const days = request.totalDays || Math.ceil((request.hours ?? 8) / 8);
-                          const period =
-                            request.startDate === request.endDate
-                              ? dayjs(request.startDate).format("DD MMM YYYY")
-                              : `${dayjs(request.startDate).format("DD MMM")} – ${dayjs(request.endDate).format("DD MMM YYYY")}`;
-                          const note = request.notes || request.reason || "–";
-                          return (
-                            <tr key={request.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                              <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap">{period}</td>
-                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{days} dag{days !== 1 ? "en" : ""}</td>
-                              <td className="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{getVacationTypeLabel(request.vacationType || "Z03")}</td>
-                              <td className="px-4 py-3 text-slate-500 dark:text-slate-400 max-w-[200px] truncate" title={note}>{note}</td>
-                              <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(request.status)}</td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
+                requests
+                  .slice()
+                  .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+                  .map((r) => {
+                    const s = (r.status || "").toUpperCase();
+                    const pill = s.includes("APPROV") || s.includes("GOEDGE")
+                      ? { c: "var(--green)", b: "var(--green-weak)", l: "Goedgekeurd" }
+                      : s.includes("REJECT") || s.includes("AFGE")
+                        ? { c: "var(--red)", b: "var(--red-weak)", l: "Afgewezen" }
+                        : { c: "var(--amber)", b: "var(--amber-weak)", l: "In behandeling" };
+                    const days = r.totalDays || Math.ceil((r.hours ?? 8) / 8);
+                    const period = r.startDate === r.endDate
+                      ? dayjs(r.startDate).format("DD MMM YYYY")
+                      : `${dayjs(r.startDate).format("DD MMM")} – ${dayjs(r.endDate).format("DD MMM YYYY")}`;
+                    return (
+                      <div key={r.id} className="flex items-center gap-3.5" style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)" }}>
+                        <div className="flex-none flex items-center justify-center rounded-[9px]" style={{ width: 38, height: 38, background: "var(--accent-weak)", color: "var(--accent)" }}><Calendar className="w-4 h-4" /></div>
+                        <div className="flex-1 min-w-0">
+                          <div style={{ font: "600 13.5px 'Geist'", color: "var(--text)" }}>{period}</div>
+                          <div style={{ font: "500 11.5px 'Geist'", color: "var(--muted)", marginTop: 1 }}>{getVacationTypeLabel(r.vacationType || "Z03")} · {days} dag(en)</div>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ font: "600 11.5px 'Geist'", background: pill.b, color: pill.c }}>
+                          <span className="rounded-full" style={{ width: 6, height: 6, background: pill.c }} />{pill.l}
+                        </span>
+                      </div>
+                    );
+                  })
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Nieuw Aanvragen — inline form card */}
           {showModal && (
