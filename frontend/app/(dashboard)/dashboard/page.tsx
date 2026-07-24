@@ -39,6 +39,7 @@ export default function Dashboard() {
   });
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [upcomingVacation, setUpcomingVacation] = useState<any>(null);
+  const [weekDays, setWeekDays] = useState<{ label: string; date: string; hours: number }[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -70,6 +71,16 @@ export default function Dashboard() {
         return date.isBetween(weekStart, weekEnd, null, "[]");
       });
       const weekHours = weekEntries.reduce((sum: number, e: any) => sum + (e.aantal || 0), 0);
+
+      // Per-day breakdown of the current ISO week (Mon–Sun) for the Weekoverzicht
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = weekStart.add(i, "day");
+        const hours = weekEntries
+          .filter((e: any) => dayjs(e.datum).isSame(d, "day"))
+          .reduce((sum: number, e: any) => sum + (e.aantal || 0), 0);
+        return { label: d.format("dd"), date: d.format("D MMM"), hours: Math.round(hours * 10) / 10 };
+      });
+      setWeekDays(days);
 
       // Calculate month hours
       const monthStart = dayjs().startOf("month");
@@ -178,165 +189,157 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent)]"></div>
       </div>
     );
   }
 
-  const approvedCount = recentEntries.filter((e: any) => e.status === "goedgekeurd").length;
+  const hour = dayjs().hour();
+  const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
+  const weekStart = dayjs().startOf("isoWeek");
+  const weekEnd = dayjs().endOf("isoWeek");
+  const weekPct = Math.min(100, Math.round((stats.weekHours / (stats.weekTarget || 40)) * 100));
+  const remaining = Math.max(0, Math.round((stats.weekTarget - stats.weekHours) * 10) / 10);
 
   return (
     <div className="p-6 space-y-6 animate-fadeIn">
-      <PageHeader
-        title="Dashboard"
-        description={dayjs().format("dddd D MMMM YYYY")}
-      />
+      {/* Begroeting */}
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--text)]">
+          {greeting}, {firstName}
+        </h1>
+        <p className="text-sm text-[var(--text-2)] mt-0.5">
+          Hier is je overzicht voor deze week.
+        </p>
+      </div>
 
+      {/* Statkaarten */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Uren deze week"
           value={`${stats.weekHours}u`}
+          subtitle={`doel ${stats.weekTarget}u`}
           icon={Clock}
-          color="blue"
           onClick={() => router.push("/tijd-registratie")}
+        />
+        <StatCard
+          title="Deze maand"
+          value={`${stats.monthHours}u`}
+          subtitle="deze maand"
+          icon={FileText}
+          onClick={() => router.push("/uren-overzicht")}
         />
         <StatCard
           title="Vakantiedagen"
           value={stats.vacationDays}
+          subtitle="van 25 dagen"
           icon={Plane}
-          color="emerald"
           onClick={() => router.push("/vakantie")}
         />
         <StatCard
-          title="Ingediend"
+          title="Ter goedkeuring"
           value={stats.pendingApprovals}
-          icon={FileText}
-          color="amber"
-          onClick={() => router.push("/uren-overzicht")}
-        />
-        <StatCard
-          title="Goedgekeurd"
-          value={approvedCount}
+          subtitle="wacht op manager"
           icon={CheckCircle2}
-          color="emerald"
           onClick={() => router.push("/uren-overzicht")}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recente Tijdregistraties — 2/3 breedte */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                Recente Tijdregistraties
-              </CardTitle>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => router.push("/uren-overzicht")}
-              >
-                Alles bekijken
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {recentEntries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                  <Clock className="w-6 h-6 text-slate-400" />
+        {/* Weekoverzicht — 2/3 breedte */}
+        <Card className="lg:col-span-2" padding="none">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+            <h2 className="text-sm font-semibold text-[var(--text)]">Weekoverzicht</h2>
+            <span className="text-xs text-[var(--muted)]">
+              Week {dayjs().isoWeek()} · {weekStart.format("D")}–{weekEnd.format("D MMM")}
+            </span>
+          </div>
+          <div className="p-5 space-y-3">
+            {weekDays.map((d) => {
+              const dayPct = Math.min(100, (d.hours / 8) * 100);
+              return (
+                <div key={d.date} className="flex items-center gap-3">
+                  <div className="w-16 flex-shrink-0">
+                    <span className="text-xs font-semibold text-[var(--text)] capitalize">{d.label}</span>
+                    <span className="block text-[10px] text-[var(--muted)]">{d.date}</span>
+                  </div>
+                  <div className="flex-1 h-2 rounded-full bg-[var(--panel-2)] overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${dayPct}%`, background: "var(--accent)" }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-xs font-medium text-[var(--text-2)] tabular-nums">
+                    {d.hours}u
+                  </span>
                 </div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Geen registraties</p>
-                <p className="text-xs text-slate-500 mt-1">Er zijn nog geen tijdregistraties beschikbaar.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Project</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {recentEntries.map((entry: any) => (
-                      <tr
-                        key={entry.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
-                        onClick={() => router.push("/uren-overzicht")}
-                      >
-                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                          <p className="text-xs text-slate-500 dark:text-slate-400 uppercase">
-                            {dayjs(entry.datum || entry.startTime || entry.date).format("ddd")}
-                          </p>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">
-                            {dayjs(entry.datum || entry.startTime || entry.date).format("D MMM")}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                          <p className="font-medium truncate max-w-[160px]">
-                            {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || "?"}`}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
-                            {entry.omschrijving || entry.notes || "Geen omschrijving"}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          {getStatusBadge(entry.status)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">
-                            {entry.aantal || entry.hours || 0}u
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
+              );
+            })}
+            <button
+              onClick={() => router.push("/tijd-registratie")}
+              className="mt-2 text-sm font-medium text-[var(--accent)] hover:brightness-110 transition"
+            >
+              Uren aanpassen →
+            </button>
+          </div>
         </Card>
 
-        {/* Snelle Acties — 1/3 breedte */}
-        <Card>
-          <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-700">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <List className="w-4 h-4 text-slate-400" />
-              Snelle Acties
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <Button
-                className="w-full justify-start"
-                onClick={() => router.push("/tijd-registratie")}
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                Uren Registreren
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push("/vakantie")}
-              >
-                <Plane className="w-4 h-4 mr-2" />
-                Verlof Aanvragen
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push("/uren-overzicht")}
-              >
-                <List className="w-4 h-4 mr-2" />
-                Mijn Overzicht
+        {/* Zijkolom — 1/3 breedte */}
+        <div className="space-y-6">
+          {/* Voortgang naar weekdoel */}
+          <Card>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
+              Voortgang naar weekdoel
+            </p>
+            <p className="text-2xl font-bold text-[var(--text)] mt-1 tabular-nums">{stats.weekHours}u</p>
+            <div className="mt-3 h-2.5 rounded-full bg-[var(--panel-2)] overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${weekPct}%`, background: "var(--accent)" }}
+              />
+            </div>
+            <p className="text-xs text-[var(--text-2)] mt-2">
+              {remaining > 0
+                ? `Nog ${remaining} uur te gaan deze week.`
+                : "Weekdoel gehaald 🎉"}
+            </p>
+          </Card>
+
+          {/* Recente registraties */}
+          <Card padding="none">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+              <h2 className="text-sm font-semibold text-[var(--text)]">Recente registraties</h2>
+              <Button size="sm" variant="ghost" onClick={() => router.push("/uren-overzicht")}>
+                Alles
               </Button>
             </div>
-          </CardContent>
-        </Card>
+            <div className="px-5 py-2">
+              {recentEntries.length === 0 ? (
+                <p className="text-sm text-[var(--muted)] py-6 text-center">Nog geen registraties.</p>
+              ) : (
+                recentEntries.slice(0, 4).map((entry: any) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between py-2.5 border-b border-[var(--border)] last:border-0 cursor-pointer"
+                    onClick={() => router.push("/uren-overzicht")}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--text)] truncate">
+                        {entry.werkDescription || entry.projectName || `Project ${entry.werkGcId || entry.projectId || "?"}`}
+                      </p>
+                      <p className="text-xs text-[var(--muted)]">
+                        {dayjs(entry.datum || entry.startTime || entry.date).format("ddd D MMM")}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-[var(--text)] tabular-nums flex-shrink-0 ml-2">
+                      {entry.aantal || entry.hours || 0}u
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );
