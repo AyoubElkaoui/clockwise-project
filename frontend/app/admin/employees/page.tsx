@@ -174,95 +174,43 @@ export default function EmployeesPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Medewerker
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden md:table-cell">
-                      Functie
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden lg:table-cell">
-                      Afdeling
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 hidden lg:table-cell">
-                      Laatste activiteit
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      Acties
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                  {employees.map((employee) => (
-                    <tr
-                      key={employee.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                            {employee.fullName.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900 dark:text-slate-100">
-                              {employee.fullName}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {employee.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden md:table-cell">
-                        {employee.role}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 hidden lg:table-cell">
-                        {employee.department || (
-                          <span className="text-slate-400 italic">
-                            Geen afdeling
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {employee.isActive ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                            Actief
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                            Inactief
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 hidden lg:table-cell">
-                        {employee.lastActivity
-                          ? dayjs(employee.lastActivity).fromNow()
-                          : "Nooit"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              router.push(`/admin/employees/${employee.id}`)
-                            }
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Details
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="-mx-6 -mb-6">
+              <div className="hidden md:grid gap-3 px-6 py-3 border-t" style={{ gridTemplateColumns: "1.8fr 1.3fr 1fr .9fr 60px", borderColor: "var(--border)", background: "var(--panel-2)", font: "600 11px 'Geist'", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--muted)" }}>
+                <span>Naam</span><span>Rol</span><span>Afdeling</span><span>Status</span><span></span>
+              </div>
+              {employees.map((employee) => {
+                const active = employee.isActive;
+                return (
+                  <div key={employee.id} className="grid gap-3 items-center px-6 py-3 border-t" style={{ gridTemplateColumns: "1.8fr 1.3fr 1fr .9fr 60px", borderColor: "var(--border)" }}>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex-none flex items-center justify-center rounded-[9px]" style={{ width: 34, height: 34, background: "var(--accent-weak)", color: "var(--accent)", font: "700 11.5px 'Geist'" }}>{employee.fullName.charAt(0).toUpperCase()}</div>
+                      <div className="min-w-0">
+                        <div className="truncate" style={{ font: "600 13.5px 'Geist'", color: "var(--text)" }}>{employee.fullName}</div>
+                        <div className="truncate" style={{ font: "500 11.5px 'Geist Mono', monospace", color: "var(--muted)" }}>{employee.email}</div>
+                      </div>
+                    </div>
+                    <div><span className="inline-flex px-2.5 py-[3px] rounded-full" style={{ font: "600 11.5px 'Geist'", background: "var(--accent-weak)", color: "var(--accent)" }}>{employee.role}</span></div>
+                    <span style={{ font: "500 13px 'Geist'", color: "var(--text-2)" }}>{employee.department || "—"}</span>
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full" style={{ font: "600 11.5px 'Geist'", background: active ? "var(--green-weak)" : "var(--panel-2)", color: active ? "var(--green)" : "var(--muted)" }}>
+                        <span className="rounded-full" style={{ width: 6, height: 6, background: active ? "var(--green)" : "var(--muted)" }} />{active ? "Actief" : "Inactief"}
+                      </span>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => router.push(`/admin/employees/${employee.id}`)}
+                        title="Bewerken"
+                        className="flex items-center justify-center rounded-lg"
+                        style={{ width: 32, height: 32, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--muted)" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.color = "var(--text)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--panel)"; e.currentTarget.style.color = "var(--muted)"; }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
