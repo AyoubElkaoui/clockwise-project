@@ -1,8 +1,6 @@
 "use client";
 
-import { HelpCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 function getFaqs(t: (key: string) => string) {
@@ -98,34 +96,44 @@ function getFaqs(t: (key: string) => string) {
 export default function FAQPage() {
   const { t } = useTranslation();
   const faqs = getFaqs(t);
+  const [open, setOpen] = useState<string | null>(null);
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <PageHeader title={t("faq.title")} description={t("faq.subtitle")} />
+      <div>
+        <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }}>{t("faq.title")}</h1>
+        <p style={{ font: "400 13.5px 'Geist'", color: "var(--muted)", marginTop: 5 }}>{t("faq.subtitle")}</p>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {faqs.map((section, idx) => (
-          <Card key={idx} className="card-hover">
-            <CardContent className="p-6">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 pb-3 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-blue-600" />
-                {section.category}
-              </h2>
-              <div className="space-y-4">
-                {section.items.map((item, itemIdx) => (
-                  <div key={itemIdx}>
-                    <h3 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1 flex items-start gap-2">
-                      <span className="text-blue-600 mt-0.5">•</span>
-                      {item.q}
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 ml-4">
-                      {item.a}
-                    </p>
+      <div style={{ maxWidth: 820 }} className="flex flex-col gap-[22px]">
+        {faqs.map((section, si) => (
+          <div key={si}>
+            <div style={{ font: "600 13px 'Geist'", color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 10 }}>
+              {section.category}
+            </div>
+            <div className="flex flex-col gap-[9px]">
+              {section.items.map((item, ii) => {
+                const id = `${si}-${ii}`;
+                const isOpen = open === id;
+                return (
+                  <div key={id} style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 11, boxShadow: "var(--shadow)", overflow: "hidden" }}>
+                    <button
+                      onClick={() => setOpen(isOpen ? null : id)}
+                      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "15px 18px", border: "none", background: "transparent", color: "var(--text)", font: "600 14px 'Geist'", cursor: "pointer", textAlign: "left" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <span>{item.q}</span>
+                      <span style={{ flex: "none", color: "var(--muted)", fontSize: 18, lineHeight: 1 }}>{isOpen ? "−" : "+"}</span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ padding: "0 18px 16px", font: "400 13.5px/1.6 'Geist'", color: "var(--text-2)" }}>{item.a}</div>
+                    )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </div>
     </div>
