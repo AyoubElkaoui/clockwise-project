@@ -286,24 +286,19 @@ export default function Dashboard() {
 
         {/* Zijkolom — 1/3 breedte */}
         <div className="space-y-6">
-          {/* Voortgang naar weekdoel */}
-          <Card>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
-              Voortgang naar weekdoel
-            </p>
-            <p className="text-2xl font-bold text-[var(--text)] mt-1 tabular-nums">{stats.weekHours}u</p>
-            <div className="mt-3 h-2.5 rounded-full bg-[var(--panel-2)] overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${weekPct}%`, background: "var(--accent)" }}
-              />
+          {/* Voortgang naar weekdoel — accent-gevulde kaart (design) */}
+          <div style={{ background: "var(--accent)", borderRadius: 12, boxShadow: "var(--shadow)", padding: 18, color: "#fff" }}>
+            <div style={{ font: "500 12.5px 'Geist'", opacity: 0.85 }}>Voortgang naar weekdoel</div>
+            <div style={{ font: "700 24px 'Geist'", marginTop: 6 }}>
+              {stats.weekHours}u <span style={{ fontSize: 14, opacity: 0.8 }}>/ {stats.weekTarget}u</span>
             </div>
-            <p className="text-xs text-[var(--text-2)] mt-2">
-              {remaining > 0
-                ? `Nog ${remaining} uur te gaan deze week.`
-                : "Weekdoel gehaald 🎉"}
-            </p>
-          </Card>
+            <div style={{ height: 6, background: "rgba(255,255,255,.28)", borderRadius: 99, marginTop: 12, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${weekPct}%`, background: "#fff", borderRadius: 99 }} />
+            </div>
+            <div style={{ font: "500 12px 'Geist'", opacity: 0.85, marginTop: 9 }}>
+              {remaining > 0 ? `Nog ${remaining} uur te gaan deze week.` : "Weekdoel gehaald 🎉"}
+            </div>
+          </div>
 
           {/* Recente registraties */}
           <Card padding="none">
