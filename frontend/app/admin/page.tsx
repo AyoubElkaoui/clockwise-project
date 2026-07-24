@@ -402,7 +402,7 @@ export default function AdminDashboardPage() {
                     key={activity.id}
                     className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xs font-bold flex-shrink-0">
+                    <div className="w-9 h-9 rounded-[9px] flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: "var(--accent-weak)", color: "var(--accent)" }}>
                       {activity.user?.firstName?.charAt(0)}
                       {activity.user?.lastName?.charAt(0)}
                     </div>
