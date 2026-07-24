@@ -378,6 +378,27 @@ html.dark .hover\:bg-slate-50:hover {
   background-color: var(--hover) !important;
 }
 
+/* ===== Bridge legacy merk-blauw naar de Altum-accent (beide thema's) ===== */
+.bg-blue-600,
+.bg-blue-500,
+.bg-blue-700 {
+  background-color: var(--accent) !important;
+}
+.hover\:bg-blue-600:hover,
+.hover\:bg-blue-700:hover {
+  background-color: var(--accent) !important;
+  filter: brightness(1.06);
+}
+.text-blue-600,
+.text-blue-500,
+.text-blue-700 {
+  color: var(--accent) !important;
+}
+.border-blue-500,
+.border-blue-600 {
+  border-color: var(--accent) !important;
+}
+
 /* Mobile-specific improvements */
 @media (max-width: 768px) {
   /* Ensure touch targets are at least 44px */
