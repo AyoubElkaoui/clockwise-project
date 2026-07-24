@@ -10,6 +10,51 @@
   --elmar-success: #10b981;
   --elmar-warning: #f59e0b;
   --elmar-error: #ef4444;
+
+  /* ===== Altum design system tokens (light) ===== */
+  --bg: #f4f4f6;
+  --panel: #ffffff;
+  --panel-2: #fafafb;
+  --hover: #f1f2f4;
+  --border: #e7e8ea;
+  --text: #17181a;
+  --text-2: #54585f;
+  --muted: #8b9098;
+  --accent: #3a5bd0;
+  --accent-weak: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  --accent-border: color-mix(in srgb, var(--accent) 30%, var(--border));
+  --amber: #b7791f;
+  --amber-weak: #fbf3e2;
+  --green: #1f9d6b;
+  --green-weak: #e7f6ee;
+  --red: #dc5252;
+  --red-weak: #fdecec;
+  --weekend: #faf9f7;
+  --shadow: 0 1px 2px rgba(16, 17, 26, .05), 0 1px 3px rgba(16, 17, 26, .05);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  --brand: #1e3f70;
+}
+
+/* App toggles dark via `.dark` class on <html> (see lib/theme-context.tsx) */
+html.dark {
+  --bg: #0a0b0d;
+  --panel: #131417;
+  --panel-2: #16171a;
+  --hover: #1d1f23;
+  --border: #26282d;
+  --text: #eef0f2;
+  --text-2: #b3b8bf;
+  --muted: #797f88;
+  --accent: #617ff0;
+  --amber: #d99b3a;
+  --amber-weak: #2a2113;
+  --green: #3fb27f;
+  --green-weak: #13241c;
+  --red: #e06666;
+  --red-weak: #2a1414;
+  --weekend: #0e0f12;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 1px 3px rgba(0, 0, 0, .3);
+  --brand: #8aa2f5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,12 +65,96 @@
 }
 
 body {
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-family: var(--font-geist), 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
-  background-color: #f8fafc;
+  background-color: var(--bg);
+  color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Altum design system components =====
+   Reusable classes that reproduce the Altum look with the tokens above.
+   Screens adopt these incrementally as they're redesigned. */
+.altum-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.altum-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+}
+.altum-text-2 { color: var(--text-2); }
+.altum-muted { color: var(--muted); }
+.altum-mono { font-family: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace; }
+
+.altum-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: filter .15s ease, background .15s ease, border-color .15s ease;
+}
+.altum-btn:hover { background: var(--hover); }
+.altum-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.altum-btn-primary:hover { filter: brightness(1.06); background: var(--accent); }
+.altum-btn-ghost { background: transparent; border-color: transparent; }
+.altum-btn-ghost:hover { background: var(--hover); }
+
+.altum-input {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  width: 100%;
+}
+.altum-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+
+.altum-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+.altum-badge-green { color: var(--green); background: var(--green-weak); border-color: transparent; }
+.altum-badge-amber { color: var(--amber); background: var(--amber-weak); border-color: transparent; }
+.altum-badge-red { color: var(--red); background: var(--red-weak); border-color: transparent; }
+
+/* Uppercase micro-label used for sidebar groups / table headers in the design */
+.altum-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 /* Custom scrollbar */
