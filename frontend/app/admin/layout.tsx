@@ -23,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <ModernSidebar collapsed={isCollapsed} onToggle={handleSidebarToggle} />
         <main
           className={`flex-1 transition-all duration-300 ease-in-out max-w-full overflow-x-hidden ${
-            isCollapsed ? "md:ml-20" : "md:ml-64"
+            isCollapsed ? "md:ml-20" : "md:ml-[250px]"
           }`}
         >
           <Navbar />

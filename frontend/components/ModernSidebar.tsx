@@ -227,147 +227,93 @@ export function ModernSidebar({
 
   if (!mounted) return null;
 
+  const navHeading =
+    userRank === "admin" ? "BEHEER" : userRank === "manager" ? "MANAGER" : "MENU";
+
   return (
     <aside
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-[var(--panel)] border-r border-[var(--border)] z-50 transition-all duration-300",
-        "hidden md:block",
-        collapsed ? "w-20" : "w-64",
-      )}
+      className="hidden md:flex"
+      style={{
+        position: "fixed",
+        left: 0,
+        top: 0,
+        height: "100vh",
+        width: 250,
+        zIndex: 50,
+        flexDirection: "column",
+        padding: "18px 14px",
+        borderRight: "1px solid var(--border)",
+        background: "var(--panel)",
+        overflowY: "auto",
+      }}
     >
-      <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="px-4 py-4 border-b border-[var(--border)]">
-          <div className="flex items-center justify-between">
+      {/* ALTUM wordmark */}
+      <Link href="/" aria-label="Ga naar dashboard" style={{ padding: "6px 8px 14px", textDecoration: "none" }}>
+        <div style={{ display: "flex", gap: ".16em", fontWeight: 800, fontSize: 19, letterSpacing: ".2em", color: "var(--text)", lineHeight: 1 }}>
+          <span>A</span><span>L</span><span style={{ color: "var(--brand)" }}>T</span><span>U</span><span>M</span>
+        </div>
+        <div style={{ height: 3, width: 104, background: "var(--brand)", borderRadius: 2, margin: "5px 0 6px" }} />
+        <div style={{ font: "600 8.5px 'Geist Mono', monospace", letterSpacing: ".24em", color: "var(--muted)" }}>TECHNICAL SOLUTIONS</div>
+      </Link>
+
+      <div style={{ font: "600 10px 'Geist'", letterSpacing: ".11em", color: "var(--muted)", padding: "8px 10px 6px" }}>{navHeading}</div>
+
+      {/* Navigation */}
+      <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {menuItems.map((item: any) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
             <Link
-              href="/"
-              className="flex items-center focus:outline-none"
-              aria-label="Ga naar dashboard"
+              key={item.href}
+              href={item.href}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                padding: "9px 11px",
+                borderRadius: 8,
+                font: "600 13px 'Geist'",
+                textDecoration: "none",
+                cursor: "pointer",
+                color: isActive ? "var(--accent)" : "var(--text-2)",
+                background: isActive ? "var(--accent-weak)" : "transparent",
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--hover)"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
-              {/* Light theme: dark Altum wordmark; dark theme: white Altum wordmark */}
-              <Image
-                src="/Altum-kaal-Photoroom.png"
-                alt="ALTUM"
-                width={120}
-                height={32}
-                className={cn("block dark:hidden object-contain w-auto", collapsed ? "h-6" : "h-7")}
-                priority
-              />
-              <Image
-                src="/image-preview-Photoroom.png"
-                alt="ALTUM"
-                width={120}
-                height={32}
-                className={cn("hidden dark:block object-contain w-auto", collapsed ? "h-6" : "h-7")}
-                priority
-              />
+              <Icon style={{ width: 18, height: 18, flex: "none" }} />
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge ? (
+                <span style={{ minWidth: 19, height: 19, padding: "0 5px", borderRadius: 99, background: "var(--accent)", color: "#fff", font: "700 10.5px 'Geist Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {item.badge}
+                </span>
+              ) : null}
             </Link>
+          );
+        })}
+      </nav>
 
-            {!collapsed && (
-              <button
-                onClick={toggleCollapsed}
-                className="p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)] transition-colors"
-                aria-label="Toggle sidebar"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            )}
+      {/* User footer */}
+      <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "4px 6px 10px" }}>
+          <div style={{ width: 34, height: 34, flex: "none", borderRadius: 9, background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", font: "700 12.5px 'Geist'" }}>
+            {(firstName.charAt(0) + lastName.charAt(0)).toUpperCase()}
           </div>
-          {collapsed && (
-            <button
-              onClick={toggleCollapsed}
-              className="mt-3 w-full flex justify-center p-1.5 rounded-md text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)] transition-colors"
-              aria-label="Toggle sidebar"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {menuItems.map((item: any) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg group relative transition-colors text-sm font-medium",
-                  isActive
-                    ? "bg-[var(--accent-weak)] text-[var(--accent)]"
-                    : "text-[var(--text-2)] hover:bg-[var(--hover)] hover:text-[var(--text)]",
-                )}
-              >
-                <Icon className={cn("w-[18px] h-[18px] flex-shrink-0", collapsed && "mx-auto")} />
-
-                {!collapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge && (
-                      <span className="min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center text-[11px] font-semibold text-white bg-[var(--red)] rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
-
-                {collapsed && item.badge && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--red)] rounded-full" />
-                )}
-              </Link>
-            );
-          })}
-
-          {!collapsed && (
-            <div className="pt-4">
-              <MiniCalendar />
-            </div>
-          )}
-        </nav>
-
-        {/* Footer */}
-        <div className="px-3 py-3 border-t border-[var(--border)] space-y-2">
-          <div className="flex items-center justify-center">
-            <ThemeToggle />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ font: "600 13px 'Geist'", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{firstName} {lastName}</div>
+            <div style={{ font: "500 11.5px 'Geist'", color: "var(--muted)", textTransform: "capitalize" }}>{userRank || "Medewerker"}</div>
           </div>
-
-          {!collapsed && (
-            <div className="p-3 rounded-lg bg-[var(--panel-2)] border border-[var(--border)]">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
-                  style={{ background: "var(--accent)" }}
-                >
-                  {firstName.charAt(0)}
-                  {lastName.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--text)] truncate">
-                    {firstName} {lastName}
-                  </p>
-                  <p className="text-xs text-[var(--muted)] capitalize">
-                    {userRank || "Medewerker"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--text-2)] hover:bg-[var(--red-weak)] hover:text-[var(--red)] transition-colors",
-              collapsed && "justify-center",
-            )}
-          >
-            <LogOut className="w-4 h-4" />
-            {!collapsed && <span>{t("nav.logout")}</span>}
-          </button>
         </div>
+        <button
+          onClick={handleLogout}
+          title="Uitloggen"
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: 8, border: "1px solid var(--border)", background: "var(--panel-2)", borderRadius: 9, color: "var(--text-2)", font: "600 12px 'Geist'", cursor: "pointer" }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.color = "var(--red)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "var(--panel-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
+        >
+          <LogOut style={{ width: 14, height: 14 }} /> {t("nav.logout")}
+        </button>
       </div>
     </aside>
   );
