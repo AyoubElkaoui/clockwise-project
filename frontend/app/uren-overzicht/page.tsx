@@ -649,100 +649,49 @@ export default function UrenOverzichtPage() {
                     </p>
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile: always cards */}
-                    <div className={`space-y-2 md:space-y-3 ${displayView === "table" ? "md:hidden" : ""}`}>
-                      {paginatedEntries.map((entry) => (
+                  <div className="-mx-6 -mb-6">
+                    {paginatedEntries.map((entry) => {
+                      const s = (entry.status || "").toUpperCase();
+                      const pill =
+                        s.includes("APPROV") || s.includes("GOEDGE")
+                          ? { c: "var(--green)", b: "var(--green-weak)", l: "Goedgekeurd" }
+                          : s.includes("REJECT") || s.includes("AFGE")
+                            ? { c: "var(--red)", b: "var(--red-weak)", l: "Afgewezen" }
+                            : s.includes("SUBMIT") || s.includes("INGELE") || s.includes("PENDING") || s.includes("BEHANDEL")
+                              ? { c: "var(--accent)", b: "var(--accent-weak)", l: "In behandeling" }
+                              : { c: "var(--muted)", b: "var(--panel-2)", l: getStatusLabel(entry.status) };
+                      return (
                         <div
                           key={entry.id}
-                          className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          className="flex items-center gap-3 md:gap-4 px-6 py-[13px] border-t border-[var(--border)]"
                         >
-                          <div className="w-14 md:w-20 text-center flex-shrink-0">
-                            <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 uppercase">
-                              {dayjs(entry.date || entry.startTime).format("ddd")}
-                            </p>
-                            <p className="text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {dayjs(entry.date || entry.startTime).format("DD/MM")}
-                            </p>
-                            <p className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
-                              {entry.hours}u
-                            </p>
+                          <div className="w-14 flex-shrink-0 text-center">
+                            <div style={{ font: "500 11px 'Geist'", color: "var(--muted)", textTransform: "capitalize" }}>{dayjs(entry.date || entry.startTime).format("dd")}</div>
+                            <div style={{ font: "600 13px 'Geist'", color: "var(--text)" }}>{dayjs(entry.date || entry.startTime).format("D MMM")}</div>
                           </div>
+                          <span className="flex-shrink-0 rounded-full" style={{ width: 9, height: 9, background: pill.c }} />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1 flex-wrap">
-                              <p className="font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 truncate">
-                                {entry.projectName}
-                              </p>
-                              <Badge
-                                variant={getStatusBadgeVariant(entry.status)}
-                                size="sm"
-                              >
-                                {getStatusLabel(entry.status)}
-                              </Badge>
+                            <div className="truncate" style={{ font: "600 13.5px 'Geist'", color: "var(--text)" }}>{entry.projectName}</div>
+                            <div className="truncate" style={{ font: "500 11.5px 'Geist Mono', monospace", color: "var(--muted)" }}>
+                              {entry.projectCode ? `${entry.projectCode} · ` : ""}{entry.projectGroupName || `Groep ${entry.projectId}`}
                             </div>
-                            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 truncate">
-                              {entry.projectGroupName ||
-                                `Groep ${entry.projectId}`}
-                            </p>
-                            {entry.notes && (
-                              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 italic mt-0.5 truncate">
-                                {entry.notes}
-                              </p>
-                            )}
-                            {(entry.km > 0 || entry.expenses > 0) && (
-                              <div className="flex gap-3 mt-1 text-[11px] md:text-xs text-slate-500 dark:text-slate-400">
-                                {entry.km > 0 && <span>{entry.km} km</span>}
-                                {entry.expenses > 0 && (
-                                  <span>€{entry.expenses.toFixed(2)}</span>
-                                )}
-                              </div>
-                            )}
+                          </div>
+                          {entry.km > 0 && (
+                            <div className="hidden sm:flex items-center gap-1.5" style={{ font: "400 12px 'Geist'", color: "var(--muted)" }}>
+                              <Clock className="w-3.5 h-3.5" /> {entry.km} km
+                            </div>
+                          )}
+                          <div className="w-[52px] text-right" style={{ font: "600 15px 'Geist Mono', monospace", color: "var(--text)" }}>{entry.hours}u</div>
+                          <div className="hidden sm:flex w-[132px] justify-end">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ font: "600 11.5px 'Geist'", background: pill.b, color: pill.c }}>
+                              <span className="rounded-full" style={{ width: 6, height: 6, background: pill.c }} />
+                              {pill.l}
+                            </span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Desktop: table view (when selected) */}
-                    {displayView === "table" && (
-                      <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Uren</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectcode</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Projectnaam</th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Taak</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                            {paginatedEntries.map((entry) => (
-                              <tr
-                                key={entry.id}
-                                className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-                              >
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                                  {dayjs(entry.date || entry.startTime).format("DD/MM/YYYY")}
-                                </td>
-                                <td className="px-4 py-3 font-semibold text-blue-600 dark:text-blue-400">
-                                  {entry.hours}u
-                                </td>
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                                  {entry.projectCode}
-                                </td>
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100">
-                                  {entry.projectName}
-                                </td>
-                                <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                                  {entry.taskName}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </>
+                      );
+                    })}
+                  </div>
                 )}
 
                 {/* Pagination */}
