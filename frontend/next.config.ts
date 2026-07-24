@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   outputFileTracingRoot: process.cwd(),
   reactStrictMode: false,
+  // Strip debug console.* from production builds (keep console.error). Dev keeps all logs.
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
+  },
   // output: "standalone", // Verwijderd voor default Next.js build (API routes werken)
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? "",

@@ -7,6 +7,7 @@ using BackendProject = ClockwiseProject.Backend.Models.Project;
 using BackendProjectGroup = ClockwiseProject.Backend.Models.ProjectGroup;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace ClockwiseProject.Backend.Repositories
 {
@@ -14,12 +15,19 @@ namespace ClockwiseProject.Backend.Repositories
     {
         private readonly FirebirdConnectionFactory _connectionFactory;
         private readonly ILogger<FirebirdDataRepository> _logger;
+        private readonly IConfiguration _configuration;
 
-        public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory, ILogger<FirebirdDataRepository> logger)
+        public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory, ILogger<FirebirdDataRepository> logger, IConfiguration configuration)
         {
             _connectionFactory = connectionFactory;
             _logger = logger;
+            _configuration = configuration;
         }
+
+        // Klant-specifieke Syntess/Atrium sleutels voor het urenstaat-document.
+        // Defaults = de waarden van de huidige administratie; overschrijfbaar via de "Syntess"
+        // config-sectie zodat een andere administratie geen codewijziging vereist.
+        private int Cfg(string key, int fallback) => _configuration.GetValue($"Syntess:{key}", fallback);
 
         public async Task<IEnumerable<ClockwiseProject.Domain.Company>> GetCompaniesAsync()
         {
@@ -222,8 +230,8 @@ namespace ClockwiseProject.Backend.Repositories
             // Generate unique code by finding highest sequence number for this base code
             var baseCode = $"URS{boekDatum:yy}{periodCode?.Replace("_", "") ?? "0000"}";
             var existingCount = await connection.ExecuteScalarAsync<int>(
-                "SELECT COUNT(*) FROM AT_DOCUMENT WHERE GC_CODE STARTING WITH @BaseCode AND STENT_ST_ID = 175 AND ADMINIS_GC_ID = @AdminisGcId",
-                new { BaseCode = baseCode, AdminisGcId = adminisGcId },
+                "SELECT COUNT(*) FROM AT_DOCUMENT WHERE GC_CODE STARTING WITH @BaseCode AND STENT_ST_ID = @StentStId AND ADMINIS_GC_ID = @AdminisGcId",
+                new { BaseCode = baseCode, StentStId = Cfg("StentStId", 175), AdminisGcId = adminisGcId },
                 transaction: transaction);
             
             var code = existingCount > 0 ? $"{baseCode}.{existingCount + 1}" : baseCode;
@@ -235,7 +243,7 @@ namespace ClockwiseProject.Backend.Repositories
                     GC_DOC_STATUS, GC_HERKOMST, GC_DOORB_ONG_TOEG_JN, GC_INFORMATIE_GEV_JN, GC_NOTITIE_EXT_GEV_JN, GC_TONEN_OP_PORTAL_JN,
                     GC_CODE, GC_OMSCHRIJVING, GC_BOEKDATUM, GC_AANMAAKDATUM, GC_WIJZIGDATUM
                 ) VALUES (
-                    @GcId, @AdminisGcId, 175, @MedewGcId, 100004, 100025, 100281, 100001, 100028, 100001, 100001,
+                    @GcId, @AdminisGcId, @StentStId, @MedewGcId, @AfdelingGcId, @DagboekGcId, @LayoutGcId, @ValutaGcId, @BoekjaarGcId, @GebrGcId, @GebrGcId,
                     'G', 'A', 'J', 'N', 'N', 'N',
                     @Code, @Omschrijving, @BoekDatum, @AanmaakDatum, @WijzigDatum
                 )";
@@ -243,7 +251,14 @@ namespace ClockwiseProject.Backend.Repositories
             {
                 GcId = nextId,
                 AdminisGcId = adminisGcId,
+                StentStId = Cfg("StentStId", 175),
                 MedewGcId = medewGcId,
+                AfdelingGcId = Cfg("AfdelingGcId", 100004),
+                DagboekGcId = Cfg("DagboekGcId", 100025),
+                LayoutGcId = Cfg("LayoutGcId", 100281),
+                ValutaGcId = Cfg("ValutaGcId", 100001),
+                BoekjaarGcId = Cfg("BoekjaarGcId", 100028),
+                GebrGcId = Cfg("GebrGcId", 100001),
                 Code = code,
                 Omschrijving = omschrijving,
                 BoekDatum = boekDatum.Date,
