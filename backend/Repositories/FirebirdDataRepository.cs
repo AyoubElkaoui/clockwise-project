@@ -223,7 +223,10 @@ namespace ClockwiseProject.Backend.Repositories
         {
             var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
             if (transaction == null) await connection.OpenAsync();
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_DOCUMENT", transaction: transaction);
+            // Use the Atrium generator (same source Syntess itself uses) instead of MAX+1,
+            // which is race-prone and diverges from Syntess. Requires the one-time generator
+            // alignment (see Migrations/align-generators.sql) so GEN_ID is never behind MAX.
+            var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_DOCUMENT, 1) FROM RDB$DATABASE", transaction: transaction);
             var medewName = await connection.ExecuteScalarAsync<string>("SELECT GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID = @MedewGcId", new { MedewGcId = medewGcId }, transaction: transaction);
             var periodCode = await connection.ExecuteScalarAsync<string>("SELECT GC_CODE FROM AT_URENPER WHERE GC_ID = @UrenperGcId", new { UrenperGcId = urenperGcId }, transaction: transaction);
             
@@ -329,7 +332,7 @@ namespace ClockwiseProject.Backend.Repositories
             var totalRegularHours = entry.Aantal + entry.EveningNightHours;
             if (totalRegularHours > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -349,7 +352,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 2. Insert travel hours if > 0 under correct KOSTSRT (Montage or Tekenkamer reisuren)
             if (entry.TravelHours > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -369,7 +372,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 3. Insert distance km if > 0 under KOSTSRT 100167 (5569 - Reis en verblijfskosten)
             if (entry.DistanceKm > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -389,7 +392,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 4. Insert travel costs if > 0 under KOSTSRT 100167 (5569 - Reis en verblijfskosten)
             if (entry.TravelCosts > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -409,7 +412,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 5. Insert other expenses if > 0 under KOSTSRT 100288 (Materiaal)
             if (entry.OtherExpenses > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,

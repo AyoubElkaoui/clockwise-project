@@ -328,7 +328,7 @@ namespace ClockwiseProject.Backend.Services
 
         private async Task<int> GetNextGcIdAsync(FbConnection connection, FbTransaction transaction)
         {
-            var sql = "SELECT COALESCE(MAX(GC_ID), 0) + 1 FROM AT_URENBREG";
+            var sql = "SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE";
             return await connection.ExecuteScalarAsync<int>(sql, transaction: transaction);
         }
 
