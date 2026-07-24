@@ -57,74 +57,78 @@ type BadgesState = Record<BadgeKey, number | null>;
 /* ======================
    Menu items
 ====================== */
-const getWerknemerMenuItems = (t: (key: string) => string): MenuItem[] => [
+type NavSection = { heading: string; items: MenuItem[] };
+
+// Nav exact volgens het Altum design: gecureerd + gegroepeerd per rol (geen dumping).
+const werknemerSections: NavSection[] = [
   {
-    icon: LayoutDashboard,
-    label: t("nav.dashboard"),
-    href: "/dashboard",
-    rank: "all",
+    heading: "MENU",
+    items: [
+      { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", rank: "all" },
+      { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
+      { icon: List, label: "Uren overzicht", href: "/uren-overzicht", rank: "all" },
+      { icon: Calendar, label: "Kalender", href: "/kalender", rank: "all" },
+      { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
+      { icon: User, label: "Mijn account", href: "/account", rank: "all" },
+      { icon: Settings, label: "Instellingen", href: "/instellingen", rank: "all" },
+      { icon: HelpCircle, label: "FAQ", href: "/faq", rank: "all" },
+    ],
   },
-  {
-    icon: Clock,
-    label: t("nav.hours"),
-    href: "/tijd-registratie",
-    rank: "all",
-  },
-  {
-    icon: List,
-    label: t("nav.overview"),
-    href: "/uren-overzicht",
-    rank: "all",
-  },
-  { icon: Plane, label: t("nav.vacation"), href: "/vakantie", rank: "all" },
-  {
-    icon: Calendar,
-    label: "Aanwezigheid",
-    href: "/aanwezigheidskalender",
-    rank: "all",
-  },
-  {
-    icon: Bell,
-    label: t("nav.notifications"),
-    href: "/notificaties",
-    badgeKey: "unreadNotifications",
-    rank: "all",
-  },
-  { icon: User, label: t("nav.account"), href: "/account", rank: "all" },
-  { icon: HelpCircle, label: t("nav.faq"), href: "/faq", rank: "all" },
 ];
 
-const managerMenuItems: MenuItem[] = [
-  { icon: Shield,       label: "Manager Dashboard",   href: "/manager/dashboard",          rank: "manager" },
-  { icon: Users,        label: "Mijn Team",           href: "/manager/team",               rank: "manager" },
-  { icon: CheckCircle2, label: "Uren Beoordelen",     href: "/manager/review-time",        rank: "manager", badgeKey: "pendingApprovals" },
-  { icon: CheckCircle2, label: "Goedkeuringen",       href: "/manager/approve",            rank: "manager" },
-  { icon: Plane,        label: "Vakantie Beoordelen", href: "/manager/vacation-review",    rank: "manager" },
-  { icon: Plane,        label: "Vakantie Kalender",   href: "/manager/vacation",           rank: "manager" },
-  { icon: Clock,        label: "Team Uren",           href: "/manager/hours",              rank: "manager" },
-  { icon: Clock,        label: "Tijdregistratie",     href: "/manager/tijd-registratie",   rank: "manager" },
-  { icon: CalendarRange,label: "Planning",            href: "/manager/planning",           rank: "manager" },
-  { icon: CalendarDays, label: "Jaarkalender",        href: "/manager/jaarkalender",       rank: "manager" },
-  { icon: FolderKanban, label: "Project Toewijzing",  href: "/manager/project-toewijzing", rank: "manager" },
-  { icon: ListChecks,   label: "Uurcodes",            href: "/manager/uurcodes",           rank: "manager" },
-  { icon: Bell,         label: "Notificaties",        href: "/manager/notificaties",       rank: "manager" },
-  { icon: Settings,     label: "Instellingen",        href: "/manager/settings",           rank: "manager" },
+const managerSections: NavSection[] = [
+  {
+    heading: "MANAGER",
+    items: [
+      { icon: LayoutDashboard, label: "Manager dashboard", href: "/manager/dashboard", rank: "manager" },
+      { icon: Users, label: "Mijn Team", href: "/manager/team", rank: "manager" },
+      { icon: CheckCircle2, label: "Uren beoordelen", href: "/manager/review-time", rank: "manager", badgeKey: "pendingApprovals" },
+      { icon: Clock, label: "Team uren", href: "/manager/hours", rank: "manager" },
+      { icon: CalendarRange, label: "Planning", href: "/manager/planning", rank: "manager" },
+      { icon: FolderKanban, label: "Project-toewijzing", href: "/manager/project-toewijzing", rank: "manager" },
+      { icon: Plane, label: "Vakantie beoordelen", href: "/manager/vacation-review", rank: "manager" },
+      { icon: ListChecks, label: "Uurcodes", href: "/manager/uurcodes", rank: "manager" },
+      { icon: CalendarDays, label: "Jaarkalender", href: "/manager/jaarkalender", rank: "manager" },
+      { icon: Settings, label: "Instellingen", href: "/manager/settings", rank: "manager" },
+    ],
+  },
+  {
+    heading: "PERSOONLIJK",
+    items: [
+      { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
+      { icon: User, label: "Mijn account", href: "/account", rank: "all" },
+    ],
+  },
 ];
 
-const adminMenuItems: MenuItem[] = [
-  { icon: Shield,       label: "Admin Dashboard",    href: "/admin",               rank: "admin" },
-  { icon: Users,        label: "Gebruikers",         href: "/admin/users",         rank: "admin" },
-  { icon: UserCheck,    label: "Medewerkers",        href: "/admin/employees",     rank: "admin" },
-  { icon: Building2,    label: "Bedrijven",          href: "/admin/companies",     rank: "admin" },
-  { icon: FolderKanban, label: "Projecten",          href: "/admin/projects",      rank: "admin" },
-  { icon: CheckCircle2, label: "Alle Goedkeuringen", href: "/admin/approvals",     rank: "admin", badgeKey: "pendingApprovals" },
-  { icon: Plane,        label: "Vakantie Aanvragen", href: "/admin/vacation",      rank: "admin" },
-  { icon: FileText,     label: "Tijdregistraties",   href: "/admin/time-entries",  rank: "admin" },
-  { icon: ShieldCheck,  label: "Validaties",         href: "/admin/validations",   rank: "admin" },
-  { icon: Activity,     label: "Logs",               href: "/admin/logs",          rank: "admin" },
-  { icon: BarChart3,    label: "Rapporten",          href: "/admin/reports",       rank: "admin" },
-  { icon: Server,       label: "Systeem",            href: "/admin/system",        rank: "admin" },
-  { icon: Settings,     label: "Instellingen",       href: "/admin/settings",      rank: "admin" },
+const adminSections: NavSection[] = [
+  {
+    heading: "BEHEER",
+    items: [
+      { icon: LayoutDashboard, label: "Dashboard", href: "/admin", rank: "admin" },
+      { icon: UserCheck, label: "Medewerkers", href: "/admin/employees", rank: "admin" },
+      { icon: Building2, label: "Bedrijven", href: "/admin/companies", rank: "admin" },
+      { icon: FolderKanban, label: "Projecten", href: "/admin/projects", rank: "admin" },
+      { icon: BarChart3, label: "Rapportages", href: "/admin/reports", rank: "admin" },
+    ],
+  },
+  {
+    heading: "UREN & VERLOF",
+    items: [
+      { icon: CheckCircle2, label: "Goedkeuringen", href: "/admin/approvals", rank: "admin", badgeKey: "pendingApprovals" },
+      { icon: Plane, label: "Vakantie", href: "/admin/vacation", rank: "admin" },
+      { icon: ShieldCheck, label: "Validaties", href: "/admin/validations", rank: "admin" },
+    ],
+  },
+  {
+    heading: "SYSTEEM",
+    items: [
+      { icon: Calendar, label: "Feestdagen", href: "/admin/holidays", rank: "admin" },
+      { icon: Activity, label: "Logboek", href: "/admin/logs", rank: "admin" },
+      { icon: Server, label: "Systeem", href: "/admin/system", rank: "admin" },
+      { icon: Settings, label: "Instellingen", href: "/admin/settings", rank: "admin" },
+    ],
+  },
 ];
 
 /* ======================
@@ -199,26 +203,17 @@ export function ModernSidebar({
     return () => clearInterval(interval);
   }, [loadBadges]);
 
-  const menuItems = useMemo(() => {
-    let items: MenuItem[] = [...getWerknemerMenuItems(t)];
-
-    if (userRank === "admin") {
-      items = [...adminMenuItems, ...getWerknemerMenuItems(t)];
-    } else if (userRank === "manager") {
-      items = [...managerMenuItems, ...getWerknemerMenuItems(t)];
-    }
-
-    // Remove duplicates by href
-    const uniqueItems = items.filter(
-      (item, index, self) =>
-        index === self.findIndex((t) => t.href === item.href),
-    );
-
-    return uniqueItems.map((item) => ({
-      ...item,
-      badge: item.badgeKey ? badges[item.badgeKey] : null,
+  const navSections = useMemo(() => {
+    const sections =
+      userRank === "admin" ? adminSections : userRank === "manager" ? managerSections : werknemerSections;
+    return sections.map((section) => ({
+      heading: section.heading,
+      items: section.items.map((item) => ({
+        ...item,
+        badge: item.badgeKey ? badges[item.badgeKey] : null,
+      })),
     }));
-  }, [userRank, badges, t]);
+  }, [userRank, badges]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -226,9 +221,6 @@ export function ModernSidebar({
   };
 
   if (!mounted) return null;
-
-  const navHeading =
-    userRank === "admin" ? "BEHEER" : userRank === "manager" ? "MANAGER" : "MENU";
 
   return (
     <aside
@@ -256,42 +248,49 @@ export function ModernSidebar({
         <div style={{ font: "600 8.5px 'Geist Mono', monospace", letterSpacing: ".24em", color: "var(--muted)" }}>TECHNICAL SOLUTIONS</div>
       </Link>
 
-      <div style={{ font: "600 10px 'Geist'", letterSpacing: ".11em", color: "var(--muted)", padding: "8px 10px 6px" }}>{navHeading}</div>
-
-      {/* Navigation */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {menuItems.map((item: any) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 11,
-                padding: "9px 11px",
-                borderRadius: 8,
-                font: "600 13px 'Geist'",
-                textDecoration: "none",
-                cursor: "pointer",
-                color: isActive ? "var(--accent)" : "var(--text-2)",
-                background: isActive ? "var(--accent-weak)" : "transparent",
-              }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--hover)"; }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-            >
-              <Icon style={{ width: 18, height: 18, flex: "none" }} />
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge ? (
-                <span style={{ minWidth: 19, height: 19, padding: "0 5px", borderRadius: 99, background: "var(--accent)", color: "#fff", font: "700 10.5px 'Geist Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {item.badge}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
+      {/* Navigation — gegroepeerd per rol, exact volgens design */}
+      <nav style={{ display: "flex", flexDirection: "column" }}>
+        {navSections.map((section, si) => (
+          <div key={section.heading}>
+            <div style={{ font: "600 10px 'Geist'", letterSpacing: ".11em", color: "var(--muted)", padding: si === 0 ? "8px 10px 6px" : "14px 10px 6px" }}>
+              {section.heading}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {section.items.map((item: any) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={`${section.heading}-${item.href}`}
+                    href={item.href}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 11,
+                      padding: "9px 11px",
+                      borderRadius: 8,
+                      font: "600 13px 'Geist'",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      color: isActive ? "var(--accent)" : "var(--text-2)",
+                      background: isActive ? "var(--accent-weak)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--hover)"; }}
+                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <Icon style={{ width: 18, height: 18, flex: "none" }} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.badge ? (
+                      <span style={{ minWidth: 19, height: 19, padding: "0 5px", borderRadius: 99, background: "var(--accent)", color: "#fff", font: "700 10.5px 'Geist Mono', monospace", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* User footer */}
