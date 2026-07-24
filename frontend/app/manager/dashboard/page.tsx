@@ -446,83 +446,41 @@ export default function ManagerDashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Medewerker
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Datum
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Uren
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Project
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Actie
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                      {pendingEntries.map((entry) => (
-                        <tr
-                          key={entry.id}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                <div>
+                  {pendingEntries.map((entry) => (
+                    <div key={entry.id} className="flex items-center gap-3.5 px-[18px] py-[13px] border-t border-[var(--border)]">
+                      <div className="flex-none flex items-center justify-center rounded-[9px]" style={{ width: 36, height: 36, background: "var(--accent-weak)", color: "var(--accent)", font: "700 12px 'Geist'" }}>
+                        {entry.userFirstName?.charAt(0)}{entry.userLastName?.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate" style={{ font: "600 13.5px 'Geist'", color: "var(--text)" }}>{entry.userFirstName} {entry.userLastName}</div>
+                        <div className="truncate" style={{ font: "500 11.5px 'Geist'", color: "var(--muted)", marginTop: 1 }}>{entry.projectName || entry.projectCode || "—"} · {dayjs(entry.date).format("D MMM")}</div>
+                      </div>
+                      <div style={{ font: "600 14px 'Geist Mono', monospace", color: "var(--text)" }}>{entry.hours?.toFixed(1)}u</div>
+                      <div className="flex gap-[7px]">
+                        <button
+                          onClick={() => handleReject(entry.id)}
+                          title="Afkeuren"
+                          className="flex items-center justify-center rounded-lg"
+                          style={{ width: 32, height: 32, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--muted)" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--red)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-weak)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "var(--panel)"; }}
                         >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 flex-shrink-0">
-                                {entry.userFirstName?.charAt(0)}
-                                {entry.userLastName?.charAt(0)}
-                              </div>
-                              <span className="text-slate-900 dark:text-slate-100 font-medium truncate max-w-[100px]">
-                                {entry.userFirstName} {entry.userLastName}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                            {dayjs(entry.date).format("D MMM YYYY")}
-                          </td>
-                          <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
-                            {entry.hours?.toFixed(1)}u
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[120px]">
-                            {entry.projectName || entry.projectCode || "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                              In behandeling
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => handleApprove(entry.id)}
-                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
-                                title="Goedkeuren"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleReject(entry.id)}
-                                className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                                title="Afwijzen"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleApprove(entry.id)}
+                          title="Goedkeuren"
+                          className="flex items-center justify-center rounded-lg"
+                          style={{ width: 32, height: 32, border: "1px solid transparent", background: "var(--green)", color: "#fff" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
