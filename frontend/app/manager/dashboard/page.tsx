@@ -520,7 +520,7 @@ export default function ManagerDashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                <div className="divide-y divide-[var(--border)] max-h-[560px] overflow-y-auto">
                   {teamPerformance.map((member) => (
                     <div
                       key={member.id}
