@@ -287,27 +287,18 @@ export default function KalenderPage() {
           <div className="flex-1">
             <Card>
               <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 capitalize">
-                      {monthName}
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400 mt-1">
-                      {stats.total.toFixed(1)} uur geregistreerd
-                    </p>
+                    <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }}>Kalender</h1>
+                    <p style={{ font: "400 13.5px 'Geist'", color: "var(--muted)", marginTop: 5 }}>Je aanwezigheid en geregistreerde uren per dag.</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={prevMonth}
-                      className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
+                  <div className="flex items-center gap-3">
+                    <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg transition" style={{ border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)" }}>
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={nextMonth}
-                      className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-                    >
-                      <ChevronRight className="w-5 h-5" />
+                    <span className="capitalize text-center" style={{ font: "600 14px 'Geist'", color: "var(--text)", minWidth: 130 }}>{monthName}</span>
+                    <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg transition" style={{ border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)" }}>
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
