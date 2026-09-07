@@ -1,4 +1,4 @@
-using ClockwiseProject.Backend.Controllers;
+﻿using ClockwiseProject.Backend.Controllers;
 using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend;
@@ -51,6 +51,13 @@ builder.Services.AddProblemDetails();
 // Configure Firebird connection
 var firebirdConnectionString = builder.Configuration.GetConnectionString("Firebird") ?? "Database=C:\\Users\\Ayoub\\Desktop\\clockwise-project\\database\\atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=0;Server=localhost;Port=3050;ClientLibrary=fbclient.dll;Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
 builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
+{
+    // Startup diagnostics: show which Firebird target/user is actually in use (password masked)
+    // and whether it came from the environment or from appsettings.json.
+    var fbInfo = new FirebirdSql.Data.FirebirdClient.FbConnectionStringBuilder(firebirdConnectionString);
+    var fbSource = Environment.GetEnvironmentVariable("ConnectionStrings__Firebird") != null ? "env ConnectionStrings__Firebird" : "appsettings/fallback";
+    Console.WriteLine($"[startup] Firebird -> {fbInfo.DataSource}:{fbInfo.Port} db={fbInfo.Database} user={fbInfo.UserID} pwdLen={fbInfo.Password?.Length ?? 0} source={fbSource}");
+}
 
 // Configure PostgreSQL (Supabase) connection
 builder.Services.AddSingleton<ClockwiseProject.Backend.Data.PostgreSQLConnectionFactory>();

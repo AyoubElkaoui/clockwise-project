@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ClockwiseProject.Backend.Repositories;
@@ -97,33 +97,6 @@ namespace ClockwiseProject.Backend.Controllers
             {
                 _logger.LogError(ex, "Error during login for MedewGcId: {MedewGcId}", request.MedewGcId);
                 return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-            }
-        }
-
-        [HttpPost("seed")]
-        public async Task<IActionResult> SeedDatabase()
-        {
-            try
-            {
-                using var connection = _repository.GetConnection();
-                await connection.OpenAsync();
-                var seedSql = await System.IO.File.ReadAllTextAsync("seed.sql");
-                var commands = seedSql.Split(";", StringSplitOptions.RemoveEmptyEntries);
-                foreach (var command in commands)
-                {
-                    if (!string.IsNullOrWhiteSpace(command))
-                    {
-                        using var cmd = new FbCommand(command.Trim(), connection);
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-                }
-
-                return Ok("Database seeded");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error seeding database");
-                return StatusCode(500, "Seeding failed");
             }
         }
 

@@ -1,6 +1,6 @@
 # Clockwise - Urenregistratie & Verlofbeheer
 
-Clockwise is een urenregistratie- en verlofbeheersysteem gebouwd bovenop het bestaande **Atrium** (Syntess) systeem. De applicatie leest medewerker-, project- en taakgegevens uit een **Firebird**-database (Atrium) en gebruikt **PostgreSQL** (Supabase) voor moderne app-data zoals workflows, notificaties en gebruikersbeheer.
+Clockwise is een urenregistratie- en verlofbeheersysteem gebouwd bovenop het bestaande **Atrium** (Syntess) systeem. De applicatie leest medewerker-, project- en taakgegevens uit een **Firebird**-database (Atrium) en gebruikt **PostgreSQL** (Neon) voor moderne app-data zoals workflows, notificaties en gebruikersbeheer.
 
 ---
 
@@ -36,7 +36,7 @@ Clockwise is een urenregistratie- en verlofbeheersysteem gebouwd bovenop het bes
                                     │                         │
                               ┌─────▼──────┐          ┌──────▼───────┐
                               │  Firebird   │          │  PostgreSQL  │
-                              │  (Atrium)   │          │  (Supabase)  │
+                              │  (Atrium)   │          │  (Neon)      │
                               │  LEZEN +    │          │  LEZEN +     │
                               │  SCHRIJVEN  │          │  SCHRIJVEN   │
                               │  localhost:  │          │  Cloud       │
@@ -46,7 +46,7 @@ Clockwise is een urenregistratie- en verlofbeheersysteem gebouwd bovenop het bes
 
 **Dataflow samenvatting:**
 - **Firebird (Atrium)** = het legacy systeem van Syntess. Hier staan medewerkers, projecten, taken en de uiteindelijke urenregistraties.
-- **PostgreSQL (Supabase)** = de moderne database voor de app zelf. Hier staan gebruikersaccounts, draft-uren, verlofaanvragen, notificaties, feestdagen en systeeminstellingen.
+- **PostgreSQL (Neon)** = de moderne database voor de app zelf. Hier staan gebruikersaccounts, draft-uren, verlofaanvragen, notificaties, feestdagen en systeeminstellingen.
 - De backend leest uit beide databases en schrijft naar beide wanneer nodig (bijv. goedgekeurde uren worden naar Firebird gepusht).
 
 ---
@@ -58,7 +58,7 @@ Clockwise is een urenregistratie- en verlofbeheersysteem gebouwd bovenop het bes
 | Frontend | Next.js 14+, React, TypeScript, Tailwind CSS |
 | Backend | C# .NET 8, ASP.NET Core Web API |
 | Database (legacy) | Firebird 3.0 (Atrium/Syntess) |
-| Database (app) | PostgreSQL via Supabase (cloud) |
+| Database (app) | PostgreSQL via Neon (cloud) |
 | ORM/Data access | Dapper (Firebird), Npgsql (PostgreSQL) |
 | Auth | JWT tokens (7 dagen geldig) + optioneel 2FA |
 | Hosting frontend | Vercel / localhost:3000 |
@@ -165,7 +165,7 @@ clockwise-project/
 - **Node.js** (v18+) - voor de frontend
 - **.NET 8 SDK** - voor de backend
 - **Firebird 3.0** - lokaal geinstalleerd (Atrium database)
-- **Internet** - voor Supabase PostgreSQL (cloud)
+- **Internet** - voor Neon PostgreSQL (cloud)
 
 ### Backend starten
 
@@ -185,14 +185,19 @@ npm run dev
 # App draait op http://localhost:3000
 ```
 
-### Docker (alternatief)
+### Configuratie (env-variabelen)
 
-```bash
-npm run docker:up       # Start alles
-npm run docker:down     # Stop alles
-npm run docker:logs     # Bekijk logs
-npm run docker:clean    # Reset database + volumes
+De backend leest connection strings en sleutels uit env-variabelen, die winnen van `appsettings.json`:
+
 ```
+ConnectionStrings__Firebird     Database=...ATRIUM.FDB;User=SYSDBA;Password=...;Server=localhost;Port=3050;...
+ConnectionStrings__PostgreSQL   Host=...neon.tech;Database=neondb;Username=...;Password=...;SSL Mode=Require
+Jwt__Key                        lange willekeurige string
+TwoFactor__EncryptionKey        32 tekens
+Auth__RequireJwt                true
+```
+
+Bij het opstarten logt de backend één regel `[startup] Firebird -> host:poort db=... user=... source=...` zodat je ziet welke verbinding werkelijk gebruikt wordt (wachtwoord wordt niet getoond).
 
 ---
 
@@ -221,16 +226,11 @@ User=SYSDBA;Password=masterkey
 | `AT_URENBREG` | **Urenregistraties** - de daadwerkelijke geboekte uren | LEZEN + SCHRIJVEN |
 | `AT_URENPER` | **Urenperiodes** - maandelijkse periodes voor urenboeking | LEZEN - actieve periode ophalen |
 
-### PostgreSQL (Supabase) - De app database
+### PostgreSQL (Neon) - De app database
 
 PostgreSQL wordt gebruikt voor alle moderne app-functionaliteit die niet in Atrium zit.
 
-**Connectie:**
-```
-Host=aws-1-eu-west-1.pooler.supabase.com;Port=5432
-Database=postgres
-Username=postgres.ynajasnxfvgtlbjatlbw
-```
+**Connectie:** via env-variabele `ConnectionStrings__PostgreSQL` (Neon, zie *Configuratie*).
 
 #### PostgreSQL tabellen
 
@@ -835,8 +835,8 @@ Body: { reviewedBy: 50 }
 # Firebird moet lokaal draaien op poort 3050
 # Database pad: C:\ProgramData\Syntess\AtriumData\Databases\TST\ATRIUM.FDB
 
-# Check of Supabase bereikbaar is
-# De PostgreSQL connectie gaat via internet naar Supabase cloud
+# Check of Neon bereikbaar is
+# De PostgreSQL connectie gaat via internet naar Neon cloud
 ```
 
 ### Frontend kan backend niet bereiken
@@ -857,12 +857,4 @@ Body: { reviewedBy: 50 }
 - Check of Firebird beschikbaar was op het moment van goedkeuring
 - Check de backend logs voor Firebird write errors
 
-### Docker setup
 
-```bash
-npm run docker:up       # Start alles
-npm run docker:down     # Stop alles
-npm run docker:logs     # Bekijk logs
-npm run docker:clean    # Reset database + volumes
-npm run docker:restart  # Herstart alles
-```
