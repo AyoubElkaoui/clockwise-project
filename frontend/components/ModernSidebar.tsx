@@ -80,6 +80,7 @@ const managerItems: MenuItem[] = [
   { icon: CalendarRange, label: "Planning", href: "/manager/planning", rank: "manager" },
   { icon: FolderKanban, label: "Project-toewijzing", href: "/manager/project-toewijzing", rank: "manager" },
   { icon: Plane, label: "Vakantie beoordelen", href: "/manager/vacation-review", rank: "manager" },
+  { icon: BarChart3, label: "Rapportages", href: "/manager/rapportages", rank: "manager" },
   { icon: ListChecks, label: "Uurcodes", href: "/manager/uurcodes", rank: "manager" },
   { icon: CalendarDays, label: "Jaarkalender", href: "/manager/jaarkalender", rank: "manager" },
 ];

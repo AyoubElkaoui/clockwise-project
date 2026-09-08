@@ -86,6 +86,23 @@ public class PostgresUsersController : ControllerBase
         return Ok(user);
     }
 
+    /// <summary>GET /api/users/budget-overview?year= - verlofsaldo en jaarbudgetten per uurcode van alle actieve medewerkers (manager/admin).</summary>
+    [HttpGet("budget-overview")]
+    public async Task<IActionResult> GetBudgetOverview([FromQuery] int? year)
+    {
+        if (!IsManagerOrAdmin) return Forbid();
+        var y = year ?? DateTime.Today.Year;
+        var rows = await _db.QueryAsync(@"
+            SELECT u.medew_gc_id AS ""medewGcId"", u.first_name AS ""firstName"", u.last_name AS ""lastName"",
+                   u.vacation_days AS ""vacationDays"", u.used_vacation_days AS ""usedVacationDays"",
+                   a.task_code AS ""taskCode"", a.task_description AS ""taskDescription"", a.annual_budget AS ""annualBudget"", a.used
+            FROM users u
+            LEFT JOIN user_hour_allocations a ON a.user_id = u.id AND a.year = @Year
+            WHERE u.is_active = TRUE AND u.role <> 'admin'
+            ORDER BY u.first_name, u.last_name, a.task_code", new { Year = y });
+        return Ok(rows);
+    }
+
     /// <summary>GET /api/users/atrium-employees - employees in Atrium (AT_MEDEW) with link status. Manager/admin only.</summary>
     [HttpGet("atrium-employees")]
     public async Task<IActionResult> GetAtriumEmployees()

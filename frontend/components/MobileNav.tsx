@@ -94,6 +94,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     { icon: Calendar, label: "Planning", href: "/manager/planning" },
     { icon: FolderPlus, label: "Project-toewijzing", href: "/manager/project-toewijzing" },
     { icon: Plane, label: "Vakantie beoordelen", href: "/manager/vacation-review" },
+    { icon: BarChart3, label: "Rapportages", href: "/manager/rapportages" },
     { icon: Calendar, label: "Uurcodes", href: "/manager/uurcodes" },
     { icon: Calendar, label: "Jaarkalender", href: "/manager/jaarkalender" },
   ], []);
