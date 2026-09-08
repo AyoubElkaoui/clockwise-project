@@ -72,6 +72,7 @@ tmp/
 .vercel
 nul
 *.ps1
+!deploy/*.ps1
 
 # Firebird runtime / lock / temp
 fb_guard
