@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +36,8 @@ import { ThemeToggle } from "./ui/theme-toggle";
 import { MiniCalendar } from "./MiniCalendar";
 import { cn } from "@/lib/utils";
 import { getActivities, getTimeEntries } from "@/lib/api";
+import { getMyEntries } from "@/lib/api/workflowApi";
+import HoursMonthCalendar, { type CalendarEntry } from "@/components/HoursMonthCalendar";
 import { HelpCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Image from "next/image";
@@ -136,6 +139,23 @@ export function ModernSidebar({
   };
 
   const [firstName, setFirstName] = useState("");
+  const [calMonth, setCalMonth] = useState<Date>(() => new Date());
+  const [calEntries, setCalEntries] = useState<CalendarEntry[]>([]);
+  const loadCalendar = React.useCallback(async (m: Date) => {
+    try {
+      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const from = new Date(m.getFullYear(), m.getMonth(), 1); from.setDate(from.getDate() - 7);
+      const to = new Date(m.getFullYear(), m.getMonth() + 1, 0); to.setDate(to.getDate() + 7);
+      const rows = await getMyEntries(iso(from), iso(to));
+      setCalEntries(rows.map((e: any) => ({ datum: e.datum, aantal: Number(e.aantal) || 0, status: e.status })));
+    } catch { setCalEntries([]); }
+  }, []);
+  useEffect(() => { loadCalendar(calMonth); }, [calMonth, loadCalendar]);
+  useEffect(() => {
+    const h = () => loadCalendar(calMonth);
+    window.addEventListener("clockd:hours-changed", h);
+    return () => window.removeEventListener("clockd:hours-changed", h);
+  }, [calMonth, loadCalendar]);
   const [lastName, setLastName] = useState("");
   const [userRank, setUserRank] = useState<"" | "manager" | "admin">("");
 
@@ -266,6 +286,22 @@ export function ModernSidebar({
           </div>
         ))}
       </nav>
+
+      {/* Urenkalender: uren per dag/week met status, klik = naar die dag in Uren registreren */}
+      <div style={{ marginTop: 14 }}>
+        <HoursMonthCalendar
+          compact
+          month={calMonth}
+          entries={calEntries}
+          onPrevMonth={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+          onNextMonth={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+          onSelectDay={(d) => {
+            const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            window.dispatchEvent(new CustomEvent("clockd:goto-date", { detail: date }));
+            router.push(`/tijd-registratie?date=${date}`);
+          }}
+        />
+      </div>
 
       {/* User footer */}
       <div style={{ marginTop: "auto", paddingTop: 12, borderTop: "1px solid var(--border)" }}>

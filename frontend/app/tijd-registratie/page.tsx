@@ -1,2528 +1,659 @@
 "use client";
-import { useTranslation } from "react-i18next";
 
-import { useState, useEffect } from "react";
-import dayjs from "dayjs";
+/**
+ * Uren registreren - rasterinvoer naar ClockWise-model:
+ *  - rijen = projecten (en indirecte uurcodes), kolommen = dagen van de week of maand
+ *  - per cel: uren; details (nacht, reisuren, km, reiskosten, onkosten, opmerking, taaktype) in een paneel
+ *  - status per cel gekleurd: opgeslagen (amber), ingeleverd (blauw), goedgekeurd (groen), afgekeurd (rood)
+ *  - elke datum wordt in zijn eigen Syntess-urenperiode opgeslagen en ingeleverd
+ */
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Plus,
-  Save,
-  Send,
-  Trash2,
-  Calendar,
-  Copy,
-  Clipboard,
-  Car,
-  Ticket,
-  Euro,
-  FileText,
-  Wrench,
-  Ruler,
-  Moon,
-  Clock,
-  Star,
-  Heart,
+  ChevronLeft, ChevronRight, Save, Send, Search, Plus, Heart, X, Star, Info, Moon, Clock, Car, Ticket, Euro, MessageSquare, Copy, AlertTriangle,
 } from "lucide-react";
-import {
-  getCompanies,
-  getProjectGroups,
-  getProjects,
-} from "@/lib/api/companyApi";
-import { saveDraft, submitEntries, deleteDraft, getMyEntries, getWorkflowConfig, type WorkflowConfig } from "@/lib/api/workflowApi";
-import HoursMonthCalendar, { dayStatus, STATUS_STYLE, type CalendarEntry } from "@/components/HoursMonthCalendar";
-import { getPeriods } from "@/lib/api";
-import { getFavoriteProjects, addFavoriteProject, removeFavoriteProject, type FavoriteProject } from "@/lib/api/favoriteProjectsApi";
-import { getHolidays, Holiday } from "@/lib/api/holidaysApi";
-import { getUserProjects, type UserProject } from "@/lib/api/userProjectApi";
-import { getProjects as getAllProjectsFlat, API_URL } from "@/lib/api";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
+import { showToast } from "@/components/ui/toast";
+import { API_URL } from "@/lib/api";
+import { getPeriods } from "@/lib/api";
+import { saveDraft, submitEntries, resubmitRejected, deleteDraft, getMyEntries, getWorkflowConfig, type WorkflowConfig } from "@/lib/api/workflowApi";
+import { getFavoriteProjects, addFavoriteProject, removeFavoriteProject, type FavoriteProject } from "@/lib/api/favoriteProjectsApi";
+import { getHolidays, type Holiday } from "@/lib/api/holidaysApi";
+import { getUserProjects } from "@/lib/api/userProjectApi";
+import { dayStatus, STATUS_STYLE, type DayStatus } from "@/components/HoursMonthCalendar";
 
-interface Company {
-  id: number;
-  name: string;
-}
-interface ProjectGroup {
-  id: number;
-  name: string;
-  companyId?: number;
-}
-interface Project {
-  id: number;
-  name: string;
-  projectGroupId: number;
-}
-interface ProjectRow {
-  companyId: number;
-  companyName: string;
-  projectGroupId: number;
-  projectGroupName: string;
-  projectId: number;
-  projectName: string;
-}
-interface TimeEntry {
-  date: string;
-  projectId: number;
-  hours: number;
-  taskType?: 'MONTAGE' | 'TEKENKAMER';
-  eveningNightHours?: number;
-  travelHours?: number;
-  distanceKm?: number;
-  km?: number;
-  travelCosts?: number;
-  otherExpenses?: number;
-  expenses?: number;
-  notes?: string;
-  status?: string;
-  rejectionReason?: string | null;
-  id?: number;
-}
+/* ---------- types ---------- */
+type TaskType = "MONTAGE" | "TEKENKAMER";
+type RowKind = "project" | "task";
 
-interface IndirectTask {
-  taakGcId: number;
+interface Row {
+  key: string;            // "p:<werkGcId>" of "t:<taakGcId>"
+  kind: RowKind;
+  projectId?: number;
+  taakGcId?: number;
   code: string;
-  description: string;
-  budget: number;
-  used: number;
+  name: string;
+  group: string;          // projectgroep of "Indirecte uren"
+  budget?: number;        // indirect: jaarbudget
+  used?: number;
 }
 
-interface IndirectEntry {
-  date: string;
-  taakGcId: number;
-  taskCode: string;
-  hours: number;
+interface Entry {
   id?: number;
-  status?: string;
+  date: string;
+  rowKey: string;
+  hours: number;
+  night: number;
+  travelHours: number;
+  km: number;
+  travelCosts: number;
+  otherExpenses: number;
+  notes: string;
+  taskType: TaskType;
+  status?: string;        // DRAFT | SUBMITTED | APPROVED | REJECTED
+  rejectionReason?: string | null;
+  dirty?: boolean;
 }
 
-const MAX_HOURS_PER_DAY = 8;
+interface Period { gcId: number; beginDatum: string; endDatum: string; code?: string }
+interface CatalogProject { id: number; code: string; name: string; groupId: number; groupName: string }
 
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+/* ---------- date helpers ---------- */
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const mondayOf = (d: Date) => addDays(d, d.getDay() === 0 ? -6 : 1 - d.getDay());
+const isoWeek = (d: Date) => {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  return Math.ceil(((t.getTime() - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7);
+};
+const MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+const DAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"];
+const fmtH = (h: number) => (h === 0 ? "" : h % 1 === 0 ? String(h) : h.toFixed(1).replace(".", ","));
+const parseNum = (v: string) => { const n = parseFloat(v.replace(",", ".")); return isNaN(n) ? 0 : Math.max(0, n); };
+const isLocked = (s?: string) => s === "SUBMITTED" || s === "APPROVED" || s === "APPROVING";
+const entryKey = (date: string, rowKey: string) => `${date}|${rowKey}`;
+const hasExtras = (e: Entry) => !!(e.night || e.travelHours || e.km || e.travelCosts || e.otherExpenses || e.notes);
+const isEmpty = (e: Entry) => !e.hours && !hasExtras(e);
 
-function getWeekDays(date: Date): Date[] {
-  const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(date);
-  monday.setDate(date.getDate() + diff);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  });
-}
+const ROWS_STORAGE = "clockd.hours.rows";
 
-function getWeekNumber(date: Date): number {
-  const d = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-  );
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
-
-function getMonthWeeks(date: Date): Date[] {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-
-  const weeks: Date[] = [];
-  let current = new Date(firstDay);
-
-  while (current <= lastDay) {
-    const weekDays = getWeekDays(current);
-    if (!weeks.some((w) => formatDate(w) === formatDate(weekDays[0]))) {
-      weeks.push(weekDays[0]);
-    }
-    current.setDate(current.getDate() + 7);
-  }
-
-  return weeks;
-}
-
-export default function TimeRegistrationPage() {
-  const { t } = useTranslation();
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [periods, setPeriods] = useState<{ gcId: number; beginDatum: string; endDatum: string }[]>([]);
-  const [workflowConfig, setWorkflowConfig] = useState<WorkflowConfig | null>(null);
-  const [monthEntries, setMonthEntries] = useState<CalendarEntry[]>([]);
-  const [viewMode, setViewMode] = useState<"week" | "month">("week");
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [projectGroups, setProjectGroups] = useState<
-    Record<number, ProjectGroup[]>
-  >({});
-  const [projects, setProjects] = useState<Record<number, Project[]>>({});
-  const [expandedCompanies, setExpandedCompanies] = useState<number[]>([]);
-  const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
-  const [projectRows, setProjectRows] = useState<ProjectRow[]>([]);
-  const [entries, setEntries] = useState<Record<string, TimeEntry>>({});
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-  const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
+export default function TijdRegistratiePage() {
+  /* ---------- state ---------- */
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const [view, setView] = useState<"week" | "month">("week");
+  const [periods, setPeriods] = useState<Period[]>([]);
+  const [config, setConfig] = useState<WorkflowConfig | null>(null);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
-  const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
-  const [assignedProjectIds, setAssignedProjectIds] = useState<number[] | null>(null);
-  const [assignedGroupIds, setAssignedGroupIds] = useState<Set<number> | null>(null);
-  const [hasSubmittedEntries, setHasSubmittedEntries] = useState(false);
-  const [favoriteProjects, setFavoriteProjects] = useState<FavoriteProject[]>([]);
-  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(new Set());
-  const [projectMaxHours, setProjectMaxHours] = useState<Record<number, number>>({});
-  const [showProjectPicker, setShowProjectPicker] = useState(false);
-  const [selectedMobileDay, setSelectedMobileDay] = useState(() => {
-    const today = new Date().getDay();
-    return today === 0 ? 6 : today - 1; // 0=Mon, 6=Sun
-  });
-  const [selectedMobileWeek, setSelectedMobileWeek] = useState(0);
-  const [indirectTasks, setIndirectTasks] = useState<IndirectTask[]>([]);
-  const [indirectEntries, setIndirectEntries] = useState<Record<string, IndirectEntry>>({});
+  const [allowedTasks, setAllowedTasks] = useState<"BOTH" | "MONTAGE_ONLY" | "TEKENKAMER_ONLY">("BOTH");
 
-  const weekDays = getWeekDays(currentWeek);
-  const dayNames = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
-  const monthNames = [
-    "januari",
-    "februari",
-    "maart",
-    "april",
-    "mei",
-    "juni",
-    "juli",
-    "augustus",
-    "september",
-    "oktober",
-    "november",
-    "december",
-  ];
-  const weekNumber = getWeekNumber(currentWeek);
-  const monthWeeks = getMonthWeeks(currentWeek);
+  const [catalog, setCatalog] = useState<CatalogProject[]>([]);
+  const [assigned, setAssigned] = useState<Set<number> | null>(null);
+  const [maxHours, setMaxHours] = useState<Record<number, number>>({});
+  const [favorites, setFavorites] = useState<FavoriteProject[]>([]);
+  const [taskRows, setTaskRows] = useState<Row[]>([]);
+  const [extraRowIds, setExtraRowIds] = useState<number[]>([]);
 
-  // Urenperiodes (AT_URENPER) en Atrium-config één keer laden. Elke datum wordt in zijn EIGEN
-  // periode geboekt; nooit in "de periode van vandaag".
+  const [entries, setEntries] = useState<Record<string, Entry>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [detail, setDetail] = useState<{ date: string; rowKey: string } | null>(null);
+  const [picker, setPicker] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [rowFilter, setRowFilter] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  /* ---------- derived dates ---------- */
+  const days = useMemo<Date[]>(() => {
+    if (view === "week") { const m = mondayOf(anchor); return Array.from({ length: 7 }, (_, i) => addDays(m, i)); }
+    const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    const out: Date[] = []; for (let d = first; d <= last; d = addDays(d, 1)) out.push(d); return out;
+  }, [anchor, view]);
+  const rangeFrom = iso(days[0]);
+  const rangeTo = iso(days[days.length - 1]);
+  const todayIso = iso(new Date());
+  const weeksInMonth = useMemo(() => {
+    const first = mondayOf(new Date(anchor.getFullYear(), anchor.getMonth(), 1));
+    const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+    const out: Date[] = []; for (let m = first; m <= last; m = addDays(m, 7)) out.push(m); return out;
+  }, [anchor]);
+
+  const holidayMap = useMemo(() => Object.fromEntries(holidays.map((h) => [String(h.holidayDate).split("T")[0], h])), [holidays]);
+  const dayInfo = useCallback((d: Date) => {
+    const k = iso(d); const h = holidayMap[k];
+    return { key: k, weekend: d.getDay() === 0 || d.getDay() === 6, holiday: h, closed: !!h && !h.isWorkAllowed, today: k === todayIso };
+  }, [holidayMap, todayIso]);
+
+  const periodFor = useCallback((date: string) => {
+    const p = periods.find((x) => x.beginDatum && x.beginDatum <= date && (!x.endDatum || date <= x.endDatum));
+    if (!p) throw new Error(`Geen urenperiode gevonden voor ${date}. Vraag de beheerder de periodes in Syntess aan te maken.`);
+    return p.gcId;
+  }, [periods]);
+
+  /* ---------- initial loads ---------- */
   useEffect(() => {
+    const at = localStorage.getItem("allowedTasks");
+    if (at === "MONTAGE_ONLY" || at === "TEKENKAMER_ONLY") setAllowedTasks(at);
+    try { const saved = JSON.parse(localStorage.getItem(ROWS_STORAGE) || "[]"); if (Array.isArray(saved)) setExtraRowIds(saved.filter((n) => Number.isFinite(n))); } catch { /* ignore */ }
+    const q = new URLSearchParams(window.location.search).get("date");
+    if (q && /^\d{4}-\d{2}-\d{2}$/.test(q)) setAnchor(new Date(q + "T00:00:00"));
+    const onGoto = (ev: Event) => { const d = (ev as CustomEvent<string>).detail; if (d) { setAnchor(new Date(d + "T00:00:00")); setView("week"); } };
+    window.addEventListener("clockd:goto-date", onGoto);
+
     (async () => {
       try {
-        const [p, cfg] = await Promise.all([getPeriods(120), getWorkflowConfig()]);
-        setPeriods(
-          (Array.isArray(p) ? p : []).map((x: any) => ({
-            gcId: x.gcId ?? x.id,
-            beginDatum: String(x.beginDatum || x.startDate || "").split("T")[0],
-            endDatum: String(x.endDatum || x.endDate || "").split("T")[0],
-          })),
-        );
-        setWorkflowConfig(cfg);
+        const [p, cfg, projs, groups, favs] = await Promise.all([
+          getPeriods(120), getWorkflowConfig(),
+          axios.get(`${API_URL}/projects`), axios.get(`${API_URL}/project-groups`), getFavoriteProjects(),
+        ]);
+        setPeriods((Array.isArray(p) ? p : []).map((x: any) => ({ gcId: x.gcId ?? x.id, code: x.gcCode, beginDatum: String(x.beginDatum || "").split("T")[0], endDatum: String(x.endDatum || "").split("T")[0] })));
+        setConfig(cfg);
+        const gname: Record<number, string> = {};
+        for (const g of groups.data || []) gname[g.gcId ?? g.id] = g.description || g.gcCode || g.name || "";
+        setCatalog((projs.data || []).map((x: any) => ({
+          id: x.gcId ?? x.id, code: x.gcCode ?? x.code ?? "", name: x.description ?? x.name ?? "", groupId: x.werkgrpGcId ?? x.projectGroupId ?? 0, groupName: gname[x.werkgrpGcId ?? x.projectGroupId ?? 0] || "",
+        })));
+        setFavorites(favs);
       } catch {
-        showToast("Kon urenperiodes of instellingen niet laden. Herlaad de pagina.", "error");
+        showToast("Kon projecten of instellingen niet laden. Herlaad de pagina.", "error");
       }
+      try {
+        const userId = Number(localStorage.getItem("userId")) || 0;
+        if (userId > 0) {
+          const ups = await getUserProjects(userId);
+          const ids = ups.map((u: any) => u.projectId || u.projectGcId).filter((n: number) => n > 0);
+          setAssigned(ids.length ? new Set(ids) : null);
+          const mh: Record<number, number> = {}; for (const u of ups as any[]) { const pid = u.projectId || u.projectGcId; if (pid && u.maxHours) mh[pid] = u.maxHours; }
+          setMaxHours(mh);
+        }
+      } catch { /* toewijzingen zijn optioneel */ }
+      try {
+        const medew = localStorage.getItem("medewGcId");
+        if (medew) {
+          const [alloc, tasks] = await Promise.all([axios.get(`${API_URL}/users/${medew}/hour-allocations`), axios.get(`${API_URL}/tasks`)]);
+          const all = tasks.data?.tasks || tasks.data || [];
+          const rows: Row[] = [];
+          for (const a of alloc.data || []) {
+            if ((a.annualBudget || 0) <= 0) continue;
+            const t = all.find((x: any) => (x.code || x.gcCode) === a.taskCode);
+            if (t) rows.push({ key: `t:${t.id ?? t.gcId}`, kind: "task", taakGcId: t.id ?? t.gcId, code: a.taskCode, name: a.taskDescription || t.description || t.omschrijving || a.taskCode, group: "Indirecte uren", budget: a.annualBudget, used: a.used || 0 });
+          }
+          setTaskRows(rows);
+        }
+      } catch { /* geen indirecte codes */ }
     })();
+    return () => window.removeEventListener("clockd:goto-date", onGoto);
   }, []);
 
-  // Kalender in de zijbalk: alle regels van de zichtbare maand
-  const loadMonthEntries = async () => {
-    const first = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), 1);
-    const last = new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 0);
-    const from = new Date(first); from.setDate(from.getDate() - 7);
-    const to = new Date(last); to.setDate(to.getDate() + 7);
+  useEffect(() => { getHolidays(anchor.getFullYear()).then(setHolidays).catch(() => setHolidays([])); }, [anchor.getFullYear()]);
+
+  /* ---------- entries ---------- */
+  const catalogById = useMemo(() => Object.fromEntries(catalog.map((c) => [c.id, c])), [catalog]);
+  const taskById = useMemo(() => Object.fromEntries(taskRows.map((t) => [t.taakGcId!, t])), [taskRows]);
+
+  const loadEntries = useCallback(async () => {
+    setLoading(true);
     try {
-      const rows = await getMyEntries(formatDate(from), formatDate(to));
-      setMonthEntries(rows.map((e: any) => ({ datum: e.datum, aantal: Number(e.aantal) || 0, status: e.status })));
-    } catch {
-      /* de kalender is informatief; fouten in loadEntries worden al gemeld */
-    }
-  };
-  useEffect(() => {
-    loadMonthEntries();
-  }, [currentWeek.getFullYear(), currentWeek.getMonth()]);
-
-  useEffect(() => {
-    loadCompanies();
-    loadEntries();
-    loadUserAllowedTasks();
-    loadHolidays();
-    loadAssignedProjects();
-    loadFavoriteProjects();
-    loadIndirectTasks();
-  }, [currentWeek, viewMode]);
-
-  // Reset mobile week/day selection when navigating months
-  useEffect(() => {
-    setSelectedMobileWeek(0);
-    setSelectedMobileDay(0);
-  }, [currentWeek]);
-
-  useEffect(() => {
-  }, [currentWeek]);
-
-  const loadFavoriteProjects = async () => {
-    try {
-      const favorites = await getFavoriteProjects();
-      setFavoriteProjects(favorites);
-      setFavoriteProjectIds(new Set(favorites.map(f => f.projectGcId)));
-    } catch (error) {
-      console.error("Failed to load favorite projects:", error);
-    }
-  };
-
-  const toggleFavorite = async (projectId: number, projectName: string) => {
-    try {
-      if (favoriteProjectIds.has(projectId)) {
-        await removeFavoriteProject(projectId);
-        setFavoriteProjectIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(projectId);
-          return newSet;
-        });
-        setFavoriteProjects(prev => prev.filter(f => f.projectGcId !== projectId));
-        showToast(`${projectName} verwijderd uit favorieten`, "success");
-      } else {
-        const favorite = await addFavoriteProject(projectId);
-        setFavoriteProjectIds(prev => new Set([...prev, projectId]));
-        setFavoriteProjects(prev => [...prev, favorite]);
-        showToast(`${projectName} toegevoegd aan favorieten`, "success");
-      }
-    } catch (error) {
-      showToast("Fout bij aanpassen favorieten", "error");
-    }
-  };
-
-  const addFavoriteToRows = (favorite: FavoriteProject) => {
-    if (!projectRows.some(r => r.projectId === favorite.projectGcId)) {
-      setProjectRows(prev => [
-        ...prev,
-        {
-          companyId: 0,
-          companyName: favorite.companyName || "Favoriet",
-          projectGroupId: 0,
-          projectGroupName: favorite.projectGroupName || "",
-          projectId: favorite.projectGcId,
-          projectName: favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`,
-        },
-      ]);
-    }
-  };
-
-  // Compute filtered projects at render time based on assignedProjectIds
-  // This guarantees the filter is always applied regardless of load order
-  const getVisibleProjects = (groupId: number): Project[] => {
-    const allProjects = projects[groupId] || [];
-    if (assignedProjectIds === null) {
-      return allProjects;
-    }
-    return allProjects.filter(p => assignedProjectIds.includes(p.id));
-  };
-
-  const showToast = (message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const isClosedDay = (date: string) => {
-    // Check holidays first
-    const holiday = holidays.find(h => h.holidayDate === date);
-    if (holiday && !holiday.isWorkAllowed) {
-      return true;
-    }
-
-    // Check closed days
-    return false;
-  };
-
-  // Check if date is a weekend (Saturday or Sunday)
-  const isWeekend = (date: Date | string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    const dayOfWeek = d.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
-  };
-
-  const loadHolidays = async () => {
-    try {
-      const year = currentWeek.getFullYear();
-      const data = await getHolidays(year);
-      setHolidays(data);
-    } catch (error) {
-      // Silent fail - holidays are optional
-    }
-  };
-
-  const loadUserAllowedTasks = () => {
-    // Get from localStorage (set during login as individual key)
-    const allowedTasks = localStorage.getItem('allowedTasks');
-    if (allowedTasks === 'MONTAGE_ONLY' || allowedTasks === 'TEKENKAMER_ONLY' || allowedTasks === 'BOTH') {
-      setUserAllowedTasks(allowedTasks);
-    } else {
-      setUserAllowedTasks('BOTH'); // Default to both if not found
-    }
-  };
-
-  const loadIndirectTasks = async () => {
-    try {
-      const medewGcId = localStorage.getItem("medewGcId");
-      if (!medewGcId) return;
-
-      // Fetch user's allocations and all tasks in parallel
-      const [allocRes, tasksRes] = await Promise.all([
-        axios.get(`${API_URL}/users/${medewGcId}/hour-allocations`),
-        axios.get(`${API_URL}/tasks`),
-      ]);
-
-      const allocations = allocRes.data || [];
-      const allTasks = tasksRes.data?.tasks || [];
-
-      // Only show codes where user has budget > 0
-      const tasksWithBudget: IndirectTask[] = [];
-      for (const alloc of allocations) {
-        if ((alloc.annualBudget || 0) > 0) {
-          const task = allTasks.find((t: any) => t.code === alloc.taskCode);
-          if (task) {
-            tasksWithBudget.push({
-              taakGcId: task.id,
-              code: alloc.taskCode,
-              description: alloc.taskDescription || task.description,
-              budget: alloc.annualBudget,
-              used: alloc.used || 0,
-            });
-          }
-        }
-      }
-      setIndirectTasks(tasksWithBudget);
-    } catch (err) {
-      console.error("Error loading indirect tasks:", err);
-    }
-  };
-
-  const updateIndirectEntry = (taakGcId: number, taskCode: string, date: string, hours: number) => {
-    const key = `${date}-indirect-${taskCode}`;
-    setIndirectEntries((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        date,
-        taakGcId,
-        taskCode,
-        hours,
-      },
-    }));
-  };
-
-  const getIndirectEntry = (taskCode: string, date: string): IndirectEntry | undefined => {
-    return indirectEntries[`${date}-indirect-${taskCode}`];
-  };
-
-  const getIndirectTotalForCode = (taskCode: string): number => {
-    return Object.values(indirectEntries)
-      .filter((e) => e.taskCode === taskCode && e.hours > 0)
-      .reduce((sum, e) => sum + e.hours, 0);
-  };
-
-  const shouldShowTaskDropdown = () => {
-    return userAllowedTasks === 'BOTH';
-  };
-
-  const getDefaultTaskType = (): 'MONTAGE' | 'TEKENKAMER' => {
-    if (userAllowedTasks === 'MONTAGE_ONLY') return 'MONTAGE';
-    if (userAllowedTasks === 'TEKENKAMER_ONLY') return 'TEKENKAMER';
-    return 'MONTAGE'; // Default for users with BOTH
-  };
-
-  const loadAssignedProjects = async () => {
-    try {
-      const userId = Number(localStorage.getItem("userId")) || 0;
-      if (userId > 0) {
-        const userProjects = await getUserProjects(userId);
-        const ids = userProjects.map((up: any) => up.projectId || up.project_gc_id || up.projectGcId);
-        const filteredIds = ids.filter((id: number) => id > 0);
-        setAssignedProjectIds(filteredIds);
-
-        // Extract max hours per project
-        const maxHoursMap: Record<number, number> = {};
-        for (const up of userProjects) {
-          const pid = up.projectId || (up as any).project_gc_id || (up as any).projectGcId;
-          if (pid && up.maxHours) {
-            maxHoursMap[pid] = up.maxHours;
-          }
-        }
-        setProjectMaxHours(maxHoursMap);
-
-        // Determine which project groups contain assigned projects
-        if (filteredIds.length > 0) {
-          const allProjects = await getAllProjectsFlat();
-          const assignedSet = new Set(filteredIds);
-          const groupIds = new Set<number>();
-          for (const p of allProjects) {
-            const pid = (p as any).gcId || (p as any).id;
-            if (assignedSet.has(pid) && (p as any).werkgrpGcId) {
-              groupIds.add((p as any).werkgrpGcId);
-            }
-          }
-          setAssignedGroupIds(groupIds);
-        } else {
-          setAssignedGroupIds(new Set());
-        }
-      } else {
-        setAssignedProjectIds([]);
-        setAssignedGroupIds(new Set());
-        setProjectMaxHours({});
-      }
-    } catch (err) {
-      setAssignedProjectIds([]);
-      setAssignedGroupIds(new Set());
-      setProjectMaxHours({});
-    }
-  };
-
-  const loadCompanies = async () => {
-    try {
-      const data = await getCompanies();
-      setCompanies(data);
-    } catch (error) {
-      showToast("Kon bedrijven niet laden", "error");
-    }
-  };
-
-  const loadEntries = async () => {
-    try {
-      // Alle regels (alle statussen) voor het zichtbare bereik: de week, of alle weken van de maand
-      const visibleWeeks = viewMode === "week" ? [weekDays] : monthWeeks.map((w) => getWeekDays(w));
-      const rangeFrom = formatDate(visibleWeeks[0][0]);
-      const rangeTo = formatDate(visibleWeeks[visibleWeeks.length - 1][6]);
-      const allEntries = await getMyEntries(rangeFrom, rangeTo);
-
-      // Check if any entries are submitted or approved (locks the whole period)
-      const hasLockedEntries = allEntries.some((e: any) => 
-        e.status === 'SUBMITTED' || e.status === 'APPROVED'
-      );
-      setHasSubmittedEntries(hasLockedEntries);
-
-      const map: Record<string, TimeEntry> = {};
-      const projectIdsToAdd = new Set<number>();
-
-      allEntries.forEach((e: any) => {
-        const projectId = e.werkGcId || 0;
-        // Normalize date format: API returns ISO format like "2026-01-06T00:00:00" or "2026-01-06"
-        // We need it in "YYYY-MM-DD" format to match keys created by formatDate()
-        const normalizedDate = e.datum.split('T')[0]; // Take only date part, ignore time
-        const key = `${normalizedDate}-${projectId}`;
-
-        map[key] = {
-          date: normalizedDate,
-          projectId: projectId,
-          hours: e.aantal,
-          eveningNightHours: e.eveningNightHours || 0,
-          travelHours: e.travelHours || 0,
-          distanceKm: e.distanceKm || 0,
-          travelCosts: e.travelCosts || 0,
-          otherExpenses: e.otherExpenses || 0,
-          notes: e.omschrijving || "",
-          status: e.status, // DRAFT, SUBMITTED, APPROVED, REJECTED
-          rejectionReason: e.rejectionReason || null,
-          id: e.id, // Save the database ID
+      const rows = await getMyEntries(rangeFrom, rangeTo);
+      const map: Record<string, Entry> = {};
+      for (const e of rows as any[]) {
+        const date = String(e.datum).split("T")[0];
+        const rowKey = e.werkGcId ? `p:${e.werkGcId}` : `t:${e.taakGcId}`;
+        map[entryKey(date, rowKey)] = {
+          id: e.id, date, rowKey, hours: Number(e.aantal) || 0,
+          night: Number(e.eveningNightHours) || 0, travelHours: Number(e.travelHours) || 0, km: Number(e.distanceKm) || 0,
+          travelCosts: Number(e.travelCosts) || 0, otherExpenses: Number(e.otherExpenses) || 0, notes: e.omschrijving || "",
+          taskType: config && e.taakGcId === config.tekenkamerTaakGcId ? "TEKENKAMER" : "MONTAGE",
+          status: e.status, rejectionReason: e.rejectionReason || null,
         };
-
-        // Track which projects need to be added
-        if (projectId > 0) {
-          projectIdsToAdd.add(projectId);
+        // onbekende projecten (uit een eerdere sessie) toch als rij tonen
+        if (e.werkGcId && !catalogById[e.werkGcId]) {
+          catalogById[e.werkGcId] = { id: e.werkGcId, code: e.werkCode || "", name: e.werkDescription || `Project ${e.werkGcId}`, groupId: 0, groupName: "" };
         }
-      });
-
-      // Update entries first
+      }
       setEntries(map);
-
-      // Then add project rows for any projects that don't exist yet
-      setProjectRows(prev => {
-        const existingProjectIds = new Set(prev.map(r => r.projectId));
-        const newRows: ProjectRow[] = [];
-
-        projectIdsToAdd.forEach(projectId => {
-          if (!existingProjectIds.has(projectId)) {
-            // Find an entry with this projectId to get the description
-            const entryWithProject = allEntries.find((e: any) => e.werkGcId === projectId);
-            newRows.push({
-              companyId: 0,
-              companyName: (entryWithProject as any)?.companyName || "",
-              projectGroupId: 0,
-              projectGroupName: "",
-              projectId: projectId,
-              projectName: entryWithProject?.werkDescription || entryWithProject?.werkCode || `Project ${projectId}`,
-            });
-          }
-        });
-
-        return [...prev, ...newRows];
-      });
-    } catch (error) {
+    } catch {
       showToast("Kon uren niet laden", "error");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [rangeFrom, rangeTo, config, catalogById]);
+  useEffect(() => { if (config) loadEntries(); }, [loadEntries, config]);
 
-  const toggleCompany = async (id: number) => {
-    if (expandedCompanies.includes(id)) {
-      setExpandedCompanies((prev) => prev.filter((x) => x !== id));
-    } else {
-      setExpandedCompanies((prev) => [...prev, id]);
-      if (!projectGroups[id]) {
-        try {
-          const groups = await getProjectGroups(id);
-          setProjectGroups((prev) => ({ ...prev, [id]: groups }));
-        } catch (error) {
-          showToast("Kon groepen niet laden", "error");
-        }
-      }
-    }
-  };
-
-  const toggleGroup = async (id: number) => {
-    if (expandedGroups.includes(id)) {
-      setExpandedGroups((prev) => prev.filter((x) => x !== id));
-    } else {
-      setExpandedGroups((prev) => [...prev, id]);
-      if (!projects[id]) {
-        try {
-          const projs = await getProjects(id);
-          setProjects((prev) => ({ ...prev, [id]: projs }));
-        } catch {
-          showToast("Kon projecten niet laden", "error");
-        }
-      }
-    }
-  };
-
-  const addProject = (
-    company: Company,
-    group: ProjectGroup,
-    project: Project,
-  ) => {
-    if (!projectRows.some((r) => r.projectId === project.id)) {
-      setProjectRows((prev) => [
-        ...prev,
-        {
-          companyId: company.id,
-          companyName: company.name,
-          projectGroupId: group.id,
-          projectGroupName: group.name,
-          projectId: project.id,
-          projectName: project.name,
-        },
-      ]);
-    }
-  };
-
-  const copyCell = (projectId: number, date: string) => {
-    const key = `${date}-${projectId}`;
-    const entry = entries[key];
-
-    if (
-      !entry ||
-      (entry.hours === 0 &&
-        (entry.distanceKm ?? 0) === 0 &&
-        (entry.otherExpenses ?? 0) === 0 &&
-        !entry.notes)
-    ) {
-      showToast("Geen data om te kopiëren", "error");
-      return;
-    }
-
-    setCopiedCell({ ...entry });
-    showToast(
-      "Cel gekopieerd! Klik op een andere cel om te plakken",
-      "success",
-    );
-  };
-
-  const pasteCell = (projectId: number, date: string) => {
-    if (!copiedCell) {
-      showToast("Geen data om te plakken", "error");
-      return;
-    }
-
-    const key = `${date}-${projectId}`;
-    const existingEntry = entries[key];
-
-    // Check of cel niet ingeleverd is
-    if (existingEntry && existingEntry.status === "ingeleverd") {
-      showToast("Kan niet plakken in ingeleverde cel", "error");
-      return;
-    }
-
-    // Plak de data
-    setEntries((prev) => ({
-      ...prev,
-      [key]: {
-        date,
-        projectId,
-        hours: copiedCell.hours || 0,
-        eveningNightHours: copiedCell.eveningNightHours || 0,
-        travelHours: copiedCell.travelHours || 0,
-        distanceKm: copiedCell.distanceKm || 0,
-        travelCosts: copiedCell.travelCosts || 0,
-        otherExpenses: copiedCell.otherExpenses || 0,
-        notes: copiedCell.notes || "",
-        status: "opgeslagen",
-      },
-    }));
-
-    showToast("Geplakt!", "success");
-  };
-
-  const removeProject = async (projectId: number) => {
-    // Only try to delete entries that are editable (DRAFT or REJECTED)
-    const entriesToDelete = Object.values(entries).filter(
-      (e) => e.projectId === projectId && e.id && (e.status === "DRAFT" || e.status === "REJECTED" || e.status === "opgeslagen" || !e.status)
-    );
-
-    // Check if there are any non-deletable entries
-    const nonDeletableEntries = Object.values(entries).filter(
-      (e) => e.projectId === projectId && e.id && (e.status === "SUBMITTED" || e.status === "APPROVED")
-    );
-
-    if (nonDeletableEntries.length > 0) {
-      showToast(`Kan project niet verwijderen: ${nonDeletableEntries.length} uur${nonDeletableEntries.length > 1 ? 'registraties zijn' : 'registratie is'} al ingeleverd of goedgekeurd`, "error");
-      return;
-    }
-
-    let deletedCount = 0;
-    let failedCount = 0;
-
-    for (const entry of entriesToDelete) {
-      try {
-        if (entry.id) {
-          await deleteDraft(entry.id);
-          deletedCount++;
-        }
-      } catch (err: any) {
-        failedCount++;
-        console.error("Failed to delete entry:", entry.id, err);
-      }
-    }
-
-    if (failedCount > 0) {
-      showToast(`${failedCount} uur${failedCount > 1 ? 'registraties' : 'registratie'} kon niet verwijderd worden`, "error");
-    }
-
-    // Remove project row from UI
-    setProjectRows((prev) => prev.filter((r) => r.projectId !== projectId));
-
-    // Reload entries from server to ensure UI is in sync
-    await loadEntries();
-
-    if (deletedCount > 0 && failedCount === 0) {
-      showToast(`Project en ${deletedCount} uur${deletedCount > 1 ? 'registraties' : 'registratie'} verwijderd`, "success");
-    }
-  };
-
-  const updateEntry = (
-    projectId: number,
-    date: string,
-    field: "hours" | "taskType" | "eveningNightHours" | "travelHours" | "distanceKm" | "travelCosts" | "otherExpenses" | "notes",
-    value: any,
-  ) => {
-    const key = `${date}-${projectId}`;
-    setEntries((prev) => {
-      const existingEntry = (prev[key] || {}) as Partial<TimeEntry>;
-      const updatedEntry: TimeEntry = {
-        date,
-        projectId,
-        hours: existingEntry.hours ?? 0,
-        ...existingEntry,
-        [field]: value,
-        taskType: existingEntry.taskType || getDefaultTaskType(),
-      };
-      return {
-        ...prev,
-        [key]: updatedEntry,
-      };
+  /* ---------- rows ---------- */
+  const projectRows = useMemo<Row[]>(() => {
+    const ids = new Set<number>();
+    favorites.forEach((f) => ids.add(f.projectGcId));
+    extraRowIds.forEach((id) => ids.add(id));
+    Object.values(entries).forEach((e) => { if (e.rowKey.startsWith("p:")) ids.add(Number(e.rowKey.slice(2))); });
+    const rows: Row[] = [];
+    ids.forEach((id) => {
+      const c = catalogById[id] || favorites.find((f) => f.projectGcId === id) && { id, code: favorites.find((f) => f.projectGcId === id)!.projectCode || "", name: favorites.find((f) => f.projectGcId === id)!.projectName || "", groupId: 0, groupName: favorites.find((f) => f.projectGcId === id)!.projectGroupName || "" };
+      if (!c) return;
+      rows.push({ key: `p:${id}`, kind: "project", projectId: id, code: c.code, name: c.name, group: c.groupName || "Projecten" });
     });
+    rows.sort((a, b) => a.group.localeCompare(b.group) || a.code.localeCompare(b.code));
+    return rows;
+  }, [favorites, extraRowIds, entries, catalogById]);
+
+  const allRows = useMemo(() => [...projectRows, ...taskRows], [projectRows, taskRows]);
+  const visibleRows = useMemo(() => {
+    const q = rowFilter.trim().toLowerCase();
+    return q ? allRows.filter((r) => `${r.code} ${r.name} ${r.group}`.toLowerCase().includes(q)) : allRows;
+  }, [allRows, rowFilter]);
+  const groups = useMemo(() => {
+    const m = new Map<string, Row[]>();
+    for (const r of visibleRows) { const g = r.kind === "task" ? "Indirecte uren" : r.group; (m.get(g) || m.set(g, []).get(g)!).push(r); }
+    // projectgroepen eerst, indirecte uren onderaan
+    return [...m.entries()].sort((a, b) => (a[0] === "Indirecte uren" ? 1 : b[0] === "Indirecte uren" ? -1 : a[0].localeCompare(b[0])));
+  }, [visibleRows]);
+
+  const favoriteIds = useMemo(() => new Set(favorites.map((f) => f.projectGcId)), [favorites]);
+  const pickerItems = useMemo(() => {
+    const q = pickerQuery.trim().toLowerCase();
+    const inRows = new Set(projectRows.map((r) => r.projectId));
+    return catalog
+      .filter((c) => !inRows.has(c.id))
+      .filter((c) => !assigned || assigned.has(c.id))
+      .filter((c) => !q || `${c.code} ${c.name} ${c.groupName}`.toLowerCase().includes(q))
+      .slice(0, 60);
+  }, [catalog, pickerQuery, projectRows, assigned]);
+
+  useEffect(() => {
+    if (!picker) return;
+    const onDoc = (e: MouseEvent) => { if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPicker(false); };
+    document.addEventListener("mousedown", onDoc); return () => document.removeEventListener("mousedown", onDoc);
+  }, [picker]);
+
+  const addRow = (id: number) => {
+    setExtraRowIds((prev) => { const next = prev.includes(id) ? prev : [...prev, id]; localStorage.setItem(ROWS_STORAGE, JSON.stringify(next)); return next; });
+    setPicker(false); setPickerQuery("");
+  };
+  const removeRow = async (row: Row) => {
+    const own = Object.values(entries).filter((e) => e.rowKey === row.key);
+    if (own.some((e) => isLocked(e.status))) { showToast("Deze rij heeft ingeleverde of goedgekeurde uren en kan niet verwijderd worden.", "error"); return; }
+    if (own.some((e) => e.hours > 0 || e.id) && !confirm(`Rij "${row.name}" en de opgeslagen concept-uren in dit bereik verwijderen?`)) return;
+    try {
+      for (const e of own) if (e.id) await deleteDraft(e.id);
+      setEntries((prev) => { const n = { ...prev }; own.forEach((e) => delete n[entryKey(e.date, e.rowKey)]); return n; });
+      if (row.projectId) setExtraRowIds((prev) => { const next = prev.filter((x) => x !== row.projectId); localStorage.setItem(ROWS_STORAGE, JSON.stringify(next)); return next; });
+      if (row.projectId && favoriteIds.has(row.projectId)) await toggleFavorite(row.projectId, true);
+    } catch { showToast("Verwijderen mislukt", "error"); }
+  };
+  const toggleFavorite = async (projectId: number, silent = false) => {
+    try {
+      if (favoriteIds.has(projectId)) { await removeFavoriteProject(projectId); setFavorites((p) => p.filter((f) => f.projectGcId !== projectId)); if (!silent) showToast("Uit favorieten gehaald", "info"); }
+      else { const f = await addFavoriteProject(projectId); setFavorites((p) => [...p, f]); if (!silent) showToast("Toegevoegd aan favorieten", "success"); }
+    } catch { showToast("Favoriet aanpassen mislukt", "error"); }
   };
 
-  const toggleCellExpanded = (projectId: number, date: string) => {
-    const key = `${date}-${projectId}`;
-    setExpandedCells((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  /* ---------- editing ---------- */
+  const getEntry = (date: string, row: Row): Entry =>
+    entries[entryKey(date, row.key)] || { date, rowKey: row.key, hours: 0, night: 0, travelHours: 0, km: 0, travelCosts: 0, otherExpenses: 0, notes: "", taskType: allowedTasks === "TEKENKAMER_ONLY" ? "TEKENKAMER" : "MONTAGE" };
+  const patch = (date: string, row: Row, p: Partial<Entry>) =>
+    setEntries((prev) => { const cur = prev[entryKey(date, row.key)] || getEntry(date, row); return { ...prev, [entryKey(date, row.key)]: { ...cur, ...p, dirty: true } }; });
+
+  const dirtyList = useMemo(() => Object.values(entries).filter((e) => e.dirty), [entries]);
+  const totalsPerDay = useMemo(() => { const t: Record<string, number> = {}; for (const e of Object.values(entries)) t[e.date] = (t[e.date] || 0) + e.hours; return t; }, [entries]);
+  const statusPerDay = useMemo(() => { const m: Record<string, DayStatus> = {}; for (const d of days) { const k = iso(d); m[k] = dayStatus(Object.values(entries).filter((e) => e.date === k && !isEmpty(e)).map((e) => e.status || "DRAFT")); } return m; }, [entries, days]);
+  const rowTotal = (row: Row) => days.reduce((s, d) => s + (entries[entryKey(iso(d), row.key)]?.hours || 0), 0);
+  const grandTotal = days.reduce((s, d) => s + (totalsPerDay[iso(d)] || 0), 0);
+  const hoursPerDay = config?.hoursPerDay || 8;
+
+  const taakIdFor = (e: Entry, row: Row) => {
+    if (row.kind === "task") return row.taakGcId!;
+    if (!config) throw new Error("Instellingen nog niet geladen");
+    return e.taskType === "TEKENKAMER" ? config.tekenkamerTaakGcId : config.montageTaakGcId;
   };
 
-  const isCellExpanded = (projectId: number, date: string) => {
-    const key = `${date}-${projectId}`;
-    return expandedCells[key] || false;
-  };
-
-  const getTotalDay = (date: string) =>
-    (Object.values(entries) as TimeEntry[])
-      .filter((e) => e.date === date)
-      .reduce((sum, e) => sum + (e.hours || 0), 0);
-
-  const getTotalProject = (projectId: number) =>
-    weekDays.reduce((sum, day) => {
-      const key = `${formatDate(day)}-${projectId}`;
-      return sum + (entries[key]?.hours || 0);
-    }, 0);
-
-  const getTotalWeek = () =>
-    projectRows.reduce((sum, r) => sum + getTotalProject(r.projectId), 0);
-
-  // KM totals
-  const getTotalKmDay = (date: string) =>
-    (Object.values(entries) as TimeEntry[])
-      .filter((e) => e.date === date)
-      .reduce((sum, e) => sum + (e.distanceKm || 0), 0);
-
-  const getTotalKmProject = (projectId: number) =>
-    weekDays.reduce((sum, day) => {
-      const key = `${formatDate(day)}-${projectId}`;
-      return sum + (entries[key]?.distanceKm || 0);
-    }, 0);
-
-  const getTotalKmWeek = () =>
-    projectRows.reduce((sum, r) => sum + getTotalKmProject(r.projectId), 0);
-
-  // Expenses totals
-  const getTotalExpensesDay = (date: string) =>
-    (Object.values(entries) as TimeEntry[])
-      .filter((e) => e.date === date)
-      .reduce((sum, e) => sum + ((e.travelCosts || 0) + (e.otherExpenses || 0)), 0);
-
-  const getTotalExpensesProject = (projectId: number) =>
-    weekDays.reduce((sum, day) => {
-      const key = `${formatDate(day)}-${projectId}`;
-      const entry = entries[key];
-      return sum + ((entry?.travelCosts || 0) + (entry?.otherExpenses || 0));
-    }, 0);
-
-  const getTotalExpensesWeek = () =>
-    projectRows.reduce(
-      (sum, r) => sum + getTotalExpensesProject(r.projectId),
-      0,
-    );
-
-  /** Urenperiode (AT_URENPER) waarin een datum valt. Gooit een fout als er geen periode is, zodat we nooit in een verkeerde periode boeken. */
-  const getPeriodIdForDate = (date: string): number => {
-    const hit = periods.find((p) => p.beginDatum && p.beginDatum <= date && (!p.endDatum || date <= p.endDatum));
-    if (!hit) throw new Error(`Geen urenperiode gevonden voor ${dayjs(date).format("D MMMM YYYY")}. Vraag de beheerder de periodes in Syntess aan te maken.`);
-    return hit.gcId;
-  };
-  const getTaakGcIdForType = (taskType: "MONTAGE" | "TEKENKAMER"): number => {
-    if (!workflowConfig) throw new Error("Instellingen nog niet geladen, probeer het zo opnieuw.");
-    return taskType === "MONTAGE" ? workflowConfig.montageTaakGcId : workflowConfig.tekenkamerTaakGcId;
-  };
-
-  // Get total hours spent on a project (all entries, not just current week)
-  const getTotalHoursForProject = (projectId: number) => {
-    return (Object.values(entries) as TimeEntry[])
-      .filter((e) => e.projectId === projectId)
-      .reduce((sum, e) => sum + (e.hours || 0), 0);
-  };
-
-  // Check if project has max hours set and if user is at/over limit
-  const getProjectMaxInfo = (projectId: number) => {
-    const maxHours = projectMaxHours[projectId];
-    if (!maxHours) return { hasMax: false, currentHours: 0, maxHours: 0, isAtMax: false };
-    const currentHours = getTotalHoursForProject(projectId);
-    return {
-      hasMax: true,
-      currentHours,
-      maxHours,
-      isAtMax: currentHours >= maxHours,
-      remaining: Math.max(0, maxHours - currentHours)
-    };
-  };
-
-  // Helper functions for entry status styling and editability
-  const isEditable = (status?: string) => {
-    // Only lock individual entries that are SUBMITTED or APPROVED
-    // New entries (no status) and DRAFT/REJECTED entries remain editable
-    // This allows users to add new entries even when some are already submitted
-    if (status === "SUBMITTED" || status === "APPROVED") {
-      return false;
-    }
-    // DRAFT, REJECTED, and old "opgeslagen" status are editable
-    return !status || status === "DRAFT" || status === "REJECTED" || status === "opgeslagen";
-  };
-
-  const getEntryClassName = (status?: string) => {
-    // Return CSS class based on status
-    if (status === "APPROVED") return "entry-approved";
-    if (status === "SUBMITTED" || status === "APPROVING") return "entry-submitted";
-    if (status === "REJECTED") return "entry-rejected";
-    if (status === "DRAFT") return "entry-draft";
-    return ""; // nieuw, nog niet opgeslagen
-  };
-
-  const getInputClassName = (baseClass: string, status?: string) => {
-    const editable = isEditable(status);
-    if (!editable) {
-      return `${baseClass} bg-gray-100 dark:bg-gray-700 cursor-not-allowed`;
-    }
-    if (status === "REJECTED") {
-      return `${baseClass} border-red-300 dark:border-red-700`;
-    }
-    return baseClass;
-  };
-
-  const saveAll = async () => {
+  const saveAll = async (): Promise<boolean> => {
+    if (dirtyList.length === 0) return true;
+    const over = days.map(iso).filter((k) => (totalsPerDay[k] || 0) > 24);
+    if (over.length) { showToast(`Meer dan 24 uur op ${over.join(", ")}`, "error"); return false; }
     setSaving(true);
     try {
-      // Validate total hours per day (project + indirect)
-      const dayTotals: Record<string, number> = {};
-      (Object.values(entries) as TimeEntry[]).forEach(e => {
-        if (e.hours > 0) {
-          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
+      const next = { ...entries };
+      for (const e of dirtyList) {
+        const row = allRows.find((r) => r.key === e.rowKey); if (!row) continue;
+        if (isLocked(e.status)) continue;
+        if (isEmpty(e)) {
+          if (e.id) await deleteDraft(e.id);
+          delete next[entryKey(e.date, e.rowKey)];
+          continue;
         }
-      });
-      Object.values(indirectEntries).forEach(e => {
-        if (e.hours > 0) {
-          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
-        }
-      });
-      const invalidDays = Object.entries(dayTotals).filter(([, total]) => total > MAX_HOURS_PER_DAY);
-      if (invalidDays.length > 0) {
-        showToast(`Te veel uren op: ${invalidDays.map(([date]) => date).join(', ')} (max ${MAX_HOURS_PER_DAY}u)`, "error");
-        setSaving(false);
-        return;
+        const res = await saveDraft({
+          id: e.id, urenperGcId: periodFor(e.date), taakGcId: taakIdFor(e, row), werkGcId: row.kind === "project" ? row.projectId! : null,
+          datum: e.date, aantal: e.hours, omschrijving: e.notes || "", eveningNightHours: e.night, travelHours: e.travelHours, distanceKm: e.km, travelCosts: e.travelCosts, otherExpenses: e.otherExpenses,
+        } as any);
+        next[entryKey(e.date, e.rowKey)] = { ...e, id: res.entry.id, status: res.entry.status, dirty: false };
       }
-
-      const toSave = (Object.values(entries) as TimeEntry[])
-        .filter((e: TimeEntry) => e.hours > 0)
-        .filter((e: TimeEntry) => !isClosedDay(e.date));
-
-      if (toSave.length === 0) {
-        showToast("Geen uren om op te slaan", "error");
-        return;
-      }
-
-      // Save each entry as draft using workflow API
-      // Update entries with their IDs after saving
-      const updatedEntries = { ...entries };
-
-      for (const entry of toSave as TimeEntry[]) {
-        const taakGcId = getTaakGcIdForType(entry.taskType || getDefaultTaskType());
-        const urenperGcId = getPeriodIdForDate(entry.date);
-
-        const result = await saveDraft({
-          id: entry.id, // Include ID if it exists (for updates)
-          urenperGcId,
-          taakGcId,
-          werkGcId: entry.projectId || null,
-          datum: entry.date,
-          aantal: entry.hours,
-          omschrijving: entry.notes || "",
-          eveningNightHours: entry.eveningNightHours || 0,
-          travelHours: entry.travelHours || 0,
-          distanceKm: entry.distanceKm || 0,
-          travelCosts: entry.travelCosts || 0,
-          otherExpenses: entry.otherExpenses || 0,
-        });
-
-        // Update the entry with the ID from the server
-        const key = `${entry.date}-${entry.projectId}`;
-        updatedEntries[key] = {
-          ...entry,
-          id: result.entry.id,
-          status: result.entry.status,
-        };
-      }
-
-      setEntries(updatedEntries);
-
-      // Also save indirect entries (verlof, ATV, etc.)
-      const indirectToSave = Object.values(indirectEntries).filter(
-        (e) => e.hours > 0 && !isClosedDay(e.date)
-      );
-      const updatedIndirect = { ...indirectEntries };
-      for (const ie of indirectToSave) {
-        const result = await saveDraft({
-          id: ie.id,
-          urenperGcId: getPeriodIdForDate(ie.date),
-          taakGcId: ie.taakGcId,
-          werkGcId: null,
-          datum: ie.date,
-          aantal: ie.hours,
-          omschrijving: "",
-          eveningNightHours: 0,
-          travelHours: 0,
-          distanceKm: 0,
-          travelCosts: 0,
-          otherExpenses: 0,
-        });
-        const key = `${ie.date}-indirect-${ie.taskCode}`;
-        updatedIndirect[key] = { ...ie, id: result.entry.id, status: result.entry.status };
-      }
-      setIndirectEntries(updatedIndirect);
-
-      const totalSaved = toSave.length + indirectToSave.length;
-      showToast(`✓ ${totalSaved} registratie(s) opgeslagen als concept`, "success");
-      loadMonthEntries();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Kan uren niet opslaan. Controleer je internetverbinding.";
-      showToast(errorMessage, "error");
-    } finally {
-      setSaving(false);
-    }
+      setEntries(next);
+      showToast(`${dirtyList.length} regel(s) opgeslagen`, "success");
+      window.dispatchEvent(new Event("clockd:hours-changed"));
+      return true;
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || err?.message || "Opslaan mislukt", "error");
+      return false;
+    } finally { setSaving(false); }
   };
 
   const submitAll = async () => {
+    if (!(await saveAll())) return;
+    const toSubmit = Object.values(entries).filter((e) => e.id && !isEmpty(e) && (e.status === "DRAFT" || e.status === "REJECTED" || !e.status));
+    if (toSubmit.length === 0) { showToast("Geen opgeslagen uren om in te leveren in dit bereik.", "info"); return; }
+    if (!confirm(`${toSubmit.length} regel(s) inleveren ter goedkeuring? Daarna kun je ze niet meer wijzigen.`)) return;
     setSaving(true);
     try {
-      // Validate total hours per day
-      const dayTotals: Record<string, number> = {};
-      (Object.values(entries) as TimeEntry[]).forEach((e: TimeEntry) => {
-        if (e.hours > 0) {
-          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
-        }
-      });
-      Object.values(indirectEntries).forEach(e => {
-        if (e.hours > 0) {
-          dayTotals[e.date] = (dayTotals[e.date] || 0) + e.hours;
-        }
-      });
-      const invalidDays = Object.entries(dayTotals).filter(([, total]) => total > MAX_HOURS_PER_DAY);
-      if (invalidDays.length > 0) {
-        const datesFormatted = invalidDays.map(([date]) => dayjs(date).format("DD MMMM")).join(", ");
-        showToast(`Te veel uren op ${datesFormatted}. Maximaal ${MAX_HOURS_PER_DAY} uur per dag toegestaan.`, "error");
-        setSaving(false);
-        return;
+      const byPeriod: Record<number, { draft: number[]; rejected: number[] }> = {};
+      for (const e of toSubmit) { const p = periodFor(e.date); byPeriod[p] ||= { draft: [], rejected: [] }; (e.status === "REJECTED" ? byPeriod[p].rejected : byPeriod[p].draft).push(e.id!); }
+      for (const [p, ids] of Object.entries(byPeriod)) {
+        if (ids.draft.length) await submitEntries({ urenperGcId: Number(p), entryIds: ids.draft });
+        if (ids.rejected.length) await resubmitRejected({ urenperGcId: Number(p), entryIds: ids.rejected });
       }
-
-      const toSave = (Object.values(entries) as TimeEntry[])
-        .filter((e: TimeEntry) => e.hours > 0)
-        .filter((e: TimeEntry) => !isClosedDay(e.date));
-
-      const indirectToSave = Object.values(indirectEntries).filter(
-        (e) => e.hours > 0 && !isClosedDay(e.date)
-      );
-
-      if (toSave.length === 0 && indirectToSave.length === 0) {
-        showToast("Geen uren ingevuld. Voeg eerst uren toe voordat je indient.", "error");
-        return;
-      }
-
-      // First save all project entries as drafts; remember the period of every saved id
-      const savedByPeriod: Record<number, number[]> = {};
-      const remember = (periodId: number, id: number) => { (savedByPeriod[periodId] ||= []).push(id); };
-      for (const entry of toSave as TimeEntry[]) {
-        const taakGcId = getTaakGcIdForType(entry.taskType || getDefaultTaskType());
-        const urenperGcId = getPeriodIdForDate(entry.date);
-
-        const result = await saveDraft({
-          id: entry.id,
-          urenperGcId,
-          taakGcId,
-          werkGcId: entry.projectId || null,
-          datum: entry.date,
-          aantal: entry.hours,
-          omschrijving: entry.notes || "",
-          eveningNightHours: entry.eveningNightHours || 0,
-          travelHours: entry.travelHours || 0,
-          distanceKm: entry.distanceKm || 0,
-          travelCosts: entry.travelCosts || 0,
-          otherExpenses: entry.otherExpenses || 0,
-        });
-        remember(urenperGcId, result.entry.id);
-      }
-
-      // Save indirect entries as drafts
-      for (const ie of indirectToSave) {
-        const urenperGcId = getPeriodIdForDate(ie.date);
-        const result = await saveDraft({
-          id: ie.id,
-          urenperGcId,
-          taakGcId: ie.taakGcId,
-          werkGcId: null,
-          datum: ie.date,
-          aantal: ie.hours,
-          omschrijving: "",
-          eveningNightHours: 0,
-          travelHours: 0,
-          distanceKm: 0,
-          travelCosts: 0,
-          otherExpenses: 0,
-        });
-        remember(urenperGcId, result.entry.id);
-      }
-
-      // Then submit per period (a submission is always bound to one AT_URENPER)
-      let submittedCount = 0;
-      for (const [periodId, ids] of Object.entries(savedByPeriod)) {
-        await submitEntries({ urenperGcId: Number(periodId), entryIds: ids });
-        submittedCount += ids.length;
-      }
-
-      showToast(`✓ ${submittedCount} registratie(s) ingediend voor goedkeuring!`, "success");
-      loadMonthEntries();
-
-      // Force reload after a short delay to ensure backend has processed
-      await new Promise(resolve => setTimeout(resolve, 500));
+      showToast(`${toSubmit.length} regel(s) ingeleverd`, "success");
       await loadEntries();
-    } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "Kan uren niet indienen. Controleer of alle velden correct zijn ingevuld.";
-      showToast("❌ " + errorMessage, "error");
-    } finally {
-      setSaving(false);
-    }
+      window.dispatchEvent(new Event("clockd:hours-changed"));
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || err?.message || "Inleveren mislukt", "error");
+    } finally { setSaving(false); }
   };
+
+  const copyPreviousWeek = async () => {
+    if (view !== "week") return;
+    try {
+      const prevFrom = iso(addDays(days[0], -7)), prevTo = iso(addDays(days[6], -7));
+      const rows = await getMyEntries(prevFrom, prevTo);
+      let n = 0;
+      setEntries((prev) => {
+        const next = { ...prev };
+        for (const e of rows as any[]) {
+          const date = iso(addDays(new Date(String(e.datum).split("T")[0] + "T00:00:00"), 7));
+          const rowKey = e.werkGcId ? `p:${e.werkGcId}` : `t:${e.taakGcId}`;
+          const k = entryKey(date, rowKey);
+          if (next[k] && (isLocked(next[k].status) || !isEmpty(next[k]))) continue;
+          next[k] = { date, rowKey, hours: Number(e.aantal) || 0, night: Number(e.eveningNightHours) || 0, travelHours: Number(e.travelHours) || 0, km: Number(e.distanceKm) || 0, travelCosts: Number(e.travelCosts) || 0, otherExpenses: Number(e.otherExpenses) || 0, notes: e.omschrijving || "", taskType: config && e.taakGcId === config.tekenkamerTaakGcId ? "TEKENKAMER" : "MONTAGE", dirty: true };
+          if (e.werkGcId && !catalogById[e.werkGcId]) catalogById[e.werkGcId] = { id: e.werkGcId, code: e.werkCode || "", name: e.werkDescription || `Project ${e.werkGcId}`, groupId: 0, groupName: "" };
+          n++;
+        }
+        return next;
+      });
+      showToast(n ? `${n} regel(s) overgenomen van vorige week (nog niet opgeslagen)` : "Vorige week heeft geen uren", n ? "success" : "info");
+    } catch { showToast("Kon vorige week niet ophalen", "error"); }
+  };
+
+  /* ---------- navigation ---------- */
+  const step = (n: number) => setAnchor(view === "week" ? addDays(anchor, 7 * n) : new Date(anchor.getFullYear(), anchor.getMonth() + n, 1));
+  const title = view === "week" ? `Week ${isoWeek(days[0])}` : `${MONTHS[anchor.getMonth()]} ${anchor.getFullYear()}`;
+  const subtitle = view === "week" ? `${days[0].getDate()} ${MONTHS[days[0].getMonth()]} – ${days[6].getDate()} ${MONTHS[days[6].getMonth()]} ${days[6].getFullYear()}` : `${days.length} dagen`;
+
+  /* ---------- render ---------- */
+  const detailEntry = detail ? (() => { const row = allRows.find((r) => r.key === detail.rowKey); return row ? { row, e: getEntry(detail.date, row) } : null; })() : null;
+  const leftW = 280, dayW = view === "week" ? 104 : 64, totW = 84;
+  const gridCols = `${leftW}px repeat(${days.length}, ${dayW}px) ${totW}px`;
 
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="min-h-screen bg-light-bg dark:bg-dark-bg">
-          {toast && (
-            <div
-              className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl text-white animate-in slide-in-from-top-2 ${
-                toast.type === "success" ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">
-                  {toast.type === "success" ? "✓" : "✕"}
-                </span>
-                <span className="font-medium">{toast.message}</span>
+        <div className="p-4 md:p-6 space-y-4">
+          {/* Header */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div>
+              <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }}>Uren registreren</h1>
+              <div style={{ font: "400 12.5px 'Geist'", color: "var(--muted)", marginTop: 2 }}>{subtitle}</div>
+            </div>
+            <div className="flex items-center gap-1" style={{ marginLeft: 12 }}>
+              <IconBtn onClick={() => step(-1)} title="Vorige"><ChevronLeft size={16} /></IconBtn>
+              <select value={view === "week" ? iso(days[0]) : iso(new Date(anchor.getFullYear(), anchor.getMonth(), 1))}
+                onChange={(e) => setAnchor(new Date(e.target.value + "T00:00:00"))}
+                style={{ height: 34, minWidth: 190, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)", font: "600 13px 'Geist'" }}>
+                {view === "week"
+                  ? weeksInMonth.map((m) => <option key={iso(m)} value={iso(m)}>Week {isoWeek(m)} ({m.getDate()} {MONTHS[m.getMonth()].slice(0, 3)} – {addDays(m, 6).getDate()} {MONTHS[addDays(m, 6).getMonth()].slice(0, 3)})</option>)
+                  : Array.from({ length: 12 }, (_, i) => new Date(anchor.getFullYear(), i, 1)).map((m) => <option key={iso(m)} value={iso(m)}>{MONTHS[i(m)]} {m.getFullYear()}</option>)}
+              </select>
+              <IconBtn onClick={() => step(1)} title="Volgende"><ChevronRight size={16} /></IconBtn>
+              <Btn onClick={() => setAnchor(new Date())} variant="outline">Vandaag</Btn>
+              <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", marginLeft: 6 }}>
+                {(["week", "month"] as const).map((v) => (
+                  <button key={v} type="button" onClick={() => setView(v)} style={{ padding: "0 12px", height: 32, font: "600 12.5px 'Geist'", border: "none", cursor: "pointer", background: view === v ? "var(--accent)" : "var(--panel)", color: view === v ? "#fff" : "var(--text-2)" }}>
+                    {v === "week" ? "Week" : "Maand"}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-
-          <div className="bg-[var(--panel)] border-b border-[var(--border)] sticky top-0 z-30">
-            <div className="px-3 md:px-6 py-3 md:py-4 space-y-2 md:space-y-0 md:flex md:items-center md:justify-between">
-              <div className="flex flex-wrap items-center gap-2 md:gap-4">
-                <h1 className="text-lg md:text-[22px] font-bold text-[var(--text)] tracking-[-0.015em]">
-                  Uren registreren
-                </h1>
-
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode("week")}
-                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-sm font-medium transition-colors ${
-                      viewMode === "week"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    Week
-                  </button>
-                  <button
-                    onClick={() => setViewMode("month")}
-                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-md text-sm font-medium transition-colors ${
-                      viewMode === "month"
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    Maand
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                  <button
-                    onClick={() => {
-                      const d = new Date(currentWeek);
-                      if (viewMode === "week") {
-                        d.setDate(d.getDate() - 7);
-                      } else {
-                        d.setMonth(d.getMonth() - 1);
-                      }
-                      setCurrentWeek(d);
-                    }}
-                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                  <div className="px-2 md:px-4 py-1 md:py-2 font-semibold text-sm md:text-base text-slate-900 dark:text-slate-100 min-w-[80px] text-center">
-                    {viewMode === "week"
-                      ? `Week ${weekNumber}`
-                      : monthNames[currentWeek.getMonth()]}
-                  </div>
-                  <button
-                    onClick={() => {
-                      const d = new Date(currentWeek);
-                      if (viewMode === "week") {
-                        d.setDate(d.getDate() + 7);
-                      } else {
-                        d.setMonth(d.getMonth() + 1);
-                      }
-                      setCurrentWeek(d);
-                    }}
-                    className="p-1.5 md:p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600 dark:text-slate-400" />
-                  </button>
-                </div>
-              </div>
-              <div className="hidden md:flex gap-3">
-                <button
-                  onClick={saveAll}
-                  disabled={saving}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
-                >
-                  <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
-                </button>
-                <button
-                  onClick={submitAll}
-                  disabled={saving}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 transition"
-                >
-                  <Send className="w-4 h-4" /> Inleveren
-                </button>
-              </div>
+            <div className="flex items-center gap-2" style={{ marginLeft: "auto" }}>
+              {view === "week" && <Btn onClick={copyPreviousWeek} variant="outline" title="Projecten en uren van vorige week overnemen"><Copy size={14} /> Vorige week</Btn>}
+              <Btn onClick={saveAll} disabled={saving || dirtyList.length === 0} variant="primary"><Save size={14} /> Opslaan{dirtyList.length ? ` (${dirtyList.length})` : ""}</Btn>
+              <Btn onClick={submitAll} disabled={saving} variant="success"><Send size={14} /> Inleveren</Btn>
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:h-[calc(100vh-5rem)]">
-            {/* Mobile Project Picker Overlay */}
-            {showProjectPicker && (
-              <div className="fixed inset-0 z-50 md:hidden">
-                <div className="absolute inset-0 bg-black/60" onClick={() => setShowProjectPicker(false)} />
-                <div className="absolute top-0 left-0 h-full w-80 max-w-[85vw] bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto">
-                  <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">Project kiezen</h3>
-                    <button
-                      onClick={() => setShowProjectPicker(false)}
-                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                    >
-                      <span className="text-xl text-slate-500">&times;</span>
-                    </button>
-                  </div>
-                  <div className="p-4 space-y-1">
-                    {/* Favoriete Projecten sectie */}
-                    {favoriteProjects.length > 0 && (
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
-                          <Star className="w-4 h-4 fill-current" />
-                          <span>Favorieten</span>
-                        </div>
-                        <div className="space-y-1">
-                          {favoriteProjects.map((favorite) => (
-                            <div
-                              key={`mob-fav-${favorite.projectGcId}`}
-                              className="flex items-center gap-2 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
-                            >
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
-                                }}
-                                className="text-amber-500 hover:text-amber-600"
-                              >
-                                <Star className="w-4 h-4 fill-current" />
-                              </button>
-                              <span
-                                onClick={() => { addFavoriteToRows(favorite); setShowProjectPicker(false); }}
-                                className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
-                              >
-                                {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
-                              </span>
-                              <Plus
-                                onClick={() => { addFavoriteToRows(favorite); setShowProjectPicker(false); }}
-                                className="w-4 h-4 text-emerald-600 cursor-pointer"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
-                      </div>
-                    )}
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1" style={{ font: "500 11px 'Geist'", color: "var(--text-2)" }}>
+            {(["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] as DayStatus[]).map((k) => (
+              <span key={k} className="flex items-center gap-1"><span style={{ width: 10, height: 10, borderRadius: 3, background: STATUS_STYLE[k].fg }} />{STATUS_STYLE[k].label}</span>
+            ))}
+            <span className="flex items-center gap-1"><Info size={12} /> Klik op ⋯ in een cel voor nacht, reisuren, km, kosten en opmerking</span>
+            {dirtyList.length > 0 && <span className="flex items-center gap-1" style={{ color: "var(--amber)" }}><AlertTriangle size={12} /> Niet-opgeslagen wijzigingen</span>}
+          </div>
 
-                    {/* Bedrijven en projecten (mobile overlay) */}
-                    {companies.map((company) => (
-                      <div key={`mob-${company.id}`}>
-                        <div
-                          onClick={() => toggleCompany(company.id)}
-                          className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
-                        >
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
-                          />
-                          <span className="font-medium group-hover:text-blue-600">
-                            {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
-                          </span>
-                        </div>
-                        {expandedCompanies.includes(company.id) && (
-                          <div className="ml-5 space-y-1">
-                            {projectGroups[company.id]?.filter(group =>
-                              assignedGroupIds === null || assignedGroupIds.has(group.id)
-                            ).map((group, index) => (
-                              <div key={group.id || `mob-group-${index}`}>
-                                <div
-                                  onClick={() => toggleGroup(group.id)}
-                                  className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-600-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
-                                >
-                                  <ChevronDown
-                                    className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
-                                  />
-                                  <span className="text-sm group-hover:text-blue-600">
-                                    {group.name}
-                                  </span>
-                                </div>
-                                {expandedGroups.includes(group.id) && (
-                                  <div className="ml-5 space-y-1">
-                                    {getVisibleProjects(group.id).map((project) => (
-                                      <div
-                                        key={`mob-proj-${project.id}`}
-                                        className="flex items-center gap-2 px-3 py-2.5 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
-                                      >
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleFavorite(project.id, project.name);
-                                          }}
-                                          className={`transition-colors ${
-                                            favoriteProjectIds.has(project.id)
-                                              ? "text-amber-500"
-                                              : "text-slate-300 hover:text-amber-400"
-                                          }`}
-                                        >
-                                          <Star className={`w-4 h-4 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
-                                        </button>
-                                        <span
-                                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
-                                          className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-emerald-600 cursor-pointer flex-1"
-                                        >
-                                          {project.name}
-                                        </span>
-                                        <Plus
-                                          onClick={() => { addProject(company, group, project); setShowProjectPicker(false); }}
-                                          className="w-4 h-4 text-emerald-600 cursor-pointer"
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+          {/* Grid */}
+          <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--panel)", overflow: "auto", position: "relative" }}>
+            <div style={{ minWidth: leftW + days.length * dayW + totW }}>
+              {/* Week labels (month view) */}
+              {view === "month" && (
+                <div style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: "1px solid var(--border)" }}>
+                  <div />
+                  {days.map((d, i) => {
+                    const monday = d.getDay() === 1 || i === 0;
+                    return <div key={iso(d)} style={{ height: 20, font: "600 10px 'Geist'", letterSpacing: ".08em", color: "var(--muted)", paddingLeft: 6, borderLeft: d.getDay() === 1 ? "2px solid var(--border)" : "none", whiteSpace: "nowrap", overflow: "visible" }}>{monday ? `WEEK ${isoWeek(d)}` : ""}</div>;
+                  })}
+                  <div />
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Desktop Sidebar */}
-            <div className="hidden md:block w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 overflow-y-auto shadow-lg">
-              <div className="p-4 pb-0">
-                <HoursMonthCalendar
-                  compact
-                  month={currentWeek}
-                  entries={monthEntries}
-                  selectedDate={formatDate(viewMode === "week" ? weekDays[selectedMobileDay] || weekDays[0] : currentWeek)}
-                  onSelectDay={(d) => {
-                    setViewMode("week");
-                    setCurrentWeek(d);
-                    const idx = (d.getDay() + 6) % 7;
-                    setTimeout(() => setSelectedMobileDay(idx), 0);
-                  }}
-                  onPrevMonth={() => setCurrentWeek(new Date(currentWeek.getFullYear(), currentWeek.getMonth() - 1, 1))}
-                  onNextMonth={() => setCurrentWeek(new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 1))}
-                />
-              </div>
-              <div className="p-4 space-y-1">
-                {/* Favoriete Projecten sectie */}
-                {favoriteProjects.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 px-3 py-2 text-amber-600 dark:text-amber-400 font-semibold">
-                      <Star className="w-4 h-4 fill-current" />
-                      <span>Favorieten</span>
-                    </div>
-                    <div className="space-y-1">
-                      {favoriteProjects.map((favorite) => (
-                        <div
-                          key={`fav-${favorite.projectGcId}`}
-                          className="flex items-center gap-2 px-3 py-2 hover:bg-amber-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
-                        >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(favorite.projectGcId, favorite.projectName || "Project");
-                            }}
-                            className="text-amber-500 hover:text-amber-600"
-                          >
-                            <Star className="w-3 h-3 fill-current" />
-                          </button>
-                          <span
-                            onClick={() => addFavoriteToRows(favorite)}
-                            className="text-sm text-slate-700 dark:text-slate-200 group-hover:text-amber-600 cursor-pointer flex-1"
-                          >
-                            {favorite.projectName || favorite.projectCode || `Project ${favorite.projectGcId}`}
-                          </span>
-                          <Plus
-                            onClick={() => addFavoriteToRows(favorite)}
-                            className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-b border-slate-200 dark:border-slate-700 my-3" />
+              {/* Day header */}
+              <div style={{ display: "grid", gridTemplateColumns: gridCols, position: "sticky", top: 0, zIndex: 3, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ padding: 8, display: "flex", gap: 6, position: "sticky", left: 0, background: "var(--panel)", zIndex: 4 }}>
+                  <div style={{ position: "relative", flex: 1 }}>
+                    <Search size={13} style={{ position: "absolute", left: 8, top: 10, color: "var(--muted)" }} />
+                    <input value={rowFilter} onChange={(e) => setRowFilter(e.target.value)} placeholder="Rijen filteren…" style={{ width: "100%", height: 32, paddingLeft: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
                   </div>
-                )}
-
-                {/* Bedrijven en projecten */}
-                {companies.map((company) => (
-                  <div key={company.id}>
-                    <div
-                      onClick={() => toggleCompany(company.id)}
-                      className="flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
-                    >
-                      <ChevronDown
-                        className={`w-4 h-4 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedCompanies.includes(company.id) ? "" : "-rotate-90"}`}
-                      />
-                      <span className="font-medium group-hover:text-blue-600">
-                        {company.name.replace(/\s*[\(\{]\d+[\)\}]\s*$/, '')}
-                      </span>
-                    </div>
-                    {expandedCompanies.includes(company.id) && (
-                      <div className="ml-5 space-y-1">
-                        {projectGroups[company.id]?.filter(group =>
-                          assignedGroupIds === null || assignedGroupIds.has(group.id)
-                        ).map((group, index) => (
-                          <div key={group.id || `group-${index}`}>
-                            <div
-                              onClick={() => toggleGroup(group.id)}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-blue-600-light dark:hover:bg-slate-700 rounded-lg cursor-pointer group transition-colors"
-                            >
-                              <ChevronDown
-                                className={`w-3 h-3 transition-transform text-slate-400 group-hover:text-blue-600 ${expandedGroups.includes(group.id) ? "" : "-rotate-90"}`}
-                              />
-                              <span className="text-sm group-hover:text-blue-600">
-                                {group.name}
-                              </span>
-                            </div>
-                            {expandedGroups.includes(group.id) && (
-                              <div className="ml-5 space-y-1">
-                                {getVisibleProjects(group.id).map((project) => (
-                                  <div
-                                    key={project.id}
-                                    className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-lg group transition-colors"
-                                  >
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleFavorite(project.id, project.name);
-                                      }}
-                                      className={`transition-colors ${
-                                        favoriteProjectIds.has(project.id)
-                                          ? "text-amber-500"
-                                          : "text-slate-300 hover:text-amber-400"
-                                      }`}
-                                    >
-                                      <Star className={`w-3 h-3 ${favoriteProjectIds.has(project.id) ? "fill-current" : ""}`} />
-                                    </button>
-                                    <span
-                                      onClick={() => addProject(company, group, project)}
-                                      className="text-sm text-slate-600 group-hover:text-emerald-600 cursor-pointer flex-1"
-                                    >
-                                      {project.name}
-                                    </span>
-                                    <Plus
-                                      onClick={() => addProject(company, group, project)}
-                                      className="w-3 h-3 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                  <div ref={pickerRef} style={{ position: "relative" }}>
+                    <Btn onClick={() => setPicker((v) => !v)} variant="outline" title="Project toevoegen"><Plus size={14} /> Project</Btn>
+                    {picker && (
+                      <div style={{ position: "absolute", top: 36, left: 0, width: 380, maxHeight: 420, overflow: "auto", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,.18)", zIndex: 20 }}>
+                        <div style={{ padding: 8, position: "sticky", top: 0, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
+                          <input autoFocus value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} placeholder="Zoek op projectnummer of naam…" style={{ width: "100%", height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
+                        </div>
+                        {pickerItems.length === 0 && <div style={{ padding: 14, font: "400 12.5px 'Geist'", color: "var(--muted)" }}>{catalog.length ? "Geen projecten gevonden" : "Projecten laden…"}</div>}
+                        {pickerItems.map((c) => (
+                          <button key={c.id} type="button" onClick={() => addRow(c.id)} className="hover:bg-[var(--hover)]" style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", border: "none", background: "transparent", cursor: "pointer" }}>
+                            <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)" }}>{c.code} <span style={{ fontWeight: 500 }}>{c.name}</span></div>
+                            <div style={{ font: "400 11px 'Geist'", color: "var(--muted)" }}>{c.groupName}</div>
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto p-3 md:p-6">
-              {/* Mobile: Add project button */}
-              <div className="md:hidden mb-3">
-                <button
-                  onClick={() => setShowProjectPicker(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md transition"
-                >
-                  <Plus className="w-5 h-5" />
-                  Project toevoegen
-                </button>
-              </div>
-
-              {projectRows.length === 0 ? (
-                <div className="h-full flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">
-                      Geen projecten geselecteerd
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Selecteer een project {typeof window !== 'undefined' && window.innerWidth < 768 ? 'via de knop hierboven' : 'in de sidebar'}
-                    </p>
-                  </div>
                 </div>
-              ) : viewMode === "month" ? (
-                <>
-                {/* ===== MOBILE MONTH VIEW ===== */}
-                <div className="md:hidden space-y-3">
-                  {/* Week selector tabs */}
-                  <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-                    {monthWeeks.map((ws, i) => {
-                      const wn = getWeekNumber(ws);
-                      const isSelected = selectedMobileWeek === i;
-                      const wdForWeek = getWeekDays(ws);
-                      const weekTotal = wdForWeek.reduce((sum, d) =>
-                        sum + projectRows.reduce((s, row) => {
-                          const k = `${formatDate(d)}-${row.projectId}`;
-                          return s + (entries[k]?.hours || 0);
-                        }, 0), 0
-                      );
-                      return (
-                        <button
-                          key={`mob-week-${i}`}
-                          onClick={() => { setSelectedMobileWeek(i); setSelectedMobileDay(0); }}
-                          className={`flex-1 min-w-[56px] py-2 px-1.5 rounded-xl text-center transition-all ${
-                            isSelected
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                          }`}
-                        >
-                          <div className="text-[9px] font-medium uppercase">Week</div>
-                          <div className="text-lg font-bold">{wn}</div>
-                          {weekTotal > 0 && (
-                            <div className={`text-[10px] font-semibold ${isSelected ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
-                              {weekTotal}u
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
+                {days.map((d) => {
+                  const info = dayInfo(d);
+                  return (
+                    <div key={info.key} title={info.holiday ? info.holiday.name : ""} style={{ textAlign: "center", padding: "6px 0", borderLeft: view === "month" && d.getDay() === 1 ? "2px solid var(--border)" : "1px solid var(--border)", background: info.today ? "var(--accent)" : info.closed ? "var(--red-weak)" : info.weekend ? "var(--weekend)" : "transparent", color: info.today ? "#fff" : info.closed ? "var(--red)" : "var(--text)" }}>
+                      <div style={{ font: "700 15px 'Geist'", lineHeight: 1.1 }}>{d.getDate()}</div>
+                      <div style={{ font: "600 9.5px 'Geist'", letterSpacing: ".1em", textTransform: "uppercase", opacity: 0.85 }}>{DAYS[(d.getDay() + 6) % 7]}{info.holiday ? " •" : ""}</div>
+                    </div>
+                  );
+                })}
+                <div style={{ textAlign: "center", padding: "10px 0", font: "600 12px 'Geist'", color: "var(--text-2)", borderLeft: "1px solid var(--border)" }}>Totaal</div>
+              </div>
+
+              {/* Totals row */}
+              <div style={{ display: "grid", gridTemplateColumns: gridCols, background: "var(--accent-weak)", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ padding: "8px 12px", font: "700 11px 'Geist'", letterSpacing: ".1em", color: "var(--accent)", position: "sticky", left: 0, background: "var(--accent-weak)", zIndex: 2 }}>TOTAAL UREN</div>
+                {days.map((d) => { const k = iso(d); const t = totalsPerDay[k] || 0; const st = statusPerDay[k]; return (
+                  <div key={k} style={{ textAlign: "center", padding: "8px 0", font: "700 12.5px 'Geist Mono', monospace", color: t > hoursPerDay + 4 ? "var(--red)" : t > 0 ? STATUS_STYLE[st]?.fg || "var(--text)" : "var(--muted)", borderLeft: "1px solid var(--border)" }}>{t ? fmtH(t) : "–"}</div>
+                ); })}
+                <div style={{ textAlign: "center", padding: "8px 0", font: "700 12.5px 'Geist Mono', monospace", color: "var(--accent)", borderLeft: "1px solid var(--border)" }}>{fmtH(grandTotal) || "0"}</div>
+              </div>
+
+              {/* Groups + rows */}
+              {loading && <div style={{ padding: 24, font: "400 13px 'Geist'", color: "var(--muted)" }}>Uren laden…</div>}
+              {!loading && allRows.length === 0 && (
+                <div style={{ padding: 32, textAlign: "center", font: "400 13px 'Geist'", color: "var(--muted)" }}>
+                  Nog geen projecten in je overzicht. Klik op <b>+ Project</b> om een project toe te voegen, of markeer projecten als favoriet zodat ze altijd klaarstaan.
+                </div>
+              )}
+              {groups.map(([group, rows]) => (
+                <React.Fragment key={group}>
+                  <div style={{ display: "grid", gridTemplateColumns: gridCols, background: "var(--panel-2)", borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ padding: "6px 12px", font: "700 11.5px 'Geist'", color: "var(--text-2)", position: "sticky", left: 0, background: "var(--panel-2)", zIndex: 2 }}>{group}</div>
+                    {days.map((d) => <div key={iso(d)} style={{ borderLeft: "1px solid var(--border)", background: dayInfo(d).weekend ? "var(--weekend)" : "transparent" }} />)}
+                    <div style={{ borderLeft: "1px solid var(--border)" }} />
                   </div>
-
-                  {/* Day tabs for selected week */}
-                  {(() => {
-                    const selWeekStart = monthWeeks[selectedMobileWeek] || monthWeeks[0];
-                    if (!selWeekStart) return null;
-                    const wdForWeek = getWeekDays(selWeekStart);
-                    const curMonth = currentWeek.getMonth();
-                    const curYear = currentWeek.getFullYear();
-
+                  {rows.map((row) => {
+                    const total = rowTotal(row);
+                    const mh = row.projectId ? maxHours[row.projectId] : undefined;
                     return (
-                      <>
-                        <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-                          {wdForWeek.map((day, i) => {
-                            const isToday = formatDate(day) === formatDate(new Date());
-                            const isSel = selectedMobileDay === i;
-                            const dayTotal = getTotalDay(formatDate(day));
-                            const closed = isClosedDay(formatDate(day));
-                            const weekend = isWeekend(day);
-                            const inMonth = day.getMonth() === curMonth && day.getFullYear() === curYear;
-                            return (
-                              <button
-                                key={`mob-mday-${i}`}
-                                onClick={() => setSelectedMobileDay(i)}
-                                className={`flex-1 min-w-[48px] py-2 px-1 rounded-xl text-center transition-all ${
-                                  !inMonth
-                                    ? "opacity-40 bg-slate-100 dark:bg-slate-800 text-slate-400"
-                                    : isSel
-                                    ? "bg-blue-600 text-white shadow-md"
-                                    : isToday
-                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
-                                    : closed || weekend
-                                    ? "bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
-                                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                                }`}
-                              >
-                                <div className="text-[10px] font-medium uppercase">{dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}</div>
-                                <div className="text-lg font-bold">{day.getDate()}</div>
-                                {dayTotal > 0 && (
-                                  <div className={`text-[10px] font-semibold ${isSel ? "text-blue-200" : "text-blue-600 dark:text-blue-400"}`}>
-                                    {dayTotal}u
-                                  </div>
-                                )}
-                              </button>
-                            );
-                          })}
+                      <div key={row.key} className="group/row" style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: "1px solid var(--border)" }}>
+                        <div style={{ padding: "6px 8px 6px 12px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, position: "sticky", left: 0, background: "var(--panel)", zIndex: 2 }}>
+                          {row.kind === "project" ? (
+                            <button type="button" onClick={() => toggleFavorite(row.projectId!)} title={favoriteIds.has(row.projectId!) ? "Uit favorieten" : "Favoriet: altijd in je overzicht"} style={{ border: "none", background: "transparent", cursor: "pointer", color: favoriteIds.has(row.projectId!) ? "var(--amber)" : "var(--border)", padding: 0, display: "flex" }}>
+                              <Star size={14} fill={favoriteIds.has(row.projectId!) ? "currentColor" : "none"} />
+                            </button>
+                          ) : <Clock size={14} style={{ color: "var(--muted)", flex: "none" }} />}
+                          <div style={{ minWidth: 0, flex: 1 }} title={`${row.code} ${row.name}`}>
+                            <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.kind === "project" ? row.code : row.code} <span style={{ fontWeight: 500, color: "var(--text-2)" }}>{row.name}</span></div>
+                            {row.kind === "task" && row.budget != null && <div style={{ font: "400 10.5px 'Geist'", color: (row.used || 0) >= row.budget ? "var(--red)" : "var(--muted)" }}>{fmtH(row.used || 0) || 0} / {fmtH(row.budget)} u dit jaar</div>}
+                            {mh != null && <div style={{ font: "400 10.5px 'Geist'", color: total >= mh ? "var(--red)" : "var(--muted)" }}>max {fmtH(mh)} u</div>}
+                          </div>
+                          <button type="button" onClick={() => removeRow(row)} title="Rij verwijderen" className="opacity-0 group-hover/row:opacity-100" style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--muted)", padding: 2, display: "flex" }}><X size={13} /></button>
                         </div>
-
-                        {/* Month total */}
-                        <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-4 py-2.5 border border-slate-200 dark:border-slate-700">
-                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Maandtotaal</span>
-                          <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                            {monthWeeks.reduce((total, ws) => {
-                              const wd = getWeekDays(ws);
-                              return total + wd.reduce((sum, d) => {
-                                if (d.getMonth() !== curMonth || d.getFullYear() !== curYear) return sum;
-                                return sum + projectRows.reduce((s, row) => {
-                                  const k = `${formatDate(d)}-${row.projectId}`;
-                                  return s + (entries[k]?.hours || 0);
-                                }, 0);
-                              }, 0);
-                            }, 0)}u
-                          </span>
-                        </div>
-
-                        {/* Project cards for selected day */}
-                        {(() => {
-                          const day = wdForWeek[selectedMobileDay];
-                          if (!day) return null;
-                          const date = formatDate(day);
-                          const inMonth = day.getMonth() === curMonth && day.getFullYear() === curYear;
-                          const closed = isClosedDay(date);
-                          const weekend = isWeekend(day);
-
-                          if (!inMonth) {
-                            return (
-                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p className="font-medium">Andere maand</p>
-                              </div>
-                            );
-                          }
-                          if (closed) {
-                            return (
-                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p className="font-medium">Gesloten dag</p>
-                              </div>
-                            );
-                          }
-                          if (weekend) {
-                            return (
-                              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                                <Calendar className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p className="font-medium">Weekend</p>
-                              </div>
-                            );
-                          }
-
+                        {days.map((d) => {
+                          const info = dayInfo(d); const e = getEntry(info.key, row); const locked = isLocked(e.status) || info.closed;
+                          const st: DayStatus = isEmpty(e) ? "NONE" : e.status === "REJECTED" ? "REJECTED" : isLocked(e.status) ? (e.status === "APPROVED" ? "APPROVED" : "SUBMITTED") : "DRAFT";
+                          const style = STATUS_STYLE[st];
+                          const active = detail?.date === info.key && detail?.rowKey === row.key;
                           return (
-                            <div className="space-y-3">
-                              {projectRows.map((row) => {
-                                const key = `${date}-${row.projectId}`;
-                                const entry = entries[key] || {
-                                  date,
-                                  projectId: row.projectId,
-                                  hours: 0,
-                                  taskType: getDefaultTaskType(),
-                                  distanceKm: 0,
-                                  travelCosts: 0,
-                                  otherExpenses: 0,
-                                  notes: "",
-                                  status: "opgeslagen",
-                                };
-                                const entryEditable = isEditable(entry.status);
-                                const maxInfo = getProjectMaxInfo(row.projectId);
-                                const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
-                                const isDisabled = !entryEditable || isAtMaxHours;
-
-                                return (
-                                  <div
-                                    key={`mob-month-entry-${row.projectId}`}
-                                    className={`bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm ${getEntryClassName(entry.status)} ${isAtMaxHours ? "opacity-50" : ""}`}
-                                  >
-                                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                                          {row.companyName}{row.projectGroupName && ` › ${row.projectGroupName}`}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">{row.projectName}</span>
-                                          {maxInfo.hasMax && (
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${maxInfo.isAtMax ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
-                                              {maxInfo.currentHours}/{maxInfo.maxHours}u
-                                            </span>
-                                          )}
-                                        </div>
-                                        {entry.status === "SUBMITTED" && (
-                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">Ingeleverd</span>
-                                        )}
-                                        {entry.status === "APPROVED" && (
-                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">Goedgekeurd</span>
-                                        )}
-                                        {entry.status === "REJECTED" && (
-                                          <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded font-medium">Afgekeurd</span>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-2 flex-shrink-0">
-                                        <button onClick={() => toggleFavorite(row.projectId, row.projectName)} className="p-1.5">
-                                          <Heart className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`} />
-                                        </button>
-                                        <button onClick={() => removeProject(row.projectId)} className="p-1.5 text-red-500">
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    <div className="p-4 space-y-3">
-                                      {shouldShowTaskDropdown() && !isDisabled && (
-                                        <select
-                                          value={entry.taskType || getDefaultTaskType()}
-                                          onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as 'MONTAGE' | 'TEKENKAMER')}
-                                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 font-medium"
-                                        >
-                                          <option value="MONTAGE">Montage</option>
-                                          <option value="TEKENKAMER">Tekenkamer</option>
-                                        </select>
-                                      )}
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Uren</label>
-                                          <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
-                                            value={entry.hours || ""} onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                            <Moon className="w-3 h-3 text-indigo-500" /> Nacht
-                                          </label>
-                                          <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
-                                            value={entry.eveningNightHours || ""} onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-xl font-bold bg-white dark:bg-slate-700", entry.status)}
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                            <Clock className="w-3 h-3 text-blue-500" /> Reisuren
-                                          </label>
-                                          <input type="number" inputMode="decimal" step="0.5" min="0"
-                                            value={entry.travelHours || ""} onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                            <Car className="w-3 h-3 text-green-500" /> Kilometers
-                                          </label>
-                                          <input type="number" inputMode="decimal" step="1" min="0"
-                                            value={entry.distanceKm || ""} onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                            placeholder="0"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                            <Ticket className="w-3 h-3 text-yellow-500" /> Reiskosten
-                                          </label>
-                                          <input type="number" inputMode="decimal" step="0.01" min="0"
-                                            value={entry.travelCosts || ""} onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                            placeholder="€0"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                            <Euro className="w-3 h-3 text-orange-500" /> Onkosten
-                                          </label>
-                                          <input type="number" inputMode="decimal" step="0.01" min="0"
-                                            value={entry.otherExpenses || ""} onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
-                                            disabled={isDisabled}
-                                            className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                            placeholder="€0"
-                                          />
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                          <FileText className="w-3 h-3 text-slate-500" /> Opmerkingen
-                                        </label>
-                                        <textarea
-                                          value={entry.notes || ""} onChange={(e) => updateEntry(row.projectId, date, "notes", e.target.value)}
-                                          disabled={isDisabled}
-                                          className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm resize-none bg-white dark:bg-slate-700", entry.status)}
-                                          placeholder="Opmerkingen..." rows={2}
-                                        />
-                                      </div>
-                                      {entry.status === "REJECTED" && entry.rejectionReason && (
-                                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                                          <p className="text-xs font-semibold text-red-800 dark:text-red-300">Afgekeurd:</p>
-                                          <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">{entry.rejectionReason}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                            <div key={info.key} style={{ borderLeft: "1px solid var(--border)", background: st !== "NONE" ? style.bg : info.weekend ? "var(--weekend)" : "transparent", padding: 3, position: "relative", outline: active ? "2px solid var(--accent)" : "none", outlineOffset: -2 }}>
+                              <input
+                                type="text" inputMode="decimal"
+                                value={fmtH(e.hours)}
+                                disabled={locked}
+                                placeholder={info.closed ? "×" : ""}
+                                onChange={(ev) => patch(info.key, row, { hours: parseNum(ev.target.value) })}
+                                onFocus={(ev) => ev.target.select()}
+                                onDoubleClick={() => setDetail({ date: info.key, rowKey: row.key })}
+                                title={info.closed ? `Gesloten: ${info.holiday?.name}` : e.status === "REJECTED" && e.rejectionReason ? `Afgekeurd: ${e.rejectionReason}` : st !== "NONE" ? style.label : "Uren"}
+                                style={{ width: "100%", height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${e.dirty ? "var(--amber)" : "transparent"}`, background: locked ? "transparent" : "var(--panel)", color: st !== "NONE" ? style.fg : "var(--text)", font: "600 13px 'Geist Mono', monospace", cursor: locked ? "not-allowed" : "text" }}
+                              />
+                              <button type="button" onClick={() => setDetail(active ? null : { date: info.key, rowKey: row.key })} title="Details (nacht, reisuren, km, kosten, opmerking)"
+                                style={{ position: "absolute", right: 4, bottom: 4, width: 14, height: 14, borderRadius: 3, border: "none", cursor: "pointer", background: hasExtras(e) ? style.fg || "var(--accent)" : "transparent", color: hasExtras(e) ? "#fff" : "var(--muted)", font: "700 9px 'Geist'", lineHeight: 1, opacity: hasExtras(e) ? 1 : 0.55 }}>⋯</button>
                             </div>
                           );
-                        })()}
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* ===== DESKTOP MONTH VIEW ===== */}
-                <div className="hidden md:block space-y-6 overflow-x-auto">
-                  {monthWeeks.map((weekStart, idx) => {
-                    const weekDaysForWeek = getWeekDays(weekStart);
-                    const currentMonth = currentWeek.getMonth();
-                    const currentYear = currentWeek.getFullYear();
-                    const weekNum = getWeekNumber(weekStart);
-                    return (
-                      <div
-                        key={`week-${weekStart.toISOString()}`}
-                        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden min-w-[900px]"
-                      >
-                        <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 px-4 py-2">
-                          <div className="font-semibold text-slate-900 dark:text-slate-100">
-                            Week {weekNum}
-                          </div>
-                          <div className="text-xs text-slate-600 dark:text-slate-400">
-                            {formatDate(weekDaysForWeek[0])} -{" "}
-                            {formatDate(weekDaysForWeek[6])}
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600">
-                          <div className="grid grid-cols-[16px_220px_repeat(7,1fr)_80px] gap-2 p-3 bg-slate-100 dark:bg-slate-800">
-                            <div />
-                            <div className="font-bold text-slate-800 dark:text-slate-200">
-                              Project
-                            </div>
-                            {weekDaysForWeek.map((day, i) => {
-                              const isInCurrentMonth =
-                                day.getMonth() === currentMonth &&
-                                day.getFullYear() === currentYear;
-                              return (
-                                <div
-                                  key={`day-${day.toISOString()}`}
-                                  className={
-                                    "text-center" +
-                                    (!isInCurrentMonth ? " opacity-50" : "")
-                                  }
-                                >
-                                  <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    {
-                                      dayNames[
-                                        day.getDay() === 0
-                                          ? 6
-                                          : day.getDay() - 1
-                                      ]
-                                    }
-                                  </div>
-                                  <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
-                                    {day.getDate()}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            <div className="text-center font-bold text-slate-800 dark:text-slate-200">
-                              Totaal
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="divide-y divide-slate-200">
-                          {projectRows.map((row, idx) => (
-                            <div
-                              key={`${weekStart.toISOString()}-${row.projectId}`}
-                              className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700"
-                            >
-                              <div className="grid grid-cols-[16px_220px_repeat(7,1fr)_80px] gap-2 p-3">
-                                <div />
-                                <div>
-                                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-0.5 font-medium">
-                                    {row.companyName}
-                                    {row.projectGroupName && ` › ${row.projectGroupName}`}
-                                  </div>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <button
-                                      onClick={() => toggleFavorite(row.projectId, row.projectName)}
-                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                                      title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Toevoegen aan favorieten"}
-                                    >
-                                      <Heart
-                                        className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : "text-slate-400"}`}
-                                      />
-                                    </button>
-                                    <span className="font-semibold text-base text-slate-800 dark:text-slate-100">
-                                      {row.projectName}
-                                    </span>
-                                    {(() => {
-                                      const maxInfo = getProjectMaxInfo(row.projectId);
-                                      if (maxInfo.hasMax) {
-                                        return (
-                                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700"}`}>
-                                            max {maxInfo.currentHours}/{maxInfo.maxHours}
-                                          </span>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() =>
-                                        removeProject(row.projectId)
-                                      }
-                                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 transition-colors"
-                                      title="Verwijder project"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                                {weekDaysForWeek.map((day) => {
-                                  const date = formatDate(day);
-                                  const key = `${date}-${row.projectId}`;
-                                  const entry = entries[key] || {
-                                    date,
-                                    projectId: row.projectId,
-                                    hours: 0,
-                                    taskType: getDefaultTaskType(),
-                                    distanceKm: 0,
-                                    travelCosts: 0,
-                                    otherExpenses: 0,
-                                    notes: "",
-                                    status: "opgeslagen",
-                                  };
-                                  const isInCurrentMonth =
-                                    day.getMonth() === currentMonth &&
-                                    day.getFullYear() === currentYear;
-                                  const entryEditable = isEditable(entry.status);
-                                  const isClosed = isClosedDay(date);
-                                  const isWeekendDay = isWeekend(day);
-                                  const maxInfo = getProjectMaxInfo(row.projectId);
-                                  const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
-                                  const isDisabled =
-                                    !isInCurrentMonth ||
-                                    !entryEditable ||
-                                    isClosed ||
-                                    isWeekendDay ||
-                                    isAtMaxHours;
-                                  const expanded = isCellExpanded(row.projectId, date);
-                                  const hasExtra = !!(entry.eveningNightHours || entry.travelHours || entry.distanceKm || entry.travelCosts || entry.otherExpenses || entry.notes);
-                                  const num = (k: keyof TimeEntry, step: string, ph: string, label: string) => (
-                                    <div key={String(k)}>
-                                      <label className="field-label">{label}</label>
-                                      <input type="number" step={step} min="0" value={(entry as any)[k] || ""}
-                                        onChange={(e) => updateEntry(row.projectId, date, k as any, parseFloat(e.target.value) || 0)}
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-full h-7 px-1 text-center text-xs border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700", entry.status)}
-                                        placeholder={ph} />
-                                    </div>
-                                  );
-                                  return (
-                                    <div
-                                      key={`entry-${date}-${row.projectId}`}
-                                      className={"rounded-lg border border-slate-200 dark:border-slate-700 p-1.5 " + getEntryClassName(entry.status) + (!isInCurrentMonth ? " opacity-30" : "") + (isAtMaxHours ? " opacity-50" : "")}
-                                    >
-                                      <div className="flex items-center gap-1">
-                                        <input type="number" step="0.5" min="0" max="24" value={entry.hours || ""}
-                                          onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
-                                          disabled={isDisabled}
-                                          className={getInputClassName("w-full h-9 text-center text-sm font-bold border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700", entry.status)}
-                                          placeholder="0" title="Uren" />
-                                        <button type="button" onClick={() => toggleCellExpanded(row.projectId, date)}
-                                          className={`h-9 w-6 flex-shrink-0 rounded-md text-xs ${hasExtra || expanded ? "text-[var(--accent)]" : "text-slate-400"} hover:bg-[var(--hover)]`}
-                                          title={expanded ? "Details verbergen" : "Nacht, reisuren, km, kosten, opmerking"}>
-                                          {expanded ? "▴" : hasExtra ? "•" : "▾"}
-                                        </button>
-                                      </div>
-                                      {shouldShowTaskDropdown() && !isDisabled && (expanded || entry.taskType) && (
-                                        <select value={entry.taskType || getDefaultTaskType()}
-                                          onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as "MONTAGE" | "TEKENKAMER")}
-                                          className="mt-1 w-full h-7 px-1 border border-slate-200 dark:border-slate-600 rounded-md text-[11px] bg-white dark:bg-slate-700" title="Taaktype">
-                                          <option value="MONTAGE">Montage</option>
-                                          <option value="TEKENKAMER">Tekenkamer</option>
-                                        </select>
-                                      )}
-                                      {expanded && (
-                                        <div className="mt-1.5 space-y-1.5">
-                                          <div className="grid grid-cols-2 gap-1">
-                                            {num("eveningNightHours", "0.5", "0", "Nacht")}
-                                            {num("travelHours", "0.5", "0", "Reisuren")}
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-1">
-                                            {num("distanceKm", "1", "0", "Km")}
-                                            {num("travelCosts", "0.01", "0,00", "€ Reis")}
-                                          </div>
-                                          {num("otherExpenses", "0.01", "0,00", "€ Onkosten")}
-                                          <div>
-                                            <label className="field-label">Opmerking</label>
-                                            <textarea value={entry.notes || ""} onChange={(e) => updateEntry(row.projectId, date, "notes", e.target.value)}
-                                              disabled={isDisabled} rows={2}
-                                              className={getInputClassName("w-full px-1.5 py-1 border border-slate-200 dark:border-slate-600 rounded-md text-xs resize-none bg-white dark:bg-slate-700", entry.status)}
-                                              placeholder="Opmerking..." />
-                                          </div>
-                                        </div>
-                                      )}
-                                      {entry.status === "REJECTED" && entry.rejectionReason && (
-                                        <div className="mt-1 p-1 rounded text-[10px]" style={{ background: "var(--red-weak)", color: "var(--red)" }} title={entry.rejectionReason}>
-                                          Afgekeurd: {entry.rejectionReason}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                                <div className="flex flex-col items-center justify-center gap-0.5">
-                                  <span className="text-sm font-bold text-blue-600">
-                                    {weekDaysForWeek.reduce((sum, day) => {
-                                      const key = `${formatDate(day)}-${row.projectId}`;
-                                      return sum + (entries[key]?.hours || 0);
-                                    }, 0)}
-                                    u
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
-                          <div className="grid grid-cols-[16px_220px_repeat(7,1fr)_80px] gap-2 p-3">
-                            <div />
-                            <div className="font-bold text-slate-800 dark:text-slate-200">
-                              Totaal per dag
-                            </div>
-                            {weekDaysForWeek.map((day) => {
-                              const dayTotal = projectRows.reduce(
-                                (sum, row) => {
-                                  const key = `${formatDate(day)}-${row.projectId}`;
-                                  return sum + (entries[key]?.hours || 0);
-                                },
-                                0,
-                              );
-                              const dayKmTotal = projectRows.reduce(
-                                (sum, row) => {
-                                  const key = `${formatDate(day)}-${row.projectId}`;
-                                  return sum + (entries[key]?.km || 0);
-                                },
-                                0,
-                              );
-                              const dayExpensesTotal = projectRows.reduce(
-                                (sum, row) => {
-                                  const key = `${formatDate(day)}-${row.projectId}`;
-                                  return sum + (entries[key]?.expenses || 0);
-                                },
-                                0,
-                              );
-                              return (
-                                <div
-                                  key={`total-${formatDate(day)}`}
-                                  className="flex flex-col items-center gap-1 p-2 bg-white dark:bg-slate-700 rounded-lg"
-                                >
-                                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                    {dayTotal}u
-                                  </span>
-                                </div>
-                              );
-                            })}
-                            <div className="flex flex-col items-center gap-1 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                                {weekDaysForWeek.reduce(
-                                  (sum, day) =>
-                                    sum +
-                                    projectRows.reduce((s, row) => {
-                                      const key = `${formatDate(day)}-${row.projectId}`;
-                                      return s + (entries[key]?.hours || 0);
-                                    }, 0),
-                                  0,
-                                )}
-                                u
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        })}
+                        <div style={{ borderLeft: "1px solid var(--border)", textAlign: "center", padding: "9px 0", font: "600 12.5px 'Geist Mono', monospace", color: total ? "var(--text)" : "var(--muted)" }}>{fmtH(total) || "–"}</div>
                       </div>
                     );
                   })}
-                </div>
-                </>
-              ) : (
-                <>
-                {/* ===== UNIFIED DAY-BY-DAY VIEW ===== */}
-                <div className="space-y-4">
-                  {/* Day tabs strip */}
-                  <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                    {weekDays.map((day, i) => {
-                      const isToday = formatDate(day) === formatDate(new Date());
-                      const isSelected = selectedMobileDay === i;
-                      const dayTotal = getTotalDay(formatDate(day));
-                      const isClosed = isClosedDay(formatDate(day));
-                      const isWeekendDay = isWeekend(day);
-                      return (
-                        <button
-                          key={`day-tab-${i}`}
-                          onClick={() => setSelectedMobileDay(i)}
-                          className={`flex-1 flex flex-col items-center py-2 px-1 rounded-md transition-colors ${
-                            isSelected
-                              ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600"
-                              : isToday
-                              ? "text-blue-500 dark:text-blue-400"
-                              : isClosed || isWeekendDay
-                              ? "text-slate-400 dark:text-slate-500"
-                              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                          }`}
-                        >
-                          <span className="text-[10px] font-medium uppercase">{dayNames[i]}</span>
-                          <span className={`text-base font-bold ${isToday ? "text-blue-500 dark:text-blue-400" : ""}`}>{day.getDate()}</span>
-                          {dayTotal > 0 && (
-                            <span className={`text-[10px] font-semibold ${isSelected ? "text-blue-600" : "text-blue-500 dark:text-blue-400"}`}>{dayTotal}u</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Selected day content */}
-                  {(() => {
-                    const day = weekDays[selectedMobileDay];
-                    const date = formatDate(day);
-                    const isClosed = isClosedDay(date);
-                    const isWeekendDay = isWeekend(day);
-                    const dayTotal = getTotalDay(date);
-
-                    if (isClosed) return (
-                      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                        <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p className="font-medium">Gesloten dag</p>
-                      </div>
-                    );
-                    if (isWeekendDay) return (
-                      <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                        <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p className="font-medium">Weekend</p>
-                      </div>
-                    );
-
-                    return (
-                      <div className="space-y-2">
-                        {projectRows.map((row) => {
-                          const key = `${date}-${row.projectId}`;
-                          const entry = entries[key] || {
-                            date,
-                            projectId: row.projectId,
-                            hours: 0,
-                            taskType: getDefaultTaskType(),
-                            distanceKm: 0,
-                            travelCosts: 0,
-                            otherExpenses: 0,
-                            notes: "",
-                          };
-                          const entryEditable = isEditable(entry.status);
-                          const maxInfo = getProjectMaxInfo(row.projectId);
-                          const isAtMaxHours = maxInfo.hasMax && maxInfo.isAtMax && (entry.hours || 0) === 0;
-                          const isDisabled = !entryEditable || isAtMaxHours;
-
-                          return (
-                            <div
-                              key={`day-entry-${row.projectId}`}
-                              className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden ${getEntryClassName(entry.status)} ${isAtMaxHours ? "opacity-50" : ""}`}
-                            >
-                              {/* Main row */}
-                              <div className="p-4 flex items-start gap-4">
-                                {/* Left: project info + notes */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
-                                    {row.companyName}{row.projectGroupName && ` › ${row.projectGroupName}`}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                    <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">{row.projectName}</span>
-                                    {maxInfo.hasMax && (
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${maxInfo.isAtMax ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"}`}>
-                                        {maxInfo.currentHours}/{maxInfo.maxHours}u
-                                      </span>
-                                    )}
-                                    {entry.status === "SUBMITTED" && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded font-medium">Ingeleverd</span>}
-                                    {entry.status === "APPROVED" && <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">Goedgekeurd</span>}
-                                    {entry.status === "REJECTED" && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded font-medium">Afgekeurd</span>}
-                                  </div>
-                                  {shouldShowTaskDropdown() && !isDisabled && (
-                                    <select
-                                      value={entry.taskType || getDefaultTaskType()}
-                                      onChange={(e) => updateEntry(row.projectId, date, "taskType", e.target.value as 'MONTAGE' | 'TEKENKAMER')}
-                                      className="mt-2 px-2 py-1 border border-slate-200 dark:border-slate-600 rounded text-xs bg-white dark:bg-slate-700 font-medium"
-                                    >
-                                      <option value="MONTAGE">Montage</option>
-                                      <option value="TEKENKAMER">Tekenkamer</option>
-                                    </select>
-                                  )}
-                                  <input
-                                    className={`mt-2 text-xs w-full bg-transparent border-none outline-none placeholder:text-slate-400 ${isDisabled ? "cursor-not-allowed text-slate-400" : "text-slate-600 dark:text-slate-300"}`}
-                                    placeholder="Opmerkingen..."
-                                    value={entry.notes || ""}
-                                    onChange={(e) => !isDisabled && updateEntry(row.projectId, date, "notes", e.target.value)}
-                                    disabled={isDisabled}
-                                  />
-                                  {entry.status === "REJECTED" && entry.rejectionReason && (
-                                    <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-xs">
-                                      <span className="font-semibold text-red-800 dark:text-red-300">Afgekeurd: </span>
-                                      <span className="text-red-700 dark:text-red-400">{entry.rejectionReason}</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Desktop extra fields (inline, met label) */}
-                                <div className="hidden md:grid grid-cols-5 gap-2 flex-shrink-0 items-end">
-                                  {([
-                                    { key: "eveningNightHours", label: "Nacht", icon: <Moon className="w-3 h-3 text-indigo-400" />, step: "0.5", w: "w-16", ph: "0", title: "Avond-/nachturen (uren)" },
-                                    { key: "travelHours", label: "Reisuren", icon: <Clock className="w-3 h-3 text-blue-400" />, step: "0.5", w: "w-16", ph: "0", title: "Reisuren" },
-                                    { key: "distanceKm", label: "Km", icon: <Car className="w-3 h-3 text-green-400" />, step: "1", w: "w-16", ph: "0", title: "Kilometers" },
-                                    { key: "travelCosts", label: "€ Reis", icon: <Ticket className="w-3 h-3 text-yellow-400" />, step: "0.01", w: "w-20", ph: "0,00", title: "Reiskosten in euro" },
-                                    { key: "otherExpenses", label: "€ Onkosten", icon: <Euro className="w-3 h-3 text-orange-400" />, step: "0.01", w: "w-20", ph: "0,00", title: "Overige onkosten in euro" },
-                                  ] as const).map((f) => (
-                                    <div key={f.key} title={f.title}>
-                                      <label className="field-label">{f.icon}{f.label}</label>
-                                      <input type="number" step={f.step} min="0"
-                                        value={(entry as any)[f.key] || ""}
-                                        onChange={(e) => updateEntry(row.projectId, date, f.key, parseFloat(e.target.value) || 0)}
-                                        disabled={isDisabled}
-                                        className={getInputClassName(`${f.w} h-8 text-center text-xs border border-slate-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700`, entry.status)}
-                                        placeholder={f.ph}
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-
-                                {/* Hours + actions */}
-                                <div className="flex items-end gap-2 flex-shrink-0">
-                                  <div title="Gewerkte uren op dit project">
-                                    <label className="field-label" style={{ color: "var(--accent)" }}>Uren</label>
-                                    <div className="flex items-center gap-1">
-                                      <input
-                                        type="number" step="0.5" min="0" max="24"
-                                        value={entry.hours || ""}
-                                        onChange={(e) => updateEntry(row.projectId, date, "hours", parseFloat(e.target.value) || 0)}
-                                        disabled={isDisabled}
-                                        className={getInputClassName("w-20 h-9 text-center border-2 border-[var(--accent-border)] rounded-md text-base font-bold bg-white dark:bg-slate-700", entry.status)}
-                                        placeholder="0"
-                                      />
-                                      <span className="text-xs text-slate-400">u</span>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => toggleFavorite(row.projectId, row.projectName)}
-                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                    title={favoriteProjectIds.has(row.projectId) ? "Verwijder uit favorieten" : "Voeg toe aan favorieten"}
-                                  >
-                                    <Heart className={`w-4 h-4 ${favoriteProjectIds.has(row.projectId) ? "fill-red-500 text-red-500" : ""}`} />
-                                  </button>
-                                  <button
-                                    onClick={() => removeProject(row.projectId)}
-                                    className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"
-                                    title="Verwijder project"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Mobile: extra fields */}
-                              <div className="md:hidden px-4 pb-4 grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                    <Moon className="w-3 h-3 text-indigo-500" /> Nacht
-                                  </label>
-                                  <input type="number" inputMode="decimal" step="0.5" min="0" max="24"
-                                    value={entry.eveningNightHours || ""} onChange={(e) => updateEntry(row.projectId, date, "eveningNightHours", parseFloat(e.target.value) || 0)}
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-center text-sm font-bold bg-white dark:bg-slate-700", entry.status)}
-                                    placeholder="0"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-blue-500" /> Reisuren
-                                  </label>
-                                  <input type="number" inputMode="decimal" step="0.5" min="0"
-                                    value={entry.travelHours || ""} onChange={(e) => updateEntry(row.projectId, date, "travelHours", parseFloat(e.target.value) || 0)}
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                    placeholder="0"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                    <Car className="w-3 h-3 text-green-500" /> Kilometers
-                                  </label>
-                                  <input type="number" inputMode="decimal" step="1" min="0"
-                                    value={entry.distanceKm || ""} onChange={(e) => updateEntry(row.projectId, date, "distanceKm", parseFloat(e.target.value) || 0)}
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                    placeholder="0"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                    <Ticket className="w-3 h-3 text-yellow-500" /> Reiskosten
-                                  </label>
-                                  <input type="number" inputMode="decimal" step="0.01" min="0"
-                                    value={entry.travelCosts || ""} onChange={(e) => updateEntry(row.projectId, date, "travelCosts", parseFloat(e.target.value) || 0)}
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                    placeholder="€0"
-                                  />
-                                </div>
-                                <div className="col-span-2">
-                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                    <Euro className="w-3 h-3 text-orange-500" /> Onkosten
-                                  </label>
-                                  <input type="number" inputMode="decimal" step="0.01" min="0"
-                                    value={entry.otherExpenses || ""} onChange={(e) => updateEntry(row.projectId, date, "otherExpenses", parseFloat(e.target.value) || 0)}
-                                    disabled={isDisabled}
-                                    className={getInputClassName("w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700", entry.status)}
-                                    placeholder="€0"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {/* Add project button - mobile only (desktop uses sidebar) */}
-                        <button
-                          onClick={() => setShowProjectPicker(true)}
-                          className="md:hidden w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-4 text-sm text-slate-500 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Project toevoegen
-                        </button>
-
-                        {/* Day total */}
-                        <div className="flex justify-between items-center py-3 border-t border-slate-200 dark:border-slate-700 text-sm">
-                          <span className="font-medium text-slate-600 dark:text-slate-400">Totaal vandaag</span>
-                          <span className={`font-bold text-lg ${dayTotal > MAX_HOURS_PER_DAY ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-slate-100"}`}>{dayTotal}u</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Week total strip */}
-                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Week totaal</span>
-                      <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{getTotalWeek()}u</span>
-                    </div>
-                    <div className="flex gap-1">
-                      {weekDays.map((day, i) => {
-                        const d = formatDate(day);
-                        const dt = getTotalDay(d);
-                        const st = dayStatus((Object.values(entries) as TimeEntry[]).filter((e) => e.date === d && e.hours > 0).map((e) => e.status));
-                        const style = STATUS_STYLE[st];
-                        return (
-                          <button type="button" key={i} onClick={() => setSelectedMobileDay(i)} className="flex-1 text-center rounded-md py-1" style={{ background: dt > 0 ? style.bg : "transparent" }} title={dt > 0 ? style.label : ""}>
-                            <div className="text-[10px] text-slate-400 dark:text-slate-500">{dayNames[i]}</div>
-                            <div className="text-xs font-semibold" style={{ color: dt > 0 ? style.fg : "var(--muted)" }}>{dt > 0 ? `${dt}u` : "–"}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                </>
-              )}
-
-              {/* Indirect hours section (Verlof, ATV, Ziekte) */}
-              {indirectTasks.length > 0 && (
-                <div className="mt-4 mx-2 md:mx-0 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                  <div className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border-b border-slate-200 dark:border-slate-700">
-                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Verlof & Indirecte uren
-                    </h3>
-                  </div>
-
-                  {/* Desktop: table layout */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-700">
-                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 min-w-[180px]">
-                            Uurcode
-                          </th>
-                          {(viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek)).map((day) => (
-                            <th key={formatDate(day)} className="text-center px-1 py-2 font-medium text-slate-500 dark:text-slate-400 w-16">
-                              {dayNames[day.getDay() === 0 ? 6 : day.getDay() - 1]}
-                              <div className="text-[10px] text-slate-400">{day.getDate()}</div>
-                            </th>
-                          ))}
-                          <th className="text-center px-2 py-2 font-semibold text-slate-600 dark:text-slate-400 w-16">Tot</th>
-                          <th className="text-center px-2 py-2 font-semibold text-slate-600 dark:text-slate-400 w-20">Rest</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {indirectTasks.map((task) => {
-                          const weekTotal = getIndirectTotalForCode(task.code);
-                          const remaining = task.budget - task.used - weekTotal;
-                          return (
-                            <tr key={task.code} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/20">
-                              <td className="px-3 py-1.5">
-                                <div className="flex items-center gap-2">
-                                  <code className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
-                                    {task.code}
-                                  </code>
-                                  <span className="text-xs text-slate-700 dark:text-slate-300 truncate max-w-[120px]">
-                                    {task.description}
-                                  </span>
-                                </div>
-                              </td>
-                              {(viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek)).map((day) => {
-                                const dateStr = formatDate(day);
-                                const ie = getIndirectEntry(task.code, dateStr);
-                                const closed = isClosedDay(dateStr);
-                                return (
-                                  <td key={dateStr} className="px-1 py-1.5 text-center">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="8"
-                                      step="0.5"
-                                      value={ie?.hours || ""}
-                                      placeholder={closed ? "X" : "-"}
-                                      disabled={closed}
-                                      onChange={(e) =>
-                                        updateIndirectEntry(task.taakGcId, task.code, dateStr, parseFloat(e.target.value) || 0)
-                                      }
-                                      className={`w-12 h-7 text-center text-xs border rounded ${
-                                        closed
-                                          ? "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
-                                          : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                      }`}
-                                    />
-                                  </td>
-                                );
-                              })}
-                              <td className="px-2 py-1.5 text-center">
-                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                                  {weekTotal > 0 ? `${weekTotal}u` : "-"}
-                                </span>
-                              </td>
-                              <td className="px-2 py-1.5 text-center">
-                                <span className={`text-xs font-bold ${
-                                  remaining < 0
-                                    ? "text-red-600 dark:text-red-400"
-                                    : remaining <= task.budget * 0.1
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-green-600 dark:text-green-400"
-                                }`}>
-                                  {remaining}/{task.budget}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile: card layout */}
-                  <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {indirectTasks.map((task) => {
-                      const weekTotal = getIndirectTotalForCode(task.code);
-                      const remaining = task.budget - task.used - weekTotal;
-                      const activeDays = viewMode === "week" ? weekDays : getWeekDays(getMonthWeeks(currentWeek)[selectedMobileWeek] || currentWeek);
-                      return (
-                        <div key={task.code} className="p-3">
-                          {/* Code + description + budget */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <code className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold flex-shrink-0">
-                                {task.code}
-                              </code>
-                              <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
-                                {task.description}
-                              </span>
-                            </div>
-                            <span className={`text-xs font-bold flex-shrink-0 ml-2 ${
-                              remaining < 0
-                                ? "text-red-600 dark:text-red-400"
-                                : remaining <= task.budget * 0.1
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-green-600 dark:text-green-400"
-                            }`}>
-                              {remaining}/{task.budget}u
-                            </span>
-                          </div>
-                          {/* Day inputs in a row */}
-                          <div className="flex gap-1">
-                            {activeDays.map((day) => {
-                              const dateStr = formatDate(day);
-                              const ie = getIndirectEntry(task.code, dateStr);
-                              const closed = isClosedDay(dateStr);
-                              const dayIdx = day.getDay() === 0 ? 6 : day.getDay() - 1;
-                              return (
-                                <div key={dateStr} className="flex-1 text-center">
-                                  <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">
-                                    {dayNames[dayIdx].substring(0, 2)}
-                                  </div>
-                                  <input
-                                    type="number"
-                                    inputMode="decimal"
-                                    min="0"
-                                    max="8"
-                                    step="0.5"
-                                    value={ie?.hours || ""}
-                                    placeholder={closed ? "X" : "-"}
-                                    disabled={closed}
-                                    onChange={(e) =>
-                                      updateIndirectEntry(task.taakGcId, task.code, dateStr, parseFloat(e.target.value) || 0)
-                                    }
-                                    className={`w-full h-9 text-center text-sm border rounded-lg ${
-                                      closed
-                                        ? "bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed"
-                                        : ie?.hours
-                                        ? "border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold"
-                                        : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                                    } focus:ring-2 focus:ring-blue-500 focus:outline-none`}
-                                  />
-                                </div>
-                              );
-                            })}
-                            {/* Week total */}
-                            <div className="w-10 text-center flex-shrink-0">
-                              <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-0.5">Tot</div>
-                              <div className="h-9 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400">
-                                {weekTotal > 0 ? `${weekTotal}` : "-"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Mobile floating action buttons */}
-              <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-3 py-3 flex gap-2 safe-area-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
-                <button
-                  onClick={saveAll}
-                  disabled={saving}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
-                >
-                  <Save className="w-4 h-4" /> {saving ? "Bezig..." : "Opslaan"}
-                </button>
-                <button
-                  onClick={submitAll}
-                  disabled={saving}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md flex items-center justify-center gap-2 disabled:opacity-50 transition text-sm"
-                >
-                  <Send className="w-4 h-4" /> Inleveren
-                </button>
-              </div>
-              {/* Spacer to prevent content behind floating buttons on mobile */}
-              <div className="md:hidden h-20" />
+                </React.Fragment>
+              ))}
             </div>
           </div>
         </div>
+
+        {/* Detail panel */}
+        {detailEntry && (
+          <DetailPanel
+            row={detailEntry.row} entry={detailEntry.e} allowedTasks={allowedTasks} config={config}
+            onChange={(p) => patch(detailEntry.e.date, detailEntry.row, p)}
+            onClose={() => setDetail(null)}
+          />
+        )}
       </ModernLayout>
     </ProtectedRoute>
+  );
+}
+
+/* month index helper for the select */
+const i = (m: Date) => m.getMonth();
+
+/* ---------- small UI ---------- */
+function IconBtn({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
+  return <button type="button" onClick={onClick} title={title} className="hover:bg-[var(--hover)]" style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>{children}</button>;
+}
+function Btn({ children, onClick, variant = "outline", disabled, title }: { children: React.ReactNode; onClick: () => void; variant?: "outline" | "primary" | "success"; disabled?: boolean; title?: string }) {
+  const bg = variant === "primary" ? "var(--accent)" : variant === "success" ? "var(--green)" : "var(--panel)";
+  const fg = variant === "outline" ? "var(--text-2)" : "#fff";
+  return <button type="button" onClick={onClick} disabled={disabled} title={title} style={{ height: 32, padding: "0 12px", borderRadius: 8, border: variant === "outline" ? "1px solid var(--border)" : "1px solid transparent", background: bg, color: fg, font: "600 12.5px 'Geist'", display: "inline-flex", alignItems: "center", gap: 6, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.55 : 1, whiteSpace: "nowrap" }}>{children}</button>;
+}
+
+function DetailPanel({ row, entry, allowedTasks, config, onChange, onClose }: {
+  row: Row; entry: Entry; allowedTasks: string; config: WorkflowConfig | null; onChange: (p: Partial<Entry>) => void; onClose: () => void;
+}) {
+  const locked = isLocked(entry.status);
+  const d = new Date(entry.date + "T00:00:00");
+  const st: DayStatus = isEmpty(entry) ? "NONE" : entry.status === "REJECTED" ? "REJECTED" : locked ? (entry.status === "APPROVED" ? "APPROVED" : "SUBMITTED") : "DRAFT";
+  const Field = ({ label, icon, k, step = "0.5", suffix }: { label: string; icon: React.ReactNode; k: keyof Entry; step?: string; suffix?: string }) => (
+    <div>
+      <label className="field-label">{icon}{label}</label>
+      <div style={{ position: "relative" }}>
+        <input type="text" inputMode="decimal" disabled={locked} value={fmtH(Number(entry[k]) || 0)} onChange={(e) => onChange({ [k]: parseNum(e.target.value) } as any)} onFocus={(e) => e.target.select()} placeholder="0"
+          style={{ width: "100%", height: 36, padding: "0 10px", paddingRight: suffix ? 30 : 10, borderRadius: 8, border: "1px solid var(--border)", background: locked ? "var(--panel-2)" : "var(--panel)", color: "var(--text)", font: "600 14px 'Geist Mono', monospace" }} />
+        {suffix && <span style={{ position: "absolute", right: 10, top: 10, font: "500 11px 'Geist'", color: "var(--muted)" }}>{suffix}</span>}
+      </div>
+      <span style={{ font: "400 10px 'Geist'", color: "var(--muted)" }}>stap {step.replace(".", ",")}</span>
+    </div>
+  );
+  return (
+    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 340, zIndex: 60, background: "var(--panel)", borderLeft: "1px solid var(--border)", boxShadow: "-12px 0 32px rgba(0,0,0,.15)", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ font: "600 10.5px 'Geist'", letterSpacing: ".1em", color: "var(--muted)", textTransform: "uppercase" }}>{DAYS[(d.getDay() + 6) % 7]} {d.getDate()} {MONTHS[d.getMonth()]}</div>
+          <div style={{ font: "700 14px 'Geist'", color: "var(--text)", marginTop: 2 }}>{row.code} {row.name}</div>
+          {st !== "NONE" && <span style={{ display: "inline-block", marginTop: 6, padding: "2px 8px", borderRadius: 99, background: STATUS_STYLE[st].bg, color: STATUS_STYLE[st].fg, font: "600 11px 'Geist'" }}>{STATUS_STYLE[st].label}</span>}
+        </div>
+        <button type="button" onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+      </div>
+      <div style={{ padding: 16, overflow: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+        {entry.status === "REJECTED" && entry.rejectionReason && (
+          <div style={{ padding: 10, borderRadius: 8, background: "var(--red-weak)", color: "var(--red)", font: "500 12px 'Geist'" }}><b>Afgekeurd:</b> {entry.rejectionReason}<br /><span style={{ opacity: .8 }}>Pas aan en lever opnieuw in.</span></div>
+        )}
+        {locked && <div style={{ padding: 10, borderRadius: 8, background: "var(--panel-2)", color: "var(--text-2)", font: "400 12px 'Geist'" }}>Deze regel is ingeleverd en kan niet meer gewijzigd worden.</div>}
+        <Field label="Uren" icon={<Clock size={11} />} k="hours" suffix="u" />
+        {row.kind === "project" && allowedTasks === "BOTH" && config && (
+          <div>
+            <label className="field-label">Taaktype</label>
+            <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+              {(["MONTAGE", "TEKENKAMER"] as TaskType[]).map((t) => (
+                <button key={t} type="button" disabled={locked} onClick={() => onChange({ taskType: t })} style={{ flex: 1, height: 32, border: "none", cursor: "pointer", font: "600 12px 'Geist'", background: entry.taskType === t ? "var(--accent)" : "var(--panel)", color: entry.taskType === t ? "#fff" : "var(--text-2)" }}>{t === "MONTAGE" ? "Montage" : "Tekenkamer"}</button>
+              ))}
+            </div>
+          </div>
+        )}
+        {row.kind === "project" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Field label="Avond / nacht" icon={<Moon size={11} />} k="night" suffix="u" />
+              <Field label="Reisuren" icon={<Clock size={11} />} k="travelHours" suffix="u" />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Field label="Kilometers" icon={<Car size={11} />} k="km" step="1" suffix="km" />
+              <Field label="Reiskosten" icon={<Ticket size={11} />} k="travelCosts" step="0.01" suffix="€" />
+            </div>
+            <Field label="Overige onkosten" icon={<Euro size={11} />} k="otherExpenses" step="0.01" suffix="€" />
+          </>
+        )}
+        <div>
+          <label className="field-label"><MessageSquare size={11} />Opmerking</label>
+          <textarea disabled={locked} value={entry.notes} onChange={(e) => onChange({ notes: e.target.value })} rows={4} placeholder="Wat heb je gedaan?" style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: locked ? "var(--panel-2)" : "var(--panel)", color: "var(--text)", font: "400 13px 'Geist'", resize: "vertical" }} />
+        </div>
+        <div style={{ font: "400 11px 'Geist'", color: "var(--muted)" }}>Wijzigingen staan in het raster als niet-opgeslagen totdat je op <b>Opslaan</b> klikt.</div>
+      </div>
+    </div>
   );
 }
