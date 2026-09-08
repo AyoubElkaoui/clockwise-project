@@ -188,7 +188,18 @@ public class EmailReminderService : IEmailReminderService
 
     private string AppBaseUrl => (_configuration["App:BaseUrl"] ?? "https://clockd.nl").TrimEnd('/');
 
-    private bool SmtpConfigured => !string.IsNullOrWhiteSpace(_configuration["Email:SmtpHost"]);
+    private bool SmtpConfigured
+    {
+        get
+        {
+            var host = _configuration["Email:SmtpHost"];
+            var user = _configuration["Email:SmtpUser"];
+            var pass = _configuration["Email:SmtpPassword"];
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass)) return false;
+            // Placeholders uit een voorbeeldconfig tellen niet als configuratie.
+            return !user.StartsWith("your-", StringComparison.OrdinalIgnoreCase) && !pass.StartsWith("your-", StringComparison.OrdinalIgnoreCase);
+        }
+    }
 
     private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody)
     {
