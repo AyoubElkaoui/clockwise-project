@@ -1,3 +1,4 @@
+import { showToast } from "@/components/ui/toast";
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -74,7 +75,7 @@ export default function TwoFactorPage() {
       });
 
       if (response.ok) {
-        alert('2FA is uitgeschakeld!');
+        showToast('Tweestapsverificatie is uitgeschakeld', 'success');
         setShowDisable(false);
         setDisableCode('');
         fetchStatus();

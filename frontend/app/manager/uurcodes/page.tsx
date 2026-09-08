@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react";
 import { showToast } from "@/components/ui/toast";
+import { confirmDialog } from "@/components/ui/confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -110,9 +111,9 @@ export default function UurcodesPage() {
     }
   };
 
-  const handleSelectMember = (member: TeamMember) => {
+  const handleSelectMember = async (member: TeamMember) => {
     if (hasChanges) {
-      if (!confirm("Je hebt onopgeslagen wijzigingen. Wil je doorgaan?")) return;
+      if (!(await confirmDialog({ title: "Niet-opgeslagen wijzigingen", body: "Je hebt wijzigingen die nog niet zijn opgeslagen. Als je doorgaat, gaan die verloren.", okLabel: "Doorgaan zonder opslaan", icon: "warning", danger: true }))) return;
     }
     setSelectedMember(member);
     loadAllocations(member);

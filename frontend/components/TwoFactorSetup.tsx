@@ -1,3 +1,4 @@
+import { showToast } from "@/components/ui/toast";
 'use client';
 
 import { useState } from 'react';
@@ -95,7 +96,7 @@ export function TwoFactorSetup() {
         // Clear the 2FA setup requirement flag
         localStorage.removeItem('require2FASetup');
         localStorage.setItem('twoFactorEnabled', 'true');
-        alert('2FA succesvol geactiveerd! 🎉');
+        showToast('Tweestapsverificatie is geactiveerd', 'success');
         // Redirect to dashboard based on role
         const userRank = localStorage.getItem('userRank');
         if (userRank === 'manager') {

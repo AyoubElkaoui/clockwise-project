@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { showToast } from "@/components/ui/toast";
+import { confirmDialog } from "@/components/ui/confirm";
 import { LoadingSpinner } from "@/components/ui/loading";
 import {
   Search,
@@ -253,7 +254,7 @@ export default function ManagerProjectToewijzingPage() {
 
   const handleRemove = async (userId: number) => {
     if (!selectedProject) return;
-    if (!confirm("Medewerker verwijderen van dit project?")) return;
+    if (!(await confirmDialog({ title: "Toewijzing verwijderen", body: "De medewerker wordt van dit project gehaald en kan er geen uren meer op schrijven.", okLabel: "Verwijderen", danger: true }))) return;
     const pid = getProjectId(selectedProject);
     try {
       await removeUserFromProject(userId, pid);

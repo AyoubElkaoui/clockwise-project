@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { showToast } from "@/components/ui/toast";
+import { confirmDialog } from "@/components/ui/confirm";
 import { LoadingSpinner } from "@/components/ui/loading";
 import authUtils from "@/lib/auth-utils";
 import {
@@ -135,7 +136,7 @@ export default function JaarkalenderPage() {
   };
 
   const handleDelete = async (holidayId: number) => {
-    if (!confirm("Weet je zeker dat je deze dag wilt verwijderen?")) return;
+    if (!(await confirmDialog({ title: "Dag verwijderen", body: "Weet je zeker dat je deze dag uit de jaarkalender wilt verwijderen?", okLabel: "Verwijderen", danger: true }))) return;
 
     try {
       await deleteHoliday(holidayId);
@@ -158,7 +159,7 @@ export default function JaarkalenderPage() {
   };
 
   const handleGenerateHolidays = async () => {
-    if (!confirm(`Wil je de Nederlandse feestdagen genereren voor ${currentYear}?`)) return;
+    if (!(await confirmDialog({ title: "Feestdagen genereren", body: `De Nederlandse feestdagen voor ${currentYear} worden toegevoegd aan de jaarkalender.`, okLabel: "Genereren", icon: "warning" }))) return;
 
     try {
       const result = await generateHolidaysForYear(currentYear);

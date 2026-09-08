@@ -5,6 +5,7 @@ import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastContainer } from "@/components/ui/toast";
+import { ConfirmHost } from "@/components/ui/confirm";
 import "@/lib/i18n"; // Initialize i18next
 import "@/lib/installFetchAuth"; // Attach Bearer token to raw fetch() API calls
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {children}
           </div>
           <ToastContainer />
+          <ConfirmHost />
         </ThemeProvider>
       </body>
     </html>
