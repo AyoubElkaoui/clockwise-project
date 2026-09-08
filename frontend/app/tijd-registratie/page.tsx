@@ -445,13 +445,16 @@ export default function TijdRegistratiePage() {
             {dirtyList.length > 0 && <span className="flex items-center gap-1" style={{ color: "var(--amber)" }}><AlertTriangle size={12} /> Niet-opgeslagen wijzigingen</span>}
           </div>
 
+          {/* Toolbar: filter + project toevoegen (buiten het scrollende raster, zodat het zoekvenster nooit afgekapt wordt) */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ width: 260 }}><RowFilter value={rowFilter} onChange={setRowFilter} /></div>
+            <ProjectPicker open={picker} setOpen={setPicker} query={pickerQuery} setQuery={setPickerQuery} items={pickerItems} loaded={catalog.length > 0} onPick={addRow} anchorRef={pickerRef} favoriteIds={favoriteIds} />
+            <span style={{ font: "400 11.5px 'Geist'", color: "var(--muted)" }}>{allRows.length} rij{allRows.length === 1 ? "" : "en"} · ster = favoriet, staat altijd klaar</span>
+          </div>
+
           {/* ===== LIST VIEW: dagen onder elkaar ===== */}
           {view === "list" && (
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--panel)", overflow: "hidden" }}>
-              <div style={{ padding: 8, display: "flex", gap: 6, borderBottom: "1px solid var(--border)", background: "var(--panel-2)" }}>
-                <RowFilter value={rowFilter} onChange={setRowFilter} />
-                <ProjectPicker open={picker} setOpen={setPicker} query={pickerQuery} setQuery={setPickerQuery} items={pickerItems} loaded={catalog.length > 0} onPick={addRow} anchorRef={pickerRef} />
-              </div>
               {loading && <div style={{ padding: 24, font: "400 13px 'Geist'", color: "var(--muted)" }}>Uren laden…</div>}
               {!loading && allRows.length === 0 && <EmptyRows />}
               {!loading && days.map((d) => {
@@ -509,10 +512,7 @@ export default function TijdRegistratiePage() {
 
               {/* Day header */}
               <div style={{ display: "grid", gridTemplateColumns: gridCols, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
-                <div style={{ padding: 8, display: "flex", gap: 6, position: "sticky", left: 0, background: "var(--panel)", zIndex: 4 }}>
-                  <RowFilter value={rowFilter} onChange={setRowFilter} />
-                  <ProjectPicker open={picker} setOpen={setPicker} query={pickerQuery} setQuery={setPickerQuery} items={pickerItems} loaded={catalog.length > 0} onPick={addRow} anchorRef={pickerRef} compact={view === "month"} />
-                </div>
+                <div style={{ padding: "12px 12px", font: "600 12px 'Geist'", color: "var(--text-2)", position: "sticky", left: 0, background: "var(--panel)", zIndex: 4, display: "flex", alignItems: "center" }}>Project</div>
                 {days.map((d) => {
                   const info = dayInfo(d);
                   return (
@@ -634,24 +634,54 @@ function RowFilter({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
-function ProjectPicker({ open, setOpen, query, setQuery, items, loaded, onPick, anchorRef, compact }: {
-  open: boolean; setOpen: (f: (v: boolean) => boolean) => void; query: string; setQuery: (q: string) => void; items: CatalogProject[]; loaded: boolean; onPick: (id: number) => void; anchorRef: React.RefObject<HTMLDivElement | null>; compact?: boolean;
+function ProjectPicker({ open, setOpen, query, setQuery, items, loaded, onPick, anchorRef, favoriteIds }: {
+  open: boolean; setOpen: (f: (v: boolean) => boolean) => void; query: string; setQuery: (q: string) => void; items: CatalogProject[]; loaded: boolean; onPick: (id: number) => void; anchorRef: React.RefObject<HTMLDivElement | null>; favoriteIds: Set<number>;
 }) {
+  const grouped = useMemo(() => {
+    const m = new Map<string, CatalogProject[]>();
+    for (const c of items) (m.get(c.groupName || "Overig") || m.set(c.groupName || "Overig", []).get(c.groupName || "Overig")!).push(c);
+    return [...m.entries()];
+  }, [items]);
+  const highlight = (text: string) => {
+    const q = query.trim();
+    if (!q) return text;
+    const i = text.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return text;
+    return <>{text.slice(0, i)}<mark style={{ background: "var(--amber-weak)", color: "inherit", borderRadius: 2 }}>{text.slice(i, i + q.length)}</mark>{text.slice(i + q.length)}</>;
+  };
   return (
     <div ref={anchorRef} style={{ position: "relative" }}>
-      <Btn onClick={() => setOpen((v) => !v)} variant="outline" title="Project toevoegen"><Plus size={14} />{compact ? "" : " Project"}</Btn>
+      <Btn onClick={() => setOpen((v) => !v)} variant="primary" title="Project toevoegen aan je overzicht"><Plus size={14} /> Project toevoegen</Btn>
       {open && (
-        <div style={{ position: "absolute", top: 36, left: 0, width: 380, maxHeight: 420, overflow: "auto", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,.18)", zIndex: 20 }}>
-          <div style={{ padding: 8, position: "sticky", top: 0, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
-            <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Zoek op projectnummer of naam…" style={{ width: "100%", height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
+        <div style={{ position: "absolute", top: 38, left: 0, width: 480, maxHeight: 460, display: "flex", flexDirection: "column", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 16px 40px rgba(0,0,0,.2)", zIndex: 40 }}>
+          <div style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>
+            <div style={{ position: "relative" }}>
+              <Search size={14} style={{ position: "absolute", left: 10, top: 11, color: "var(--muted)" }} />
+              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setOpen(() => false); if (e.key === "Enter" && items[0]) onPick(items[0].id); }}
+                placeholder="Zoek op projectnummer, naam of groep…"
+                style={{ width: "100%", height: 36, paddingLeft: 32, paddingRight: 10, borderRadius: 8, border: "1px solid var(--accent-border)", background: "var(--panel-2)", color: "var(--text)", font: "400 13px 'Geist'", outline: "none" }} />
+            </div>
+            <div style={{ marginTop: 6, font: "400 11px 'Geist'", color: "var(--muted)" }}>Enter kiest het eerste resultaat · Esc sluit</div>
           </div>
-          {items.length === 0 && <div style={{ padding: 14, font: "400 12.5px 'Geist'", color: "var(--muted)" }}>{loaded ? "Geen projecten gevonden" : "Projecten laden…"}</div>}
-          {items.map((c) => (
-            <button key={c.id} type="button" onClick={() => onPick(c.id)} className="hover:bg-[var(--hover)]" style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", border: "none", background: "transparent", cursor: "pointer" }}>
-              <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)" }}>{c.code} <span style={{ fontWeight: 500 }}>{c.name}</span></div>
-              <div style={{ font: "400 11px 'Geist'", color: "var(--muted)" }}>{c.groupName}</div>
-            </button>
-          ))}
+          <div style={{ overflow: "auto" }}>
+            {items.length === 0 && <div style={{ padding: 16, font: "400 12.5px 'Geist'", color: "var(--muted)" }}>{loaded ? "Geen projecten gevonden" : "Projecten laden…"}</div>}
+            {grouped.map(([group, list]) => (
+              <div key={group}>
+                <div style={{ padding: "8px 12px 4px", font: "700 10.5px 'Geist'", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)", position: "sticky", top: 0, background: "var(--panel)" }}>{group}</div>
+                {list.map((c) => (
+                  <button key={c.id} type="button" onClick={() => onPick(c.id)} className="hover:bg-[var(--hover)]" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "8px 12px", border: "none", background: "transparent", cursor: "pointer" }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 7, background: "var(--accent-weak)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}><Plus size={14} /></span>
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span style={{ display: "block", font: "600 12.5px 'Geist Mono', monospace", color: "var(--text)" }}>{highlight(c.code)}</span>
+                      <span style={{ display: "block", font: "400 12.5px 'Geist'", color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{highlight(c.name)}</span>
+                    </span>
+                    {favoriteIds.has(c.id) && <Star size={13} style={{ color: "var(--amber)", flex: "none" }} fill="currentColor" />}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
