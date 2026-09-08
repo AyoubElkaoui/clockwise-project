@@ -162,9 +162,9 @@ public class PostgresUsersController : ControllerBase
     public async Task<IActionResult> UpdateUserByMedewGcId(int medewGcId, [FromBody] UpdateUserRequest request)
     {
         if (!IsManagerOrAdmin) return Forbid();
-        var changesRoleOrStatus = request.Role != null || request.Rank != null || request.IsActive != null;
-        if (changesRoleOrStatus && !IsAdmin)
-            return StatusCode(403, new { error = "Alleen een admin kan rol of status wijzigen" });
+        // Managers mogen teamleden (de)activeren en contractgegevens wijzigen; de ROL wijzigen mag alleen een admin.
+        if (request.Role != null && !IsAdmin)
+            return StatusCode(403, new { error = "Alleen een admin kan de rol wijzigen" });
         if (request.Role != null && request.Role is not ("user" or "manager" or "admin"))
             return BadRequest(new { error = "Ongeldige rol" });
         if (request.Rank != null && request.Rank is not ("user" or "manager" or "admin" or "inactive"))
@@ -198,8 +198,8 @@ public class PostgresUsersController : ControllerBase
                 }
                 else
                 {
-                    // Setting active with a role
-                    newRole = request.Rank;
+                    // Setting active; the role in "rank" is only applied by an admin (managers re-activate without changing the role)
+                    newRole = IsAdmin ? request.Rank : null;
                     newIsActive = true;
                 }
             }
