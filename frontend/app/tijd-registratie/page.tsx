@@ -105,6 +105,9 @@ export default function TijdRegistratiePage() {
   const [pickerQuery, setPickerQuery] = useState("");
   const [rowFilter, setRowFilter] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
+  const [confirmState, setConfirmState] = useState<{ title: string; body: string; okLabel: string; danger?: boolean; resolve: (ok: boolean) => void } | null>(null);
+  const askConfirm = (title: string, body: string, okLabel = "Doorgaan", danger = false) =>
+    new Promise<boolean>((resolve) => setConfirmState({ title, body, okLabel, danger, resolve }));
 
   /* ---------- derived dates ---------- */
   const days = useMemo<Date[]>(() => {
@@ -276,7 +279,7 @@ export default function TijdRegistratiePage() {
   const removeRow = async (row: Row) => {
     const own = Object.values(entries).filter((e) => e.rowKey === row.key);
     if (own.some((e) => isLocked(e.status))) { showToast("Deze rij heeft ingeleverde of goedgekeurde uren en kan niet verwijderd worden.", "error"); return; }
-    if (own.some((e) => e.hours > 0 || e.id) && !confirm(`Rij "${row.name}" en de opgeslagen concept-uren in dit bereik verwijderen?`)) return;
+    if (own.some((e) => e.hours > 0 || e.id) && !(await askConfirm("Rij verwijderen", `"${row.code} ${row.name}" en de opgeslagen concept-uren in dit bereik worden verwijderd.`, "Verwijderen", true))) return;
     try {
       for (const e of own) if (e.id) await deleteDraft(e.id);
       setEntries((prev) => { const n = { ...prev }; own.forEach((e) => delete n[entryKey(e.date, e.rowKey)]); return n; });
@@ -345,7 +348,8 @@ export default function TijdRegistratiePage() {
     if (!(await saveAll())) return;
     const toSubmit = Object.values(entries).filter((e) => e.id && !isEmpty(e) && (e.status === "DRAFT" || e.status === "REJECTED" || !e.status));
     if (toSubmit.length === 0) { showToast("Geen opgeslagen uren om in te leveren in dit bereik.", "info"); return; }
-    if (!confirm(`${toSubmit.length} regel(s) inleveren ter goedkeuring? Daarna kun je ze niet meer wijzigen.`)) return;
+    const hrs = toSubmit.reduce((a, e) => a + e.hours, 0);
+    if (!(await askConfirm("Uren inleveren", `${toSubmit.length} regel${toSubmit.length === 1 ? "" : "s"} (${fmtH(hrs) || 0} uur) worden ter goedkeuring naar je manager gestuurd. Daarna kun je ze niet meer wijzigen.`, "Inleveren"))) return;
     setSaving(true);
     try {
       const byPeriod: Record<number, { draft: number[]; rejected: number[] }> = {};
@@ -600,6 +604,13 @@ export default function TijdRegistratiePage() {
           </div>
           )}
         </div>
+        {confirmState && (
+          <ConfirmDialog
+            title={confirmState.title} body={confirmState.body} okLabel={confirmState.okLabel} danger={confirmState.danger}
+            onCancel={() => { confirmState.resolve(false); setConfirmState(null); }}
+            onOk={() => { confirmState.resolve(true); setConfirmState(null); }}
+          />
+        )}
       </ModernLayout>
     </ProtectedRoute>
   );
@@ -684,6 +695,28 @@ function ProjectPicker({ open, setOpen, query, setQuery, items, loaded, onPick, 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ConfirmDialog({ title, body, okLabel, danger, onOk, onCancel }: { title: string; body: string; okLabel: string; danger?: boolean; onOk: () => void; onCancel: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); if (e.key === "Enter") onOk(); };
+    window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
+  }, [onOk, onCancel]);
+  return (
+    <div onClick={onCancel} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(10,11,13,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: 420, maxWidth: "100%", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 24px 64px rgba(0,0,0,.3)", padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <span style={{ width: 34, height: 34, borderRadius: 9, background: danger ? "var(--red-weak)" : "var(--accent-weak)", color: danger ? "var(--red)" : "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>{danger ? <X size={16} /> : <Send size={16} />}</span>
+          <div style={{ font: "700 15px 'Geist'", color: "var(--text)" }}>{title}</div>
+        </div>
+        <div style={{ font: "400 13px 'Geist'", color: "var(--text-2)", lineHeight: 1.5, marginBottom: 18 }}>{body}</div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Btn onClick={onCancel} variant="outline">Annuleren</Btn>
+          <button type="button" onClick={onOk} autoFocus style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "none", background: danger ? "var(--red)" : "var(--accent)", color: "#fff", font: "600 12.5px 'Geist'", cursor: "pointer" }}>{okLabel}</button>
+        </div>
+      </div>
     </div>
   );
 }
