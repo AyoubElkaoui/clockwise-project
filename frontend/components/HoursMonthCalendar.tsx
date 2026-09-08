@@ -125,11 +125,11 @@ export default function HoursMonthCalendar({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: `28px repeat(7, 1fr) 40px`, gap: 3, alignItems: "center" }}>
-        <div style={{ font: "600 10px 'Geist'", color: "var(--muted)" }}>Wk</div>
+        <div style={{ font: "600 11px 'Geist'", color: "var(--muted)" }}>Wk</div>
         {DAYS.map((d) => (
-          <div key={d} style={{ font: "600 10px 'Geist'", color: "var(--muted)", textAlign: "center" }}>{d}</div>
+          <div key={d} style={{ font: "600 11px 'Geist'", color: "var(--muted)", textAlign: "center" }}>{d}</div>
         ))}
-        <div style={{ font: "600 10px 'Geist'", color: "var(--muted)", textAlign: "right" }}>Tot.</div>
+        <div style={{ font: "600 11px 'Geist'", color: "var(--muted)", textAlign: "right" }}>Tot.</div>
 
         {weeks.map((row) => {
           const wk = isoWeek(row[0]);
@@ -158,7 +158,7 @@ export default function HoursMonthCalendar({
                       borderRadius: 6,
                       border: isSelected ? "1.5px solid var(--accent)" : isToday ? "1px solid var(--accent-border)" : "1px solid transparent",
                       background: st === "NONE" ? (weekend ? "var(--weekend, transparent)" : "transparent") : style.bg,
-                      color: st === "NONE" ? (outside ? "var(--border)" : "var(--muted)") : style.fg,
+                      color: st === "NONE" ? "var(--muted)" : style.fg,
                       opacity: outside ? 0.45 : 1,
                       font: `${info ? 600 : 500} 11px 'Geist'`,
                       cursor: onSelectDay ? "pointer" : "default",
@@ -174,7 +174,7 @@ export default function HoursMonthCalendar({
                       <span>{info ? fmt(info.hours) : d.getDate()}</span>
                     ) : (
                       <>
-                        <span style={{ fontSize: 9, opacity: 0.8 }}>{d.getDate()}</span>
+                        <span style={{ fontSize: 10, opacity: 0.8 }}>{d.getDate()}</span>
                         <span>{info ? `${fmt(info.hours)}u` : ""}</span>
                       </>
                     )}
@@ -192,7 +192,7 @@ export default function HoursMonthCalendar({
       <div className="flex items-center justify-between" style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           {(["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] as DayStatus[]).map((k) => (
-            <span key={k} className="flex items-center gap-1" style={{ font: "500 10px 'Geist'", color: "var(--text-2)" }}>
+            <span key={k} className="flex items-center gap-1" style={{ font: "500 11px 'Geist'", color: "var(--text-2)" }}>
               <span style={{ width: 8, height: 8, borderRadius: 2, background: STATUS_STYLE[k].fg, display: "inline-block" }} />
               {STATUS_STYLE[k].label}
             </span>

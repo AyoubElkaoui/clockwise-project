@@ -597,7 +597,7 @@ export default function ManagerReviewTimePage() {
                             disabled={processing}
                             title="Goedkeuren"
                             className="flex items-center justify-center rounded-lg disabled:opacity-40"
-                            style={{ width: 32, height: 32, border: "1px solid transparent", background: "var(--green)", color: "#fff" }}
+                            style={{ width: 32, height: 32, border: "1px solid transparent", background: "var(--green-btn)", color: "#fff" }}
                           >
                             <CheckCircle className="w-4 h-4" />
                           </button>

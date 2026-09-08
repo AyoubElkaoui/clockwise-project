@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className={`${geist.variable} ${geistMono.variable}`}>
         <ThemeProvider>
-          <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-x-hidden">
+          <div className="min-h-screen overflow-x-hidden" style={{ background: "var(--bg)", color: "var(--text)" }}>
             {children}
           </div>
           <ToastContainer />

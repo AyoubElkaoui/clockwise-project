@@ -18,17 +18,20 @@
   --hover: #f1f2f4;
   --border: #e7e8ea;
   --text: #17181a;
-  --text-2: #54585f;
-  --muted: #8b9098;
+  --text-2: #4b4f56;
+  --muted: #6b7079;
   --accent: #3a5bd0;
+  --accent-btn: #3a5bd0;
   --accent-weak: color-mix(in srgb, var(--accent) 9%, var(--panel));
   --accent-border: color-mix(in srgb, var(--accent) 30%, var(--border));
   --amber: #b7791f;
   --amber-weak: #fbf3e2;
   --green: #1f9d6b;
   --green-weak: #e7f6ee;
-  --red: #dc5252;
+  --red: #c94444;
   --red-weak: #fdecec;
+  --green-btn: #1b8a5c;
+  --red-btn: #c94444;
   --weekend: #faf9f7;
   --shadow: 0 1px 2px rgba(16, 17, 26, .05), 0 1px 3px rgba(16, 17, 26, .05);
   --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
@@ -43,15 +46,18 @@ html.dark {
   --hover: #1d1f23;
   --border: #26282d;
   --text: #eef0f2;
-  --text-2: #b3b8bf;
-  --muted: #797f88;
-  --accent: #617ff0;
+  --text-2: #c2c7ce;
+  --muted: #9298a2;
+  --accent: #5b78e6;
+  --accent-btn: #4460d6;
   --amber: #d99b3a;
   --amber-weak: #2a2113;
   --green: #3fb27f;
   --green-weak: #13241c;
   --red: #e06666;
   --red-weak: #2a1414;
+  --green-btn: #1f8f60;
+  --red-btn: #c94a4a;
   --weekend: #0e0f12;
   --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 1px 3px rgba(0, 0, 0, .3);
   --brand: #8aa2f5;
@@ -458,3 +464,6 @@ html.dark .hover\:bg-slate-800:hover { background-color: var(--hover) !important
     padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 }
+
+/* Contrast: Tailwind's slate-400/gray-400 is te licht voor tekst op wit; gebruik de muted-token in light mode */
+html:not(.dark) .text-slate-400, html:not(.dark) .text-gray-400 { color: var(--muted); }

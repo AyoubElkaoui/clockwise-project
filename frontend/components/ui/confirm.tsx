@@ -74,7 +74,7 @@ export function ConfirmHost() {
             {pending.cancelLabel || "Annuleren"}
           </button>
           <button type="button" onClick={() => close(true)} autoFocus
-            style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "none", background: danger ? "var(--red)" : "var(--accent)", color: "#fff", font: "600 12.5px 'Geist'", cursor: "pointer" }}>
+            style={{ height: 32, padding: "0 14px", borderRadius: 8, border: "none", background: danger ? "var(--red-btn)" : "var(--accent-btn)", color: "#fff", font: "600 12.5px 'Geist'", cursor: "pointer" }}>
             {pending.okLabel || "Doorgaan"}
           </button>
         </div>

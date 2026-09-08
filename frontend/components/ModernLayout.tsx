@@ -21,7 +21,7 @@ export default function ModernLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
       
       {/* Sidebar */}
       <ModernSidebar collapsed={isCollapsed} onToggle={handleSidebarToggle} />

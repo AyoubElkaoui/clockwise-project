@@ -88,6 +88,14 @@ export default function UrenOverzichtPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rangeFrom, rangeTo]);
 
+  const normalizeStatus = (st: string): string => {
+    const u = (st || "").toUpperCase();
+    if (u === "APPROVED") return "goedgekeurd";
+    if (u === "SUBMITTED" || u === "APPROVING") return "ingeleverd";
+    if (u === "REJECTED") return "afgekeurd";
+    return "concept";
+  };
+
   const loadEntries = async (from: string, to: string) => {
     setLoading(true);
     try {
@@ -111,7 +119,7 @@ export default function UrenOverzichtPage() {
         expenses: (Number(e.travelCosts) || 0) + (Number(e.otherExpenses) || 0),
         breakMinutes: 0,
         notes: e.omschrijving || "",
-        status: e.status,
+        status: normalizeStatus(e.status),
         startTime: e.datum,
         endTime: e.datum,
         companyId: 0,
@@ -286,41 +294,61 @@ export default function UrenOverzichtPage() {
     });
   };
 
-  const exportToCSV = () => {
-    const csvContent = [
-      [
-        "Datum",
-        "Groep",
-        "Project",
-        "Uren",
-        "KM",
-        "Onkosten",
-        "Status",
-        "Opmerkingen",
-      ].join(","),
-      ...filteredEntries.map((entry) =>
-        [
-          entry.date,
-          entry.projectGroupName || "",
-          entry.projectName,
-          entry.hours,
-          entry.km,
-          entry.expenses,
-          getStatusLabel(entry.status),
-          `"${entry.notes || ""}"`,
-        ].join(","),
-      ),
-    ].join("\n");
+  const exportToExcel = async () => {
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "Clockd";
+      const periodLabel = startDate && endDate ? `${dayjs(startDate).format("D MMM YYYY")} – ${dayjs(endDate).format("D MMM YYYY")}` : viewMode === "week" ? `Week ${currentPeriod.isoWeek()} ${currentPeriod.year()}` : viewMode === "month" ? currentPeriod.format("MMMM YYYY") : currentPeriod.format("YYYY");
+      const name = `${localStorage.getItem("firstName") || ""} ${localStorage.getItem("lastName") || ""}`.trim();
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `uren-${viewMode}-${currentPeriod.format("YYYY-MM-DD")}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      // Blad 1: samenvatting
+      const sum = wb.addWorksheet("Samenvatting");
+      sum.columns = [{ width: 28 }, { width: 18 }];
+      sum.addRow(["Urenoverzicht", name]).font = { bold: true, size: 14 };
+      sum.addRow(["Periode", periodLabel]);
+      sum.addRow(["Gegenereerd", dayjs().format("D-M-YYYY HH:mm")]);
+      sum.addRow([]);
+      const byStatus = (st: string) => filteredEntries.filter((e) => e.status === st).reduce((t, e) => t + (e.hours || 0), 0);
+      [["Totaal uren", stats.total], ["Goedgekeurd", byStatus("goedgekeurd")], ["In behandeling", byStatus("ingeleverd")], ["Concept", byStatus("concept")], ["Afgekeurd", byStatus("afgekeurd")],
+       ["Kilometers", filteredEntries.reduce((t, e) => t + (e.km || 0), 0)], ["Kosten (€)", filteredEntries.reduce((t, e) => t + (e.expenses || 0), 0)]]
+        .forEach(([k, v]) => { const r = sum.addRow([k, v]); r.getCell(2).numFmt = "0.00"; });
+      sum.addRow([]);
+      sum.addRow(["Per project", "Uren"]).font = { bold: true };
+      const perProject = new Map<string, number>();
+      filteredEntries.forEach((e) => perProject.set(`${e.projectCode ? e.projectCode + " " : ""}${e.projectName}`, (perProject.get(`${e.projectCode ? e.projectCode + " " : ""}${e.projectName}`) || 0) + (e.hours || 0)));
+      [...perProject.entries()].sort((x, y) => y[1] - x[1]).forEach(([k, v]) => { const r = sum.addRow([k, v]); r.getCell(2).numFmt = "0.00"; });
+
+      // Blad 2: registraties
+      const ws = wb.addWorksheet("Registraties");
+      ws.columns = [
+        { header: "Datum", key: "date", width: 12 }, { header: "Dag", key: "day", width: 6 }, { header: "Projectnummer", key: "code", width: 18 },
+        { header: "Project", key: "project", width: 36 }, { header: "Taak", key: "task", width: 20 }, { header: "Uren", key: "hours", width: 8 },
+        { header: "Km", key: "km", width: 8 }, { header: "Kosten (€)", key: "expenses", width: 11 }, { header: "Status", key: "status", width: 15 }, { header: "Opmerking", key: "notes", width: 50 },
+      ];
+      ws.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+      ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3A5BD0" } };
+      ws.views = [{ state: "frozen", ySplit: 1 }];
+      [...filteredEntries].sort((x, y) => x.date.localeCompare(y.date)).forEach((e) => {
+        ws.addRow({ date: dayjs(e.date).toDate(), day: dayjs(e.date).format("dd"), code: e.projectCode || "", project: e.projectName, task: e.taskName || "", hours: e.hours, km: e.km || 0, expenses: e.expenses || 0, status: getStatusLabel(e.status), notes: e.notes || "" });
+      });
+      ws.getColumn("date").numFmt = "dd-mm-yyyy";
+      ["hours", "km", "expenses"].forEach((k) => (ws.getColumn(k).numFmt = "0.00"));
+      const totalRow = ws.addRow({ project: "Totaal", hours: stats.total, km: filteredEntries.reduce((t, e) => t + (e.km || 0), 0), expenses: filteredEntries.reduce((t, e) => t + (e.expenses || 0), 0) });
+      totalRow.font = { bold: true };
+      ws.autoFilter = { from: "A1", to: "J1" };
+
+      const buf = await wb.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `uren-${name.replace(/\s+/g, "-").toLowerCase() || "overzicht"}-${(startDate && endDate ? startDate : currentPeriod.format("YYYY-MM-DD"))}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("Excel-bestand gedownload", "success");
+    } catch {
+      showToast("Export mislukt", "error");
+    }
   };
 
   const SimpleBarChart = ({ data }: { data: any[] }) => {
@@ -395,7 +423,7 @@ export default function UrenOverzichtPage() {
             actions={
               <Button
                 size="sm"
-                onClick={exportToCSV}
+                onClick={exportToExcel}
                 disabled={filteredEntries.length === 0}
               >
                 <Download className="w-4 h-4 mr-2" />
@@ -598,7 +626,7 @@ export default function UrenOverzichtPage() {
                       onClick={() => setDisplayView("cards")}
                       className={
                         displayView === "cards"
-                          ? "text-slate-900 dark:text-white"
+                          ? ""
                           : "text-slate-700 dark:text-slate-300"
                       }
                     >
@@ -611,7 +639,7 @@ export default function UrenOverzichtPage() {
                       onClick={() => setDisplayView("table")}
                       className={
                         displayView === "table"
-                          ? "text-slate-900 dark:text-white"
+                          ? ""
                           : "text-slate-700 dark:text-slate-300"
                       }
                     >
@@ -640,6 +668,28 @@ export default function UrenOverzichtPage() {
                         ? "Probeer andere filters"
                         : "Start met het registreren van je uren"}
                     </p>
+                  </div>
+                ) : displayView === "cards" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {paginatedEntries.map((entry) => {
+                      const s = (entry.status || "").toUpperCase();
+                      const pill = s.includes("GOEDGE") ? { c: "var(--green)", b: "var(--green-weak)", l: "Goedgekeurd" } : s.includes("AFGE") ? { c: "var(--red)", b: "var(--red-weak)", l: "Afgekeurd" } : s.includes("INGELE") ? { c: "var(--accent)", b: "var(--accent-weak)", l: "In behandeling" } : { c: "var(--amber)", b: "var(--amber-weak)", l: "Concept" };
+                      return (
+                        <div key={entry.id} style={{ border: "1px solid var(--border)", borderLeft: `4px solid ${pill.c}`, borderRadius: 10, padding: 12, background: "var(--panel)" }}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div style={{ font: "600 12px 'Geist'", color: "var(--muted)", textTransform: "capitalize" }}>{dayjs(entry.date).format("dd D MMM YYYY")}</div>
+                            <span style={{ padding: "2px 8px", borderRadius: 99, background: pill.b, color: pill.c, font: "600 11px 'Geist'" }}>{pill.l}</span>
+                          </div>
+                          <div className="truncate" style={{ font: "600 14px 'Geist'", color: "var(--text)", marginTop: 6 }}>{entry.projectName}</div>
+                          <div className="truncate" style={{ font: "500 11.5px 'Geist Mono', monospace", color: "var(--muted)" }}>{entry.projectCode || entry.taskName || ""}</div>
+                          <div className="flex items-end justify-between" style={{ marginTop: 10 }}>
+                            <div style={{ font: "400 12px 'Geist'", color: "var(--text-2)" }}>{entry.km ? `${entry.km} km` : ""}{entry.km && entry.expenses ? " · " : ""}{entry.expenses ? `€ ${entry.expenses.toFixed(2)}` : ""}</div>
+                            <div style={{ font: "700 20px 'Geist Mono', monospace", color: "var(--text)" }}>{entry.hours}<span style={{ font: "500 12px 'Geist'", color: "var(--muted)", marginLeft: 2 }}>u</span></div>
+                          </div>
+                          {entry.notes && <div style={{ font: "400 12px 'Geist'", color: "var(--text-2)", marginTop: 8, borderTop: "1px solid var(--border)", paddingTop: 8 }}>{entry.notes}</div>}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="-mx-6 -mb-6">
@@ -723,7 +773,7 @@ export default function UrenOverzichtPage() {
                                 onClick={() => handlePageChange(page)}
                                 className={
                                   page === currentPage
-                                    ? "text-slate-900 dark:text-white"
+                                    ? ""
                                     : "text-slate-700 dark:text-slate-300"
                                 }
                               >

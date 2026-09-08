@@ -155,7 +155,7 @@ export default function RapportagesPage() {
 
   /* ---- UI ---- */
   const step = (n: number) => setAnchor(anchor.add(n, view === "week" ? "week" : view));
-  const th: React.CSSProperties = { font: "600 10.5px 'Geist'", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap" };
+  const th: React.CSSProperties = { font: "600 11.5px 'Geist'", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", padding: "8px 10px", textAlign: "right", whiteSpace: "nowrap" };
   const td: React.CSSProperties = { padding: "8px 10px", font: "500 12.5px 'Geist'", color: "var(--text)", textAlign: "right", whiteSpace: "nowrap", borderTop: "1px solid var(--border)" };
   const Pill = ({ st, n }: { st: DayStatus; n: number }) => n > 0 ? <span style={{ padding: "1px 7px", borderRadius: 99, background: STATUS_STYLE[st].bg, color: STATUS_STYLE[st].fg, font: "600 11px 'Geist Mono', monospace" }}>{fmt(n)}</span> : <span style={{ color: "var(--muted)" }}>–</span>;
   const Bar = ({ used, total }: { used: number; total: number }) => { const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0; return <div style={{ height: 5, borderRadius: 99, background: "var(--border)", width: 90, display: "inline-block", verticalAlign: "middle", marginLeft: 8 }}><div style={{ width: `${pct}%`, height: "100%", borderRadius: 99, background: pct >= 100 ? "var(--red)" : "var(--accent)" }} /></div>; };
@@ -173,26 +173,26 @@ export default function RapportagesPage() {
           <button type="button" onClick={() => step(1)} style={btn}><ChevronRight size={16} /></button>
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", marginLeft: 6 }}>
             {(["week", "month", "year"] as View[]).map((v) => (
-              <button key={v} type="button" onClick={() => { setView(v); setAnchor(anchor.startOf(v === "week" ? "isoWeek" : v)); }} style={{ padding: "0 12px", height: 32, border: "none", cursor: "pointer", font: "600 12.5px 'Geist'", background: view === v ? "var(--accent)" : "var(--panel)", color: view === v ? "#fff" : "var(--text-2)" }}>{v === "week" ? "Week" : v === "month" ? "Maand" : "Jaar"}</button>
+              <button key={v} type="button" onClick={() => { setView(v); setAnchor(anchor.startOf(v === "week" ? "isoWeek" : v)); }} style={{ padding: "0 12px", height: 32, border: "none", cursor: "pointer", font: "600 12.5px 'Geist'", background: view === v ? "var(--accent-btn)" : "var(--panel)", color: view === v ? "#fff" : "var(--text-2)" }}>{v === "week" ? "Week" : v === "month" ? "Maand" : "Jaar"}</button>
             ))}
           </div>
         </div>
         <div className="flex items-center gap-2" style={{ marginLeft: "auto" }}>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Zoeken…" style={{ height: 32, width: 200, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
-          <button type="button" onClick={exportExcel} style={{ ...btn, width: "auto", padding: "0 12px", gap: 6, background: "var(--accent)", color: "#fff", border: "none" }}><Download size={14} /> Excel</button>
+          <button type="button" onClick={exportExcel} style={{ ...btn, width: "auto", padding: "0 12px", gap: 6, background: "var(--accent-btn)", color: "#fff", border: "none" }}><Download size={14} /> Excel</button>
         </div>
       </div>
 
       {/* KPI's */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Totaal uren", value: `${fmt(grand)} u`, sub: `${entries.length} regels` },
-          { label: "Wacht op beoordeling", value: `${fmt(entries.filter((e) => e.status === "SUBMITTED").reduce((s, e) => s + e.aantal, 0))} u`, sub: "ingeleverd, nog niet beoordeeld", color: "var(--accent)" },
-          { label: "Goedgekeurd", value: `${fmt(entries.filter((e) => e.status === "APPROVED").reduce((s, e) => s + e.aantal, 0))} u`, sub: "geboekt in Syntess", color: "var(--green)" },
+          { label: "Totaal uren", value: `${fmt(grand) === "–" ? "0" : fmt(grand)} u`, sub: `${entries.length} regels` },
+          { label: "Wacht op beoordeling", value: `${entries.filter((e) => e.status === "SUBMITTED").reduce((s, e) => s + e.aantal, 0) || 0} u`, sub: "ingeleverd, nog niet beoordeeld", color: "var(--accent)" },
+          { label: "Goedgekeurd", value: `${entries.filter((e) => e.status === "APPROVED").reduce((s, e) => s + e.aantal, 0) || 0} u`, sub: "geboekt in Syntess", color: "var(--green)" },
           { label: "Nog niets ingeleverd", value: String(notSubmitted.length), sub: notSubmitted.slice(0, 3).map((r) => r.name.split(" ")[0]).join(", ") + (notSubmitted.length > 3 ? "…" : ""), color: notSubmitted.length ? "var(--red)" : "var(--green)" },
         ].map((k) => (
           <div key={k.label} style={{ background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 12, padding: 14 }}>
-            <div style={{ font: "600 10.5px 'Geist'", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>{k.label}</div>
+            <div style={{ font: "600 11.5px 'Geist'", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)" }}>{k.label}</div>
             <div style={{ font: "700 22px 'Geist'", color: k.color || "var(--text)", marginTop: 4 }}>{k.value}</div>
             <div style={{ font: "400 11.5px 'Geist'", color: "var(--muted)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k.sub}</div>
           </div>
