@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Data;
 using backend.Repositories;
@@ -15,12 +15,14 @@ public class UserProjectsController : ControllerBase
     private readonly IDbConnection _db;
     private readonly ILogger<UserProjectsController> _logger;
     private readonly INotificationRepository _notificationRepo;
+    private readonly ClockwiseProject.Backend.FirebirdConnectionFactory _firebird;
 
-    public UserProjectsController(IDbConnection db, ILogger<UserProjectsController> logger, INotificationRepository notificationRepo)
+    public UserProjectsController(IDbConnection db, ILogger<UserProjectsController> logger, INotificationRepository notificationRepo, ClockwiseProject.Backend.FirebirdConnectionFactory firebird)
     {
         _db = db;
         _logger = logger;
         _notificationRepo = notificationRepo;
+        _firebird = firebird;
     }
 
     // GET: api/user-projects/users/{userId} - eigen toewijzingen, of alles/anderen voor manager/admin (userId=0 = alle)
@@ -215,12 +217,23 @@ public class UserProjectsController : ControllerBase
 
             try
             {
+                string projectLabel = $"project {request.ProjectId}";
+                try
+                {
+                    using var fb = _firebird.CreateConnection();
+                    await fb.OpenAsync();
+                    var werk = await fb.QueryFirstOrDefaultAsync<(string? Code, string? Naam)>(
+                        "SELECT GC_CODE, GC_OMSCHRIJVING FROM AT_WERK WHERE GC_ID = @Id", new { Id = request.ProjectId });
+                    if (werk.Code != null) projectLabel = $"{werk.Code.Trim()} {werk.Naam?.Trim()}".Trim();
+                }
+                catch { /* naam is een extraatje; zonder Firebird valt hij terug op het nummer */ }
+
                 await _notificationRepo.CreateAsync(new CreateNotificationDto
                 {
                     UserId = request.UserId,
                     Type = "project_assigned",
                     Title = "Nieuw project toegewezen",
-                    Message = $"Je bent toegewezen aan project {request.ProjectId}",
+                    Message = $"Je bent toegewezen aan {projectLabel}. Het staat klaar bij Uren registreren.",
                     RelatedEntityType = "project",
                     RelatedEntityId = request.ProjectId
                 });

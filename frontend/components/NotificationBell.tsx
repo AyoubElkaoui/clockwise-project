@@ -103,6 +103,30 @@ const NotificationBell = () => {
     }
   };
 
+  const handleDelete = async (notificationId: number) => {
+    try {
+      const response = await fetch(buildApiUrl(`notifications/${notificationId}`), { method: "DELETE" });
+      if (response.ok) {
+        setNotifications((prev) => {
+          const removed = prev.find((n) => n.id === notificationId);
+          if (removed && !removed.isRead) setUnreadCount((c) => Math.max(0, c - 1));
+          return prev.filter((n) => n.id !== notificationId);
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
+  };
+
+  const handleDeleteRead = async () => {
+    try {
+      const response = await fetch(buildApiUrl("notifications/read"), { method: "DELETE" });
+      if (response.ok) setNotifications((prev) => prev.filter((n) => !n.isRead));
+    } catch (error) {
+      console.error("Error deleting read notifications:", error);
+    }
+  };
+
   const handleMarkAllAsRead = async () => {
     try {
       const userId = localStorage.getItem("userId");
@@ -275,7 +299,7 @@ const NotificationBell = () => {
               <div className="loading loading-spinner loading-md" />
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 bg-white dark:bg-gray-800">
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
               Geen notificaties gevonden
             </div>
           ) : (
@@ -294,7 +318,7 @@ const NotificationBell = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <span className="font-medium line-clamp-2">
+                      <span className="font-medium line-clamp-2 text-gray-900 dark:text-gray-100">
                         {notification.title}
                       </span>
                       {!notification.isRead && (
@@ -304,13 +328,21 @@ const NotificationBell = () => {
                       )}
                     </div>
 
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                       {notification.message}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {formatTimestamp(notification.createdAt)}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(notification.id); }}
+                    title="Verwijderen"
+                    className="shrink-0 rounded-md p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
@@ -327,14 +359,14 @@ const NotificationBell = () => {
             </div>
           )}
 
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <button
-              onClick={fetchNotifications}
-              className="btn btn-sm btn-outline w-full"
-            >
-              Vernieuwen
-            </button>
-          </div>
+          {notifications.length - unreadCount > 0 && (
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <button onClick={handleDeleteRead} className="btn btn-sm btn-outline w-full">
+                Gelezen wissen ({notifications.length - unreadCount})
+              </button>
+            </div>
+          )}
+          <p className="px-3 pb-2 text-[11px] text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">Gelezen meldingen verdwijnen automatisch na 30 dagen.</p>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-using backend.Models;
+﻿using backend.Models;
 using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +29,8 @@ namespace backend.Controllers
 
             try
             {
+                // Automatisch opruimen: gelezen > 30 dagen, ongelezen > 90 dagen
+                try { await _notificationRepository.DeleteOldAsync(userId.Value); } catch (Exception ex) { _logger.LogWarning(ex, "Notificaties opruimen mislukt voor {UserId}", userId); }
                 var notifications = await _notificationRepository.GetByUserIdAsync(userId.Value, unreadOnly);
 
                 var response = notifications.Select(n => new NotificationResponse
@@ -118,6 +120,24 @@ namespace backend.Controllers
             {
                 _logger.LogError(ex, "Error marking all notifications as read for user {UserId}", userId);
                 return StatusCode(500, new { error = "Fout bij markeren als gelezen" });
+            }
+        }
+
+        // DELETE: api/notifications/read - alle gelezen notificaties wissen
+        [HttpDelete("read")]
+        public async Task<IActionResult> DeleteRead()
+        {
+            var userId = this.CurrentUserId();
+            if (userId == null) return Unauthorized(new { error = "Niet ingelogd" });
+            try
+            {
+                var n = await _notificationRepository.DeleteReadAsync(userId.Value);
+                return Ok(new { deleted = n });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting read notifications for {UserId}", userId);
+                return StatusCode(500, new { error = "Fout bij wissen van notificaties" });
             }
         }
 

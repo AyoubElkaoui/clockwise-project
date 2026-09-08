@@ -1,4 +1,4 @@
-using backend.Models;
+﻿using backend.Models;
 using Dapper;
 using Npgsql;
 
@@ -13,6 +13,10 @@ namespace backend.Repositories
         Task<bool> MarkAsReadAsync(int id, int userId);
         Task<bool> MarkAllAsReadAsync(int userId);
         Task<bool> DeleteAsync(int id, int userId);
+        /// <summary>Verwijdert alle gelezen notificaties van een gebruiker.</summary>
+        Task<int> DeleteReadAsync(int userId);
+        /// <summary>Automatisch opruimen: gelezen ouder dan 30 dagen, ongelezen ouder dan 90 dagen.</summary>
+        Task<int> DeleteOldAsync(int userId);
         Task NotifyManagerForEmployeeAsync(int medewGcId, CreateNotificationDto notification);
     }
 
@@ -168,6 +172,24 @@ namespace backend.Repositories
                 _logger.LogError(ex, "Error marking all notifications as read for user {UserId}", userId);
                 return false;
             }
+        }
+
+        public async Task<int> DeleteReadAsync(int userId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+            return await connection.ExecuteAsync("DELETE FROM notifications WHERE user_id = @UserId AND is_read = TRUE", new { UserId = userId });
+        }
+
+        public async Task<int> DeleteOldAsync(int userId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+            return await connection.ExecuteAsync(@"
+                DELETE FROM notifications
+                WHERE user_id = @UserId
+                  AND ((is_read = TRUE AND created_at < NOW() - INTERVAL '30 days')
+                    OR (is_read = FALSE AND created_at < NOW() - INTERVAL '90 days'))", new { UserId = userId });
         }
 
         public async Task<bool> DeleteAsync(int id, int userId)
