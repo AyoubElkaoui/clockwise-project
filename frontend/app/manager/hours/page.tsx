@@ -80,7 +80,8 @@ export default function ManagerTeamHoursPage() {
         getWorkflowEntriesByRange(from, to), // alle statussen in het gekozen bereik
       ]);
 
-      const team = users.filter((u: any) => u.managerId === managerId);
+      // Alle actieve medewerkers (geen admins); de manager ziet het hele team
+      const team = users.filter((u: any) => u.isActive !== false && u.role !== "admin");
       setTeamMembers(team);
       
       // Convert workflow entries to format expected by UI
@@ -751,7 +752,7 @@ export default function ManagerTeamHoursPage() {
         >
           <option value="all">Alle medewerkers</option>
           {teamMembers.map((member) => (
-            <option key={member.id} value={member.id}>
+            <option key={member.medewGcId ?? member.id} value={member.medewGcId ?? member.id}>
               {member.firstName} {member.lastName}
             </option>
           ))}

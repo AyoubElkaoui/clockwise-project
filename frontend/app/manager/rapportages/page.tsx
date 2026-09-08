@@ -50,15 +50,20 @@ export default function RapportagesPage() {
     (async () => {
       setLoading(true);
       try {
-        const [wf, us, bu] = await Promise.all([
+        const [wf, us] = await Promise.all([
           getWorkflowEntriesByRange(from.format("YYYY-MM-DD"), to.format("YYYY-MM-DD")),
           axios.get(`${API_URL}/users`),
-          axios.get(`${API_URL}/users/budget-overview`, { params: { year: from.year() } }),
         ]);
         if (!active) return;
         setEntries((wf.entries || []).map((e: any) => ({ ...e, aantal: Number(e.aantal) || 0, datum: String(e.datum).split("T")[0] })));
         setUsers((us.data || []).filter((u: User) => u.role !== "admin"));
-        setBudgets(bu.data || []);
+        // Budgetten zijn een apart blok; als dat faalt blijft de rest van de rapportage werken
+        try {
+          const bu = await axios.get(`${API_URL}/users/budget-overview`, { params: { year: from.year() } });
+          if (active) setBudgets(bu.data || []);
+        } catch {
+          if (active) setBudgets([]);
+        }
       } catch {
         if (active) showToast("Rapportage kon niet geladen worden", "error");
       } finally {
