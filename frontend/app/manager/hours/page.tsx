@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { getAllUsers, getAllWorkflowEntries, getCurrentPeriodId } from "@/lib/manager-api";
+import { getAllUsers, getWorkflowEntriesByRange } from "@/lib/manager-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,8 @@ export default function ManagerTeamHoursPage() {
       setSelectedUser(userId);
     }
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPeriod, viewMode]);
 
   const loadData = async () => {
     try {
@@ -72,10 +73,11 @@ export default function ManagerTeamHoursPage() {
         return;
       }
 
-      const currentPeriodId = await getCurrentPeriodId();
+      const from = currentPeriod.format("YYYY-MM-DD");
+      const to = (viewMode === "week" ? currentPeriod.add(6, "day") : currentPeriod.endOf("month")).format("YYYY-MM-DD");
       const [users, workflowResponse] = await Promise.all([
         getAllUsers(),
-        getAllWorkflowEntries(currentPeriodId) // Get all entries (SUBMITTED + APPROVED)
+        getWorkflowEntriesByRange(from, to), // alle statussen in het gekozen bereik
       ]);
 
       const team = users.filter((u: any) => u.managerId === managerId);

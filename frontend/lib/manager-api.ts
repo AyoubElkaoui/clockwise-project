@@ -199,6 +199,21 @@ export async function getAllWorkflowEntries(
 }
 
 /**
+ * Alle workflow-regels van alle medewerkers in een datumbereik (manager/admin)
+ */
+export async function getWorkflowEntriesByRange(
+  from: string,
+  to: string,
+  status?: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
+): Promise<WorkflowEntriesResponse> {
+  const response = await axios.get(`${API_URL}/workflow/entries`, {
+    params: { from, to, status },
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+}
+
+/**
  * Review (approve/reject) workflow entries
  */
 export async function reviewWorkflowEntries(

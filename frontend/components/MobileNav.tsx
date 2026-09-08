@@ -80,7 +80,6 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     { icon: LayoutDashboard, label: t("nav.dashboard"), href: "/dashboard" },
     { icon: Clock, label: t("nav.hours"), href: "/tijd-registratie" },
     { icon: List, label: t("nav.overview"), href: "/uren-overzicht" },
-    { icon: Calendar, label: "Kalender", href: "/kalender" },
     { icon: Plane, label: t("nav.vacation"), href: "/vakantie" },
     { icon: Bell, label: t("nav.notifications"), href: "/notificaties" },
     { icon: User, label: t("nav.account"), href: "/account" },

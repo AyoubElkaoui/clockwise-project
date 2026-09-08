@@ -65,8 +65,8 @@ public class WorkflowController : ControllerBase
         if (medewGcId == null) return Unauthorized(new { error = NoIdentityMessage });
         if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate) || toDate < fromDate)
             return BadRequest(new { error = "Ongeldig datumbereik (from/to als yyyy-MM-dd)" });
-        if ((toDate - fromDate).TotalDays > 62)
-            return BadRequest(new { error = "Bereik maximaal 62 dagen" });
+        if ((toDate - fromDate).TotalDays > 400)
+            return BadRequest(new { error = "Bereik maximaal 400 dagen" });
         try
         {
             return Ok(await _workflowService.GetMineAsync(medewGcId.Value, fromDate, toDate));
@@ -292,8 +292,10 @@ public class WorkflowController : ControllerBase
     /// </summary>
     [HttpGet("entries")]
     public async Task<ActionResult<WorkflowEntriesResponse>> GetEntries(
-        [FromQuery] int urenperGcId,
-        [FromQuery] string? status = null)
+        [FromQuery] int? urenperGcId,
+        [FromQuery] string? status = null,
+        [FromQuery] string? from = null,
+        [FromQuery] string? to = null)
     {
         var medewGcId = this.CurrentMedewGcId();
         if (medewGcId == null)
@@ -304,7 +306,16 @@ public class WorkflowController : ControllerBase
 
         try
         {
-            var response = await _workflowService.GetAllEntriesByPeriodAsync(urenperGcId, status);
+            // Datumbereik (week/maand/jaar in de rapportage) heeft voorrang op een losse periode.
+            if (DateTime.TryParse(from, out var fromDate) && DateTime.TryParse(to, out var toDate))
+            {
+                if (toDate < fromDate || (toDate - fromDate).TotalDays > 400)
+                    return BadRequest(new { error = "Ongeldig datumbereik (max 400 dagen)" });
+                return Ok(await _workflowService.GetAllEntriesByDateRangeAsync(fromDate, toDate, status));
+            }
+            if (urenperGcId == null)
+                return BadRequest(new { error = "Geef urenperGcId of from/to op" });
+            var response = await _workflowService.GetAllEntriesByPeriodAsync(urenperGcId.Value, status);
             return Ok(response);
         }
         catch (Exception ex)

@@ -330,6 +330,13 @@ public class WorkflowService
     /// <summary>
     /// Get all entries for a period (manager overview, all statuses)
     /// </summary>
+    public async Task<WorkflowEntriesResponse> GetAllEntriesByDateRangeAsync(DateTime from, DateTime to, string? status = null)
+    {
+        var entries = await _workflowRepo.GetAllByDateRangeAsync(from, to, status);
+        var dtos = await MapToDtos(entries);
+        return new WorkflowEntriesResponse { Entries = dtos, TotalCount = dtos.Count, TotalHours = dtos.Sum(e => e.Aantal) };
+    }
+
     public async Task<WorkflowEntriesResponse> GetAllEntriesByPeriodAsync(int urenperGcId, string? status = null)
     {
         var entries = await _workflowRepo.GetAllByPeriodAsync(urenperGcId, status);

@@ -35,6 +35,9 @@ public interface IWorkflowRepository
     /// </summary>
     Task<List<TimeEntryWorkflow>> GetAllByPeriodAsync(int urenperGcId, string? status = null);
 
+    /// <summary>Alle regels van alle medewerkers in een datumbereik (manager/admin rapportage).</summary>
+    Task<List<TimeEntryWorkflow>> GetAllByDateRangeAsync(DateTime from, DateTime to, string? status = null);
+
     /// <summary>
     /// Get approved entries for an employee
     /// </summary>

@@ -206,6 +206,19 @@ namespace backend.Repositories
             }
         }
 
+        public async Task<List<TimeEntryWorkflow>> GetAllByDateRangeAsync(DateTime from, DateTime to, string? status = null)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var sql = $@"
+                SELECT {SelectColumns}
+                FROM time_entries_workflow
+                WHERE datum >= @From AND datum <= @To";
+            if (!string.IsNullOrEmpty(status)) sql += " AND status = @Status";
+            sql += " ORDER BY datum DESC, created_at DESC";
+            var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { From = from.Date, To = to.Date, Status = status });
+            return result.ToList();
+        }
+
         public async Task<List<TimeEntryWorkflow>> GetAllByPeriodAsync(int urenperGcId, string? status = null)
         {
             try

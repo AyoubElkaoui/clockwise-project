@@ -26,7 +26,8 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { getEnrichedTimeEntries } from "@/lib/api";
-import { getDrafts, getSubmitted, getRejected } from "@/lib/api/workflowApi";
+import { getMyEntries } from "@/lib/api/workflowApi";
+import BudgetOverview from "@/components/BudgetOverview";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isBetween from "dayjs/plugin/isBetween";
@@ -77,58 +78,47 @@ export default function UrenOverzichtPage() {
   const [endDate, setEndDate] = useState("");
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
 
-  useEffect(() => {
-    loadEntries();
-  }, []);
+  // Bereik = vrij gekozen datums, anders de gekozen week / maand / jaar
+  const rangeFrom = startDate && endDate ? startDate : currentPeriod.format("YYYY-MM-DD");
+  const rangeTo = startDate && endDate ? endDate
+    : (viewMode === "week" ? currentPeriod.add(6, "day") : viewMode === "month" ? currentPeriod.endOf("month") : currentPeriod.endOf("year")).format("YYYY-MM-DD");
 
   useEffect(() => {
-    if (startDate && endDate) {
-      loadEntries(startDate, endDate);
-    }
-  }, [startDate, endDate]);
+    loadEntries(rangeFrom, rangeTo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeFrom, rangeTo]);
 
-  const loadEntries = async (from?: string, to?: string) => {
+  const loadEntries = async (from: string, to: string) => {
+    setLoading(true);
     try {
       const userId = authUtils.getUserId();
       if (!userId) {
         showToast("Gebruiker niet ingelogd", "error");
         return;
       }
-      
-      // Load ALL workflow entries (DRAFT, SUBMITTED, APPROVED, REJECTED)
-      const urenperGcId = 100426; // Current period
-      
-      const [drafts, submitted, rejected] = await Promise.all([
-        getDrafts(urenperGcId),
-        getSubmitted(urenperGcId),
-        getRejected(urenperGcId)
-      ]);
-      
-      const allEntries = [...drafts, ...submitted, ...rejected];
-      
-      // Transform to expected format
+      // Alle eigen regels, alle statussen, voor het gekozen bereik
+      const allEntries = await getMyEntries(from, to);
       const transformed = allEntries.map((e: any) => ({
         id: e.id,
         userId: userId,
-        date: e.datum.split('T')[0],
+        date: String(e.datum).split("T")[0],
         projectId: e.werkGcId || 0,
-        projectCode: e.werkCode || '',
-        projectName: e.werkDescription || `Project ${e.werkGcId}`,
-        taskName: e.taakDescription || '',
-        hours: e.aantal,
-        km: 0,
-        expenses: 0,
+        projectCode: e.werkCode || (e.werkGcId ? "" : e.taakCode || ""),
+        projectName: e.werkDescription || (e.werkGcId ? `Project ${e.werkGcId}` : e.taakDescription || "Indirecte uren"),
+        taskName: e.taakDescription || "",
+        hours: Number(e.aantal) || 0,
+        km: Number(e.distanceKm) || 0,
+        expenses: (Number(e.travelCosts) || 0) + (Number(e.otherExpenses) || 0),
         breakMinutes: 0,
-        notes: e.omschrijving || '',
+        notes: e.omschrijving || "",
         status: e.status,
         startTime: e.datum,
         endTime: e.datum,
         companyId: 0,
-        companyName: '',
+        companyName: "",
         projectGroupId: 0,
-        projectGroupName: '',
+        projectGroupName: "",
       }));
-      
       setEntries(transformed);
     } catch (error) {
       showToast("Fout bij laden uren", "error");
@@ -575,7 +565,8 @@ export default function UrenOverzichtPage() {
 
           {/* Summary Card + Entries */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-6">
-            <Card variant="elevated" padding="md" className="hidden lg:block lg:col-span-1">
+            <div className="hidden lg:flex lg:col-span-1 flex-col gap-4">
+            <Card variant="elevated" padding="md">
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Clock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -592,6 +583,8 @@ export default function UrenOverzichtPage() {
                 </div>
               </div>
             </Card>
+            <BudgetOverview year={currentPeriod.year()} />
+            </div>
 
             {/* Entries */}
             <Card variant="elevated" padding="md" className="lg:col-span-3">

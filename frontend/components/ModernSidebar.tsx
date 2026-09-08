@@ -67,7 +67,6 @@ const werknemerItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", rank: "all" },
   { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
   { icon: List, label: "Uren overzicht", href: "/uren-overzicht", rank: "all" },
-  { icon: Calendar, label: "Kalender", href: "/kalender", rank: "all" },
   { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
   { icon: User, label: "Mijn account", href: "/account", rank: "all" },
   { icon: HelpCircle, label: "FAQ", href: "/faq", rank: "all" },
