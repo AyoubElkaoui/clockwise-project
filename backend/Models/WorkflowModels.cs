@@ -10,6 +10,7 @@ public enum WorkflowStatus
 {
     DRAFT,      // User can still edit
     SUBMITTED,  // Awaiting manager review
+    APPROVING,  // Claimed by a reviewer; Firebird insert in progress (transient)
     APPROVED,   // Approved by manager, copied to Firebird
     REJECTED    // Rejected by manager, user must revise
 }

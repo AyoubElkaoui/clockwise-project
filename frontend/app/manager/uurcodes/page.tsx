@@ -72,7 +72,7 @@ export default function UurcodesPage() {
     try {
       setLoading(true);
       const [tasksRes, usersRes] = await Promise.all([
-        axios.get(`${API_URL}/tasks`, { headers: { "ngrok-skip-browser-warning": "1" } }),
+        axios.get(`${API_URL}/tasks`),
         getAllUsers(),
       ]);
 
@@ -100,13 +100,13 @@ export default function UurcodesPage() {
   const loadAllocations = async (member: TeamMember) => {
     try {
       const res = await axios.get(
-        `${API_URL}/users/${member.medewGcId}/hour-allocations`,
-        { headers: { "ngrok-skip-browser-warning": "1" } }
+        `${API_URL}/users/${member.medewGcId}/hour-allocations`
       );
       setAllocations(res.data || []);
       setHasChanges(false);
     } catch {
       setAllocations([]);
+      showToast("Kon uurcode-toewijzingen niet laden", "error");
     }
   };
 

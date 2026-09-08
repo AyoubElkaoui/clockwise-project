@@ -60,75 +60,49 @@ type BadgesState = Record<BadgeKey, number | null>;
 type NavSection = { heading: string; items: MenuItem[] };
 
 // Nav exact volgens het Altum design: gecureerd + gegroepeerd per rol (geen dumping).
-const werknemerSections: NavSection[] = [
-  {
-    heading: "MENU",
-    items: [
-      { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", rank: "all" },
-      { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
-      { icon: List, label: "Uren overzicht", href: "/uren-overzicht", rank: "all" },
-      { icon: Calendar, label: "Kalender", href: "/kalender", rank: "all" },
-      { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
-      { icon: User, label: "Mijn account", href: "/account", rank: "all" },
-      { icon: Settings, label: "Instellingen", href: "/instellingen", rank: "all" },
-      { icon: HelpCircle, label: "FAQ", href: "/faq", rank: "all" },
-    ],
-  },
+const werknemerItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", rank: "all" },
+  { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
+  { icon: List, label: "Uren overzicht", href: "/uren-overzicht", rank: "all" },
+  { icon: Calendar, label: "Kalender", href: "/kalender", rank: "all" },
+  { icon: Plane, label: "Vakantie", href: "/vakantie", rank: "all" },
+  { icon: User, label: "Mijn account", href: "/account", rank: "all" },
+  { icon: HelpCircle, label: "FAQ", href: "/faq", rank: "all" },
 ];
 
+const managerItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Manager dashboard", href: "/manager/dashboard", rank: "manager" },
+  { icon: Users, label: "Mijn team", href: "/manager/team", rank: "manager" },
+  { icon: CheckCircle2, label: "Uren beoordelen", href: "/manager/review-time", rank: "manager", badgeKey: "pendingApprovals" },
+  { icon: Clock, label: "Team uren", href: "/manager/hours", rank: "manager" },
+  { icon: CalendarRange, label: "Planning", href: "/manager/planning", rank: "manager" },
+  { icon: FolderKanban, label: "Project-toewijzing", href: "/manager/project-toewijzing", rank: "manager" },
+  { icon: Plane, label: "Vakantie beoordelen", href: "/manager/vacation-review", rank: "manager" },
+  { icon: ListChecks, label: "Uurcodes", href: "/manager/uurcodes", rank: "manager" },
+  { icon: CalendarDays, label: "Jaarkalender", href: "/manager/jaarkalender", rank: "manager" },
+];
+
+const adminItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Beheer dashboard", href: "/admin", rank: "admin" },
+  { icon: Users, label: "Gebruikers", href: "/admin/users", rank: "admin" },
+  { icon: Calendar, label: "Feestdagen", href: "/admin/holidays", rank: "admin" },
+  { icon: Settings, label: "Instellingen", href: "/admin/settings", rank: "admin" },
+];
+
+const persoonlijkItems: MenuItem[] = [
+  { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
+  { icon: User, label: "Mijn account", href: "/account", rank: "all" },
+];
+
+const werknemerSections: NavSection[] = [{ heading: "MENU", items: werknemerItems }];
 const managerSections: NavSection[] = [
-  {
-    heading: "MANAGER",
-    items: [
-      { icon: LayoutDashboard, label: "Manager dashboard", href: "/manager/dashboard", rank: "manager" },
-      { icon: Users, label: "Mijn Team", href: "/manager/team", rank: "manager" },
-      { icon: CheckCircle2, label: "Uren beoordelen", href: "/manager/review-time", rank: "manager", badgeKey: "pendingApprovals" },
-      { icon: Clock, label: "Team uren", href: "/manager/hours", rank: "manager" },
-      { icon: CalendarRange, label: "Planning", href: "/manager/planning", rank: "manager" },
-      { icon: FolderKanban, label: "Project-toewijzing", href: "/manager/project-toewijzing", rank: "manager" },
-      { icon: Plane, label: "Vakantie beoordelen", href: "/manager/vacation-review", rank: "manager" },
-      { icon: ListChecks, label: "Uurcodes", href: "/manager/uurcodes", rank: "manager" },
-      { icon: CalendarDays, label: "Jaarkalender", href: "/manager/jaarkalender", rank: "manager" },
-      { icon: Settings, label: "Instellingen", href: "/manager/settings", rank: "manager" },
-    ],
-  },
-  {
-    heading: "PERSOONLIJK",
-    items: [
-      { icon: Clock, label: "Uren registreren", href: "/tijd-registratie", rank: "all" },
-      { icon: User, label: "Mijn account", href: "/account", rank: "all" },
-    ],
-  },
+  { heading: "MANAGER", items: managerItems },
+  { heading: "PERSOONLIJK", items: persoonlijkItems },
 ];
-
 const adminSections: NavSection[] = [
-  {
-    heading: "BEHEER",
-    items: [
-      { icon: LayoutDashboard, label: "Dashboard", href: "/admin", rank: "admin" },
-      { icon: UserCheck, label: "Medewerkers", href: "/admin/employees", rank: "admin" },
-      { icon: Building2, label: "Bedrijven", href: "/admin/companies", rank: "admin" },
-      { icon: FolderKanban, label: "Projecten", href: "/admin/projects", rank: "admin" },
-      { icon: BarChart3, label: "Rapportages", href: "/admin/reports", rank: "admin" },
-    ],
-  },
-  {
-    heading: "UREN & VERLOF",
-    items: [
-      { icon: CheckCircle2, label: "Goedkeuringen", href: "/admin/approvals", rank: "admin", badgeKey: "pendingApprovals" },
-      { icon: Plane, label: "Vakantie", href: "/admin/vacation", rank: "admin" },
-      { icon: ShieldCheck, label: "Validaties", href: "/admin/validations", rank: "admin" },
-    ],
-  },
-  {
-    heading: "SYSTEEM",
-    items: [
-      { icon: Calendar, label: "Feestdagen", href: "/admin/holidays", rank: "admin" },
-      { icon: Activity, label: "Logboek", href: "/admin/logs", rank: "admin" },
-      { icon: Server, label: "Systeem", href: "/admin/system", rank: "admin" },
-      { icon: Settings, label: "Instellingen", href: "/admin/settings", rank: "admin" },
-    ],
-  },
+  { heading: "BEHEER", items: adminItems },
+  { heading: "MANAGER", items: managerItems },
+  { heading: "PERSOONLIJK", items: persoonlijkItems },
 ];
 
 /* ======================

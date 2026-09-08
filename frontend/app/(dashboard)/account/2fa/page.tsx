@@ -37,7 +37,6 @@ export default function TwoFactorPage() {
         headers: {
           'X-USER-ID': userId || '',
           'X-MEDEW-GC-ID': medewGcId || '',
-          'ngrok-skip-browser-warning': '1',
         },
       });
 
@@ -70,7 +69,6 @@ export default function TwoFactorPage() {
           'Content-Type': 'application/json',
           'X-USER-ID': userId || '',
           'X-MEDEW-GC-ID': medewGcId || '',
-          'ngrok-skip-browser-warning': '1',
         },
         body: JSON.stringify({ code: disableCode }),
       });

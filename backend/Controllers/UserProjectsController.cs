@@ -10,6 +10,8 @@ namespace backend.Controllers;
 [Route("api/user-projects")]
 public class UserProjectsController : ControllerBase
 {
+    private const string ManagerOnlyMessage = "Alleen managers of beheerders mogen projecttoewijzingen beheren";
+
     private readonly IDbConnection _db;
     private readonly ILogger<UserProjectsController> _logger;
     private readonly INotificationRepository _notificationRepo;
@@ -21,10 +23,17 @@ public class UserProjectsController : ControllerBase
         _notificationRepo = notificationRepo;
     }
 
-    // GET: api/user-projects/users/{userId} - Get all projects for a user (userId=0 returns all)
-    [HttpGet("users/{userId}")]
+    // GET: api/user-projects/users/{userId} - eigen toewijzingen, of alles/anderen voor manager/admin (userId=0 = alle)
+    [HttpGet("users/{userId:int}")]
     public async Task<IActionResult> GetUserProjects(int userId)
     {
+        var current = this.CurrentUserId();
+        if (!current.HasValue)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (userId != current.Value && !this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = "Je mag alleen je eigen projecttoewijzingen bekijken" });
+
         try
         {
             string sql;
@@ -32,7 +41,6 @@ public class UserProjectsController : ControllerBase
 
             if (userId == 0)
             {
-                // Return all user-project assignments
                 sql = @"
                     SELECT
                         up.id,
@@ -74,21 +82,23 @@ public class UserProjectsController : ControllerBase
         }
         catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")
         {
-            // Table doesn't exist - return empty array
             _logger.LogWarning("user_projects table does not exist yet");
             return Ok(new List<object>());
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching user projects for userId {UserId}", userId);
-            return Ok(new List<object>()); // Return empty instead of error
+            return StatusCode(500, new { error = "Fout bij ophalen projecttoewijzingen" });
         }
     }
 
-    // GET: api/user-projects/projects/{projectId} - Get all users for a project
-    [HttpGet("projects/{projectId}")]
+    // GET: api/user-projects/projects/{projectId} - alle gebruikers op een project (ingelogd)
+    [HttpGet("projects/{projectId:int}")]
     public async Task<IActionResult> GetProjectUsers(int projectId)
     {
+        if (!this.CurrentUserId().HasValue)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
         try
         {
             var sql = @"
@@ -119,14 +129,24 @@ public class UserProjectsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching project users for projectId {ProjectId}", projectId);
-            return Ok(new List<object>());
+            return StatusCode(500, new { error = "Fout bij ophalen projectgebruikers" });
         }
     }
 
-    // PUT: api/user-projects/users/{userId}/projects/{projectId} - Update assignment details
-    [HttpPut("users/{userId}/projects/{projectId}")]
-    public async Task<IActionResult> UpdateUserProjectAssignment(int userId, int projectId, [FromBody] UpdateAssignmentRequest request)
+    // PUT: api/user-projects/users/{userId}/projects/{projectId} (manager/admin)
+    [HttpPut("users/{userId:int}/projects/{projectId:int}")]
+    public async Task<IActionResult> UpdateUserProjectAssignment(int userId, int projectId, [FromBody] UpdateAssignmentRequest? request)
     {
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
+        if (request == null)
+            return BadRequest(new { error = "Ongeldige aanvraag" });
+
+        if ((request.HoursPerWeek.HasValue && request.HoursPerWeek.Value < 0) ||
+            (request.MaxHours.HasValue && request.MaxHours.Value < 0))
+            return BadRequest(new { error = "Uren mogen niet negatief zijn" });
+
         try
         {
             var sql = @"
@@ -144,12 +164,10 @@ public class UserProjectsController : ControllerBase
             });
 
             if (rows == 0)
-            {
                 return NotFound(new { error = "Toewijzing niet gevonden" });
-            }
 
-            _logger.LogInformation("Updated assignment for user {UserId} on project {ProjectId}: {Hours} hours/week",
-                userId, projectId, request.HoursPerWeek);
+            _logger.LogInformation("User {Actor} updated assignment for user {UserId} on project {ProjectId}: {Hours} hours/week",
+                this.CurrentUserId(), userId, projectId, request.HoursPerWeek);
 
             return Ok(new { success = true, message = "Toewijzing bijgewerkt" });
         }
@@ -160,21 +178,28 @@ public class UserProjectsController : ControllerBase
         }
     }
 
-    // POST: api/user-projects - Assign user to project
+    // POST: api/user-projects (manager/admin); assigned_by = aanroeper
     [HttpPost]
-    public async Task<IActionResult> AssignUserToProject([FromBody] AssignUserRequest request)
+    public async Task<IActionResult> AssignUserToProject([FromBody] AssignUserRequest? request)
     {
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
+        var assignedBy = this.CurrentUserId();
+        if (!assignedBy.HasValue)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (request == null || request.UserId <= 0 || request.ProjectId <= 0)
+            return BadRequest(new { error = "Ongeldige aanvraag: userId en projectId zijn verplicht" });
+
         try
         {
-            // Check if assignment already exists
             var existingCheck = await _db.ExecuteScalarAsync<int?>(
                 "SELECT id FROM user_projects WHERE user_id = @UserId AND project_gc_id = @ProjectId",
                 new { UserId = request.UserId, ProjectId = request.ProjectId });
 
             if (existingCheck.HasValue)
-            {
                 return Conflict(new { error = "Gebruiker is al gekoppeld aan dit project" });
-            }
 
             var sql = @"
                 INSERT INTO user_projects (user_id, project_gc_id, assigned_by, assigned_at)
@@ -185,31 +210,37 @@ public class UserProjectsController : ControllerBase
             {
                 UserId = request.UserId,
                 ProjectId = request.ProjectId,
-                AssignedBy = request.AssignedByUserId
+                AssignedBy = assignedBy.Value
             });
 
-            // Notificatie sturen naar medewerker
-            await _notificationRepo.CreateAsync(new CreateNotificationDto
+            try
             {
-                UserId = request.UserId,
-                Type = "project_assigned",
-                Title = "Nieuw project toegewezen",
-                Message = $"Je bent toegewezen aan project {request.ProjectId}",
-                RelatedEntityType = "project",
-                RelatedEntityId = request.ProjectId
-            });
+                await _notificationRepo.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = request.UserId,
+                    Type = "project_assigned",
+                    Title = "Nieuw project toegewezen",
+                    Message = $"Je bent toegewezen aan project {request.ProjectId}",
+                    RelatedEntityType = "project",
+                    RelatedEntityId = request.ProjectId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send project_assigned notification to user {UserId}", request.UserId);
+            }
 
             return Ok(new
             {
                 id,
                 userId = request.UserId,
                 projectId = request.ProjectId,
-                assignedByUserId = request.AssignedByUserId
+                assignedByUserId = assignedBy.Value
             });
         }
         catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")
         {
-            _logger.LogWarning("user_projects table does not exist yet");
+            _logger.LogError(ex, "user_projects table does not exist yet");
             return StatusCode(500, new { error = "Database tabel bestaat niet. Voer migration uit." });
         }
         catch (Exception ex)
@@ -219,10 +250,13 @@ public class UserProjectsController : ControllerBase
         }
     }
 
-    // GET: api/user-projects/pg-users - Get all active users from PostgreSQL
+    // GET: api/user-projects/pg-users (manager/admin)
     [HttpGet("pg-users")]
     public async Task<IActionResult> GetPostgresUsers()
     {
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = "Alleen managers of beheerders mogen de gebruikerslijst opvragen" });
+
         try
         {
             var sql = @"
@@ -248,14 +282,17 @@ public class UserProjectsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching PostgreSQL users");
-            return Ok(new List<object>());
+            return StatusCode(500, new { error = "Fout bij ophalen gebruikers" });
         }
     }
 
-    // DELETE: api/user-projects/users/{userId}/projects/{projectId}
-    [HttpDelete("users/{userId}/projects/{projectId}")]
+    // DELETE: api/user-projects/users/{userId}/projects/{projectId} (manager/admin)
+    [HttpDelete("users/{userId:int}/projects/{projectId:int}")]
     public async Task<IActionResult> RemoveUserFromProject(int userId, int projectId)
     {
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
         try
         {
             var rows = await _db.ExecuteAsync(
@@ -264,6 +301,9 @@ public class UserProjectsController : ControllerBase
 
             if (rows == 0)
                 return NotFound(new { error = "Toewijzing niet gevonden" });
+
+            _logger.LogInformation("User {Actor} removed user {UserId} from project {ProjectId}",
+                this.CurrentUserId(), userId, projectId);
 
             return NoContent();
         }
@@ -277,8 +317,7 @@ public class UserProjectsController : ControllerBase
 
 public record AssignUserRequest(
     int UserId,
-    int ProjectId,
-    int AssignedByUserId
+    int ProjectId
 );
 
 public record UpdateAssignmentRequest(

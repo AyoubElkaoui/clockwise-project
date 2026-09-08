@@ -185,6 +185,22 @@ npm run dev
 # App draait op http://localhost:3000
 ```
 
+### Rollen & autorisatie
+
+Elke request (behalve login, health, feestdagen-GET en `system-settings/require-2fa`) vereist een geldig JWT in de `Authorization: Bearer`-header. De identiteit (gebruiker, Atrium-medewerkernummer, rol) komt uitsluitend uit het token; headers als `X-USER-ROLE` worden genegeerd.
+
+| Rol | Mag |
+|-----|-----|
+| `user` | eigen uren, verlof, notificaties, eigen profiel (`/api/users/me`) |
+| `manager` | alles van `user` + uren/verlof van het team beoordelen, teambeheer, uurcodes, feestdagen |
+| `admin` | alles van `manager` + gebruikers aanmaken/rol wijzigen, systeeminstellingen, reminders |
+
+Gebruikers worden door een admin aangemaakt (`POST /api/users`) en altijd gekoppeld aan een bestaande Atrium-medewerker (`GET /api/users/atrium-employees`).
+
+### Syntess-configuratie (per klant)
+
+Alle klantspecifieke Atrium-sleutels (administratie, kostensoorten, taakcodes, generators) staan in de sectie `Syntess` van `appsettings.json` (of als env `Syntess__<Sleutel>`). De volledige lijst met betekenis staat in `backend/Models/SyntessOptions.cs`. Bij een nieuwe klant: alleen deze sectie aanpassen, geen code.
+
 ### Configuratie (env-variabelen)
 
 De backend leest connection strings en sleutels uit env-variabelen, die winnen van `appsettings.json`:
@@ -194,7 +210,8 @@ ConnectionStrings__Firebird     Database=...ATRIUM.FDB;User=SYSDBA;Password=...;
 ConnectionStrings__PostgreSQL   Host=...neon.tech;Database=neondb;Username=...;Password=...;SSL Mode=Require
 Jwt__Key                        lange willekeurige string
 TwoFactor__EncryptionKey        32 tekens
-Auth__RequireJwt                true
+App__BaseUrl                    https://clockd.nl  (link in reminder-mails)
+Email__SmtpHost / SmtpPort / SmtpUser / SmtpPassword / FromEmail / FromName  (zonder SmtpHost worden geen mails verstuurd)
 ```
 
 Bij het opstarten logt de backend één regel `[startup] Firebird -> host:poort db=... user=... source=...` zodat je ziet welke verbinding werkelijk gebruikt wordt (wachtwoord wordt niet getoond).

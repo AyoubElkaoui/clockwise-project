@@ -26,52 +26,27 @@ export default function ProtectedRoute({
       return;
     }
 
-    // Check if 2FA setup is required - redirect to the correct 2FA page for their role
+    // 2FA setup required: one page for every role.
     const require2FASetup = localStorage.getItem("require2FASetup");
-    if (require2FASetup === "true") {
-      // Each role has exactly one correct 2FA page
-      if (userRank === "manager") {
-        if (pathname !== "/manager/account/2fa") {
-          router.push("/manager/account/2fa");
-          return;
-        }
-      } else if (userRank === "admin") {
-        if (pathname !== "/admin/account/2fa") {
-          router.push("/admin/account/2fa");
-          return;
-        }
-      } else {
-        if (pathname !== "/account/2fa") {
-          router.push("/account/2fa");
-          return;
-        }
-      }
+    if (require2FASetup === "true" && pathname !== "/account/2fa") {
+      router.push("/account/2fa");
+      return;
     }
 
-    // Check if user is on correct routes based on role
+    // Route access per role. Admin can use everything, manager everything except /admin,
+    // employee only the employee routes.
     const isManagerRoute = pathname.startsWith("/manager");
     const isAdminRoute = pathname.startsWith("/admin");
-    const isEmployeeRoute = !isManagerRoute && !isAdminRoute && pathname !== "/login";
-
     if (userRank === "admin") {
-      // Admins can access admin routes, redirect from other routes
-      if (!isAdminRoute) {
-        router.push("/admin");
-        return;
-      }
+      // superset: no restrictions
     } else if (userRank === "manager") {
-      // Managers can access manager routes AND employee routes (like /tijd-registratie)
-      // Only redirect if they're on admin routes
       if (isAdminRoute) {
         router.push("/manager/dashboard");
         return;
       }
-    } else {
-      // Regular users: redirect away from manager/admin routes
-      if (isManagerRoute || isAdminRoute) {
-        router.push("/dashboard");
-        return;
-      }
+    } else if (isManagerRoute || isAdminRoute) {
+      router.push("/dashboard");
+      return;
     }
 
     // User has access to current route

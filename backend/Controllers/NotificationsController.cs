@@ -23,127 +23,125 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<NotificationResponse>>> GetNotifications([FromQuery] bool unreadOnly = false)
         {
-            var userId = GetCurrentUserId();
+            var userId = this.CurrentUserId();
             if (userId == null)
+                return Unauthorized(new { error = "Niet ingelogd" });
+
+            try
             {
-                _logger.LogWarning("Unauthorized notification access attempt - userId is null");
-                return Unauthorized(new { message = "User not authenticated" });
+                var notifications = await _notificationRepository.GetByUserIdAsync(userId.Value, unreadOnly);
+
+                var response = notifications.Select(n => new NotificationResponse
+                {
+                    Id = n.Id,
+                    Type = n.Type,
+                    Title = n.Title,
+                    Message = n.Message,
+                    RelatedEntityType = n.RelatedEntityType,
+                    RelatedEntityId = n.RelatedEntityId,
+                    IsRead = n.IsRead,
+                    CreatedAt = n.CreatedAt
+                });
+
+                return Ok(response);
             }
-
-            var notifications = await _notificationRepository.GetByUserIdAsync(userId.Value, unreadOnly);
-
-            var response = notifications.Select(n => new NotificationResponse
+            catch (Exception ex)
             {
-                Id = n.Id,
-                Type = n.Type,
-                Title = n.Title,
-                Message = n.Message,
-                RelatedEntityType = n.RelatedEntityType,
-                RelatedEntityId = n.RelatedEntityId,
-                IsRead = n.IsRead,
-                CreatedAt = n.CreatedAt
-            });
-
-            return Ok(response);
+                _logger.LogError(ex, "Error fetching notifications for user {UserId}", userId);
+                return StatusCode(500, new { error = "Fout bij ophalen notificaties" });
+            }
         }
 
         // GET: api/notifications/unread-count
         [HttpGet("unread-count")]
         public async Task<ActionResult<int>> GetUnreadCount()
         {
-            var userId = GetCurrentUserId();
+            var userId = this.CurrentUserId();
             if (userId == null)
-                return Unauthorized(new { message = "User not authenticated" });
+                return Unauthorized(new { error = "Niet ingelogd" });
 
-            var count = await _notificationRepository.GetUnreadCountAsync(userId.Value);
-            return Ok(new { count });
-        }
-
-        // POST: api/notifications
-        [HttpPost]
-        public async Task<ActionResult<NotificationResponse>> CreateNotification([FromBody] CreateNotificationDto notification)
-        {
-            var id = await _notificationRepository.CreateAsync(notification);
-            
-            if (id == 0)
-                return StatusCode(500, new { message = "Failed to create notification" });
-
-            var created = await _notificationRepository.GetByIdAsync(id);
-            
-            if (created == null)
-                return StatusCode(500, new { message = "Failed to retrieve created notification" });
-
-            return CreatedAtAction(nameof(GetNotifications), new { id }, new NotificationResponse
+            try
             {
-                Id = created.Id,
-                Type = created.Type,
-                Title = created.Title,
-                Message = created.Message,
-                RelatedEntityType = created.RelatedEntityType,
-                RelatedEntityId = created.RelatedEntityId,
-                IsRead = created.IsRead,
-                CreatedAt = created.CreatedAt
-            });
+                var count = await _notificationRepository.GetUnreadCountAsync(userId.Value);
+                return Ok(new { count });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching unread count for user {UserId}", userId);
+                return StatusCode(500, new { error = "Fout bij ophalen aantal ongelezen notificaties" });
+            }
         }
+
+        // NB: POST api/notifications (aanmaken voor willekeurige gebruiker) is verwijderd;
+        // notificaties worden uitsluitend server-side aangemaakt en de frontend gebruikte dit endpoint niet.
 
         // PUT: api/notifications/{id}/read
-        [HttpPut("{id}/read")]
+        [HttpPut("{id:int}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            var userId = GetCurrentUserId();
+            var userId = this.CurrentUserId();
             if (userId == null)
-                return Unauthorized(new { message = "User not authenticated" });
+                return Unauthorized(new { error = "Niet ingelogd" });
 
-            var success = await _notificationRepository.MarkAsReadAsync(id, userId.Value);
-            
-            if (!success)
-                return NotFound(new { message = "Notification not found" });
+            try
+            {
+                // Repository filtert op user_id: alleen eigen notificaties kunnen gemarkeerd worden.
+                var success = await _notificationRepository.MarkAsReadAsync(id, userId.Value);
+                if (!success)
+                    return NotFound(new { error = "Notificatie niet gevonden" });
 
-            return Ok(new { message = "Notification marked as read" });
+                return Ok(new { message = "Notificatie gemarkeerd als gelezen" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking notification {Id} as read", id);
+                return StatusCode(500, new { error = "Fout bij markeren als gelezen" });
+            }
         }
 
-        // PUT: api/notifications/read-all
+        // PUT/POST: api/notifications/read-all (alias: mark-all-read, zoals de frontend aanroept)
         [HttpPut("read-all")]
+        [HttpPut("mark-all-read")]
+        [HttpPost("mark-all-read")]
         public async Task<IActionResult> MarkAllAsRead()
         {
-            var userId = GetCurrentUserId();
+            var userId = this.CurrentUserId();
             if (userId == null)
-                return Unauthorized(new { message = "User not authenticated" });
+                return Unauthorized(new { error = "Niet ingelogd" });
 
-            await _notificationRepository.MarkAllAsReadAsync(userId.Value);
-            return Ok(new { message = "All notifications marked as read" });
+            try
+            {
+                await _notificationRepository.MarkAllAsReadAsync(userId.Value);
+                return Ok(new { message = "Alle notificaties gemarkeerd als gelezen" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking all notifications as read for user {UserId}", userId);
+                return StatusCode(500, new { error = "Fout bij markeren als gelezen" });
+            }
         }
 
         // DELETE: api/notifications/{id}
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteNotification(int id)
         {
-            var userId = GetCurrentUserId();
+            var userId = this.CurrentUserId();
             if (userId == null)
-                return Unauthorized(new { message = "User not authenticated" });
+                return Unauthorized(new { error = "Niet ingelogd" });
 
-            var success = await _notificationRepository.DeleteAsync(id, userId.Value);
-            
-            if (!success)
-                return NotFound(new { message = "Notification not found" });
-
-            return Ok(new { message = "Notification deleted" });
-        }
-
-        private int? GetCurrentUserId()
-        {
-            if (HttpContext.Items.TryGetValue("UserId", out var userId))
+            try
             {
-                return userId as int?;
-            }
+                var success = await _notificationRepository.DeleteAsync(id, userId.Value);
+                if (!success)
+                    return NotFound(new { error = "Notificatie niet gevonden" });
 
-            if (HttpContext.Request.Headers.TryGetValue("X-USER-ID", out var userIdHeader) &&
-                int.TryParse(userIdHeader, out var id))
+                return Ok(new { message = "Notificatie verwijderd" });
+            }
+            catch (Exception ex)
             {
-                return id;
+                _logger.LogError(ex, "Error deleting notification {Id}", id);
+                return StatusCode(500, new { error = "Fout bij verwijderen notificatie" });
             }
-
-            return null;
         }
     }
 }

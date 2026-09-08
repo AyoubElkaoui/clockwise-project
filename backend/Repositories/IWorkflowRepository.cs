@@ -58,9 +58,30 @@ public interface IWorkflowRepository
     Task<TimeEntryWorkflow?> FindDuplicateAsync(int medewGcId, DateTime datum, int taakGcId, int? werkGcId, int urenperGcId);
 
     /// <summary>
-    /// Update entry status
+    /// Update entry status (review). Only succeeds when the entry is still SUBMITTED; returns affected row count.
     /// </summary>
-    Task UpdateStatusAsync(int id, string status, DateTime? statusChangedAt = null);
+    Task<int> UpdateStatusAsync(int id, string status, DateTime? statusChangedAt = null);
+
+    /// <summary>
+    /// Atomically claim a SUBMITTED entry for approval (status -> APPROVING). Returns false when the
+    /// entry was not in SUBMITTED (already claimed/approved/rejected by another request).
+    /// </summary>
+    Task<bool> TryClaimForApprovalAsync(int id);
+
+    /// <summary>
+    /// Finalize an APPROVING entry as APPROVED with its Firebird document id. Returns affected row count.
+    /// </summary>
+    Task<int> MarkApprovedAsync(int id, int reviewedBy, DateTime reviewedAt, int? firebirdGcId);
+
+    /// <summary>
+    /// Release an APPROVING claim back to SUBMITTED (after a failed Firebird insert). Returns affected row count.
+    /// </summary>
+    Task<int> ReleaseApprovalClaimAsync(int id);
+
+    /// <summary>
+    /// Mark a SUBMITTED entry as REJECTED. Returns affected row count (0 = not SUBMITTED anymore).
+    /// </summary>
+    Task<int> MarkRejectedAsync(int id, int reviewedBy, DateTime reviewedAt, string? rejectionReason);
 
     /// <summary>
     /// Update multiple entries

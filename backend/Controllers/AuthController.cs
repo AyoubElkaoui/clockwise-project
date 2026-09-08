@@ -1,4 +1,4 @@
-using backend.Services;
+﻿using backend.Services;
 using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using ClockwiseProject.Domain;
@@ -177,16 +177,24 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("hash-password")]
-    public IActionResult HashPassword([FromBody] HashPasswordRequest request)
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Password))
-        {
-            return BadRequest(new { message = "Password is required" });
-        }
+        if (!HttpContext.Items.TryGetValue("UserId", out var userIdObj) || userIdObj is not int userId)
+            return Unauthorized(new { message = "Niet ingelogd" });
 
-        var hash = _authService.HashPassword(request.Password);
-        return Ok(new { password_hash = hash });
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            return BadRequest(new { message = "Nieuw wachtwoord moet minimaal 8 tekens zijn" });
+
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null) return NotFound(new { message = "Gebruiker niet gevonden" });
+
+        if (!_authService.VerifyPassword(request.CurrentPassword ?? string.Empty, user.PasswordHash))
+            return BadRequest(new { message = "Huidig wachtwoord is onjuist" });
+
+        await _userRepository.UpdatePasswordAsync(userId, _authService.HashPassword(request.NewPassword));
+        _logger.LogInformation("Password changed for user {UserId}", userId);
+        return Ok(new { success = true, message = "Wachtwoord gewijzigd" });
     }
 }
 
@@ -197,7 +205,8 @@ public class LoginRequest
     public string? TwoFactorCode { get; set; }
 }
 
-public class HashPasswordRequest
+public class ChangePasswordRequest
 {
-    public string Password { get; set; } = string.Empty;
+    public string? CurrentPassword { get; set; }
+    public string NewPassword { get; set; } = string.Empty;
 }

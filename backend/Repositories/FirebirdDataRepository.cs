@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Domain;
@@ -7,7 +7,6 @@ using BackendProject = ClockwiseProject.Backend.Models.Project;
 using BackendProjectGroup = ClockwiseProject.Backend.Models.ProjectGroup;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 
 namespace ClockwiseProject.Backend.Repositories
 {
@@ -15,19 +14,14 @@ namespace ClockwiseProject.Backend.Repositories
     {
         private readonly FirebirdConnectionFactory _connectionFactory;
         private readonly ILogger<FirebirdDataRepository> _logger;
-        private readonly IConfiguration _configuration;
+        private readonly SyntessOptions _syntess;
 
-        public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory, ILogger<FirebirdDataRepository> logger, IConfiguration configuration)
+        public FirebirdDataRepository(FirebirdConnectionFactory connectionFactory, ILogger<FirebirdDataRepository> logger, SyntessOptions syntess)
         {
             _connectionFactory = connectionFactory;
             _logger = logger;
-            _configuration = configuration;
+            _syntess = syntess;
         }
-
-        // Klant-specifieke Syntess/Atrium sleutels voor het urenstaat-document.
-        // Defaults = de waarden van de huidige administratie; overschrijfbaar via de "Syntess"
-        // config-sectie zodat een andere administratie geen codewijziging vereist.
-        private int Cfg(string key, int fallback) => _configuration.GetValue($"Syntess:{key}", fallback);
 
         public async Task<IEnumerable<ClockwiseProject.Domain.Company>> GetCompaniesAsync()
         {
@@ -68,32 +62,15 @@ namespace ClockwiseProject.Backend.Repositories
         public async Task<IEnumerable<TaskModel>> GetWorkTasksAsync()
         {
             using var connection = _connectionFactory.CreateConnection();
-            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode FROM AT_TAAK WHERE GC_CODE IN ('30','40') ORDER BY GC_CODE";
-            return await connection.QueryAsync<TaskModel>(sql);
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode FROM AT_TAAK WHERE GC_CODE IN @Codes ORDER BY GC_CODE";
+            return await connection.QueryAsync<TaskModel>(sql, new { Codes = _syntess.WorkTaskCodes });
         }
 
         public async Task<IEnumerable<TaskModel>> GetVacationTasksAsync()
         {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-                const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Omschrijving FROM AT_TAAK WHERE GC_CODE STARTING WITH 'Z' ORDER BY GC_CODE";
-                return await connection.QueryAsync<TaskModel>(sql);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to get vacation tasks from Firebird, returning fallback data");
-                return new List<TaskModel>
-                {
-                    new TaskModel { GcId = 1, GcCode = "Z03", Omschrijving = "Vakantie (ATV)" },
-                    new TaskModel { GcId = 2, GcCode = "Z04", Omschrijving = "Snipperdag" },
-                    new TaskModel { GcId = 3, GcCode = "Z05", Omschrijving = "Verlof eigen rekening" },
-                    new TaskModel { GcId = 4, GcCode = "Z06", Omschrijving = "Bijzonder verlof" },
-                    new TaskModel { GcId = 5, GcCode = "Z07", Omschrijving = "Ziekteverlof" },
-                    new TaskModel { GcId = 6, GcCode = "Z08", Omschrijving = "Opbouw tijd voor tijd" },
-                    new TaskModel { GcId = 7, GcCode = "Z09", Omschrijving = "Opname tijd voor tijd" }
-                };
-            }
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT GC_ID AS GcId, GC_CODE AS GcCode, GC_OMSCHRIJVING AS Omschrijving FROM AT_TAAK WHERE GC_CODE STARTING WITH @Prefix ORDER BY GC_CODE";
+            return await connection.QueryAsync<TaskModel>(sql, new { Prefix = _syntess.LeaveTaskPrefix });
         }
 
         public async Task<IEnumerable<TaskModel>> GetAllTasksAsync()
@@ -106,38 +83,19 @@ namespace ClockwiseProject.Backend.Repositories
 
         public async Task<IEnumerable<Period>> GetPeriodsAsync(int count = 50)
         {
-            try
+            count = Math.Clamp(count, 1, 500);
+            using var connection = _connectionFactory.CreateConnection();
+            var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum FROM AT_URENPER ORDER BY BEGINDATUM DESC";
+            var periods = (await connection.QueryAsync<Period>(sql)).ToList();
+            // EndDatum = dag vóór de volgende periode; laatste (nieuwste) periode: begin + 6 dagen.
+            for (var i = 0; i < periods.Count; i++)
             {
-                using var connection = _connectionFactory.CreateConnection();
-                var sql = $"SELECT FIRST {count} GC_ID AS GcId, GC_CODE AS GcCode, BEGINDATUM AS BeginDatum FROM AT_URENPER ORDER BY BEGINDATUM DESC";
-                var periods = (await connection.QueryAsync<Period>(sql)).ToList();
-                // Calculate EndDatum as BeginDatum + 6 days (weekly periods)
-                foreach (var p in periods)
-                {
-                    if (p.EndDatum == default) p.EndDatum = p.BeginDatum.AddDays(6);
-                }
-                return periods;
+                if (periods[i].EndDatum != default) continue;
+                periods[i].EndDatum = i == 0
+                    ? periods[i].BeginDatum.AddDays(6)
+                    : periods[i - 1].BeginDatum.AddDays(-1);
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to get periods from Firebird, returning fallback data");
-                // Return fallback periods when database is not available
-                var today = DateTime.Today;
-                var periods = new List<Period>();
-                for (int i = 0; i < Math.Min(count, 10); i++)
-                {
-                    var startDate = today.AddDays(-i * 7);
-                    var endDate = startDate.AddDays(6);
-                    periods.Add(new Period
-                    {
-                        GcId = 100000 + i,
-                        GcCode = $"2026-W{(52 - i):00}",
-                        BeginDatum = startDate,
-                        EndDatum = endDate
-                    });
-                }
-                return periods;
-            }
+            return periods;
         }
 
         public async Task<IEnumerable<TimeEntryDto>> GetTimeEntriesAsync(int medewGcId, DateTime from, DateTime to)
@@ -209,32 +167,34 @@ namespace ClockwiseProject.Backend.Repositories
                 FROM AT_DOCUMENT d
                 WHERE d.ADMINIS_GC_ID = @AdminisGcId
                   AND d.EIG_MEDEW_GC_ID = @MedewGcId
-                  AND d.GC_CODE STARTING WITH 'URS'
+                  AND d.GC_CODE STARTING WITH @Prefix
                   AND EXISTS (
                       SELECT 1 FROM AT_URENSTAT u
                       WHERE u.DOCUMENT_GC_ID = d.GC_ID
                         AND u.URENPER_GC_ID = @UrenperGcId
                   )
                 ORDER BY d.GC_ID DESC";
-            return await connection.QueryFirstOrDefaultAsync<int?>(sql, new { MedewGcId = medewGcId, UrenperGcId = urenperGcId, AdminisGcId = adminisGcId });
+            return await connection.QueryFirstOrDefaultAsync<int?>(sql, new { MedewGcId = medewGcId, UrenperGcId = urenperGcId, AdminisGcId = adminisGcId, Prefix = _syntess.DocumentCodePrefix });
         }
 
-        public async Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum, int urenperGcId, FbTransaction transaction = null)
+        public async Task<int> CreateDocumentAsync(int medewGcId, int adminisGcId, DateTime boekDatum, int urenperGcId, FbTransaction? transaction = null)
         {
-            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
-            if (transaction == null) await connection.OpenAsync();
+            var ownConnection = transaction == null ? _connectionFactory.CreateConnection() : null;
+            await using var _ = ownConnection;
+            var connection = transaction?.Connection ?? ownConnection!;
+            if (ownConnection != null) await ownConnection.OpenAsync();
             // Use the Atrium generator (same source Syntess itself uses) instead of MAX+1,
             // which is race-prone and diverges from Syntess. Requires the one-time generator
             // alignment (see Migrations/align-generators.sql) so GEN_ID is never behind MAX.
-            var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_DOCUMENT, 1) FROM RDB$DATABASE", transaction: transaction);
+            var nextId = await connection.ExecuteScalarAsync<int>($"SELECT GEN_ID({_syntess.GeneratorDocument}, 1) FROM RDB$DATABASE", transaction: transaction);
             var medewName = await connection.ExecuteScalarAsync<string>("SELECT GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID = @MedewGcId", new { MedewGcId = medewGcId }, transaction: transaction);
             var periodCode = await connection.ExecuteScalarAsync<string>("SELECT GC_CODE FROM AT_URENPER WHERE GC_ID = @UrenperGcId", new { UrenperGcId = urenperGcId }, transaction: transaction);
             
             // Generate unique code by finding highest sequence number for this base code
-            var baseCode = $"URS{boekDatum:yy}{periodCode?.Replace("_", "") ?? "0000"}";
+            var baseCode = $"{_syntess.DocumentCodePrefix}{boekDatum:yy}{periodCode?.Replace("_", "") ?? "0000"}";
             var existingCount = await connection.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM AT_DOCUMENT WHERE GC_CODE STARTING WITH @BaseCode AND STENT_ST_ID = @StentStId AND ADMINIS_GC_ID = @AdminisGcId",
-                new { BaseCode = baseCode, StentStId = Cfg("StentStId", 175), AdminisGcId = adminisGcId },
+                new { BaseCode = baseCode, StentStId = _syntess.StentStId, AdminisGcId = adminisGcId },
                 transaction: transaction);
             
             var code = existingCount > 0 ? $"{baseCode}.{existingCount + 1}" : baseCode;
@@ -254,28 +214,29 @@ namespace ClockwiseProject.Backend.Repositories
             {
                 GcId = nextId,
                 AdminisGcId = adminisGcId,
-                StentStId = Cfg("StentStId", 175),
+                StentStId = _syntess.StentStId,
                 MedewGcId = medewGcId,
-                AfdelingGcId = Cfg("AfdelingGcId", 100004),
-                DagboekGcId = Cfg("DagboekGcId", 100025),
-                LayoutGcId = Cfg("LayoutGcId", 100281),
-                ValutaGcId = Cfg("ValutaGcId", 100001),
-                BoekjaarGcId = Cfg("BoekjaarGcId", 100028),
-                GebrGcId = Cfg("GebrGcId", 100001),
+                AfdelingGcId = _syntess.AfdelingGcId,
+                DagboekGcId = _syntess.DagboekGcId,
+                LayoutGcId = _syntess.LayoutGcId,
+                ValutaGcId = _syntess.ValutaGcId,
+                BoekjaarGcId = _syntess.BoekjaarGcId,
+                GebrGcId = _syntess.GebrGcId,
                 Code = code,
                 Omschrijving = omschrijving,
                 BoekDatum = boekDatum.Date,
                 AanmaakDatum = now,
                 WijzigDatum = now
             }, transaction: transaction);
-            if (transaction == null) connection.Close();
             return nextId;
         }
 
-        public async Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId, FbTransaction transaction = null)
+        public async Task EnsureUrenstatAsync(int documentGcId, int medewGcId, int urenperGcId, FbTransaction? transaction = null)
         {
-            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
-            if (transaction == null) await connection.OpenAsync();
+            var ownConnection = transaction == null ? _connectionFactory.CreateConnection() : null;
+            await using var _ = ownConnection;
+            var connection = transaction?.Connection ?? ownConnection!;
+            if (ownConnection != null) await ownConnection.OpenAsync();
             // Check if exists
             var sqlCheck = "SELECT COUNT(*) FROM AT_URENSTAT WHERE DOCUMENT_GC_ID = @DocumentGcId AND MEDEW_GC_ID = @MedewGcId AND URENPER_GC_ID = @UrenperGcId";
             var count = await connection.ExecuteScalarAsync<int>(sqlCheck, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId }, transaction: transaction);
@@ -284,40 +245,36 @@ namespace ClockwiseProject.Backend.Repositories
                 var sqlInsert = "INSERT INTO AT_URENSTAT (DOCUMENT_GC_ID, MEDEW_GC_ID, URENPER_GC_ID, GEEXPORTEERD_JN, TVT_JN, DATUM) VALUES (@DocumentGcId, @MedewGcId, @UrenperGcId, 'N', 'N', NULL)";
                 await connection.ExecuteAsync(sqlInsert, new { DocumentGcId = documentGcId, MedewGcId = medewGcId, UrenperGcId = urenperGcId }, transaction: transaction);
             }
-            if (transaction == null) connection.Close();
         }
 
-        public async Task<int> GetNextRegelNrAsync(int documentGcId, FbTransaction transaction = null)
+        public async Task<int> GetNextRegelNrAsync(int documentGcId, FbTransaction? transaction = null)
         {
-            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
-            if (transaction == null) await connection.OpenAsync();
+            var ownConnection = transaction == null ? _connectionFactory.CreateConnection() : null;
+            await using var _ = ownConnection;
+            var connection = transaction?.Connection ?? ownConnection!;
+            if (ownConnection != null) await ownConnection.OpenAsync();
             const string sql = "SELECT COALESCE(MAX(GC_REGEL_NR), 0) + 1 FROM AT_URENBREG WHERE DOCUMENT_GC_ID = @DocumentGcId";
             var result = await connection.ExecuteScalarAsync<int>(sql, new { DocumentGcId = documentGcId }, transaction: transaction);
-            if (transaction == null) connection.Close();
             return result;
         }
 
-        public async Task InsertTimeEntryAsync(TimeEntry entry, FbTransaction transaction = null)
+        public async Task InsertTimeEntryAsync(TimeEntry entry, FbTransaction? transaction = null)
         {
-            // Sync time entries with multiple lines for different cost types
-            // TAAK determines if Montage (100256) or Tekenkamer (100032)
-            // KOSTSRT varies per cost type:
-            // - Normal hours: 100268 (Montage) or 100278 (Tekenkamer)
-            // - Travel hours: 100269 (Montage) or 100279 (Tekenkamer)
-            // - Distance km: 100300 (Reiskilometers)
-            // - Travel costs: 100167 (Reis en verblijfskosten - 5569)
-            // - Other expenses: 100288 (Materiaal)
+            // Eén werkflow-regel wordt meerdere AT_URENBREG-regels (uren, reisuren, km, reiskosten,
+            // onkosten), elk met de kostensoort uit de Syntess-config.
 
-            var connection = transaction?.Connection ?? _connectionFactory.CreateConnection();
-            if (transaction == null) await connection.OpenAsync();
+            var ownConnection = transaction == null ? _connectionFactory.CreateConnection() : null;
+            await using var _ = ownConnection;
+            var connection = transaction?.Connection ?? ownConnection!;
+            if (ownConnection != null) await ownConnection.OpenAsync();
             
             // Determine if this is Montage or Tekenkamer based on TAAK_GC_ID
-            bool isMontage = entry.TaakGcId == 100256; // TAAK code "30" = Montage
-            bool isTekenkamer = entry.TaakGcId == 100032; // TAAK code "40" = Tekenkamer
+            bool isMontage = entry.TaakGcId == _syntess.MontageTaakGcId;
+            bool isTekenkamer = entry.TaakGcId == _syntess.TekenkamerTaakGcId;
             
             // Set KOSTSRT for normal hours and travel hours based on task type
-            int normalHoursKostsrt = isMontage ? 100268 : (isTekenkamer ? 100278 : entry.KostsrtGcId ?? 100268);
-            int travelHoursKostsrt = isMontage ? 100269 : 100279; // 7011.02 MON or 7011.41 TK
+            int normalHoursKostsrt = isMontage ? _syntess.KostsrtUrenMontage : (isTekenkamer ? _syntess.KostsrtUrenTekenkamer : entry.KostsrtGcId ?? _syntess.KostsrtUrenMontage);
+            int travelHoursKostsrt = isMontage ? _syntess.KostsrtReisMontage : _syntess.KostsrtReisTekenkamer;
             
             const string sql = @"
                 INSERT INTO AT_URENBREG (
@@ -332,7 +289,7 @@ namespace ClockwiseProject.Backend.Repositories
             var totalRegularHours = entry.Aantal + entry.EveningNightHours;
             if (totalRegularHours > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>($"SELECT GEN_ID({_syntess.GeneratorUrenbreg}, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -352,7 +309,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 2. Insert travel hours if > 0 under correct KOSTSRT (Montage or Tekenkamer reisuren)
             if (entry.TravelHours > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>($"SELECT GEN_ID({_syntess.GeneratorUrenbreg}, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -372,7 +329,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 3. Insert distance km if > 0 under KOSTSRT 100167 (5569 - Reis en verblijfskosten)
             if (entry.DistanceKm > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>($"SELECT GEN_ID({_syntess.GeneratorUrenbreg}, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -384,7 +341,7 @@ namespace ClockwiseProject.Backend.Repositories
                     entry.WerkGcId,
                     entry.MedewGcId,
                     GcOmschrijving = $"{entry.DistanceKm} km",
-                    KostsrtGcId = 100167, // 5569 Reis en verblijfskosten (D)
+                    KostsrtGcId = _syntess.KostsrtReisVerblijf,
                     entry.BestparGcId
                 }, transaction: transaction);
             }
@@ -392,7 +349,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 4. Insert travel costs if > 0 under KOSTSRT 100167 (5569 - Reis en verblijfskosten)
             if (entry.TravelCosts > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>($"SELECT GEN_ID({_syntess.GeneratorUrenbreg}, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -404,7 +361,7 @@ namespace ClockwiseProject.Backend.Repositories
                     entry.WerkGcId,
                     entry.MedewGcId,
                     GcOmschrijving = $"Reiskosten €{entry.TravelCosts:F2}",
-                    KostsrtGcId = 100167, // 5569 Reis en verblijfskosten (D)
+                    KostsrtGcId = _syntess.KostsrtReisVerblijf,
                     entry.BestparGcId
                 }, transaction: transaction);
             }
@@ -412,7 +369,7 @@ namespace ClockwiseProject.Backend.Repositories
             // 5. Insert other expenses if > 0 under KOSTSRT 100288 (Materiaal)
             if (entry.OtherExpenses > 0)
             {
-                var nextId = await connection.ExecuteScalarAsync<int>("SELECT GEN_ID(AG_URENBREG, 1) FROM RDB$DATABASE", transaction: transaction);
+                var nextId = await connection.ExecuteScalarAsync<int>($"SELECT GEN_ID({_syntess.GeneratorUrenbreg}, 1) FROM RDB$DATABASE", transaction: transaction);
                 await connection.ExecuteAsync(sql, new
                 {
                     GcId = nextId,
@@ -424,12 +381,11 @@ namespace ClockwiseProject.Backend.Repositories
                     entry.WerkGcId,
                     entry.MedewGcId,
                     GcOmschrijving = $"Onkosten €{entry.OtherExpenses:F2}",
-                    KostsrtGcId = 100288, // M - Materiaal
+                    KostsrtGcId = _syntess.KostsrtMateriaal,
                     entry.BestparGcId
                 }, transaction: transaction);
             }
 
-            if (transaction == null) connection.Close();
         }
 
         public async Task<bool> IsDuplicateEntryAsync(int documentGcId, int taakGcId, int? werkGcId, DateTime datum, decimal aantal, string omschrijving)
@@ -440,7 +396,7 @@ namespace ClockwiseProject.Backend.Repositories
             return count > 0;
         }
 
-        public async Task<string> GetTaakCodeAsync(int taakGcId)
+        public async Task<string?> GetTaakCodeAsync(int taakGcId)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT GC_CODE FROM AT_TAAK WHERE GC_ID = @TaakGcId";
@@ -472,7 +428,7 @@ namespace ClockwiseProject.Backend.Repositories
             return count > 0;
         }
 
-        public async Task<string> GetWerkCodeAsync(int werkGcId)
+        public async Task<string?> GetWerkCodeAsync(int werkGcId)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT GC_CODE FROM AT_WERK WHERE GC_ID = @WerkGcId";
@@ -487,30 +443,7 @@ namespace ClockwiseProject.Backend.Repositories
             return (result?.GC_CODE ?? "", result?.GC_OMSCHRIJVING ?? "");
         }
 
-        public async Task<IEnumerable<User>> GetUsersAsync()
-        {
-            // Temporary hardcoded users for testing
-            return new List<User>
-            {
-                new User
-                {
-                    Id = 100050,
-                    LoginName = "Test User",
-                    FirstName = "Test",
-                    LastName = "User",
-                    Email = "test@example.com",
-                    Address = "",
-                    HouseNumber = "",
-                    PostalCode = "",
-                    City = "",
-                    Password = "",
-                    Rank = "",
-                    IsActive = true
-                }
-            };
-        }
-
-        public async Task<User> GetUserByIdAsync(int id)
+        public async Task<User?> GetUserByIdAsync(int id)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT * FROM AT_MEDEW WHERE GC_ID = @Id";

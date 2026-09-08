@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Domain;
 using FirebirdSql.Data.FirebirdClient;
@@ -8,10 +8,12 @@ namespace ClockwiseProject.Backend.Repositories
     public class FirebirdUserRepository : IUserRepository
     {
         private readonly FirebirdConnectionFactory _connectionFactory;
+        private readonly ClockwiseProject.Backend.Models.SyntessOptions _syntess;
 
-        public FirebirdUserRepository(FirebirdConnectionFactory connectionFactory)
+        public FirebirdUserRepository(FirebirdConnectionFactory connectionFactory, ClockwiseProject.Backend.Models.SyntessOptions syntess)
         {
             _connectionFactory = connectionFactory;
+            _syntess = syntess;
         }
 
         public async Task<IEnumerable<User>> GetAllAsync()
@@ -29,7 +31,7 @@ namespace ClockwiseProject.Backend.Repositories
             if (user != null)
             {
                 // Set rank based on user ID
-                user.Rank = id == 100002 ? "manager" : "user";
+                user.Rank = _syntess.ManagerMedewGcIds.Contains(id) ? "manager" : "user";
             }
             return user;
         }
@@ -42,27 +44,15 @@ namespace ClockwiseProject.Backend.Repositories
             if (user != null)
             {
                 // Set rank based on user ID
-                user.Rank = user.Id == 100002 ? "manager" : "user";
+                user.Rank = _syntess.ManagerMedewGcIds.Contains(user.Id) ? "manager" : "user";
             }
             return user;
         }
 
-        public async Task AddAsync(User user)
-        {
-            // Not implemented
-            throw new NotImplementedException();
-        }
+        public Task AddAsync(User user) => throw new NotImplementedException();
 
-        public async Task UpdateAsync(User user)
-        {
-            // Not implemented
-            throw new NotImplementedException();
-        }
+        public Task UpdateAsync(User user) => throw new NotImplementedException();
 
-        public async Task DeleteAsync(int id)
-        {
-            // Not implemented
-            throw new NotImplementedException();
-        }
+        public Task DeleteAsync(int id) => throw new NotImplementedException();
     }
 }

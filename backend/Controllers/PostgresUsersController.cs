@@ -1,6 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Data;
+using backend.Services;
+using ClockwiseProject.Backend;
 
 namespace backend.Controllers;
 
@@ -14,11 +16,87 @@ public class PostgresUsersController : ControllerBase
 {
     private readonly IDbConnection _db;
     private readonly ILogger<PostgresUsersController> _logger;
+    private readonly AuthenticationService _authService;
+    private readonly FirebirdConnectionFactory _firebird;
 
-    public PostgresUsersController(IDbConnection db, ILogger<PostgresUsersController> logger)
+    private const string UserColumns = @"
+                    id,
+                    medew_gc_id AS ""medewGcId"",
+                    username,
+                    first_name AS ""firstName"",
+                    last_name AS ""lastName"",
+                    email,
+                    phone,
+                    role,
+                    CASE WHEN is_active = false THEN 'inactive' ELSE role END AS ""rank"",
+                    is_active AS ""isActive"",
+                    contract_hours AS ""contractHours"",
+                    vacation_days AS ""vacationDays"",
+                    used_vacation_days AS ""usedVacationDays"",
+                    two_factor_enabled AS ""twoFactorEnabled"",
+                    allowed_tasks AS ""allowedTasks"",
+                    last_login AS ""lastLogin"",
+                    created_at AS ""createdAt""";
+
+    public PostgresUsersController(IDbConnection db, ILogger<PostgresUsersController> logger,
+        AuthenticationService authService, FirebirdConnectionFactory firebird)
     {
         _db = db;
         _logger = logger;
+        _authService = authService;
+        _firebird = firebird;
+    }
+
+    // ---- identity helpers (filled by MedewGcIdMiddleware from the validated JWT) ----
+    private int? CurrentUserId => HttpContext.Items.TryGetValue("UserId", out var v) && v is int i ? i : null;
+    private string CurrentRole => HttpContext.Items.TryGetValue("UserRole", out var v) && v is string r ? r.ToLowerInvariant() : "user";
+    private bool IsAdmin => CurrentRole == "admin";
+    private bool IsManagerOrAdmin => CurrentRole is "admin" or "manager";
+
+    /// <summary>GET /api/users/me - the logged-in user's own profile.</summary>
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMe()
+    {
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized(new { error = "Niet ingelogd" });
+        var user = await _db.QueryFirstOrDefaultAsync($"SELECT {UserColumns} FROM users WHERE id = @Id", new { Id = userId });
+        return user == null ? NotFound(new { error = "Gebruiker niet gevonden" }) : Ok(user);
+    }
+
+    /// <summary>PUT /api/users/me - update own name / e-mail / phone. Nothing else.</summary>
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileRequest request)
+    {
+        var userId = CurrentUserId;
+        if (userId == null) return Unauthorized(new { error = "Niet ingelogd" });
+        if (!string.IsNullOrEmpty(request.Email) && !request.Email.Contains('@'))
+            return BadRequest(new { error = "Ongeldig e-mailadres" });
+
+        var rows = await _db.ExecuteAsync(@"
+            UPDATE users SET
+                first_name = COALESCE(@FirstName, first_name),
+                last_name  = COALESCE(@LastName, last_name),
+                email      = COALESCE(@Email, email),
+                phone      = COALESCE(@Phone, phone),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = @Id",
+            new { Id = userId, request.FirstName, request.LastName, request.Email, request.Phone });
+        if (rows == 0) return NotFound(new { error = "Gebruiker niet gevonden" });
+        var user = await _db.QueryFirstOrDefaultAsync($"SELECT {UserColumns} FROM users WHERE id = @Id", new { Id = userId });
+        return Ok(user);
+    }
+
+    /// <summary>GET /api/users/atrium-employees - employees in Atrium (AT_MEDEW) with link status. Manager/admin only.</summary>
+    [HttpGet("atrium-employees")]
+    public async Task<IActionResult> GetAtriumEmployees()
+    {
+        if (!IsManagerOrAdmin) return Forbid();
+        using var fb = _firebird.CreateConnection();
+        await fb.OpenAsync();
+        var employees = (await fb.QueryAsync<(int MedewGcId, string? Name)>(
+            "SELECT GC_ID, GC_OMSCHRIJVING FROM AT_MEDEW WHERE GC_ID IS NOT NULL ORDER BY GC_OMSCHRIJVING")).ToList();
+        var linked = (await _db.QueryAsync<int>("SELECT medew_gc_id FROM users")).ToHashSet();
+        return Ok(employees.Select(e => new { medewGcId = e.MedewGcId, name = e.Name?.Trim(), linked = linked.Contains(e.MedewGcId) }));
     }
 
     /// <summary>
@@ -32,22 +110,7 @@ public class PostgresUsersController : ControllerBase
         {
             _logger.LogInformation("Getting all users");
 
-            var sql = @"
-                SELECT
-                    id,
-                    medew_gc_id AS ""medewGcId"",
-                    username,
-                    first_name AS ""firstName"",
-                    last_name AS ""lastName"",
-                    email,
-                    phone,
-                    role,
-                    CASE WHEN is_active = false THEN 'inactive' ELSE role END AS ""rank"",
-                    is_active AS ""isActive"",
-                    contract_hours AS ""contractHours"",
-                    vacation_days AS ""vacationDays"",
-                    used_vacation_days AS ""usedVacationDays""
-                FROM users
+            var sql = $@"SELECT {UserColumns} FROM users
                 ORDER BY first_name, last_name";
 
             var users = await _db.QueryAsync(sql);
@@ -56,7 +119,7 @@ public class PostgresUsersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting all users");
-            return Ok(new List<object>()); // Return empty list on error
+            return StatusCode(500, new { error = "Fout bij ophalen gebruikers" });
         }
     }
 
@@ -71,22 +134,7 @@ public class PostgresUsersController : ControllerBase
         {
             _logger.LogInformation("Getting user by medewGcId: {MedewGcId}", medewGcId);
 
-            var sql = @"
-                SELECT
-                    id,
-                    medew_gc_id AS ""medewGcId"",
-                    username,
-                    first_name AS ""firstName"",
-                    last_name AS ""lastName"",
-                    email,
-                    phone,
-                    role,
-                    CASE WHEN is_active = false THEN 'inactive' ELSE role END AS ""rank"",
-                    is_active AS ""isActive"",
-                    contract_hours AS ""contractHours"",
-                    vacation_days AS ""vacationDays"",
-                    used_vacation_days AS ""usedVacationDays""
-                FROM users
+            var sql = $@"SELECT {UserColumns} FROM users
                 WHERE medew_gc_id = @MedewGcId";
 
             var user = await _db.QueryFirstOrDefaultAsync(sql, new { MedewGcId = medewGcId });
@@ -113,6 +161,14 @@ public class PostgresUsersController : ControllerBase
     [HttpPut("{medewGcId:int}")]
     public async Task<IActionResult> UpdateUserByMedewGcId(int medewGcId, [FromBody] UpdateUserRequest request)
     {
+        if (!IsManagerOrAdmin) return Forbid();
+        var changesRoleOrStatus = request.Role != null || request.Rank != null || request.IsActive != null;
+        if (changesRoleOrStatus && !IsAdmin)
+            return StatusCode(403, new { error = "Alleen een admin kan rol of status wijzigen" });
+        if (request.Role != null && request.Role is not ("user" or "manager" or "admin"))
+            return BadRequest(new { error = "Ongeldige rol" });
+        if (request.Rank != null && request.Rank is not ("user" or "manager" or "admin" or "inactive"))
+            return BadRequest(new { error = "Ongeldige rol" });
         try
         {
             _logger.LogInformation("Updating user by medewGcId: {MedewGcId}", medewGcId);
@@ -192,56 +248,7 @@ public class PostgresUsersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating user by medewGcId: {MedewGcId}", medewGcId);
-            return StatusCode(500, new { error = "Fout bij bijwerken gebruiker", detail = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// POST /api/users/login
-    /// Login with medew_gc_id
-    /// </summary>
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] PostgresLoginRequest request)
-    {
-        try
-        {
-            _logger.LogInformation("Login attempt for medewGcId: {MedewGcId}", request.MedewGcId);
-
-            var sql = @"
-                SELECT
-                    id AS ""Id"",
-                    medew_gc_id AS ""MedewGcId"",
-                    username AS ""Username"",
-                    first_name AS ""FirstName"",
-                    last_name AS ""LastName"",
-                    email AS ""Email"",
-                    role AS ""Role"",
-                    is_active AS ""IsActive""
-                FROM users
-                WHERE medew_gc_id = @MedewGcId";
-
-            var user = await _db.QueryFirstOrDefaultAsync(sql, new { MedewGcId = request.MedewGcId });
-
-            if (user == null)
-            {
-                _logger.LogWarning("Login failed - user not found for medewGcId: {MedewGcId}", request.MedewGcId);
-                return Unauthorized(new { error = "Invalid MedewGcId" });
-            }
-
-            // Block inactive users from logging in
-            if ((bool?)user.IsActive == false)
-            {
-                _logger.LogWarning("Login blocked - user is inactive: {MedewGcId}", request.MedewGcId);
-                return Unauthorized(new { error = "Account is gedeactiveerd. Neem contact op met je manager." });
-            }
-
-            _logger.LogInformation("Login successful for user: {Username}", (string)user.Username);
-            return Ok(user);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login for medewGcId: {MedewGcId}", request.MedewGcId);
-            return StatusCode(500, new { error = "Fout bij inloggen" });
+            return StatusCode(500, new { error = "Fout bij bijwerken gebruiker" });
         }
     }
 
@@ -252,59 +259,66 @@ public class PostgresUsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
+        if (!IsAdmin) return StatusCode(403, new { error = "Alleen een admin kan gebruikers aanmaken" });
+        if (request.MedewGcId <= 0) return BadRequest(new { error = "Kies een Atrium-medewerker (medewGcId)" });
+        if (string.IsNullOrWhiteSpace(request.Username)) return BadRequest(new { error = "Gebruikersnaam is verplicht" });
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            return BadRequest(new { error = "Wachtwoord moet minimaal 8 tekens zijn" });
+        var role = (request.Role ?? "user").ToLowerInvariant();
+        if (role is not ("user" or "manager" or "admin")) return BadRequest(new { error = "Ongeldige rol" });
+
+        // The Atrium employee must exist: hours are booked on this GC_ID in Syntess.
+        using (var fb = _firebird.CreateConnection())
+        {
+            await fb.OpenAsync();
+            var exists = await fb.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM AT_MEDEW WHERE GC_ID = @Id", new { Id = request.MedewGcId });
+            if (exists == 0) return BadRequest(new { error = $"Medewerker {request.MedewGcId} bestaat niet in Atrium" });
+        }
+
+        var username = request.Username.Trim().ToLowerInvariant();
+        var clash = await _db.QueryFirstOrDefaultAsync<string>(
+            "SELECT CASE WHEN username = @Username THEN 'username' ELSE 'medew' END FROM users WHERE username = @Username OR medew_gc_id = @MedewGcId LIMIT 1",
+            new { Username = username, request.MedewGcId });
+        if (clash == "username") return Conflict(new { error = "Gebruikersnaam bestaat al" });
+        if (clash == "medew") return Conflict(new { error = "Deze Atrium-medewerker heeft al een account" });
+
         try
         {
-            _logger.LogInformation("Creating new user: {FirstName} {LastName}", request.FirstName, request.LastName);
-
-            // Generate a unique medew_gc_id (temporary - should be from Firebird)
-            var maxMedewGcId = await _db.ExecuteScalarAsync<int?>(
-                "SELECT COALESCE(MAX(medew_gc_id), 200000) + 1 FROM users");
-            var newMedewGcId = maxMedewGcId ?? 200001;
-
-            // Generate username
-            var username = $"{request.FirstName?.ToLower().FirstOrDefault()}.{request.LastName?.ToLower().Replace(" ", "")}";
-
-            var sql = @"
+            var result = await _db.QueryFirstAsync(@"
                 INSERT INTO users (
-                    medew_gc_id, username, first_name, last_name, email, phone, role, is_active,
+                    medew_gc_id, username, password_hash, first_name, last_name, email, phone, role, is_active,
                     contract_hours, vacation_days, used_vacation_days, created_at, updated_at
                 )
                 VALUES (
-                    @MedewGcId, @Username, @FirstName, @LastName, @Email, @Phone, @Role, TRUE,
+                    @MedewGcId, @Username, @PasswordHash, @FirstName, @LastName, @Email, @Phone, @Role, TRUE,
                     @ContractHours, @VacationDays, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                 )
-                RETURNING id, medew_gc_id AS ""medewGcId""";
+                RETURNING id, medew_gc_id AS ""medewGcId""",
+                new
+                {
+                    request.MedewGcId,
+                    Username = username,
+                    PasswordHash = _authService.HashPassword(request.Password),
+                    request.FirstName,
+                    request.LastName,
+                    request.Email,
+                    request.Phone,
+                    Role = role,
+                    ContractHours = request.ContractHours ?? 40,
+                    VacationDays = request.VacationDays ?? 25
+                });
 
-            var result = await _db.QueryFirstOrDefaultAsync(sql, new
-            {
-                MedewGcId = newMedewGcId,
-                Username = username,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Email = request.Email,
-                Phone = request.Phone,
-                Role = request.Role ?? "user",
-                ContractHours = request.ContractHours ?? 40,
-                VacationDays = request.VacationDays ?? 25
-            });
-
-            // Add to manager_assignments if managerId is provided
-            if (request.ManagerId.HasValue && result != null)
+            if (request.ManagerId.HasValue)
             {
                 await _db.ExecuteAsync(@"
                     INSERT INTO manager_assignments (manager_id, employee_id, active_from)
-                    VALUES (
-                        (SELECT id FROM users WHERE medew_gc_id = @ManagerMedewGcId),
-                        @EmployeeId,
-                        CURRENT_DATE
-                    )
+                    SELECT id, @EmployeeId, CURRENT_DATE FROM users WHERE medew_gc_id = @ManagerMedewGcId
                     ON CONFLICT DO NOTHING",
-                    new { ManagerMedewGcId = request.ManagerId, EmployeeId = result?.id });
+                    new { ManagerMedewGcId = request.ManagerId, EmployeeId = (int)result.id });
             }
 
-            _logger.LogInformation("Created user with id: {Id}, medewGcId: {MedewGcId}", (int?)result?.id, (int?)result?.medewGcId);
-
-            return Ok(new { success = true, id = result?.id, medewGcId = result?.medewGcId });
+            _logger.LogInformation("Admin {Admin} created user {Id} (medewGcId {MedewGcId})", CurrentUserId, (int)result.id, (int)result.medewGcId);
+            return Ok(new { success = true, id = (int)result.id, medewGcId = (int)result.medewGcId, username });
         }
         catch (Exception ex)
         {
@@ -312,6 +326,14 @@ public class PostgresUsersController : ControllerBase
             return StatusCode(500, new { error = "Fout bij aanmaken gebruiker" });
         }
     }
+}
+
+public class UpdateProfileRequest
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
 }
 
 public class UpdateUserRequest
@@ -333,6 +355,9 @@ public class UpdateUserRequest
 
 public class CreateUserRequest
 {
+    public int MedewGcId { get; set; }
+    public string? Username { get; set; }
+    public string? Password { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? Email { get; set; }
@@ -341,9 +366,4 @@ public class CreateUserRequest
     public int? ContractHours { get; set; }
     public int? VacationDays { get; set; }
     public int? ManagerId { get; set; }
-}
-
-public class PostgresLoginRequest
-{
-    public int MedewGcId { get; set; }
 }

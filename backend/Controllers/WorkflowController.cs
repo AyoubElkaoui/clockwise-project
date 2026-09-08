@@ -2,8 +2,6 @@ using backend.Models;
 using backend.Services;
 using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using ClockwiseProject.Backend.Repositories;
-using ClockwiseProject.Backend.Models;
 
 namespace backend.Controllers;
 
@@ -11,6 +9,9 @@ namespace backend.Controllers;
 [Route("api/workflow")]
 public class WorkflowController : ControllerBase
 {
+    private const string NoIdentityMessage = "Geen medewerker-identiteit in het token";
+    private const string ManagerOnlyMessage = "Alleen managers of beheerders mogen urenregistraties beoordelen";
+
     private readonly WorkflowService _workflowService;
     private readonly ILogger<WorkflowController> _logger;
     private readonly INotificationRepository _notificationRepo;
@@ -27,146 +28,114 @@ public class WorkflowController : ControllerBase
 
     /// <summary>
     /// POST /api/workflow/draft
-    /// Save time entry as draft (user can still edit)
     /// </summary>
     [HttpPost("draft")]
-    public async Task<ActionResult<DraftResponse>> SaveDraft([FromBody] SaveDraftRequest request)
+    public async Task<ActionResult<DraftResponse>> SaveDraft([FromBody] SaveDraftRequest? request)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
+        if (request == null)
+            return BadRequest(new { error = "Ongeldige aanvraag" });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            _logger.LogInformation(
-                "POST /api/workflow/draft for employee {MedewGcId}, date {Datum}",
-                medewGcId, request.Datum);
-
             var response = await _workflowService.SaveDraftAsync(medewGcId.Value, request);
 
             if (!response.Success)
-            {
                 return BadRequest(response);
-            }
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error saving draft");
-            return StatusCode(500, new { error = "Failed to save draft", details = ex.Message });
+            _logger.LogError(ex, "Error saving draft for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij opslaan concept" });
         }
     }
 
     /// <summary>
-    /// GET /api/workflow/drafts
-    /// Get all draft entries for current employee
+    /// GET /api/workflow/drafts?urenperGcId=
     /// </summary>
     [HttpGet("drafts")]
     public async Task<ActionResult<WorkflowEntriesResponse>> GetDrafts([FromQuery] int urenperGcId)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            _logger.LogInformation(
-                "GET /api/workflow/drafts for employee {MedewGcId}, period {UrenperGcId}",
-                medewGcId, urenperGcId);
-
             var response = await _workflowService.GetDraftsAsync(medewGcId.Value, urenperGcId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching drafts");
-            return StatusCode(500, new { error = "Failed to fetch drafts", details = ex.Message });
+            _logger.LogError(ex, "Error fetching drafts for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij ophalen concepten" });
         }
     }
 
     /// <summary>
-    /// GET /api/workflow/submitted
-    /// Get submitted entries for current employee
+    /// GET /api/workflow/submitted?urenperGcId=
     /// </summary>
     [HttpGet("submitted")]
     public async Task<ActionResult<WorkflowEntriesResponse>> GetSubmitted([FromQuery] int urenperGcId)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            _logger.LogInformation(
-                "GET /api/workflow/submitted for employee {MedewGcId}, period {UrenperGcId}",
-                medewGcId, urenperGcId);
-
             var response = await _workflowService.GetSubmittedAsync(medewGcId.Value, urenperGcId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching submitted entries");
-            return StatusCode(500, new { error = "Failed to fetch submitted entries", details = ex.Message });
+            _logger.LogError(ex, "Error fetching submitted entries for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij ophalen ingediende uren" });
         }
     }
 
     /// <summary>
-    /// GET /api/workflow/rejected
-    /// Get rejected entries for current employee (need revision)
+    /// GET /api/workflow/rejected?urenperGcId=
     /// </summary>
     [HttpGet("rejected")]
     public async Task<ActionResult<WorkflowEntriesResponse>> GetRejected([FromQuery] int urenperGcId)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            _logger.LogInformation(
-                "GET /api/workflow/rejected for employee {MedewGcId}, period {UrenperGcId}",
-                medewGcId, urenperGcId);
-
             var response = await _workflowService.GetRejectedAsync(medewGcId.Value, urenperGcId);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching rejected entries");
-            return StatusCode(500, new { error = "Failed to fetch rejected entries", details = ex.Message });
+            _logger.LogError(ex, "Error fetching rejected entries for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij ophalen afgekeurde uren" });
         }
     }
 
     /// <summary>
     /// POST /api/workflow/submit
-    /// Submit draft entries for manager review
     /// </summary>
     [HttpPost("submit")]
-    public async Task<ActionResult<WorkflowResponse>> SubmitEntries([FromBody] SubmitTimeEntriesRequest request)
+    public async Task<ActionResult<WorkflowResponse>> SubmitEntries([FromBody] SubmitTimeEntriesRequest? request)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
+        if (request == null || request.EntryIds == null || request.EntryIds.Count == 0)
+            return BadRequest(new { error = "Geen uren geselecteerd om in te dienen" });
+
         try
         {
-            _logger.LogInformation(
-                "POST /api/workflow/submit received - UrenperGcId: {UrenperGcId}, EntryIds: {EntryIds}",
-                request?.UrenperGcId ?? 0, 
-                request?.EntryIds != null ? string.Join(",", request.EntryIds) : "null");
-
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
             _logger.LogInformation(
                 "POST /api/workflow/submit for employee {MedewGcId}, {Count} entries",
                 medewGcId, request.EntryIds.Count);
@@ -174,208 +143,158 @@ public class WorkflowController : ControllerBase
             var response = await _workflowService.SubmitEntriesAsync(medewGcId.Value, request);
 
             if (!response.Success)
-            {
                 return BadRequest(response);
-            }
 
-            // Notificatie sturen naar manager
-            await _notificationRepo.NotifyManagerForEmployeeAsync(medewGcId.Value, new CreateNotificationDto
+            try
             {
-                Type = "timesheet_submitted",
-                Title = "Nieuwe timesheet ingediend",
-                Message = "{firstName} {lastName} heeft een timesheet ingediend voor goedkeuring",
-                RelatedEntityType = "timesheet",
-                RelatedEntityId = request.UrenperGcId
-            });
+                await _notificationRepo.NotifyManagerForEmployeeAsync(medewGcId.Value, new CreateNotificationDto
+                {
+                    Type = "timesheet_submitted",
+                    Title = "Nieuwe timesheet ingediend",
+                    Message = "{firstName} {lastName} heeft een timesheet ingediend voor goedkeuring",
+                    RelatedEntityType = "timesheet",
+                    RelatedEntityId = request.UrenperGcId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to notify manager for employee {MedewGcId}", medewGcId);
+            }
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error submitting entries");
-            return StatusCode(500, new { error = "Failed to submit entries", details = ex.Message });
+            _logger.LogError(ex, "Error submitting entries for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij indienen uren" });
         }
     }
 
     /// <summary>
     /// POST /api/workflow/resubmit
-    /// Resubmit rejected entries after revision
     /// </summary>
     [HttpPost("resubmit")]
-    public async Task<ActionResult<WorkflowResponse>> ResubmitRejected([FromBody] SubmitTimeEntriesRequest request)
+    public async Task<ActionResult<WorkflowResponse>> ResubmitRejected([FromBody] SubmitTimeEntriesRequest? request)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
+        if (request == null || request.EntryIds == null || request.EntryIds.Count == 0)
+            return BadRequest(new { error = "Geen uren geselecteerd om opnieuw in te dienen" });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            _logger.LogInformation(
-                "POST /api/workflow/resubmit for employee {MedewGcId}, {Count} entries",
-                medewGcId, request.EntryIds.Count);
-
             var response = await _workflowService.ResubmitRejectedEntriesAsync(medewGcId.Value, request);
 
             if (!response.Success)
-            {
                 return BadRequest(response);
-            }
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resubmitting entries");
-            return StatusCode(500, new { error = "Failed to resubmit entries", details = ex.Message });
+            _logger.LogError(ex, "Error resubmitting entries for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij opnieuw indienen uren" });
         }
     }
 
     /// <summary>
     /// DELETE /api/workflow/draft/{id}
-    /// Delete a draft entry
     /// </summary>
-    [HttpDelete("draft/{id}")]
+    [HttpDelete("draft/{id:int}")]
     public async Task<ActionResult<WorkflowResponse>> DeleteDraft(int id)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            _logger.LogInformation(
-                "DELETE /api/workflow/draft/{Id} for employee {MedewGcId}",
-                id, medewGcId);
-
             var response = await _workflowService.DeleteDraftAsync(medewGcId.Value, id);
 
             if (!response.Success)
-            {
                 return BadRequest(response);
-            }
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting draft");
-            return StatusCode(500, new { error = "Failed to delete draft", details = ex.Message });
+            _logger.LogError(ex, "Error deleting draft {Id} for {MedewGcId}", id, medewGcId);
+            return StatusCode(500, new { error = "Fout bij verwijderen concept" });
         }
     }
 
     /// <summary>
-    /// GET /api/workflow/review/pending
-    /// Get all submitted entries awaiting review (for managers)
+    /// GET /api/workflow/review/pending?urenperGcId=  (manager/admin)
     /// </summary>
     [HttpGet("review/pending")]
     public async Task<ActionResult<WorkflowEntriesResponse>> GetPendingReview([FromQuery] int urenperGcId)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
+        if (!this.IsManagerOrAdmin())
+            return ManagerForbidden(medewGcId.Value, "review time entries");
+
         try
         {
-            _logger.LogInformation("=== GET /api/workflow/review/pending START ===");
-            _logger.LogInformation("Query params: urenperGcId={UrenperGcId}", urenperGcId);
-            
-            var medewGcId = ResolveMedewGcId();
-            _logger.LogInformation("Resolved medewGcId: {MedewGcId}", medewGcId);
-            
-            if (medewGcId == null)
-            {
-                _logger.LogError("GET /api/workflow/review/pending: No medewGcId found in headers");
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            // Manager authorization check
-            var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
-            _logger.LogInformation("X-USER-ROLE header: {UserRole}", userRole ?? "(null)");
-            
-            if (userRole?.ToLower() != "manager")
-            {
-                _logger.LogWarning("Non-manager user {MedewGcId} with role {UserRole} attempted to review time entries", medewGcId, userRole);
-                return StatusCode(403, new { error = "Only managers can review time entries" });
-            }
-
-            _logger.LogInformation(
-                "GET /api/workflow/review/pending for manager {MedewGcId}, period {UrenperGcId}",
-                medewGcId, urenperGcId);
-
             var response = await _workflowService.GetAllSubmittedForReviewAsync(urenperGcId, medewGcId.Value);
-            _logger.LogInformation("GetAllSubmittedForReviewAsync returned {Count} entries", response.TotalCount);
-            _logger.LogInformation("=== GET /api/workflow/review/pending END ===");
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching pending reviews: {Message}. StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
-            return StatusCode(500, new { error = "Failed to fetch pending reviews", details = ex.Message });
+            _logger.LogError(ex, "Error fetching pending reviews for manager {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij ophalen te beoordelen uren" });
         }
     }
 
     /// <summary>
-    /// GET /api/workflow/entries
-    /// Get all entries for a period with optional status filter (for manager overview)
+    /// GET /api/workflow/entries?urenperGcId=&status=  (manager/admin)
     /// </summary>
     [HttpGet("entries")]
     public async Task<ActionResult<WorkflowEntriesResponse>> GetEntries(
-        [FromQuery] int urenperGcId, 
+        [FromQuery] int urenperGcId,
         [FromQuery] string? status = null)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
+        if (!this.IsManagerOrAdmin())
+            return ManagerForbidden(medewGcId.Value, "view all entries");
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            // Manager authorization check
-            var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
-            if (userRole?.ToLower() != "manager")
-            {
-                _logger.LogWarning("Non-manager user {MedewGcId} attempted to access all entries", medewGcId);
-                return StatusCode(403, new { error = "Only managers can view all entries" });
-            }
-
-            _logger.LogInformation(
-                "GET /api/workflow/entries for manager {MedewGcId}, period {UrenperGcId}, status {Status}",
-                medewGcId, urenperGcId, status ?? "ALL");
-
             var response = await _workflowService.GetAllEntriesByPeriodAsync(urenperGcId, status);
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching entries");
-            return StatusCode(500, new { error = "Failed to fetch entries", details = ex.Message });
+            _logger.LogError(ex, "Error fetching entries for period {UrenperGcId}", urenperGcId);
+            return StatusCode(500, new { error = "Fout bij ophalen uren" });
         }
     }
 
     /// <summary>
-    /// POST /api/workflow/review
-    /// Approve or reject time entries (manager only)
+    /// POST /api/workflow/review  (manager/admin)
     /// </summary>
     [HttpPost("review")]
-    public async Task<ActionResult<WorkflowResponse>> ReviewEntries([FromBody] ReviewTimeEntriesRequest request)
+    public async Task<ActionResult<WorkflowResponse>> ReviewEntries([FromBody] ReviewTimeEntriesRequest? request)
     {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null)
+            return Unauthorized(new { error = NoIdentityMessage });
+
+        if (!this.IsManagerOrAdmin())
+            return ManagerForbidden(medewGcId.Value, "review time entries");
+
+        if (request == null || request.EntryIds == null || request.EntryIds.Count == 0)
+            return BadRequest(new { error = "Geen uren geselecteerd om te beoordelen" });
+
         try
         {
-            var medewGcId = ResolveMedewGcId();
-            if (medewGcId == null)
-            {
-                return Unauthorized(new { error = "X-MEDEW-GC-ID header required" });
-            }
-
-            // Manager authorization check
-            var userRole = HttpContext.Request.Headers["X-USER-ROLE"].FirstOrDefault();
-            if (userRole?.ToLower() != "manager")
-            {
-                _logger.LogWarning("Non-manager user {MedewGcId} attempted to review time entries", medewGcId);
-                return StatusCode(403, new { error = "Only managers can review time entries" });
-            }
-
             _logger.LogInformation(
                 "POST /api/workflow/review by manager {MedewGcId}, {Count} entries, approve={Approve}",
                 medewGcId, request.EntryIds.Count, request.Approve);
@@ -383,32 +302,20 @@ public class WorkflowController : ControllerBase
             var response = await _workflowService.ReviewEntriesAsync(medewGcId.Value, request);
 
             if (!response.Success && response.Errors.Any())
-            {
                 return BadRequest(response);
-            }
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reviewing entries");
-            return StatusCode(500, new { error = "Failed to review entries", details = ex.Message });
+            _logger.LogError(ex, "Error reviewing entries by manager {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij beoordelen uren" });
         }
     }
 
-    private int? ResolveMedewGcId()
+    private ObjectResult ManagerForbidden(int medewGcId, string action)
     {
-        if (HttpContext.Items.TryGetValue("MedewGcId", out var medewObj))
-        {
-            return (int)medewObj;
-        }
-
-        if (Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var header) &&
-            int.TryParse(header.ToString(), out var medewId))
-        {
-            return medewId;
-        }
-
-        return null;
+        _logger.LogWarning("User {MedewGcId} with role {Role} attempted to {Action}", medewGcId, this.CurrentRole(), action);
+        return StatusCode(403, new { error = ManagerOnlyMessage });
     }
 }

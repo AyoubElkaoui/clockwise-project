@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using backend.Controllers;
 using backend.Repositories;
-using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Controllers
 {
@@ -17,115 +17,82 @@ namespace ClockwiseProject.Backend.Controllers
             _logger = logger;
         }
 
+        // GET: api/time-entries?from=&to=[&userId=]  (userId alleen voor manager/admin)
         [HttpGet]
-        public async Task<IActionResult> GetTimeEntries([FromQuery] string from, [FromQuery] string to, [FromQuery] int? userId = null)
+        public async Task<IActionResult> GetTimeEntries([FromQuery] string? from, [FromQuery] string? to, [FromQuery] int? userId = null)
         {
             if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate))
-                return BadRequest("Invalid date format");
+                return BadRequest(new { error = "Ongeldig datumformaat" });
 
             // Clamp to prevent future ranges from causing DB errors
             var today = DateTime.UtcNow.Date;
             if (toDate.Date > today) toDate = today;
             if (fromDate.Date > toDate.Date) fromDate = toDate.Date;
 
-            var medewGcId = ResolveMedewGcId(userId);
-            if (!medewGcId.HasValue)
-            {
-                _logger.LogWarning("No medewGcId resolved for userId {UserId}", userId);
-                return Unauthorized("Missing medewGcId");
-            }
-
-            _logger.LogInformation("Fetching time entries for medewGcId {MedewGcId} from {From} to {To}", medewGcId.Value, fromDate, toDate);
+            var target = ResolveTargetMedewGcId(userId, out var forbidden);
+            if (forbidden != null) return forbidden;
+            if (!target.HasValue)
+                return Unauthorized(new { error = "Geen medewerker-identiteit in het token" });
 
             try
             {
                 var entries = await _timeEntryRepository.GetAllTimeEntriesAsync(fromDate, toDate);
-
-                // Filter by medewGcId
-                var userEntries = entries.Where(e => e.UserId == medewGcId.Value).ToList();
-
-                _logger.LogInformation("Found {Count} time entries for medewGcId {MedewGcId}", userEntries.Count, medewGcId.Value);
-
-                // Return array directly for user endpoints (frontend expects response.data to be array)
+                var userEntries = entries.Where(e => e.UserId == target.Value).ToList();
                 return Ok(userEntries);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch time entries for medew {MedewGcId} from {From} to {To}", medewGcId, fromDate, toDate);
-                return StatusCode(500, new
-                {
-                    message = "Failed to fetch time entries",
-                    error = ex.Message,
-                    inner = ex.InnerException?.Message
-                });
+                _logger.LogError(ex, "Failed to fetch time entries for medew {MedewGcId} from {From} to {To}", target, fromDate, toDate);
+                return StatusCode(500, new { error = "Fout bij ophalen urenregistraties" });
             }
         }
 
-        [HttpGet("user/{userId}/week")]
-        public async Task<IActionResult> GetWeekEntries(int userId, [FromQuery] string startDate)
+        // GET: api/time-entries/user/{userId}/week?startDate=
+        [HttpGet("user/{userId:int}/week")]
+        public async Task<IActionResult> GetWeekEntries(int userId, [FromQuery] string? startDate)
         {
             if (!DateTime.TryParse(startDate, out var start))
-                return BadRequest("Invalid start date");
+                return BadRequest(new { error = "Ongeldige startdatum" });
 
             var end = start.AddDays(6);
 
-            var medewGcId = ResolveMedewGcId(userId);
-            if (!medewGcId.HasValue)
-            {
-                return Unauthorized("Missing medewGcId");
-            }
-
-            _logger.LogInformation("Fetching week entries for medewGcId {MedewGcId} from {Start} to {End}", medewGcId.Value, start, end);
+            var target = ResolveTargetMedewGcId(userId, out var forbidden);
+            if (forbidden != null) return forbidden;
+            if (!target.HasValue)
+                return Unauthorized(new { error = "Geen medewerker-identiteit in het token" });
 
             try
             {
                 var entries = await _timeEntryRepository.GetAllTimeEntriesAsync(start, end);
-
-                // Filter by medewGcId
-                var userEntries = entries.Where(e => e.UserId == medewGcId.Value).ToList();
-
-                // Return object with entries for week endpoint
-                return Ok(new
-                {
-                    entries = userEntries
-                });
+                var userEntries = entries.Where(e => e.UserId == target.Value).ToList();
+                return Ok(new { entries = userEntries });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to fetch week entries for user {UserId}", userId);
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+                _logger.LogError(ex, "Failed to fetch week entries for medew {MedewGcId}", target);
+                return StatusCode(500, new { error = "Fout bij ophalen weekregistraties" });
             }
         }
 
-        [HttpPost("work")]
-        public async Task<IActionResult> PostWorkEntries([FromBody] object dto)
+        /// <summary>
+        /// Bepaalt op welke medewerker gefilterd wordt. Een afwijkende userId is alleen toegestaan
+        /// voor managers/beheerders; in dat geval wordt écht op die userId gefilterd.
+        /// </summary>
+        private int? ResolveTargetMedewGcId(int? requestedUserId, out IActionResult? forbidden)
         {
-            _logger.LogInformation("PostWorkEntries called - not yet implemented with Dapper");
-            return StatusCode(501, new { message = "Work entry creation not yet implemented" });
-        }
+            forbidden = null;
+            var current = this.CurrentMedewGcId();
 
-        [HttpPost("vacation")]
-        public async Task<IActionResult> PostVacationEntries([FromBody] object dto)
-        {
-            _logger.LogInformation("PostVacationEntries called - not yet implemented with Dapper");
-            return StatusCode(501, new { message = "Vacation entry creation not yet implemented" });
-        }
+            if (!requestedUserId.HasValue || (current.HasValue && requestedUserId.Value == current.Value))
+                return current;
 
-        private int? ResolveMedewGcId(int? userId)
-        {
-            if (HttpContext.Items.TryGetValue("MedewGcId", out var medewObj) && medewObj is int medewFromContext)
-                return medewFromContext;
-
-            if (userId.HasValue)
-                return userId.Value;
-
-            if (Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var header) &&
-                int.TryParse(header, out var medewFromHeader))
+            if (!this.IsManagerOrAdmin())
             {
-                return medewFromHeader;
+                forbidden = StatusCode(403, new { error = "Je mag alleen je eigen urenregistraties bekijken" });
+                return null;
             }
 
-            return null;
+            return requestedUserId.Value;
         }
     }
 }

@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Data;
 using Dapper;
 using ClockwiseProject.Backend.Services;
 using ClockwiseProject.Backend.Models;
 using ClockwiseProject.Domain;
 using ClockwiseProject.Backend.Repositories;
+using backend.Controllers;
 using backend.Repositories;
 using backend.Models;
-using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Controllers
 {
@@ -17,6 +15,9 @@ namespace ClockwiseProject.Backend.Controllers
     [Route("api/[controller]")]
     public class VacationController : ControllerBase
     {
+        private const string ManagerOnlyMessage = "Alleen managers of beheerders mogen verlofaanvragen beoordelen";
+        private const string NotOwnerMessage = "Je mag alleen je eigen verlofaanvragen bekijken of wijzigen";
+
         private readonly VacationService _vacationService;
         private readonly IFirebirdDataRepository _firebirdRepo;
         private readonly IDbConnection _db;
@@ -37,37 +38,32 @@ namespace ClockwiseProject.Backend.Controllers
             _notificationRepo = notificationRepo;
         }
 
+        // GET: api/vacation  (eigen aanvragen)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<VacationRequest>>> GetVacationRequests()
         {
-            _logger.LogInformation("GetVacationRequests called");
-            var medewGcId = ResolveMedewGcId();
+            var medewGcId = this.CurrentMedewGcId();
             if (!medewGcId.HasValue)
-            {
-                _logger.LogWarning("No medewGcId resolved for vacation requests");
-                return Unauthorized("Missing medewGcId");
-            }
-
-            _logger.LogInformation("Fetching vacation requests for medewGcId: {MedewGcId}", medewGcId.Value);
+                return Unauthorized(new { error = "Geen medewerker-identiteit in het token" });
 
             try
             {
-                // Get ALL vacation requests (no filtering needed, backend returns user's requests)
                 var requests = await _vacationService.GetVacationRequestsByMedewGcIdAsync(medewGcId.Value);
-                _logger.LogInformation("Found {Count} vacation requests for medewGcId {MedewGcId}", requests.Count(), medewGcId.Value);
                 return Ok(requests);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching vacation requests for user {UserId}", medewGcId.Value);
-                return StatusCode(500, new { error = "Failed to fetch vacation requests", details = ex.Message });
+                _logger.LogError(ex, "Error fetching vacation requests for medew {MedewGcId}", medewGcId.Value);
+                return StatusCode(500, new { error = "Fout bij ophalen verlofaanvragen" });
             }
         }
 
+        // GET: api/vacation/all  (manager/admin)
         [HttpGet("all")]
         public async Task<IActionResult> GetAllVacationRequests()
         {
-            _logger.LogInformation("GetAllVacationRequests called - returning ALL vacation requests for managers");
+            if (!this.IsManagerOrAdmin())
+                return StatusCode(403, new { error = ManagerOnlyMessage });
 
             try
             {
@@ -96,75 +92,120 @@ namespace ClockwiseProject.Backend.Controllers
 
                 var result = await _db.QueryAsync(sql);
 
-                var response = result.Select(r => new
+                var response = result.Select(r =>
                 {
-                    id = (int)r.id,
-                    userId = (int)r.medew_gc_id,
-                    startDate = ((DateTime)r.start_date).ToString("yyyy-MM-dd"),
-                    endDate = ((DateTime)r.end_date).ToString("yyyy-MM-dd"),
-                    totalDays = Math.Round((decimal)r.total_hours / 8.0m, 1),
-                    totalHours = (decimal)r.total_hours,
-                    vacationType = r.taak_gc_id?.ToString() ?? "Z03",
-                    notes = r.description as string ?? "",
-                    status = (string)r.status,
-                    createdAt = r.created_at as DateTime?,
-                    submittedAt = r.submitted_at as DateTime?,
-                    reviewedAt = r.reviewed_at as DateTime?,
-                    reviewedBy = r.reviewed_by as int?,
-                    rejectionReason = r.rejection_reason as string,
-                    user = new
-                    {
-                        firstName = r.first_name as string ?? "",
-                        lastName = r.last_name as string ?? "",
-                        email = r.email as string ?? ""
-                    }
-                });
+                    var row = (IDictionary<string, object?>)r;
+                    var totalHours = ToDecimal(row["total_hours"]);
+                    var startDate = ToDateTime(row["start_date"]);
+                    var endDate = ToDateTime(row["end_date"]);
 
-                _logger.LogInformation("Found {Count} total vacation requests", response.Count());
+                    return new
+                    {
+                        id = ToInt(row["id"]),
+                        userId = ToInt(row["medew_gc_id"]),
+                        startDate = startDate?.ToString("yyyy-MM-dd"),
+                        endDate = endDate?.ToString("yyyy-MM-dd"),
+                        totalDays = Math.Round(totalHours / 8.0m, 1),
+                        totalHours,
+                        vacationType = row["taak_gc_id"]?.ToString() ?? "Z03",
+                        notes = row["description"] as string ?? "",
+                        status = row["status"] as string ?? "",
+                        createdAt = ToDateTime(row["created_at"]),
+                        submittedAt = ToDateTime(row["submitted_at"]),
+                        reviewedAt = ToDateTime(row["reviewed_at"]),
+                        reviewedBy = ToNullableInt(row["reviewed_by"]),
+                        rejectionReason = row["rejection_reason"] as string,
+                        user = new
+                        {
+                            firstName = row["first_name"] as string ?? "",
+                            lastName = row["last_name"] as string ?? "",
+                            email = row["email"] as string ?? ""
+                        }
+                    };
+                }).ToList();
+
                 return Ok(response);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching all vacation requests");
-                return StatusCode(500, new { error = "Failed to fetch vacation requests", details = ex.Message });
+                return StatusCode(500, new { error = "Fout bij ophalen verlofaanvragen" });
             }
         }
 
+        // GET: api/vacation/types
         [HttpGet("types")]
         public async Task<ActionResult<IEnumerable<TaskModel>>> GetVacationTypes()
         {
-            _logger.LogInformation("GetVacationTypes called");
-            
             try
             {
                 var types = await _firebirdRepo.GetVacationTasksAsync();
-                _logger.LogInformation("Found {Count} vacation types", types.Count());
                 return Ok(types);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching vacation types");
-                return StatusCode(500, new { error = "Failed to fetch vacation types", details = ex.Message });
+                return StatusCode(500, new { error = "Fout bij ophalen verloftypes" });
             }
         }
 
-        [HttpGet("{id}")]
+        // GET: api/vacation/{id}  (eigenaar of manager/admin)
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<VacationRequest>> GetVacationRequest(int id)
         {
-            var request = await _vacationService.GetVacationRequestByIdAsync(id);
-            if (request == null)
+            try
             {
-                return NotFound();
+                var request = await _vacationService.GetVacationRequestByIdAsync(id);
+                if (request == null)
+                    return NotFound(new { error = "Verlofaanvraag niet gevonden" });
+
+                if (!IsOwnerOrManager(request))
+                    return StatusCode(403, new { error = NotOwnerMessage });
+
+                return Ok(request);
             }
-            return Ok(request);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching vacation request {Id}", id);
+                return StatusCode(500, new { error = "Fout bij ophalen verlofaanvraag" });
+            }
         }
 
+        // POST: api/vacation  (UserId is altijd de aanroeper)
         [HttpPost]
-        public async Task<ActionResult<VacationRequest>> CreateVacationRequest(VacationRequest vacationRequest)
+        public async Task<ActionResult<VacationRequest>> CreateVacationRequest([FromBody] VacationRequest? vacationRequest)
         {
-            await _vacationService.AddVacationRequestAsync(vacationRequest);
-            
-            // Notificatie sturen naar manager
+            if (vacationRequest == null)
+                return BadRequest(new { error = "Ongeldige aanvraag" });
+
+            var userId = this.CurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized(new { error = "Niet ingelogd" });
+
+            if (vacationRequest.EndDate.Date < vacationRequest.StartDate.Date)
+                return BadRequest(new { error = "Einddatum mag niet vóór de startdatum liggen" });
+
+            if (vacationRequest.TotalDays < 0)
+                return BadRequest(new { error = "Aantal dagen mag niet negatief zijn" });
+
+            vacationRequest.Id = 0;
+            vacationRequest.UserId = userId.Value;
+            vacationRequest.Status = "pending";
+            vacationRequest.ReviewedBy = null;
+            vacationRequest.ReviewedAt = null;
+            vacationRequest.RejectionReason = null;
+
+            try
+            {
+                await _vacationService.AddVacationRequestAsync(vacationRequest);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating vacation request for user {UserId}", userId);
+                return StatusCode(500, new { error = "Fout bij aanmaken verlofaanvraag" });
+            }
+
+            // Notificatie sturen naar manager (best effort)
             try
             {
                 var sql = @"
@@ -173,124 +214,208 @@ namespace ClockwiseProject.Backend.Controllers
                     JOIN users u ON u.id = ma.employee_id
                     WHERE ma.employee_id = @UserId
                     LIMIT 1";
-                
-                var result = await _db.QueryFirstOrDefaultAsync<dynamic>(sql, new { UserId = vacationRequest.UserId });
+
+                var result = await _db.QueryFirstOrDefaultAsync(sql, new { UserId = userId.Value });
                 if (result != null)
                 {
-                    await _notificationRepo.CreateAsync(new CreateNotificationDto
+                    var row = (IDictionary<string, object?>)result;
+                    var managerId = ToNullableInt(row["manager_id"]);
+                    if (managerId.HasValue)
                     {
-                        UserId = (int)result.manager_id,
-                        Type = "vacation_requested",
-                        Title = "Nieuwe verlofaanvraag",
-                        Message = $"{result.first_name} {result.last_name} heeft verlof aangevraagd van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy}",
-                        RelatedEntityType = "vacation_request",
-                        RelatedEntityId = vacationRequest.Id
-                    });
+                        await _notificationRepo.CreateAsync(new CreateNotificationDto
+                        {
+                            UserId = managerId.Value,
+                            Type = "vacation_requested",
+                            Title = "Nieuwe verlofaanvraag",
+                            Message = $"{row["first_name"]} {row["last_name"]} heeft verlof aangevraagd van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy}",
+                            RelatedEntityType = "vacation_request",
+                            RelatedEntityId = vacationRequest.Id
+                        });
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to send manager notification for vacation request");
-                // Continue - don't fail the request if notification fails
             }
-            
+
             return CreatedAtAction(nameof(GetVacationRequest), new { id = vacationRequest.Id }, vacationRequest);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateVacationRequest(int id, VacationRequest vacationRequest)
+        // PUT: api/vacation/{id}  (eigenaar of manager/admin)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateVacationRequest(int id, [FromBody] VacationRequest? vacationRequest)
         {
+            if (vacationRequest == null)
+                return BadRequest(new { error = "Ongeldige aanvraag" });
+
             if (id != vacationRequest.Id)
+                return BadRequest(new { error = "Id in URL komt niet overeen met de aanvraag" });
+
+            if (vacationRequest.EndDate.Date < vacationRequest.StartDate.Date)
+                return BadRequest(new { error = "Einddatum mag niet vóór de startdatum liggen" });
+
+            try
             {
-                return BadRequest();
+                var existing = await _vacationService.GetVacationRequestByIdAsync(id);
+                if (existing == null)
+                    return NotFound(new { error = "Verlofaanvraag niet gevonden" });
+
+                if (!IsOwnerOrManager(existing))
+                    return StatusCode(403, new { error = NotOwnerMessage });
+
+                // Eigenaar blijft altijd de oorspronkelijke eigenaar; reviewvelden worden hier niet gewijzigd.
+                vacationRequest.UserId = existing.UserId;
+                if (!this.IsManagerOrAdmin())
+                {
+                    vacationRequest.Status = existing.Status;
+                    vacationRequest.ReviewedBy = existing.ReviewedBy;
+                    vacationRequest.ReviewedAt = existing.ReviewedAt;
+                    vacationRequest.RejectionReason = existing.RejectionReason;
+                }
+
+                await _vacationService.UpdateVacationRequestAsync(vacationRequest);
+                return NoContent();
             }
-            await _vacationService.UpdateVacationRequestAsync(vacationRequest);
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating vacation request {Id}", id);
+                return StatusCode(500, new { error = "Fout bij bijwerken verlofaanvraag" });
+            }
         }
 
-        [HttpDelete("{id}")]
+        // DELETE: api/vacation/{id}  (eigenaar of manager/admin)
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteVacationRequest(int id)
-        {
-            await _vacationService.DeleteVacationRequestAsync(id);
-            return NoContent();
-        }
-
-        [HttpPost("{id}/approve")]
-        public async Task<IActionResult> ApproveVacationRequest(int id, [FromBody] ReviewRequest request)
         {
             try
             {
-                _logger.LogInformation("Approving vacation request {Id} by {ReviewedBy}", id, request.ReviewedBy);
+                var existing = await _vacationService.GetVacationRequestByIdAsync(id);
+                if (existing == null)
+                    return NotFound(new { error = "Verlofaanvraag niet gevonden" });
+
+                if (!IsOwnerOrManager(existing))
+                    return StatusCode(403, new { error = NotOwnerMessage });
+
+                await _vacationService.DeleteVacationRequestAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting vacation request {Id}", id);
+                return StatusCode(500, new { error = "Fout bij verwijderen verlofaanvraag" });
+            }
+        }
+
+        // POST: api/vacation/{id}/approve  (manager/admin)
+        [HttpPost("{id:int}/approve")]
+        public async Task<IActionResult> ApproveVacationRequest(int id, [FromBody] ReviewRequest? request)
+        {
+            if (!this.IsManagerOrAdmin())
+                return StatusCode(403, new { error = ManagerOnlyMessage });
+
+            var reviewerId = this.CurrentUserId();
+            if (!reviewerId.HasValue)
+                return Unauthorized(new { error = "Niet ingelogd" });
+
+            var comment = request?.ManagerComment ?? string.Empty;
+
+            try
+            {
                 var vacationRequest = await _vacationService.GetVacationRequestByIdAsync(id);
-                await _vacationService.ApproveVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
-                
-                // Notificatie sturen naar medewerker
-                if (vacationRequest != null)
-                {
-                    await _notificationRepo.CreateAsync(new CreateNotificationDto
-                    {
-                        UserId = vacationRequest.UserId,
-                        Type = "vacation_approved",
-                        Title = "Verlofaanvraag goedgekeurd",
-                        Message = $"Je verlofaanvraag van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy} is goedgekeurd",
-                        RelatedEntityType = "vacation_request",
-                        RelatedEntityId = id
-                    });
-                }
-                
-                return Ok(new { message = "Vacation request approved successfully" });
+                if (vacationRequest == null)
+                    return NotFound(new { error = "Verlofaanvraag niet gevonden" });
+
+                _logger.LogInformation("Approving vacation request {Id} by user {ReviewedBy}", id, reviewerId.Value);
+                await _vacationService.ApproveVacationRequestAsync(id, comment, reviewerId.Value);
+
+                await NotifyEmployeeAsync(vacationRequest, "vacation_approved", "Verlofaanvraag goedgekeurd",
+                    $"Je verlofaanvraag van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy} is goedgekeurd", id);
+
+                return Ok(new { message = "Verlofaanvraag goedgekeurd" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error approving vacation request {Id}", id);
-                return StatusCode(500, new { error = "Failed to approve vacation request", details = ex.Message });
+                return StatusCode(500, new { error = "Fout bij goedkeuren verlofaanvraag" });
             }
         }
 
-        [HttpPost("{id}/reject")]
-        public async Task<IActionResult> RejectVacationRequest(int id, [FromBody] ReviewRequest request)
+        // POST: api/vacation/{id}/reject  (manager/admin)
+        [HttpPost("{id:int}/reject")]
+        public async Task<IActionResult> RejectVacationRequest(int id, [FromBody] ReviewRequest? request)
         {
+            if (!this.IsManagerOrAdmin())
+                return StatusCode(403, new { error = ManagerOnlyMessage });
+
+            var reviewerId = this.CurrentUserId();
+            if (!reviewerId.HasValue)
+                return Unauthorized(new { error = "Niet ingelogd" });
+
+            var comment = request?.ManagerComment ?? string.Empty;
+
             try
             {
-                _logger.LogInformation("Rejecting vacation request {Id} by {ReviewedBy}", id, request.ReviewedBy);
                 var vacationRequest = await _vacationService.GetVacationRequestByIdAsync(id);
-                await _vacationService.RejectVacationRequestAsync(id, request.ManagerComment, request.ReviewedBy);
-                
-                // Notificatie sturen naar medewerker
-                if (vacationRequest != null)
-                {
-                    await _notificationRepo.CreateAsync(new CreateNotificationDto
-                    {
-                        UserId = vacationRequest.UserId,
-                        Type = "vacation_rejected",
-                        Title = "Verlofaanvraag afgekeurd",
-                        Message = $"Je verlofaanvraag van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy} is afgekeurd. Reden: {request.ManagerComment}",
-                        RelatedEntityType = "vacation_request",
-                        RelatedEntityId = id
-                    });
-                }
-                
-                return Ok(new { message = "Vacation request rejected successfully" });
+                if (vacationRequest == null)
+                    return NotFound(new { error = "Verlofaanvraag niet gevonden" });
+
+                _logger.LogInformation("Rejecting vacation request {Id} by user {ReviewedBy}", id, reviewerId.Value);
+                await _vacationService.RejectVacationRequestAsync(id, comment, reviewerId.Value);
+
+                await NotifyEmployeeAsync(vacationRequest, "vacation_rejected", "Verlofaanvraag afgekeurd",
+                    $"Je verlofaanvraag van {vacationRequest.StartDate:dd-MM-yyyy} tot {vacationRequest.EndDate:dd-MM-yyyy} is afgekeurd. Reden: {comment}", id);
+
+                return Ok(new { message = "Verlofaanvraag afgekeurd" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error rejecting vacation request {Id}", id);
-                return StatusCode(500, new { error = "Failed to reject vacation request", details = ex.Message });
+                return StatusCode(500, new { error = "Fout bij afkeuren verlofaanvraag" });
             }
         }
 
-        private int? ResolveMedewGcId()
+        /// <summary>
+        /// Bij lezen uit de repository bevat VacationRequest.UserId het medew_gc_id
+        /// (zie PostgresLeaveRepository: "medew_gc_id AS UserId"), dus vergelijk met CurrentMedewGcId.
+        /// </summary>
+        private bool IsOwnerOrManager(VacationRequest request)
         {
-            if (HttpContext.Items.TryGetValue("MedewGcId", out var medewObj) && medewObj is int medewFromContext)
-                return medewFromContext;
-
-            if (Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var header) &&
-                int.TryParse(header, out var medewFromHeader))
-            {
-                return medewFromHeader;
-            }
-
-            return null;
+            if (this.IsManagerOrAdmin()) return true;
+            var medew = this.CurrentMedewGcId();
+            return medew.HasValue && request.UserId == medew.Value;
         }
+
+        private async Task NotifyEmployeeAsync(VacationRequest vacationRequest, string type, string title, string message, int relatedId)
+        {
+            try
+            {
+                // Notificaties zijn gekoppeld aan users.id; VacationRequest.UserId is hier het medew_gc_id.
+                var pgUserId = await _db.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT id FROM users WHERE medew_gc_id = @MedewGcId",
+                    new { MedewGcId = vacationRequest.UserId });
+
+                if (!pgUserId.HasValue) return;
+
+                await _notificationRepo.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = pgUserId.Value,
+                    Type = type,
+                    Title = title,
+                    Message = message,
+                    RelatedEntityType = "vacation_request",
+                    RelatedEntityId = relatedId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send {Type} notification for vacation request {Id}", type, relatedId);
+            }
+        }
+
+        private static int ToInt(object? value) => value == null || value is DBNull ? 0 : Convert.ToInt32(value);
+        private static int? ToNullableInt(object? value) => value == null || value is DBNull ? null : Convert.ToInt32(value);
+        private static decimal ToDecimal(object? value) => value == null || value is DBNull ? 0m : Convert.ToDecimal(value);
+        private static DateTime? ToDateTime(object? value) => value == null || value is DBNull ? null : Convert.ToDateTime(value);
     }
 }

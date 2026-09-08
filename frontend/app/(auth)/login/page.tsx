@@ -61,9 +61,11 @@ export default function LoginPage(): JSX.Element {
       localStorage.setItem("allowedTasks", response.user.allowed_tasks || "BOTH");
       localStorage.setItem("twoFactorEnabled", response.user.twoFactorEnabled ? "true" : "false");
 
-      document.cookie = `userId=${response.user.id}; path=/; max-age=3600;`;
-      document.cookie = `userRank=${response.user.role}; path=/; max-age=3600;`;
-      document.cookie = `token=${response.token}; path=/; max-age=3600;`;
+      // Cookies are only used by the Next.js proxy route (server side); same lifetime as the JWT.
+      const cookieOpts = `path=/; max-age=${7 * 24 * 3600}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}`;
+      document.cookie = `userId=${response.user.id}; ${cookieOpts}`;
+      document.cookie = `userRank=${response.user.role}; ${cookieOpts}`;
+      document.cookie = `token=${response.token}; ${cookieOpts}`;
 
       if (response.require2FASetup) {
         localStorage.setItem("require2FASetup", "true");

@@ -1,48 +1,53 @@
 import axios from "axios";
-import { TimeEntry, User } from "./types";
+import { TimeEntry } from "./types";
 
 /**
- * Dynamische API URL:
- * - Client-side → NEXT_PUBLIC_API_URL/api (ngrok heeft /api routes)
+ * API base URL. NEXT_PUBLIC_API_URL is the backend origin (e.g. https://api.clockd.nl);
+ * all routes live under /api.
  */
 const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-// Add /api suffix for backend routes
 export const API_URL = `${baseURL.replace(/\/$/, "")}/api`;
 
-// Set default axios headers
 axios.defaults.headers.common["Content-Type"] = "application/json";
 
-// Belangrijk voor ngrok (ERR_NGROK_6024 HTML pagina omzeilen)
-axios.defaults.headers.common["ngrok-skip-browser-warning"] = "1";
+export function handleUnauthorized(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.clear();
+    document.cookie = "token=; path=/; max-age=0";
+    document.cookie = "userId=; path=/; max-age=0";
+    document.cookie = "userRank=; path=/; max-age=0";
+  } catch {
+    /* ignore */
+  }
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login?expired=1";
+  }
+}
 
-// Add X-MEDEW-GC-ID to all /api/* requests except login
+const isLoginUrl = (url?: string) => !!url && url.includes("/api/auth/login");
+
+// Attach the Bearer token to every API request (except login).
 axios.interceptors.request.use((config) => {
-  // Check if URL contains /api/ and is not a login endpoint
-  const isApiRequest = config.url?.includes('/api/');
-  const isLoginRequest = config.url?.includes('/api/users/login') || config.url?.includes('/api/auth/login');
-
-  if (isApiRequest && !isLoginRequest) {
-    const token = localStorage.getItem('token');
-    if (token && !config.headers['Authorization']) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    const medewGcId = localStorage.getItem('medewGcId');
-    if (medewGcId) {
-      config.headers['X-MEDEW-GC-ID'] = medewGcId;
-    }
-    const userId = localStorage.getItem('userId');
-    if (userId) {
-      config.headers['X-User-ID'] = userId;
+  const isApiRequest = config.url?.includes("/api/");
+  if (isApiRequest && !isLoginUrl(config.url) && typeof localStorage !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token && !config.headers["Authorization"]) {
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
   }
   return config;
 });
 
-// Response error handling
+// A 401 on any API call means the session is gone: log out instead of showing empty pages.
 axios.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error),
+  (error) => {
+    if (error?.response?.status === 401 && !isLoginUrl(error?.config?.url)) {
+      handleUnauthorized();
+    }
+    return Promise.reject(error);
+  },
 );
 
 // Helper: clean response
@@ -50,12 +55,6 @@ function safeApiResponse(response: any): any {
   if (!response) return [];
   if (response.data !== undefined) return response.data;
   return response;
-}
-
-function getMedewHeaders() {
-  if (typeof localStorage === "undefined") return undefined;
-  const medewGcId = localStorage.getItem("medewGcId");
-  return medewGcId ? { "X-MEDEW-GC-ID": medewGcId } : undefined;
 }
 
 // Normalise time entries from the API into the shape the UI expects
@@ -197,15 +196,6 @@ export async function getWorkTasks() {
   }
 }
 
-export async function getVacationTasks() {
-  try {
-    const res = await axios.get(`${API_URL}/tasks/vacation`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
 export async function getPeriods(count: number = 50) {
   try {
     const res = await axios.get(`${API_URL}/periods?count=${count}`);
@@ -213,30 +203,6 @@ export async function getPeriods(count: number = 50) {
   } catch {
     return [];
   }
-}
-
-export async function registerWorkTimeEntries(
-  urenperGcId: number,
-  entries: any[],
-) {
-  const data = { UrenperGcId: urenperGcId, Regels: entries };
-  return axios
-    .post(`${API_URL}/time-entries/work`, data, {
-      headers: { "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "1" },
-    })
-    .then(safeApiResponse);
-}
-
-export async function registerVacationTimeEntries(
-  urenperGcId: number,
-  entries: any[],
-) {
-  const data = { UrenperGcId: urenperGcId, Regels: entries };
-  return axios
-    .post(`${API_URL}/time-entries/vacation`, data, {
-      headers: { "X-MEDEW-GC-ID": localStorage.getItem("medewGcId") || "1" },
-    })
-    .then(safeApiResponse);
 }
 
 export async function getTimeEntries(from?: string, to?: string) {
@@ -340,152 +306,9 @@ export async function getEnrichedTimeEntries(from?: string, to?: string) {
   });
 }
 
-export async function registerWorkTimeEntry(
-  urenperGcId: number,
-  entries: any[],
-  status: string = "concept",
-) {
-  const clientRequestId = crypto.randomUUID();
-  const data = {
-    UrenperGcId: urenperGcId,
-    Regels: entries,
-    ClientRequestId: clientRequestId,
-    Status: status,
-  };
-  const medewGcId = localStorage.getItem("medewGcId");
-  if (!medewGcId) throw new Error("Not logged in");
-  return axios
-    .post(`${API_URL}/time-entries/work`, data, {
-      headers: { "X-MEDEW-GC-ID": medewGcId },
-    })
-    .then(safeApiResponse);
-}
-
-export async function registerVacationTimeEntry(
-  urenperGcId: number,
-  entries: any[],
-) {
-  const clientRequestId = crypto.randomUUID();
-  const data = {
-    UrenperGcId: urenperGcId,
-    Regels: entries,
-    ClientRequestId: clientRequestId,
-  };
-  const medewGcId = localStorage.getItem("medewGcId");
-  if (!medewGcId) throw new Error("Not logged in");
-  return axios
-    .post(`${API_URL}/time-entries/vacation`, data, {
-      headers: { "X-MEDEW-GC-ID": medewGcId },
-    })
-    .then(safeApiResponse);
-}
-
 export async function getVacationRequests() {
-  return [];
-}
-
-export async function getAdminStats() {
-  return {
-    totalUsers: 0,
-    totalCompanies: 0,
-    totalProjects: 0,
-    totalHours: 0,
-    hoursThisMonth: 0,
-    hoursLastMonth: 0,
-    hoursLastWeek: 0,
-    usersLastWeek: 0,
-    projectsLastWeek: 0,
-    activeProjects: 0,
-    pendingVacations: 0,
-    pendingApprovals: 0,
-    completionRate: 0,
-    activeUsersThisMonth: 0,
-    avgHoursPerUser: 0,
-    systemHealth: 0,
-  };
-}
-
-export async function getAdminTimeEntries() {
-  return [];
-}
-
-export async function getAdminVacationRequests() {
-  return [];
-}
-
-export async function getSystemStatus() {
-  return [
-    {
-      id: 1,
-      component: "API Server",
-      status: "unknown",
-      uptime: "0%",
-      responseTime: "N/A",
-    },
-    {
-      id: 2,
-      component: "Database",
-      status: "unknown",
-      uptime: "0%",
-      responseTime: "N/A",
-    },
-  ];
-}
-
-export async function processVacationRequest(id: number, status: string) {
-  return Promise.resolve(null);
-}
-
-export async function deleteProject(id: number) {
-  return Promise.resolve(null);
-}
-
-export async function deleteCompany(id: number) {
-  return Promise.resolve(null);
-}
-
-export async function registerTimeEntry(data: any) {
-  return Promise.resolve(null);
-}
-
-export async function getUser(id: number) {
-  const medewGcId = localStorage.getItem("medewGcId");
-  if (!medewGcId) return null;
-  return axios
-    .get(`${API_URL}/users/${id}`, {
-      headers: { "X-MEDEW-GC-ID": medewGcId },
-    })
-    .then(safeApiResponse);
-}
-
-export async function updateUser(id: number, data: any) {
-  const medewGcId = localStorage.getItem("medewGcId");
-  if (!medewGcId) return null;
-  return axios
-    .put(`${API_URL}/users/${id}`, data, {
-      headers: { "X-MEDEW-GC-ID": medewGcId },
-    })
-    .then(safeApiResponse);
-}
-
-export async function updateTimeEntry(id: number, data: any) {
-  return Promise.resolve(null);
-}
-
-export async function deleteUser(id: number) {
-  return Promise.resolve(null);
-}
-
-export async function getTimeEntryDetails(id: number) {
-  return Promise.resolve(null);
-}
-
-export async function approveTimeEntry(id: number) {
-  return Promise.resolve(null);
-}
-
-export async function rejectTimeEntry(id: number) {
-  return Promise.resolve(null);
+  const res = await axios.get(`${API_URL}/vacation`);
+  return Array.isArray(res.data) ? res.data : [];
 }
 
 export async function markAllActivitiesAsRead() {
@@ -570,274 +393,38 @@ export async function removeUserFromProject(userId: number, projectId: number) {
 }
 
 // Team-related functions for managers
-export async function getMyTeam(managerId: number) {
-  try {
-    const res = await axios.get(`${API_URL}/users`);
-    const users = safeApiResponse(res);
-    // Filter users who have this manager as their manager
-    return Array.isArray(users)
-      ? users.filter((u: any) => u.managerId === managerId)
-      : [];
-  } catch {
-    return [];
-  }
+// ---------- Own profile (uses the JWT identity, never an id from localStorage) ----------
+export interface MyProfile {
+  id: number;
+  medewGcId: number;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  role: string;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
+  allowedTasks: string | null;
+  lastLogin: string | null;
+  createdAt: string | null;
 }
 
-export async function getTeamTimeEntries(managerId: number) {
-  try {
-    const team = await getMyTeam(managerId);
-    const teamUserIds = team.map((u: any) => u.id);
-    const allEntries = await getTimeEntries();
-    return allEntries.filter((e: any) => teamUserIds.includes(e.userId));
-  } catch {
-    return [];
-  }
+export async function getMe(): Promise<MyProfile> {
+  const res = await axios.get(`${API_URL}/users/me`);
+  return res.data;
 }
 
-export async function getTeamPendingHours(managerId: number) {
-  try {
-    const teamEntries = await getTeamTimeEntries(managerId);
-    return teamEntries.filter((e: any) => e.status === "ingeleverd");
-  } catch {
-    return [];
-  }
+export async function updateMe(data: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+}): Promise<MyProfile> {
+  const res = await axios.put(`${API_URL}/users/me`, data);
+  return res.data;
 }
 
-export async function getTeamPendingVacations(managerId: number) {
-  try {
-    const team = await getMyTeam(managerId);
-    const teamUserIds = team.map((u: any) => u.id);
-    const allVacations = await getVacationRequests();
-    return allVacations.filter(
-      (v: any) => teamUserIds.includes(v.userId) && v.status === "Pending",
-    );
-  } catch {
-    return [];
-  }
-}
-
-export async function getTeamVacations(managerId: number) {
-  try {
-    const team = await getMyTeam(managerId);
-    const teamUserIds = team.map((u: any) => u.id);
-    const allVacations = await getVacationRequests();
-    return allVacations.filter((v: any) => teamUserIds.includes(v.userId));
-  } catch {
-    return [];
-  }
-}
-
-// Dashboard endpoints
-export async function getDashboardHealth() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/dashboard/health`);
-    return safeApiResponse(res);
-  } catch {
-    return {
-      databaseStatus: "unknown",
-      latencyMs: 0,
-      lastError: null,
-      timestamp: new Date(),
-    };
-  }
-}
-
-export async function getDashboardAlerts() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/dashboard/alerts`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Employees endpoints
-export async function getEmployees(
-  search?: string,
-  department?: string,
-  active?: boolean,
-) {
-  try {
-    const params = new URLSearchParams();
-    if (search) params.append("search", search);
-    if (department) params.append("department", department);
-    if (active !== undefined) params.append("active", active.toString());
-
-    const res = await axios.get(`${API_URL}/admin/employees?${params}`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getEmployeeDetail(id: number) {
-  try {
-    const res = await axios.get(`${API_URL}/admin/employees/${id}`);
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
-}
-
-export async function getEmployeeHours(id: number, period: string = "month") {
-  try {
-    const res = await axios.get(
-      `${API_URL}/admin/employees/${id}/hours?period=${period}`,
-    );
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Time entries aggregates and validations
-export async function getTimeEntriesAggregates(
-  groupBy: string = "employee",
-  period: string = "month",
-) {
-  try {
-    const res = await axios.get(
-      `${API_URL}/admin/time-entries/aggregates?groupBy=${groupBy}&period=${period}`,
-    );
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getTimeEntriesValidations() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/time-entries/validations`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Projects endpoints
-export async function getAdminProjects() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/projects`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getProjectDetail(id: number) {
-  try {
-    const res = await axios.get(`${API_URL}/admin/projects/${id}`);
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
-}
-
-export async function getDepartments() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/departments`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Validations endpoints
-export async function getValidations() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/validations`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function runValidations() {
-  try {
-    const res = await axios.post(`${API_URL}/admin/validations/run`);
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
-}
-
-export async function getValidationsHistory() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/validations/history`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-// Logs endpoints
-export async function getLogs(
-  level?: string,
-  component?: string,
-  limit: number = 50,
-) {
-  try {
-    const params = new URLSearchParams();
-    if (level) params.append("level", level);
-    if (component) params.append("component", component);
-    params.append("limit", limit.toString());
-
-    const res = await axios.get(`${API_URL}/admin/logs?${params}`);
-    return safeApiResponse(res) ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getLogDetail(id: number) {
-  try {
-    const res = await axios.get(`${API_URL}/admin/logs/${id}`);
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
-}
-
-export async function cleanupLogs(olderThanDays: number = 30) {
-  try {
-    const res = await axios.delete(
-      `${API_URL}/admin/logs?olderThanDays=${olderThanDays}`,
-    );
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
-}
-
-// System endpoints
-export async function getSystemHealth() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/system/health`);
-    return safeApiResponse(res);
-  } catch {
-    return {
-      databaseStatus: "unknown",
-      latencyMs: 0,
-      lastError: null,
-      timestamp: new Date(),
-    };
-  }
-}
-
-export async function getSystemConfig() {
-  try {
-    const res = await axios.get(`${API_URL}/admin/system/config`);
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
-}
-
-export async function updateSystemConfig(config: any) {
-  try {
-    const res = await axios.put(`${API_URL}/admin/system/config`, config);
-    return safeApiResponse(res);
-  } catch {
-    return null;
-  }
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await axios.post(`${API_URL}/auth/change-password`, { currentPassword, newPassword });
 }

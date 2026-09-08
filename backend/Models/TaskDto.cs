@@ -1,10 +1,10 @@
-namespace backend.Models;
+﻿namespace backend.Models;
 
 public class TaskDto
 {
     public int Id { get; set; }              // GC_ID
-    public string Code { get; set; }         // GC_CODE
-    public string Description { get; set; }  // GC_OMSCHRIJVING
+    public string Code { get; set; } = string.Empty;         // GC_CODE
+    public string Description { get; set; } = string.Empty;  // GC_OMSCHRIJVING
     public string? ShortName { get; set; }   // GC_KORTE_NAAM
     public bool IsHistorical { get; set; }   // GC_HISTORISCH_JN == 'J'
 }

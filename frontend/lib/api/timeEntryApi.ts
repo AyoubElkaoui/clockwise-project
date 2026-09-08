@@ -83,83 +83,13 @@ export async function getWeekEntries(
 }
 
 // Sla meerdere entries op (bulk)
-export async function saveBulkEntries(
-  userId: number,
-  entries: TimeEntryAPI[],
-  weekStart: Date,
-): Promise<void> {
-  // Fetch work tasks to get the correct TaakGcId dynamically
-  const workTasks = await getWorkTasks();
-  const montageTask = workTasks.find((t: any) => t.gcCode === "30"); // Montage
-  if (!montageTask) {
-    throw new Error("Montage task not found");
-  }
-
-
-  // Fetch periods to find the correct UrenperGcId
-  const periods = await getPeriods();
-  const entryDate = entries[0]?.date; // Assume all entries are in the same period
-  const period = periods.find((p: any) => {
-    const beginDate = new Date(p.BeginDatum);
-    const endDate = new Date(p.EndDate);
-    const date = new Date(entryDate);
-    return date >= beginDate && date <= endDate;
-  });
-  if (!period) {
-    throw new Error("No matching period found for the entries");
-  }
-
-  const regels = entries.map((entry) => ({
-    TaakGcId: montageTask.gcId,
-    WerkGcId: entry.projectId,
-    Aantal: entry.hours,
-    Datum: entry.date,
-    GcOmschrijving: entry.notes || "",
-    KostsrtGcId: null,
-    BestparGcId: null,
-  }));
-
-  const dto = {
-    UrenperGcId: period.gcId,
-    Regels: regels,
-    ClientRequestId: crypto.randomUUID(),
-  };
-
-  const medewGcId = localStorage.getItem("medewGcId");
-  if (!medewGcId) {
-    throw new Error("User not logged in");
-  }
-
-  await axios.post(`${API_URL}/time-entries/work`, dto, {
-    headers: { "X-MEDEW-GC-ID": medewGcId },
-  });
-}
 
 // Lever entries in (legacy — gebruik submitEntries uit workflowApi)
-export async function submitTimeEntryIds(entryIds: number[]): Promise<void> {
-  const promises = entryIds.map((id) =>
-    axios.post(`${API_URL}/time-entries/${id}/submit`),
-  );
-  await Promise.all(promises);
-}
 
 // Verwijder een entry
-export async function deleteEntry(entryId: number): Promise<void> {
-  await axios.delete(`${API_URL}/time-entries/${entryId}`);
-}
 
-export async function getTimeEntryDetails(id: number): Promise<any> {
-  const res = await axios.get(`${API_URL}/time-entries/${id}/details`);
-  return res.data;
-}
 
-export async function approveTimeEntry(id: number): Promise<void> {
-  await axios.put(`${API_URL}/time-entries/${id}/approve`);
-}
 
-export async function rejectTimeEntry(id: number): Promise<void> {
-  await axios.put(`${API_URL}/time-entries/${id}/reject`);
-}
 
 // Haal alle time entries op (inclusief relaties)
 export async function getAllTimeEntries(): Promise<any[]> {
@@ -212,19 +142,8 @@ export async function getAllTimeEntries(): Promise<any[]> {
 }
 
 // Create/Register a new time entry
-export async function registerTimeEntry(data: any): Promise<any> {
-  const response = await axios.post(`${API_URL}/time-entries`, data);
-  return response.data;
-}
 
 // Update an existing time entry
-export async function updateTimeEntry(
-  id: number,
-  data: Partial<any>,
-): Promise<any> {
-  const response = await axios.put(`${API_URL}/time-entries/${id}`, data);
-  return response.data;
-}
 
 // Alias voor backwards compatibility
 export const getTimeEntries = getAllTimeEntries;

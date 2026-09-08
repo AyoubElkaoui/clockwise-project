@@ -7,7 +7,7 @@ const apiTarget =
 const cleanTarget = apiTarget.replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
   outputFileTracingRoot: process.cwd(),
   reactStrictMode: false,

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import {
   getAllWorkflowEntries,
   getAllUsers,
-  approveTimeEntry,
   reviewWorkflowEntries,
   getCurrentPeriodId,
   getAllVacationRequests
@@ -266,26 +265,6 @@ export default function ManagerDashboard() {
     }
   };
 
-  const handleApprove = async (id: number) => {
-    try {
-      await approveTimeEntry(id, true);
-      loadDashboardData();
-      showToast("Uren goedgekeurd", "success");
-    } catch (error) {
-      showToast("Fout bij goedkeuren", "error");
-    }
-  };
-
-  const handleReject = async (id: number) => {
-    try {
-      await approveTimeEntry(id, false);
-      loadDashboardData();
-      showToast("Uren afgekeurd", "success");
-    } catch (error) {
-      showToast("Fout bij afkeuren", "error");
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     const upperStatus = status?.toUpperCase();
     switch (upperStatus) {
@@ -377,7 +356,7 @@ export default function ManagerDashboard() {
           value={stats.pendingApprovals}
           icon={Clock}
           color={stats.pendingApprovals > 0 ? "amber" : "emerald"}
-          onClick={() => router.push("/manager/approve")}
+          onClick={() => router.push("/manager/review-time")}
         />
         <StatCard
           title="Team uren deze week"
@@ -425,7 +404,7 @@ export default function ManagerDashboard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => router.push("/manager/approve")}
+                  onClick={() => router.push("/manager/review-time")}
                 >
                   Alles bekijken
                   <ChevronRight className="w-3 h-3 ml-1" />
@@ -457,28 +436,14 @@ export default function ManagerDashboard() {
                         <div className="truncate" style={{ font: "500 11.5px 'Geist'", color: "var(--muted)", marginTop: 1 }}>{entry.projectName || entry.projectCode || "—"} · {dayjs(entry.date).format("D MMM")}</div>
                       </div>
                       <div style={{ font: "600 14px 'Geist Mono', monospace", color: "var(--text)" }}>{entry.hours?.toFixed(1)}u</div>
-                      <div className="flex gap-[7px]">
-                        <button
-                          onClick={() => handleReject(entry.id)}
-                          title="Afkeuren"
-                          className="flex items-center justify-center rounded-lg"
-                          style={{ width: 32, height: 32, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--muted)" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--red)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-weak)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "var(--panel)"; }}
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleApprove(entry.id)}
-                          title="Goedkeuren"
-                          className="flex items-center justify-center rounded-lg"
-                          style={{ width: 32, height: 32, border: "1px solid transparent", background: "var(--green)", color: "#fff" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.08)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => router.push("/manager/review-time")}
+                        title="Beoordelen"
+                        className="flex items-center justify-center rounded-lg"
+                        style={{ height: 32, padding: "0 10px", border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)", font: "600 12px 'Geist'" }}
+                      >
+                        Beoordelen
+                      </button>
                     </div>
                   ))}
                 </div>

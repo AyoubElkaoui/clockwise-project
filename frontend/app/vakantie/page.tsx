@@ -108,7 +108,6 @@ export default function VakantiePage() {
         {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
-            "ngrok-skip-browser-warning": "1",
           },
         },
       );
@@ -147,7 +146,6 @@ export default function VakantiePage() {
         {
           headers: {
             "X-MEDEW-GC-ID": medewGcId,
-            "ngrok-skip-browser-warning": "1",
           },
         },
       );
@@ -246,7 +244,6 @@ export default function VakantiePage() {
           headers: {
             "Content-Type": "application/json",
             "X-MEDEW-GC-ID": medewGcId,
-            "ngrok-skip-browser-warning": "1",
           },
           body: JSON.stringify({
             userId: userId,

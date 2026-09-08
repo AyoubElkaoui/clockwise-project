@@ -43,8 +43,15 @@ export default function KalenderPage() {
         return;
       }
 
-      const res = await fetch(`${API_URL}/time-entries/user/${userId}`);
-      const data = await res.json();
+      const monthStartStr = currentMonth.startOf("month").format("YYYY-MM-DD");
+      const monthEndStr = currentMonth.endOf("month").format("YYYY-MM-DD");
+      const res = await fetch(`${API_URL}/time-entries?from=${monthStartStr}&to=${monthEndStr}`);
+      if (!res.ok) throw new Error("Uren ophalen mislukt");
+      const raw = await res.json();
+      const data: TimeEntry[] = (Array.isArray(raw) ? raw : []).map((e: any) => ({
+        ...e,
+        startTime: e.startTime || (e.date ? `${String(e.date).split("T")[0]}T00:00:00` : e.datum),
+      }));
       
       // Filter entries for current month
       const monthStart = currentMonth.startOf("month");

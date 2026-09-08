@@ -77,7 +77,6 @@ export default function ManagerVacationReviewPage() {
       const response = await fetch(`${API_URL}/api/vacation/all`, {
         headers: {
           "X-MEDEW-GC-ID": medewGcId?.toString() || "",
-          "ngrok-skip-browser-warning": "1",
         },
       });
 
@@ -136,7 +135,6 @@ export default function ManagerVacationReviewPage() {
         headers: {
           "Content-Type": "application/json",
           "X-MEDEW-GC-ID": authUtils.getMedewGcId()?.toString() || "",
-          "ngrok-skip-browser-warning": "1",
         },
         body: JSON.stringify({
           reviewedBy: managerId,
@@ -184,7 +182,6 @@ export default function ManagerVacationReviewPage() {
         headers: {
           "Content-Type": "application/json",
           "X-MEDEW-GC-ID": authUtils.getMedewGcId()?.toString() || "",
-          "ngrok-skip-browser-warning": "1",
         },
         body: JSON.stringify({
           reviewedBy: managerId,

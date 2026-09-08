@@ -5,7 +5,7 @@ using System.Data;
 namespace backend.Controllers;
 
 [ApiController]
-[Route("api/users/{medewGcId}/hour-allocations")]
+[Route("api/users/{medewGcId:int}/hour-allocations")]
 public class UserHourAllocationsController : ControllerBase
 {
     private readonly IDbConnection _db;
@@ -19,16 +19,22 @@ public class UserHourAllocationsController : ControllerBase
 
     /// <summary>
     /// GET /api/users/{medewGcId}/hour-allocations?year=2026
-    /// Get all hour code allocations for a user
+    /// Eigen toewijzingen, of die van anderen voor managers/beheerders.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAllocations(int medewGcId, [FromQuery] int? year)
     {
+        var current = this.CurrentMedewGcId();
+        if (!current.HasValue)
+            return Unauthorized(new { error = "Geen medewerker-identiteit in het token" });
+
+        if (medewGcId != current.Value && !this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = "Je mag alleen je eigen uurcode-toewijzingen bekijken" });
+
         try
         {
             var targetYear = year ?? DateTime.Now.Year;
 
-            // Get user id from medewGcId
             var userId = await _db.QueryFirstOrDefaultAsync<int?>(
                 "SELECT id FROM users WHERE medew_gc_id = @MedewGcId",
                 new { MedewGcId = medewGcId });
@@ -60,11 +66,28 @@ public class UserHourAllocationsController : ControllerBase
 
     /// <summary>
     /// PUT /api/users/{medewGcId}/hour-allocations
-    /// Bulk upsert hour code allocations for a user
+    /// Bulk upsert (alleen manager/admin)
     /// </summary>
     [HttpPut]
-    public async Task<IActionResult> UpdateAllocations(int medewGcId, [FromBody] UpdateAllocationsRequest request)
+    public async Task<IActionResult> UpdateAllocations(int medewGcId, [FromBody] UpdateAllocationsRequest? request)
     {
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = "Alleen managers of beheerders mogen uurcode-toewijzingen wijzigen" });
+
+        if (request == null || request.Allocations == null)
+            return BadRequest(new { error = "Ongeldige aanvraag" });
+
+        foreach (var alloc in request.Allocations)
+        {
+            if (alloc == null || string.IsNullOrWhiteSpace(alloc.TaskCode))
+                return BadRequest(new { error = "Elke toewijzing moet een uurcode hebben" });
+            if (alloc.AnnualBudget < 0 || (alloc.Used.HasValue && alloc.Used.Value < 0))
+                return BadRequest(new { error = "Budget en verbruik mogen niet negatief zijn" });
+        }
+
+        if (request.Year.HasValue && (request.Year.Value < 2000 || request.Year.Value > 2100))
+            return BadRequest(new { error = "Jaar moet tussen 2000 en 2100 liggen" });
+
         try
         {
             var targetYear = request.Year ?? DateTime.Now.Year;
@@ -99,8 +122,8 @@ public class UserHourAllocationsController : ControllerBase
                 });
             }
 
-            _logger.LogInformation("Updated {Count} hour allocations for medewGcId: {MedewGcId}, year: {Year}",
-                request.Allocations.Count, medewGcId, targetYear);
+            _logger.LogInformation("User {Actor} updated {Count} hour allocations for medewGcId: {MedewGcId}, year: {Year}",
+                this.CurrentUserId(), request.Allocations.Count, medewGcId, targetYear);
 
             return Ok(new { success = true, message = "Uurcode toewijzingen bijgewerkt" });
         }

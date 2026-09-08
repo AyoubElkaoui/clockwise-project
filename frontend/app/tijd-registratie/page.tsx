@@ -80,12 +80,6 @@ interface TimeEntry {
   id?: number;
 }
 
-interface ClosedDay {
-  id: number;
-  date: string;
-  reason: string;
-}
-
 interface IndirectTask {
   taakGcId: number;
   code: string;
@@ -174,7 +168,6 @@ export default function TimeRegistrationPage() {
     type: "success" | "error";
   } | null>(null);
   const [copiedCell, setCopiedCell] = useState<TimeEntry | null>(null);
-  const [closedDays, setClosedDays] = useState<ClosedDay[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [expandedCells, setExpandedCells] = useState<Record<string, boolean>>({});
   const [userAllowedTasks, setUserAllowedTasks] = useState<'BOTH' | 'MONTAGE_ONLY' | 'TEKENKAMER_ONLY'>('BOTH');
@@ -244,7 +237,6 @@ export default function TimeRegistrationPage() {
   }, [currentWeek]);
 
   useEffect(() => {
-    loadClosedDays();
   }, [currentWeek]);
 
   const loadFavoriteProjects = async () => {
@@ -310,18 +302,6 @@ export default function TimeRegistrationPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const loadClosedDays = async () => {
-    try {
-      const year = currentWeek.getFullYear();
-      const response = await axios.get(
-        `/api/holidays/closed?year=${year}`,
-      );
-      setClosedDays(response.data);
-    } catch (error) {
-      // Silent fail - closed days are optional
-    }
-  };
-
   const isClosedDay = (date: string) => {
     // Check holidays first
     const holiday = holidays.find(h => h.holidayDate === date);
@@ -330,7 +310,7 @@ export default function TimeRegistrationPage() {
     }
 
     // Check closed days
-    return closedDays.some((day) => day.date === date);
+    return false;
   };
 
   // Check if date is a weekend (Saturday or Sunday)
@@ -367,12 +347,8 @@ export default function TimeRegistrationPage() {
 
       // Fetch user's allocations and all tasks in parallel
       const [allocRes, tasksRes] = await Promise.all([
-        axios.get(`${API_URL}/users/${medewGcId}/hour-allocations`, {
-          headers: { "ngrok-skip-browser-warning": "1" },
-        }),
-        axios.get(`${API_URL}/tasks`, {
-          headers: { "ngrok-skip-browser-warning": "1" },
-        }),
+        axios.get(`${API_URL}/users/${medewGcId}/hour-allocations`),
+        axios.get(`${API_URL}/tasks`),
       ]);
 
       const allocations = allocRes.data || [];

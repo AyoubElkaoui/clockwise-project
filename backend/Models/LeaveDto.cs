@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace backend.Models;
 
@@ -7,11 +7,11 @@ namespace backend.Models;
 public class LeaveTypeDto
 {
     public int Id { get; set; }              // GC_ID
-    public string Code { get; set; }         // GC_CODE
-    public string Description { get; set; }  // GC_OMSCHRIJVING
+    public string Code { get; set; } = string.Empty;         // GC_CODE
+    public string Description { get; set; } = string.Empty;  // GC_OMSCHRIJVING
     public string? ShortName { get; set; }   // GC_KORTE_NAAM
     public bool IsHistorical { get; set; }   // GC_HISTORISCH_JN == 'J'
-    public string Category { get; set; }     // "VACATION" / "SICK_LEAVE" / etc.
+    public string Category { get; set; } = string.Empty;     // "VACATION" / "SICK_LEAVE" / etc.
 }
 
 public class LeaveTypesResponse
@@ -33,9 +33,9 @@ public class LeaveBookingDto
     public string? Description { get; set; }   // AT_URENBREG.GC_OMSCHRIJVING
 
     public int TaskId { get; set; }            // AT_TAAK.GC_ID
-    public string TaskCode { get; set; }       // AT_TAAK.GC_CODE
-    public string TaskDescription { get; set; } // AT_TAAK.GC_OMSCHRIJVING
-    public string Category { get; set; }       // Berekend applicatiezijde
+    public string TaskCode { get; set; } = string.Empty;       // AT_TAAK.GC_CODE
+    public string TaskDescription { get; set; } = string.Empty; // AT_TAAK.GC_OMSCHRIJVING
+    public string Category { get; set; } = string.Empty;       // Berekend applicatiezijde
 }
 
 public class MyLeaveResponse

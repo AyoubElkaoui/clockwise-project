@@ -19,8 +19,13 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
-// Configure URLs
-builder.WebHost.UseUrls("http://localhost:5000");
+// Configure URLs: ASPNETCORE_URLS / config "Urls" win, otherwise fall back to localhost:5000
+var configuredUrls = builder.Configuration["Urls"]
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+if (string.IsNullOrWhiteSpace(configuredUrls))
+{
+    builder.WebHost.UseUrls("http://localhost:5000");
+}
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -48,15 +53,25 @@ builder.Services.AddCors(options =>
 // Add ProblemDetails service for exception handling
 builder.Services.AddProblemDetails();
 
-// Configure Firebird connection
-var firebirdConnectionString = builder.Configuration.GetConnectionString("Firebird") ?? "Database=C:\\Users\\Ayoub\\Desktop\\clockwise-project\\database\\atrium_mvp.fdb;User=SYSDBA;Password=masterkey;Dialect=3;Charset=UTF8;ServerType=0;Server=localhost;Port=3050;ClientLibrary=fbclient.dll;Pooling=true;MinPoolSize=5;MaxPoolSize=100;ConnectionLifetime=300";
+// Klantspecifieke Syntess Atrium-sleutels (sectie "Syntess" in appsettings / env Syntess__*)
+var syntessOptions = ClockwiseProject.Backend.Models.SyntessOptions.FromConfiguration(builder.Configuration);
+syntessOptions.Validate();
+builder.Services.AddSingleton(syntessOptions);
+builder.Services.Configure<ClockwiseProject.Backend.Models.SyntessOptions>(builder.Configuration.GetSection(ClockwiseProject.Backend.Models.SyntessOptions.SectionName));
+
+// Configure Firebird connection (verplicht; geen ingebouwde fallback)
+var firebirdConnectionString = builder.Configuration.GetConnectionString("Firebird");
+if (string.IsNullOrWhiteSpace(firebirdConnectionString))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:Firebird ontbreekt. Configureer deze in appsettings.json of via de omgevingsvariabele ConnectionStrings__Firebird.");
+}
 builder.Services.AddSingleton(new FirebirdConnectionFactory(firebirdConnectionString));
 {
-    // Startup diagnostics: show which Firebird target/user is actually in use (password masked)
-    // and whether it came from the environment or from appsettings.json.
+    // Startup diagnostics: show which Firebird target/user is actually in use (password never printed)
     var fbInfo = new FirebirdSql.Data.FirebirdClient.FbConnectionStringBuilder(firebirdConnectionString);
-    var fbSource = Environment.GetEnvironmentVariable("ConnectionStrings__Firebird") != null ? "env ConnectionStrings__Firebird" : "appsettings/fallback";
-    Console.WriteLine($"[startup] Firebird -> {fbInfo.DataSource}:{fbInfo.Port} db={fbInfo.Database} user={fbInfo.UserID} pwdLen={fbInfo.Password?.Length ?? 0} source={fbSource}");
+    var fbSource = Environment.GetEnvironmentVariable("ConnectionStrings__Firebird") != null ? "env ConnectionStrings__Firebird" : "appsettings";
+    Console.WriteLine($"[startup] Firebird -> {fbInfo.DataSource}:{fbInfo.Port} db={fbInfo.Database} user={fbInfo.UserID} source={fbSource}");
 }
 
 // Configure PostgreSQL (Supabase) connection
@@ -82,7 +97,6 @@ builder.Services.AddScoped<System.Data.IDbConnection>(sp =>
 // }
 
 // Register repositories
-builder.Services.AddScoped<ITimesheetRepository, FirebirdTimesheetRepository>();
 builder.Services.AddScoped<IUserRepository, FirebirdUserRepository>();
 builder.Services.AddSingleton<IVacationRepository, PostgresLeaveRepository>();
 builder.Services.AddScoped<IFirebirdDataRepository, FirebirdDataRepository>();
@@ -100,7 +114,6 @@ builder.Services.AddScoped<backend.Repositories.DapperTimeEntryRepository>();
 // Register services
 builder.Services.AddScoped<backend.Services.AuthenticationService>();
 builder.Services.AddScoped<backend.Services.ITwoFactorService, backend.Services.TwoFactorService>();
-builder.Services.AddScoped<TimesheetService>();
 builder.Services.AddScoped<VacationService>();
 builder.Services.AddScoped<ActivityService>();
 builder.Services.AddScoped<backend.Services.TaskService>();
@@ -124,33 +137,35 @@ if (app.Environment.IsDevelopment())
 app.UseRouting();
 app.UseCors("AllowSpecificOrigins");
 
-// Global exception handler that returns JSON for API routes
+// Global exception handler: generic message + correlation id (details are only logged)
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
         var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-        var problemDetails = new ProblemDetails
-        {
-            Status = 500,
-            Title = "An error occurred",
-            Detail = exception?.Message ?? "Internal server error",
-            Instance = context.Request.Path
-        };
+        var correlationId = Guid.NewGuid().ToString("N");
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(exception, "Unhandled exception (correlationId={CorrelationId}) for {Method} {Path}",
+            correlationId, context.Request.Method, context.Request.Path);
 
-        // Always return JSON for API routes
-        if (context.Request.Path.Value?.StartsWith("/api") == true)
+        context.Response.StatusCode = 500;
+        if (context.Request.Path.Value?.StartsWith("/api", StringComparison.OrdinalIgnoreCase) == true)
         {
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = 500;
+            var problemDetails = new ProblemDetails
+            {
+                Status = 500,
+                Title = "Er is een interne fout opgetreden",
+                Detail = $"Neem contact op met de beheerder en vermeld referentie {correlationId}",
+                Instance = context.Request.Path
+            };
+            problemDetails.Extensions["correlationId"] = correlationId;
             await context.Response.WriteAsJsonAsync(problemDetails);
         }
         else
         {
-            // For non-API routes, return HTML
             context.Response.ContentType = "text/html";
-            context.Response.StatusCode = 500;
-            await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>{problemDetails.Detail}</p></body></html>");
+            await context.Response.WriteAsync($"<html><body><h1>Error</h1><p>Er is een interne fout opgetreden. Referentie: {correlationId}</p></body></html>");
         }
     });
 });
@@ -216,12 +231,8 @@ public class MedewGcIdMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<MedewGcIdMiddleware> _logger;
 
-    // When true, a valid signed JWT is REQUIRED for every non-public request and the
-    // legacy X-MEDEW-GC-ID / X-USER-ROLE header-trust path is disabled. When false
-    // (default, migration mode) a valid JWT still wins and overrides any client headers,
-    // but requests without a JWT fall back to the old header behaviour so the pre-JWT
-    // frontend keeps working during rollout. Flip to true once the frontend sends Bearer.
-    private readonly bool _requireJwt;
+    // A valid signed JWT is REQUIRED for every non-public request. There is no
+    // header-trust fallback: X-MEDEW-GC-ID / X-USER-ID / X-USER-ROLE from the client are never used.
     private readonly TokenValidationParameters? _validationParameters;
     private readonly JwtSecurityTokenHandler _tokenHandler = new();
 
@@ -229,7 +240,6 @@ public class MedewGcIdMiddleware
     {
         _next = next;
         _logger = logger;
-        _requireJwt = configuration.GetValue("Auth:RequireJwt", false);
 
         var jwtKey = configuration["Jwt:Key"];
         if (!string.IsNullOrEmpty(jwtKey))
@@ -246,9 +256,9 @@ public class MedewGcIdMiddleware
                 ClockSkew = TimeSpan.FromMinutes(1)
             };
         }
-        else if (_requireJwt)
+        else
         {
-            _logger.LogError("Auth:RequireJwt is true but Jwt:Key is not configured - all requests will be rejected");
+            _logger.LogError("Jwt:Key is not configured - all authenticated requests will be rejected");
         }
     }
 
@@ -274,48 +284,41 @@ public class MedewGcIdMiddleware
         }
     }
 
-    // Overwrite identity headers + HttpContext.Items with the VERIFIED claim values so that
-    // every downstream read site (whether it reads Items or the raw header) receives the
-    // authenticated identity and any client-supplied/forged header is discarded.
-    private void ApplyVerifiedIdentity(HttpContext context, ClaimsPrincipal principal)
+    // Store the VERIFIED claim values in HttpContext.Items and strip any client-supplied
+    // identity headers so that nothing downstream can accidentally trust them.
+    private static void ApplyVerifiedIdentity(HttpContext context, ClaimsPrincipal principal)
     {
+        context.Request.Headers.Remove("X-MEDEW-GC-ID");
+        context.Request.Headers.Remove("X-USER-ID");
+        context.Request.Headers.Remove("X-USER-ROLE");
+
         var medew = principal.FindFirst("medew_gc_id")?.Value;
         var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
                      ?? principal.FindFirst("nameid")?.Value;
         var role = principal.FindFirst(ClaimTypes.Role)?.Value
                    ?? principal.FindFirst("role")?.Value;
 
-        if (!string.IsNullOrEmpty(medew))
-        {
-            context.Request.Headers["X-MEDEW-GC-ID"] = medew;
-            if (int.TryParse(medew, out var m)) context.Items["MedewGcId"] = m;
-        }
-        if (!string.IsNullOrEmpty(userId))
-        {
-            context.Request.Headers["X-USER-ID"] = userId; // header dictionary is case-insensitive
-            if (int.TryParse(userId, out var u)) context.Items["UserId"] = u;
-        }
+        if (!string.IsNullOrEmpty(medew) && int.TryParse(medew, out var m))
+            context.Items["MedewGcId"] = m;
+        if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var u))
+            context.Items["UserId"] = u;
         if (!string.IsNullOrEmpty(role))
-        {
-            context.Request.Headers["X-USER-ROLE"] = role;
-            context.Items["UserRole"] = role;
-        }
+            context.Items["UserRole"] = role.Trim().ToLowerInvariant();
     }
 
     private static bool IsPublicPath(string? path, string method)
     {
-        if (path == null) return false;
-        if (method == "POST" &&
-            (path.Contains("/api/users/login") ||
-             path.Contains("/api/auth/login") ||
-             path.Contains("/api/auth/hash-password")))
+        if (string.IsNullOrEmpty(path)) return false;
+
+        if (method == "POST" && path.StartsWith("/api/auth/login", StringComparison.OrdinalIgnoreCase))
             return true;
+
         if (method == "GET" &&
-            (path.Contains("/api/holidays") ||
-             path.Contains("/api/periods") ||
-             path.Contains("/api/health") ||
-             path.Contains("/api/system-settings/require-2fa")))
+            (path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("/api/system-settings/require-2fa", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("/api/holidays", StringComparison.OrdinalIgnoreCase)))
             return true;
+
         return false;
     }
 
@@ -328,7 +331,6 @@ public class MedewGcIdMiddleware
             return;
         }
 
-        // Preferred path: a valid signed JWT. Its verified identity overrides any headers.
         var principal = TryValidateToken(context);
         if (principal != null)
         {
@@ -337,151 +339,15 @@ public class MedewGcIdMiddleware
             return;
         }
 
-        // No valid JWT.
-        if (_requireJwt)
-        {
-            var strictPath = context.Request.Path.Value?.ToLower();
-            if (IsPublicPath(strictPath, context.Request.Method))
-            {
-                await _next(context);
-                return;
-            }
-            _logger.LogWarning("Rejected request without valid bearer token: {Method} {Path}",
-                context.Request.Method, context.Request.Path);
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "Missing or invalid bearer token" });
-            return;
-        }
-
-        // Migration fallback (Auth:RequireJwt=false): legacy header-trust behaviour.
-        await LegacyInvokeAsync(context);
-    }
-
-    // ===== Legacy header-based identity (INSECURE - only reachable when Auth:RequireJwt=false) =====
-    private async Task LegacyInvokeAsync(HttpContext context)
-    {
-
-        // Skip authentication for login and auth endpoints
-        var path = context.Request.Path.Value?.ToLower();
-        if (path != null &&
-            (path.Contains("/api/users/login") ||
-             path.Contains("/api/auth/login") ||
-             path.Contains("/api/auth/hash-password")) &&
-            context.Request.Method == "POST")
+        if (IsPublicPath(context.Request.Path.Value, context.Request.Method))
         {
             await _next(context);
             return;
         }
 
-        // Skip authentication for GET requests to public endpoints
-        if (context.Request.Method == "GET" && path != null &&
-            (path.Contains("/api/holidays") ||
-             path.Contains("/api/periods") ||
-             path.Contains("/api/health") ||
-             path.Contains("/api/system-settings/require-2fa")))
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip X-MEDEW-GC-ID for system-settings (admin only, uses X-User-ID)
-        if (path != null && path.Contains("/api/system-settings"))
-        {
-            // Check for X-USER-ID header and store userId
-            if (context.Request.Headers.TryGetValue("X-USER-ID", out var settingsUserIdHeader) &&
-                int.TryParse(settingsUserIdHeader, out var settingsUserId))
-            {
-                context.Items["UserId"] = settingsUserId;
-            }
-            await _next(context);
-            return;
-        }
-
-        // Skip X-MEDEW-GC-ID for holidays management (uses X-User-ID instead)
-        if (path != null && path.Contains("/api/holidays"))
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip X-MEDEW-GC-ID for user-projects management
-        if (path != null && path.Contains("/api/user-projects"))
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip X-MEDEW-GC-ID for vacation management (uses X-User-ID instead)
-        if (path != null && path.Contains("/api/vacation"))
-        {
-            await _next(context);
-            return;
-        }
-
-        // Skip X-MEDEW-GC-ID for notifications (uses X-USER-ID instead)
-        if (path != null && (path.Contains("/api/notifications") || path.Contains("/notifications")))
-        {
-            _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for notifications - checking X-USER-ID");
-
-            // Log all headers for debugging
-            foreach (var header in context.Request.Headers)
-            {
-                _logger.LogInformation("  Header: {Key} = {Value}", header.Key, header.Value.ToString());
-            }
-
-            // Check for X-USER-ID header and store userId
-            if (context.Request.Headers.TryGetValue("X-USER-ID", out var userIdHeader) &&
-                int.TryParse(userIdHeader, out var userId))
-            {
-                _logger.LogInformation("MedewGcIdMiddleware: Found X-USER-ID={UserId}, storing in HttpContext.Items", userId);
-                context.Items["UserId"] = userId;
-            }
-            else
-            {
-                _logger.LogWarning("MedewGcIdMiddleware: X-USER-ID header missing or invalid");
-            }
-
-            await _next(context);
-            return;
-        }
-
-        // Skip X-MEDEW-GC-ID for two-factor authentication (uses X-USER-ID instead)
-        if (path != null && path.Contains("/api/two-factor"))
-        {
-            _logger.LogInformation("MedewGcIdMiddleware: SKIPPING auth for two-factor - checking X-USER-ID");
-
-            // Check for X-USER-ID header and store userId
-            if (context.Request.Headers.TryGetValue("X-USER-ID", out var twoFactorUserIdHeader) &&
-                int.TryParse(twoFactorUserIdHeader, out var twoFactorUserId))
-            {
-                _logger.LogInformation("MedewGcIdMiddleware: Found X-USER-ID={UserId} for 2FA", twoFactorUserId);
-                context.Items["UserId"] = twoFactorUserId;
-            }
-            else
-            {
-                _logger.LogWarning("MedewGcIdMiddleware: X-USER-ID header missing for 2FA request");
-            }
-
-            await _next(context);
-            return;
-        }
-
-        _logger.LogInformation("MedewGcIdMiddleware: Processing {Method} {Path}", context.Request.Method, context.Request.Path);
-        _logger.LogInformation("MedewGcIdMiddleware: Headers: {Headers}", string.Join(", ", context.Request.Headers.Keys));
-
-        if (!context.Request.Headers.TryGetValue("X-MEDEW-GC-ID", out var medewGcIdHeader) ||
-            !int.TryParse(medewGcIdHeader, out var medewGcId))
-        {
-            _logger.LogWarning("MedewGcIdMiddleware: Missing or invalid X-MEDEW-GC-ID header");
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "Missing or invalid X-MEDEW-GC-ID header" });
-            return;
-        }
-
-        _logger.LogInformation("MedewGcIdMiddleware: Found MedewGcId={MedewGcId}", medewGcId);
-
-        // Store in HttpContext for later use
-        context.Items["MedewGcId"] = medewGcId;
-        await _next(context);
+        _logger.LogWarning("Rejected request without valid bearer token: {Method} {Path}",
+            context.Request.Method, context.Request.Path);
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        await context.Response.WriteAsJsonAsync(new { error = "Ontbrekend of ongeldig bearer token" });
     }
 }

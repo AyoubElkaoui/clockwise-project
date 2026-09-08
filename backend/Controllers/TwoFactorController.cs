@@ -27,8 +27,11 @@ namespace backend.Controllers
 
         // POST: api/two-factor/setup
         [HttpPost("setup")]
-        public async Task<ActionResult<TwoFactorSetupResponse>> Setup([FromBody] TwoFactorSetupRequest request)
+        public async Task<ActionResult<TwoFactorSetupResponse>> Setup([FromBody] TwoFactorSetupRequest? request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.Method))
+                return BadRequest(new { message = "Invalid method. Use 'totp' or 'email'" });
+
             var userId = GetCurrentUserId();
             if (userId == null)
                 return Unauthorized(new { message = "User not authenticated" });
@@ -101,8 +104,11 @@ namespace backend.Controllers
 
         // POST: api/two-factor/verify
         [HttpPost("verify")]
-        public async Task<ActionResult<TwoFactorResponse>> VerifyAndEnable([FromBody] TwoFactorVerifyRequest request)
+        public async Task<ActionResult<TwoFactorResponse>> VerifyAndEnable([FromBody] TwoFactorVerifyRequest? request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.Code))
+                return BadRequest(new { message = "Verification code is required" });
+
             var userId = GetCurrentUserId();
             if (userId == null)
                 return Unauthorized(new { message = "User not authenticated" });
@@ -115,14 +121,13 @@ namespace backend.Controllers
                          two_factor_enabled AS TwoFactorEnabled,
                          two_factor_method AS TwoFactorMethod,
                          two_factor_secret AS TwoFactorSecret,
+                         two_factor_email_code AS TwoFactorEmailCode,
+                         two_factor_code_expires_at AS TwoFactorCodeExpiresAt,
                          two_factor_backup_codes AS TwoFactorBackupCodes
                   FROM users WHERE id = @Id", new { Id = userId });
 
             if (user == null)
                 return NotFound(new { message = "User not found" });
-
-            _logger.LogInformation("Verify 2FA for user {UserId}: Method={Method}, HasSecret={HasSecret}",
-                userId, user.TwoFactorMethod ?? "null", !string.IsNullOrEmpty(user.TwoFactorSecret));
 
             bool isValid = false;
 
@@ -136,8 +141,11 @@ namespace backend.Controllers
             }
             else if (user.TwoFactorMethod == "email")
             {
-                // Voor email accepteren we direct de eerste verificatie
-                isValid = true;
+                // Vergelijk met de per e-mail verzonden code (incl. verlooptijd)
+                isValid = _twoFactorService.IsEmailCodeValid(
+                    user.TwoFactorEmailCode ?? string.Empty,
+                    user.TwoFactorCodeExpiresAt,
+                    request.Code);
             }
             else
             {
@@ -147,7 +155,11 @@ namespace backend.Controllers
             if (isValid)
             {
                 await connection.ExecuteAsync(
-                    "UPDATE users SET two_factor_enabled = true WHERE id = @Id",
+                    @"UPDATE users
+                      SET two_factor_enabled = true,
+                          two_factor_email_code = NULL,
+                          two_factor_code_expires_at = NULL
+                      WHERE id = @Id",
                     new { Id = userId });
 
                 _logger.LogInformation("2FA enabled for user {UserId} with method {Method}", 
@@ -170,8 +182,11 @@ namespace backend.Controllers
 
         // POST: api/two-factor/disable
         [HttpPost("disable")]
-        public async Task<IActionResult> Disable([FromBody] TwoFactorDisableRequest request)
+        public async Task<IActionResult> Disable([FromBody] TwoFactorDisableRequest? request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.Code))
+                return BadRequest(new { message = "Verification code is required" });
+
             var userId = GetCurrentUserId();
             if (userId == null)
                 return Unauthorized(new { message = "User not authenticated" });
@@ -240,8 +255,11 @@ namespace backend.Controllers
 
         // POST: api/two-factor/send-email-code
         [HttpPost("send-email-code")]
-        public async Task<IActionResult> SendEmailCode([FromBody] SendEmailCodeRequest request)
+        public async Task<IActionResult> SendEmailCode([FromBody] SendEmailCodeRequest? request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.Username))
+                return BadRequest(new { message = "Username is required" });
+
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.OpenAsync();
 
@@ -298,17 +316,7 @@ namespace backend.Controllers
             });
         }
 
-        private int? GetCurrentUserId()
-        {
-            if (HttpContext.Items.TryGetValue("UserId", out var userId))
-                return userId as int?;
-            
-            if (HttpContext.Request.Headers.TryGetValue("X-USER-ID", out var header) &&
-                int.TryParse(header, out var id))
-                return id;
-
-            return null;
-        }
+        private int? GetCurrentUserId() => this.CurrentUserId();
     }
 
     public class SendEmailCodeRequest

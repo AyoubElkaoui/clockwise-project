@@ -7,27 +7,9 @@ import {
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_URL } from "@/lib/api";
 
-// Helper function to build API URL consistently
-const buildApiUrl = (endpoint: string) => {
-  const baseUrl = API_URL.replace(/\/+$/, ''); // Remove trailing slashes
-  const cleanEndpoint = endpoint.replace(/^\/+/, ''); // Remove leading slashes
-
-  // Check the URL path (not domain) for /api to avoid false positives
-  // e.g. "https://api.clockd.nl" has /api in the domain but NOT in the path
-  try {
-    const url = new URL(baseUrl);
-    const hasApi = url.pathname.includes('/api');
-    if (hasApi) {
-      return `${baseUrl}/${cleanEndpoint}`;
-    }
-  } catch {
-    // If URL parsing fails, fall through to default
-  }
-
-  return `${baseUrl}/api/${cleanEndpoint}`;
-};
+const buildApiUrl = (endpoint: string) => `${API_URL}/${endpoint.replace(/^\/+/, "")}`;
 
 interface Notification {
   id: number;
@@ -60,7 +42,6 @@ const NotificationBell = () => {
       const response = await fetch(url, {
         headers: {
           'X-USER-ID': userId,
-          'ngrok-skip-browser-warning': '1',
         },
       });
 
@@ -125,7 +106,7 @@ const NotificationBell = () => {
   const handleMarkAllAsRead = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      const response = await fetch(buildApiUrl('notifications/mark-all-read'), {
+      const response = await fetch(buildApiUrl('notifications/read-all'), {
         method: 'PUT',
         headers: {
           'X-USER-ID': userId || '',

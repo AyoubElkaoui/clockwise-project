@@ -1,4 +1,4 @@
-using backend.Repositories;
+﻿using backend.Repositories;
 using BCrypt.Net;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -99,6 +99,13 @@ public class AuthenticationService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public bool VerifyPassword(string password, string? passwordHash)
+    {
+        if (string.IsNullOrEmpty(passwordHash)) return false;
+        try { return BCrypt.Net.BCrypt.Verify(password, passwordHash); }
+        catch { return false; }
     }
 
     public string HashPassword(string password)

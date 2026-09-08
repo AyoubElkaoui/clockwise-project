@@ -71,7 +71,6 @@ export default function NotificatiesPage() {
       const response = await fetch(url, {
         headers: {
           "X-USER-ID": userId.toString(),
-          "ngrok-skip-browser-warning": "1",
         },
       });
 
@@ -108,11 +107,10 @@ export default function NotificatiesPage() {
       const userId = authUtils.getUserId();
       if (!userId) return;
 
-      const response = await fetch(`${API_URL}/notifications/mark-all-read`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/notifications/read-all`, {
+        method: "PUT",
         headers: {
           "X-USER-ID": userId.toString(),
-          "ngrok-skip-browser-warning": "1",
         },
       });
 
@@ -133,10 +131,9 @@ export default function NotificatiesPage() {
       if (!userId) return;
 
       const response = await fetch(`${API_URL}/notifications/${id}/read`, {
-        method: "POST",
+        method: "PUT",
         headers: {
           "X-USER-ID": userId.toString(),
-          "ngrok-skip-browser-warning": "1",
         },
       });
 

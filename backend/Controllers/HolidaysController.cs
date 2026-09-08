@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Dapper;
 using System.Data;
+using System.Globalization;
 
 namespace backend.Controllers;
 
@@ -8,6 +9,8 @@ namespace backend.Controllers;
 [Route("api/[controller]")]
 public class HolidaysController : ControllerBase
 {
+    private const string ManagerOnlyMessage = "Alleen managers of beheerders mogen feestdagen beheren";
+
     private readonly IDbConnection _db;
     private readonly ILogger<HolidaysController> _logger;
 
@@ -17,14 +20,16 @@ public class HolidaysController : ControllerBase
         _logger = logger;
     }
 
-    // GET: api/holidays?year=2026 (Public - no auth required)
+    // GET: api/holidays?year=2026 (publiek)
     [HttpGet]
     public async Task<IActionResult> GetHolidays([FromQuery] int? year)
     {
+        var targetYear = year ?? DateTime.Now.Year;
+        if (targetYear < 2000 || targetYear > 2100)
+            return BadRequest(new { error = "Jaar moet tussen 2000 en 2100 liggen" });
+
         try
         {
-            var targetYear = year ?? DateTime.Now.Year;
-            
             var sql = @"
                 SELECT
                     id,
@@ -40,35 +45,28 @@ public class HolidaysController : ControllerBase
                 ORDER BY holiday_date";
 
             var result = await _db.QueryAsync(sql, new { Year = targetYear });
-
-            // Map to camelCase for frontend
-            var holidays = result.Select(h => new
-            {
-                id = (int)h.id,
-                holidayDate = ((DateTime)h.holiday_date).ToString("yyyy-MM-dd"),
-                name = (string)h.name,
-                type = (string)h.type,
-                isWorkAllowed = (bool)h.is_work_allowed,
-                createdBy = h.created_by as int?,
-                createdAt = h.created_at as DateTime?,
-                notes = h.notes as string
-            });
-
+            var holidays = result.Select(MapHoliday).ToList();
             return Ok(holidays);
+        }
+        catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P01")
+        {
+            _logger.LogWarning("holidays table does not exist yet - returning empty list");
+            return Ok(new List<object>());
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching holidays");
-            // If table doesn't exist, return empty array instead of error
-            _logger.LogWarning("Holidays table might not exist yet - returning empty array");
-            return Ok(new List<object>());
+            _logger.LogError(ex, "Error fetching holidays for year {Year}", targetYear);
+            return StatusCode(500, new { error = "Fout bij ophalen feestdagen" });
         }
     }
 
-    // GET: api/holidays/{date}
+    // GET: api/holidays/{date} (publiek)
     [HttpGet("{date}")]
     public async Task<IActionResult> GetHolidayByDate(string date)
     {
+        if (!TryParseDate(date, out var parsedDate))
+            return BadRequest(new { error = "Ongeldige datum, gebruik het formaat yyyy-MM-dd" });
+
         try
         {
             var sql = @"
@@ -84,132 +82,90 @@ public class HolidaysController : ControllerBase
                 FROM holidays
                 WHERE holiday_date = @Date";
 
-            var h = await _db.QueryFirstOrDefaultAsync(sql, new { Date = date });
+            var h = await _db.QueryFirstOrDefaultAsync(sql, new { Date = parsedDate.Date });
 
             if (h == null)
-                return NotFound();
+                return NotFound(new { error = "Geen feestdag gevonden op deze datum" });
 
-            // Map to camelCase for frontend
-            var holiday = new
-            {
-                id = (int)h.id,
-                holidayDate = ((DateTime)h.holiday_date).ToString("yyyy-MM-dd"),
-                name = (string)h.name,
-                type = (string)h.type,
-                isWorkAllowed = (bool)h.is_work_allowed,
-                createdBy = h.created_by as int?,
-                createdAt = h.created_at as DateTime?,
-                notes = h.notes as string
-            };
-
-            return Ok(holiday);
+            return Ok(MapHoliday(h));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching holiday by date");
-            return StatusCode(500, new { error = "Failed to fetch holiday" });
+            _logger.LogError(ex, "Error fetching holiday by date {Date}", date);
+            return StatusCode(500, new { error = "Fout bij ophalen feestdag" });
         }
     }
 
-    // POST: api/holidays
+    // POST: api/holidays (manager/admin)
     [HttpPost]
-    public async Task<IActionResult> CreateHoliday([FromBody] CreateHolidayRequest request)
+    public async Task<IActionResult> CreateHoliday([FromBody] CreateHolidayRequest? request)
     {
+        var userId = this.CurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
+        if (request == null)
+            return BadRequest(new { error = "Ongeldige aanvraag" });
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(new { error = "Naam van de feestdag is verplicht" });
+
+        if (!TryParseDate(request.HolidayDate, out var holidayDate))
+            return BadRequest(new { error = "Ongeldige datum, gebruik het formaat yyyy-MM-dd" });
+
+        var type = string.IsNullOrWhiteSpace(request.Type) ? "company" : request.Type.Trim();
+
         try
         {
-            _logger.LogInformation("=== POST /api/holidays START ===");
-            _logger.LogInformation("Request: {@Request}", request);
-            
-            var userIdHeader = Request.Headers["X-User-ID"].FirstOrDefault();
-            _logger.LogInformation("X-User-ID header: {UserId}", userIdHeader ?? "(null)");
-            
-            if (string.IsNullOrEmpty(userIdHeader) || !int.TryParse(userIdHeader, out var userId))
-            {
-                _logger.LogError("POST /api/holidays: Invalid or missing X-User-ID header");
-                return Unauthorized(new { error = "User not authenticated" });
-            }
-
-            // Check if user is manager
-            _logger.LogInformation("Checking role for userId={UserId}", userId);
-            var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT role FROM users WHERE id = @UserId", 
-                new { UserId = userId });
-            
-            _logger.LogInformation("User role: {Role}", userRank ?? "(null)");
-
-            if (userRank != "manager" && userRank != "admin")
-            {
-                _logger.LogWarning("User {UserId} with role {Role} attempted to create holiday", userId, userRank);
-                return Forbid("Only managers can create holidays");
-            }
-
-            // Validate request
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                return BadRequest(new { error = "Holiday name is required" });
-            }
-
-            if (string.IsNullOrWhiteSpace(request.HolidayDate))
-            {
-                return BadRequest(new { error = "Holiday date is required" });
-            }
-
-            // Check if holiday already exists for this date
             var existing = await _db.QueryFirstOrDefaultAsync<int?>(
-                "SELECT id FROM holidays WHERE holiday_date = @Date::date AND type = @Type",
-                new { Date = request.HolidayDate, Type = request.Type });
+                "SELECT id FROM holidays WHERE holiday_date = @Date AND type = @Type",
+                new { Date = holidayDate.Date, Type = type });
 
             if (existing.HasValue)
-            {
-                return Conflict(new { error = "Holiday already exists for this date" });
-            }
+                return Conflict(new { error = "Er bestaat al een feestdag op deze datum" });
 
             var sql = @"
                 INSERT INTO holidays (holiday_date, name, type, is_work_allowed, created_by, notes)
-                VALUES (@HolidayDate::date, @Name, @Type, @IsWorkAllowed, @CreatedBy, @Notes)
+                VALUES (@HolidayDate, @Name, @Type, @IsWorkAllowed, @CreatedBy, @Notes)
                 RETURNING id";
 
             var id = await _db.ExecuteScalarAsync<int>(sql, new
             {
-                HolidayDate = request.HolidayDate,
-                Name = request.Name,
-                Type = request.Type,
+                HolidayDate = holidayDate.Date,
+                Name = request.Name.Trim(),
+                Type = type,
                 IsWorkAllowed = request.IsWorkAllowed,
-                CreatedBy = userId,
+                CreatedBy = userId.Value,
                 Notes = request.Notes ?? string.Empty
             });
 
-            return CreatedAtAction(nameof(GetHolidayByDate), new { date = request.HolidayDate }, new { id });
+            return CreatedAtAction(nameof(GetHolidayByDate), new { date = holidayDate.ToString("yyyy-MM-dd") }, new { id });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating holiday: {Message}. Request: {@Request}", ex.Message, request);
-            return StatusCode(500, new { error = "Failed to create holiday", details = ex.Message });
+            _logger.LogError(ex, "Error creating holiday on {Date}", request.HolidayDate);
+            return StatusCode(500, new { error = "Fout bij aanmaken feestdag" });
         }
     }
 
-    // PUT: api/holidays/{id}
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateHoliday(int id, [FromBody] UpdateHolidayRequest request)
+    // PUT: api/holidays/{id} (manager/admin)
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateHoliday(int id, [FromBody] UpdateHolidayRequest? request)
     {
+        if (this.CurrentUserId() == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
+        if (request == null)
+            return BadRequest(new { error = "Ongeldige aanvraag" });
+
         try
         {
-            var userIdHeader = Request.Headers["X-User-ID"].FirstOrDefault();
-            if (string.IsNullOrEmpty(userIdHeader) || !int.TryParse(userIdHeader, out var userId))
-            {
-                return Unauthorized(new { error = "User not authenticated" });
-            }
-
-            // Check if user is manager
-            var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT role FROM users WHERE id = @UserId", 
-                new { UserId = userId });
-
-            if (userRank != "manager" && userRank != "admin")
-            {
-                return Forbid("Only managers can update holidays");
-            }
-
             var sql = @"
                 UPDATE holidays
                 SET is_work_allowed = @IsWorkAllowed,
@@ -224,96 +180,73 @@ public class HolidaysController : ControllerBase
             });
 
             if (rows == 0)
-                return NotFound();
+                return NotFound(new { error = "Feestdag niet gevonden" });
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating holiday");
-            return StatusCode(500, new { error = "Failed to update holiday" });
+            _logger.LogError(ex, "Error updating holiday {Id}", id);
+            return StatusCode(500, new { error = "Fout bij bijwerken feestdag" });
         }
     }
 
-    // DELETE: api/holidays/{id}
-    [HttpDelete("{id}")]
+    // DELETE: api/holidays/{id} (manager/admin)
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteHoliday(int id)
     {
+        if (this.CurrentUserId() == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
         try
         {
-            var userIdHeader = Request.Headers["X-User-ID"].FirstOrDefault();
-            if (string.IsNullOrEmpty(userIdHeader) || !int.TryParse(userIdHeader, out var userId))
-            {
-                return Unauthorized(new { error = "User not authenticated" });
-            }
-
-            // Check if user is manager
-            var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT role FROM users WHERE id = @UserId", 
-                new { UserId = userId });
-
-            if (userRank != "manager" && userRank != "admin")
-            {
-                return Forbid("Only managers can delete holidays");
-            }
-
-            // Only allow deletion of company/closed days, not national holidays
             var holidayType = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT type FROM holidays WHERE id = @Id", 
+                "SELECT type FROM holidays WHERE id = @Id",
                 new { Id = id });
 
             if (holidayType == "national")
-            {
-                return BadRequest(new { error = "Cannot delete national holidays" });
-            }
+                return BadRequest(new { error = "Nationale feestdagen kunnen niet worden verwijderd" });
 
             var rows = await _db.ExecuteAsync("DELETE FROM holidays WHERE id = @Id", new { Id = id });
 
             if (rows == 0)
-                return NotFound();
+                return NotFound(new { error = "Feestdag niet gevonden" });
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting holiday");
-            return StatusCode(500, new { error = "Failed to delete holiday" });
+            _logger.LogError(ex, "Error deleting holiday {Id}", id);
+            return StatusCode(500, new { error = "Fout bij verwijderen feestdag" });
         }
     }
 
-    // POST: api/holidays/generate/{year}
-    [HttpPost("generate/{year}")]
+    // POST: api/holidays/generate/{year} (manager/admin)
+    [HttpPost("generate/{year:int}")]
     public async Task<IActionResult> GenerateHolidaysForYear(int year)
     {
+        var userId = this.CurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
+        if (year < 2000 || year > 2100)
+            return BadRequest(new { error = "Jaar moet tussen 2000 en 2100 liggen" });
+
         try
         {
-            var userIdHeader = Request.Headers["X-User-ID"].FirstOrDefault();
-            if (string.IsNullOrEmpty(userIdHeader) || !int.TryParse(userIdHeader, out var userId))
-            {
-                return Unauthorized(new { error = "User not authenticated" });
-            }
-
-            // Check if user is manager
-            var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT role FROM users WHERE id = @UserId",
-                new { UserId = userId });
-
-            if (userRank != "manager" && userRank != "admin")
-            {
-                return Forbid("Only managers can generate holidays");
-            }
-
-            // Check if holidays already exist for this year
             var existingCount = await _db.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM holidays WHERE EXTRACT(YEAR FROM holiday_date) = @Year AND type = 'national'",
                 new { Year = year });
 
             if (existingCount > 0)
-            {
                 return Conflict(new { error = $"Feestdagen voor {year} bestaan al ({existingCount} dagen)" });
-            }
 
-            // Generate Dutch national holidays for the year
             var holidays = GetDutchNationalHolidays(year);
             var inserted = 0;
 
@@ -326,27 +259,87 @@ public class HolidaysController : ControllerBase
 
                 var rows = await _db.ExecuteAsync(sql, new
                 {
-                    HolidayDate = holiday.Date.ToString("yyyy-MM-dd"),
+                    HolidayDate = holiday.Date.Date,
                     Name = holiday.Name,
-                    CreatedBy = userId,
+                    CreatedBy = userId.Value,
                     Notes = "Automatisch gegenereerd"
                 });
 
                 inserted += rows;
             }
 
-            return Ok(new {
+            return Ok(new
+            {
                 message = $"{inserted} feestdagen gegenereerd voor {year}",
-                year = year,
+                year,
                 count = inserted
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating holidays for year {Year}", year);
-            return StatusCode(500, new { error = "Failed to generate holidays" });
+            return StatusCode(500, new { error = "Fout bij genereren feestdagen" });
         }
     }
+
+    // POST: api/holidays/toggle-work/{id} (manager/admin)
+    [HttpPost("toggle-work/{id:int}")]
+    public async Task<IActionResult> ToggleWorkAllowed(int id)
+    {
+        if (this.CurrentUserId() == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (!this.IsManagerOrAdmin())
+            return StatusCode(403, new { error = ManagerOnlyMessage });
+
+        try
+        {
+            var sql = @"
+                UPDATE holidays
+                SET is_work_allowed = NOT is_work_allowed
+                WHERE id = @Id
+                RETURNING is_work_allowed";
+
+            var newValue = await _db.ExecuteScalarAsync<bool?>(sql, new { Id = id });
+            if (!newValue.HasValue)
+                return NotFound(new { error = "Feestdag niet gevonden" });
+
+            return Ok(new { isWorkAllowed = newValue.Value });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling work permission for holiday {Id}", id);
+            return StatusCode(500, new { error = "Fout bij wijzigen werktoestemming" });
+        }
+    }
+
+    private static bool TryParseDate(string? input, out DateTime date)
+    {
+        date = default;
+        if (string.IsNullOrWhiteSpace(input)) return false;
+        return DateTime.TryParseExact(input.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
+            || DateTime.TryParse(input.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+    }
+
+    private static object MapHoliday(dynamic h)
+    {
+        var row = (IDictionary<string, object?>)h;
+        return new
+        {
+            id = ToInt(row["id"]),
+            holidayDate = ToDateTime(row["holiday_date"])?.ToString("yyyy-MM-dd"),
+            name = row["name"] as string ?? string.Empty,
+            type = row["type"] as string ?? string.Empty,
+            isWorkAllowed = row["is_work_allowed"] is bool b && b,
+            createdBy = ToNullableInt(row["created_by"]),
+            createdAt = ToDateTime(row["created_at"]),
+            notes = row["notes"] as string
+        };
+    }
+
+    private static int ToInt(object? value) => value == null || value is DBNull ? 0 : Convert.ToInt32(value);
+    private static int? ToNullableInt(object? value) => value == null || value is DBNull ? null : Convert.ToInt32(value);
+    private static DateTime? ToDateTime(object? value) => value == null || value is DBNull ? null : Convert.ToDateTime(value);
 
     private static List<(DateTime Date, string Name)> GetDutchNationalHolidays(int year)
     {
@@ -366,19 +359,12 @@ public class HolidaysController : ControllerBase
             holidays.Add((new DateTime(year, 4, 26), "Koningsdag"));
         }
 
-        // Pasen (bewegelijke feestdag)
         var easter = CalculateEaster(year);
         holidays.Add((easter, "Eerste Paasdag"));
         holidays.Add((easter.AddDays(1), "Tweede Paasdag"));
-
-        // Hemelvaartsdag (39 dagen na Pasen)
         holidays.Add((easter.AddDays(39), "Hemelvaartsdag"));
-
-        // Pinksteren (49 en 50 dagen na Pasen)
         holidays.Add((easter.AddDays(49), "Eerste Pinksterdag"));
         holidays.Add((easter.AddDays(50), "Tweede Pinksterdag"));
-
-        // Goede Vrijdag (2 dagen voor Pasen)
         holidays.Add((easter.AddDays(-2), "Goede Vrijdag"));
 
         return holidays.OrderBy(h => h.Date).ToList();
@@ -386,7 +372,6 @@ public class HolidaysController : ControllerBase
 
     private static DateTime CalculateEaster(int year)
     {
-        // Computus algorithm for calculating Easter Sunday
         int a = year % 19;
         int b = year / 100;
         int c = year % 100;
@@ -403,54 +388,15 @@ public class HolidaysController : ControllerBase
         int day = ((h + l - 7 * m + 114) % 31) + 1;
         return new DateTime(year, month, day);
     }
-
-    // POST: api/holidays/toggle-work/{id}
-    [HttpPost("toggle-work/{id}")]
-    public async Task<IActionResult> ToggleWorkAllowed(int id)
-    {
-        try
-        {
-            var userIdHeader = Request.Headers["X-User-ID"].FirstOrDefault();
-            if (string.IsNullOrEmpty(userIdHeader) || !int.TryParse(userIdHeader, out var userId))
-            {
-                return Unauthorized(new { error = "User not authenticated" });
-            }
-
-            // Check if user is manager
-            var userRank = await _db.QueryFirstOrDefaultAsync<string>(
-                "SELECT role FROM users WHERE id = @UserId", 
-                new { UserId = userId });
-
-            if (userRank != "manager" && userRank != "admin")
-            {
-                return Forbid("Only managers can toggle work permissions");
-            }
-
-            var sql = @"
-                UPDATE holidays
-                SET is_work_allowed = NOT is_work_allowed
-                WHERE id = @Id
-                RETURNING is_work_allowed";
-
-            var newValue = await _db.ExecuteScalarAsync<bool>(sql, new { Id = id });
-
-            return Ok(new { isWorkAllowed = newValue });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error toggling work permission");
-            return StatusCode(500, new { error = "Failed to toggle work permission" });
-        }
-    }
 }
 
 public record CreateHolidayRequest(
     [property: System.Text.Json.Serialization.JsonPropertyName("holidayDate")]
-    string HolidayDate,
+    string? HolidayDate,
     [property: System.Text.Json.Serialization.JsonPropertyName("name")]
-    string Name,
+    string? Name,
     [property: System.Text.Json.Serialization.JsonPropertyName("type")]
-    string Type,
+    string? Type,
     [property: System.Text.Json.Serialization.JsonPropertyName("isWorkAllowed")]
     bool IsWorkAllowed,
     [property: System.Text.Json.Serialization.JsonPropertyName("notes")]

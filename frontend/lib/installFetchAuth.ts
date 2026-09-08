@@ -8,6 +8,8 @@
 //  - Never overrides an Authorization header that is already present.
 //  - Only rewrites string/URL inputs (leaves Request objects untouched).
 //  - Any failure falls through to the original fetch.
+import { handleUnauthorized } from "./api";
+
 if (typeof window !== "undefined") {
   const w = window as unknown as { __authFetchPatched?: boolean };
   if (!w.__authFetchPatched) {
@@ -31,9 +33,15 @@ if (typeof window !== "undefined") {
       } catch {
         // Never let auth injection break a request.
       }
-      return originalFetch(input as RequestInfo | URL, init);
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.href : "";
+      return originalFetch(input as RequestInfo | URL, init).then((res) => {
+        if (res.status === 401 && url.includes("/api/") && !url.includes("/api/auth/login")) {
+          handleUnauthorized();
+        }
+        return res;
+      });
     }) as typeof fetch;
   }
 }
 
-export {};

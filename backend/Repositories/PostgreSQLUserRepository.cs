@@ -1,4 +1,4 @@
-using Dapper;
+﻿using Dapper;
 using ClockwiseProject.Backend.Data;
 
 namespace backend.Repositories;
@@ -100,6 +100,13 @@ public class PostgreSQLUserRepository
             _logger.LogError(ex, "Error fetching user by MedewGcId: {MedewGcId}", medewGcId);
             throw;
         }
+    }
+
+    public async Task UpdatePasswordAsync(int id, string passwordHash)
+    {
+        const string sql = "UPDATE users SET password_hash = @passwordHash, updated_at = NOW() WHERE id = @id";
+        using var connection = _connectionFactory.CreateConnection();
+        await connection.ExecuteAsync(sql, new { id, passwordHash });
     }
 
     public async Task UpdateLastLoginAsync(int id)

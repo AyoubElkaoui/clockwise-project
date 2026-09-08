@@ -1,9 +1,11 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using ClockwiseProject.Domain;
 using ClockwiseProject.Backend.Repositories;
 using ClockwiseProject.Backend.Data;
+using ClockwiseProject.Backend.Models;
 using FirebirdSql.Data.FirebirdClient;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Dapper;
 
@@ -15,6 +17,7 @@ namespace ClockwiseProject.Backend.Services
         private readonly IFirebirdDataRepository _firebirdRepository;
         private readonly FirebirdConnectionFactory _firebirdConnectionFactory;
         private readonly PostgreSQLConnectionFactory _postgresConnectionFactory;
+        private readonly SyntessOptions _syntess;
         private readonly ILogger<VacationService> _logger;
 
         public VacationService(
@@ -22,12 +25,15 @@ namespace ClockwiseProject.Backend.Services
             IFirebirdDataRepository firebirdRepository,
             FirebirdConnectionFactory firebirdConnectionFactory,
             PostgreSQLConnectionFactory postgresConnectionFactory,
+            IConfiguration configuration,
             ILogger<VacationService> logger)
         {
             _vacationRepository = vacationRepository;
             _firebirdRepository = firebirdRepository;
             _firebirdConnectionFactory = firebirdConnectionFactory;
             _postgresConnectionFactory = postgresConnectionFactory;
+            _syntess = SyntessOptions.FromConfiguration(configuration);
+            _syntess.Validate();
             _logger = logger;
         }
 
@@ -46,7 +52,7 @@ namespace ClockwiseProject.Backend.Services
             return await _vacationRepository.GetByMedewGcIdAsync(medewGcId);
         }
 
-        public async Task<VacationRequest> GetVacationRequestByIdAsync(int id)
+        public async Task<VacationRequest?> GetVacationRequestByIdAsync(int id)
         {
             return await _vacationRepository.GetByIdAsync(id);
         }
@@ -58,8 +64,8 @@ namespace ClockwiseProject.Backend.Services
             // If status is SUBMITTED, update vacation balance (add to pending)
             if (vacationRequest.Status?.ToUpper() == "SUBMITTED")
             {
-                await UpdateVacationBalanceAsync(vacationRequest.UserId, vacationRequest.StartDate.Year, 
-                    pendingDelta: vacationRequest.TotalDays * 8, // Add to pending
+                await UpdateVacationBalanceAsync(vacationRequest.UserId, vacationRequest.StartDate.Year,
+                    pendingDelta: vacationRequest.TotalDays * _syntess.HoursPerDay, // Add to pending
                     usedDelta: 0);
             }
         }
@@ -74,39 +80,80 @@ namespace ClockwiseProject.Backend.Services
             await _vacationRepository.DeleteAsync(id);
         }
 
+        // Statussen waaruit een aanvraag beoordeeld mag worden (ingediend / in afwachting).
+        private static readonly string[] PendingStatuses = { "SUBMITTED", "PENDING" };
+
+        private static bool IsPending(string? status) =>
+            status != null && PendingStatuses.Contains(status.Trim().ToUpperInvariant());
+
         // Business logic for approving/rejecting
         public async Task ApproveVacationRequestAsync(int id, string managerComment, int reviewedBy)
         {
-            var request = await _vacationRepository.GetByIdAsync(id);
-            if (request == null)
+            var request = await _vacationRepository.GetByIdAsync(id)
+                ?? throw new InvalidOperationException($"Verlofaanvraag {id} niet gevonden");
+
+            if (!IsPending(request.Status))
             {
-                _logger.LogWarning("Vacation request {Id} not found", id);
-                return;
+                throw new InvalidOperationException(
+                    $"Verlofaanvraag {id} kan niet worden goedgekeurd: status is '{request.Status}' (alleen ingediende aanvragen kunnen worden goedgekeurd)");
             }
 
             _logger.LogInformation("Approving vacation request {Id} for user {UserId}", id, request.UserId);
 
-            // Update status in PostgreSQL FIRST (most important)
+            // 1. Claim de aanvraag atomisch (SUBMITTED -> APPROVING) zodat twee gelijktijdige
+            //    goedkeuringen nooit allebei naar Syntess schrijven of het saldo dubbel verlagen.
+            if (!await _vacationRepository.TryTransitionStatusAsync(id, PendingStatuses, "APPROVING"))
+            {
+                throw new InvalidOperationException(
+                    $"Verlofaanvraag {id} is al verwerkt door een andere beoordeling");
+            }
+
+            // 2. Schrijf naar Firebird/Syntess. Faalt dit, dan gaat de status terug naar SUBMITTED en
+            //    propageert de fout: een aanvraag mag nooit APPROVED zijn zonder boeking in Syntess.
+            List<int> firebirdGcIds;
+            try
+            {
+                firebirdGcIds = await WriteVacationToFirebirdAsync(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Approval of vacation request {Id} failed: not written to Firebird/Syntess, status reverted to SUBMITTED", id);
+                try
+                {
+                    await _vacationRepository.TryTransitionStatusAsync(id, new[] { "APPROVING" }, "SUBMITTED");
+                }
+                catch (Exception revertEx)
+                {
+                    _logger.LogError(revertEx, "Vacation request {Id} stays in APPROVING: could not revert status", id);
+                }
+                throw new InvalidOperationException(
+                    $"Verlofaanvraag {id} kon niet in Syntess worden geboekt: {ex.Message}", ex);
+            }
+
+            _logger.LogInformation("Created {Count} Firebird entries for vacation request {Id}", firebirdGcIds.Count, id);
+
+            // 3. Definitief goedkeuren in PostgreSQL (mét Firebird-id's).
             request.Status = "APPROVED";
             request.RejectionReason = managerComment;
             request.ReviewedAt = DateTime.Now;
             request.ReviewedBy = reviewedBy;
+            request.FirebirdGcIds = firebirdGcIds.ToArray();
             await _vacationRepository.UpdateAsync(request);
             _logger.LogInformation("Updated vacation request {Id} status to approved in PostgreSQL", id);
 
-            // Update vacation balance (non-critical)
+            // 4. Saldo/budget bijwerken (non-critical; gebeurt precies één keer dankzij de claim).
+            var totalHours = await GetRequestTotalHoursAsync(request);
             try
             {
                 await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year,
-                    pendingDelta: -request.TotalDays * 8,
-                    usedDelta: request.TotalDays * 8);
+                    pendingDelta: -totalHours,
+                    usedDelta: totalHours);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to update vacation balance for request {Id}, continuing anyway", id);
             }
 
-            // Update hour allocation budget (non-critical)
             try
             {
                 await UpdateHourAllocationUsedAsync(request);
@@ -115,52 +162,63 @@ namespace ClockwiseProject.Backend.Services
             {
                 _logger.LogWarning(ex, "Failed to update hour allocation for vacation request {Id}, continuing anyway", id);
             }
-
-            // Write to Firebird (optional - don't fail approve if Firebird is unavailable)
-            try
-            {
-                var firebirdGcIds = await WriteVacationToFirebirdAsync(request);
-                _logger.LogInformation("Created {Count} Firebird entries for vacation request {Id}",
-                    firebirdGcIds.Count, id);
-
-                request.FirebirdGcIds = firebirdGcIds.ToArray();
-                await _vacationRepository.UpdateAsync(request);
-            }
-            catch (Exception ex)
-            {
-                // Do NOT swallow this quietly: the request is APPROVED in PostgreSQL but the hours
-                // did NOT reach Syntess. FirebirdGcIds stays empty, which marks it as not-synced;
-                // the idempotency guard above makes a later re-sync safe (no double booking).
-                _logger.LogError(ex, "SYNC FAILED: vacation request {Id} is APPROVED in PostgreSQL but was NOT written to Firebird/Syntess. Needs re-sync.", id);
-            }
         }
 
         public async Task RejectVacationRequestAsync(int id, string managerComment, int reviewedBy)
         {
-            var request = await _vacationRepository.GetByIdAsync(id);
-            if (request != null)
+            var request = await _vacationRepository.GetByIdAsync(id)
+                ?? throw new InvalidOperationException($"Verlofaanvraag {id} niet gevonden");
+
+            if (!IsPending(request.Status))
             {
-                request.Status = "REJECTED";
-                request.RejectionReason = managerComment;
-                request.ReviewedAt = DateTime.Now;
-                request.ReviewedBy = reviewedBy;
-
-                // Update PostgreSQL FIRST
-                await _vacationRepository.UpdateAsync(request);
-                _logger.LogInformation("Rejected vacation request {Id} in PostgreSQL", id);
-
-                // Update vacation balance (non-critical)
-                try
-                {
-                    await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year,
-                        pendingDelta: -request.TotalDays * 8,
-                        usedDelta: 0);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to update vacation balance for rejected request {Id}", id);
-                }
+                throw new InvalidOperationException(
+                    $"Verlofaanvraag {id} kan niet worden afgekeurd: status is '{request.Status}' (alleen ingediende aanvragen kunnen worden afgekeurd)");
             }
+
+            if (!await _vacationRepository.TryTransitionStatusAsync(id, PendingStatuses, "REJECTED"))
+            {
+                throw new InvalidOperationException(
+                    $"Verlofaanvraag {id} is al verwerkt door een andere beoordeling");
+            }
+
+            request.Status = "REJECTED";
+            request.RejectionReason = managerComment;
+            request.ReviewedAt = DateTime.Now;
+            request.ReviewedBy = reviewedBy;
+            await _vacationRepository.UpdateAsync(request);
+            _logger.LogInformation("Rejected vacation request {Id} in PostgreSQL", id);
+
+            // Update vacation balance (non-critical)
+            var totalHours = await GetRequestTotalHoursAsync(request);
+            try
+            {
+                await UpdateVacationBalanceAsync(request.UserId, request.StartDate.Year,
+                    pendingDelta: -totalHours,
+                    usedDelta: 0);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update vacation balance for rejected request {Id}", id);
+            }
+        }
+
+        /// <summary>
+        /// total_hours zoals opgeslagen bij de aanvraag; valt terug op dagen x HoursPerDay.
+        /// </summary>
+        private async Task<decimal> GetRequestTotalHoursAsync(VacationRequest request)
+        {
+            try
+            {
+                using var pg = _postgresConnectionFactory.CreateConnection();
+                var hours = await pg.ExecuteScalarAsync<decimal?>(
+                    "SELECT total_hours FROM leave_requests_workflow WHERE id = @Id", new { Id = request.Id });
+                if (hours.HasValue && hours.Value > 0) return hours.Value;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not read total_hours for vacation request {Id}", request.Id);
+            }
+            return request.TotalDays * _syntess.HoursPerDay;
         }
 
         /// <summary>

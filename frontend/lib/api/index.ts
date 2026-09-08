@@ -16,9 +16,6 @@ export * from "./vacationApi";
 // Activities/Notifications
 export * from "./activityApi";
 
-// Admin functions
-export * from "./adminApi";
-
 // User-Project assignments
 export * from "./userProjectApi";
 

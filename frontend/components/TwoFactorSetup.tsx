@@ -42,7 +42,6 @@ export function TwoFactorSetup() {
           'Content-Type': 'application/json',
           'X-USER-ID': userId || '',
           'X-MEDEW-GC-ID': medewGcId || '',
-          'ngrok-skip-browser-warning': '1',
         },
         body: JSON.stringify({ method: selectedMethod }),
       });
@@ -81,7 +80,6 @@ export function TwoFactorSetup() {
           'Content-Type': 'application/json',
           'X-USER-ID': userId || '',
           'X-MEDEW-GC-ID': medewGcId || '',
-          'ngrok-skip-browser-warning': '1',
         },
         body: JSON.stringify({ code: verificationCode }),
       });

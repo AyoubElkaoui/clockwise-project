@@ -100,13 +100,6 @@ export async function getPendingApprovals(): Promise<TimeEntryDto[]> {
   return response.data;
 }
 
-export async function approveTimeEntry(id: number, approved: boolean): Promise<void> {
-  await axios.put(
-    `${API_URL}/manager/time-entries/${id}/approve`,
-    { approved },
-    { headers: getAuthHeaders() }
-  );
-}
 
 export async function getAllUsers(): Promise<any[]> {
   // Use the PostgreSQL users endpoint instead of non-existent /manager/users

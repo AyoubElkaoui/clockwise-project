@@ -20,6 +20,9 @@ namespace ClockwiseProject.Backend.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Period>>> GetPeriods([FromQuery] int count = 50)
         {
+            if (count < 1 || count > 500)
+                return BadRequest(new { error = "count moet tussen 1 en 500 liggen" });
+
             try
             {
                 var periods = await _repository.GetPeriodsAsync(count);
@@ -28,23 +31,7 @@ namespace ClockwiseProject.Backend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error fetching periods");
-
-                // Return fallback periods when database error occurs
-                var today = DateTime.Today;
-                var fallbackPeriods = new List<Period>();
-                for (int i = 0; i < Math.Min(count, 10); i++)
-                {
-                    var startDate = today.AddDays(-i * 7);
-                    var endDate = startDate.AddDays(6);
-                    fallbackPeriods.Add(new Period
-                    {
-                        GcId = 100000 + i,
-                        GcCode = $"2026-W{(52 - i):00}",
-                        BeginDatum = startDate,
-                        EndDatum = endDate
-                    });
-                }
-                return Ok(fallbackPeriods);
+                return StatusCode(503, new { error = "Periodes zijn tijdelijk niet beschikbaar" });
             }
         }
     }

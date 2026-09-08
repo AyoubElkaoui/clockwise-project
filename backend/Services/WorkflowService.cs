@@ -1,3 +1,4 @@
+﻿using ClockwiseProject.Backend.Models;
 using backend.Models;
 using backend.Repositories;
 using ClockwiseProject.Backend.Repositories;
@@ -15,20 +16,20 @@ public class WorkflowService
     private readonly IFirebirdDataRepository _firebirdRepo;
     private readonly IDbConnection _db;
     private readonly ILogger<WorkflowService> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly SyntessOptions _syntess;
 
     public WorkflowService(
         IWorkflowRepository workflowRepo,
         IFirebirdDataRepository firebirdRepo,
         IDbConnection db,
         ILogger<WorkflowService> logger,
-        IConfiguration configuration)
+        SyntessOptions syntess)
     {
         _workflowRepo = workflowRepo;
         _firebirdRepo = firebirdRepo;
         _db = db;
         _logger = logger;
-        _configuration = configuration;
+        _syntess = syntess;
     }
 
     /// <summary>
@@ -73,7 +74,7 @@ public class WorkflowService
         }
 
         // Validate period
-        var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
+        var adminisGcId = _syntess.AdminisGcId;
         if (!await _firebirdRepo.IsValidUrenperAsync(request.UrenperGcId, adminisGcId))
         {
             return new DraftResponse
@@ -85,7 +86,7 @@ public class WorkflowService
 
         // Check hour allocation budget for this task code
         var taakCode = await _firebirdRepo.GetTaakCodeAsync(request.TaakGcId);
-        if (!string.IsNullOrEmpty(taakCode) && (taakCode.StartsWith("I") || taakCode.StartsWith("Z") || taakCode == "SLEEFTIJD"))
+        if (_syntess.IsBudgetTaskCode(taakCode))
         {
             try
             {
@@ -99,12 +100,12 @@ public class WorkflowService
                     var allocation = await _db.QueryFirstOrDefaultAsync<dynamic>(
                         @"SELECT annual_budget, used FROM user_hour_allocations
                           WHERE user_id = @UserId AND task_code = @TaskCode AND year = @Year",
-                        new { UserId = userId.Value, TaskCode = taakCode.Trim(), Year = year });
+                        new { UserId = userId.Value, TaskCode = taakCode!.Trim(), Year = year });
 
-                    if (allocation != null && (decimal)allocation.annual_budget > 0)
+                    if (allocation != null && (decimal)(allocation!.annual_budget ?? 0m) > 0)
                     {
-                        var budget = (decimal)allocation.annual_budget;
-                        var alreadyUsed = (decimal)allocation.used;
+                        var budget = (decimal)(allocation!.annual_budget ?? 0m);
+                        var alreadyUsed = (decimal)(allocation!.used ?? 0m);
                         var newHours = request.Aantal;
 
                         // If updating existing entry, subtract old hours
@@ -369,27 +370,47 @@ public class WorkflowService
 
         if (request.Approve)
         {
-            // Approve: Copy to Firebird and mark as APPROVED
+            // Approve: claim the row in Postgres FIRST (SUBMITTED -> APPROVING), then copy to
+            // Firebird, then finalize (APPROVING -> APPROVED). Two concurrent approvals of the
+            // same entry can therefore never both reach the Firebird insert.
             var processedCount = 0;
 
             foreach (var entry in entries)
             {
+                if (!await _workflowRepo.TryClaimForApprovalAsync(entry.Id))
+                {
+                    _logger.LogWarning(
+                        "Entry {Id} skipped: not in SUBMITTED anymore (already approved/rejected or being approved by another request)",
+                        entry.Id);
+                    errors.Add($"Entry {entry.Id}: overgeslagen - is niet (meer) ingediend, mogelijk al verwerkt door een andere beoordeling");
+                    continue;
+                }
+
                 try
                 {
                     // Insert into Firebird AT_URENBREG
                     var firebirdGcId = await InsertIntoFirebirdAsync(entry);
+
+                    // Persist THIS entry's approved state right after its Firebird commit, so a
+                    // crash cannot leave it SUBMITTED and trigger a re-insert (double payment).
+                    var rows = await _workflowRepo.MarkApprovedAsync(entry.Id, reviewerMedewGcId, now, firebirdGcId);
+                    if (rows == 0)
+                    {
+                        // Firebird committed but the claim disappeared underneath us; the Firebird
+                        // idempotency guard makes a later re-approval safe, so only report it.
+                        _logger.LogError(
+                            "Entry {Id}: Firebird insert committed but status could not be finalized (claim lost)",
+                            entry.Id);
+                        errors.Add($"Entry {entry.Id}: geboekt in Syntess maar status kon niet worden bijgewerkt - controleer handmatig");
+                        continue;
+                    }
 
                     entry.Status = "APPROVED";
                     entry.ReviewedAt = now;
                     entry.ReviewedBy = reviewerMedewGcId;
                     entry.FirebirdGcId = firebirdGcId;
 
-                    // Persist THIS entry's approved state right after its Firebird commit, so a
-                    // crash before the batch save below cannot leave it SUBMITTED and trigger a
-                    // re-insert (double payment) on the next approval attempt.
-                    await _workflowRepo.UpdateEntriesAsync(new List<TimeEntryWorkflow> { entry });
-
-                    // Update hour allocation 'used' for I/Z/SLEEFTIJD codes
+                    // Update hour allocation 'used' for budget task codes
                     await UpdateHourAllocationUsedAsync(entry);
 
                     processedCount++;
@@ -398,10 +419,17 @@ public class WorkflowService
                 {
                     _logger.LogError(ex, "Failed to approve entry {Id}", entry.Id);
                     errors.Add($"Entry {entry.Id}: {ex.Message}");
+
+                    try
+                    {
+                        await _workflowRepo.ReleaseApprovalClaimAsync(entry.Id);
+                    }
+                    catch (Exception releaseEx)
+                    {
+                        _logger.LogError(releaseEx, "Entry {Id} stays in APPROVING: could not release claim", entry.Id);
+                    }
                 }
             }
-
-            await _workflowRepo.UpdateEntriesAsync(entries);
 
             _logger.LogInformation(
                 "Approved {Count} entries by manager {ReviewerId}",
@@ -419,26 +447,31 @@ public class WorkflowService
         }
         else
         {
-            // Reject: Mark as REJECTED so user can revise
+            // Reject: Mark as REJECTED so user can revise (only when still SUBMITTED)
+            var rejectedCount = 0;
             foreach (var entry in entries)
             {
-                entry.Status = "REJECTED";
-                entry.ReviewedAt = now;
-                entry.ReviewedBy = reviewerMedewGcId;
-                entry.RejectionReason = request.RejectionReason;
+                var rows = await _workflowRepo.MarkRejectedAsync(entry.Id, reviewerMedewGcId, now, request.RejectionReason);
+                if (rows == 0)
+                {
+                    errors.Add($"Entry {entry.Id}: overgeslagen - is niet (meer) ingediend, mogelijk al verwerkt door een andere beoordeling");
+                    continue;
+                }
+                rejectedCount++;
             }
-
-            await _workflowRepo.UpdateEntriesAsync(entries);
 
             _logger.LogInformation(
                 "Rejected {Count} entries by manager {ReviewerId}",
-                entries.Count, reviewerMedewGcId);
+                rejectedCount, reviewerMedewGcId);
 
             return new WorkflowResponse
             {
-                Success = true,
-                Message = $"{entries.Count} entries rejected",
-                ProcessedCount = entries.Count
+                Success = errors.Count == 0,
+                Message = errors.Count == 0
+                    ? $"{rejectedCount} entries rejected"
+                    : $"{rejectedCount} rejected, {errors.Count} skipped",
+                ProcessedCount = rejectedCount,
+                Errors = errors
             };
         }
     }
@@ -571,8 +604,7 @@ public class WorkflowService
         try
         {
             var taakCode = await _firebirdRepo.GetTaakCodeAsync(entry.TaakGcId);
-            if (string.IsNullOrEmpty(taakCode) ||
-                (!taakCode.StartsWith("I") && !taakCode.StartsWith("Z") && taakCode != "SLEEFTIJD"))
+            if (!_syntess.IsBudgetTaskCode(taakCode))
                 return;
 
             var userId = await _db.QueryFirstOrDefaultAsync<int?>(
@@ -586,7 +618,7 @@ public class WorkflowService
                 @"UPDATE user_hour_allocations
                   SET used = used + @Hours, updated_at = CURRENT_TIMESTAMP
                   WHERE user_id = @UserId AND task_code = @TaskCode AND year = @Year",
-                new { Hours = entry.Aantal, UserId = userId.Value, TaskCode = taakCode.Trim(), Year = year });
+                new { Hours = entry.Aantal, UserId = userId.Value, TaskCode = taakCode!.Trim(), Year = year });
 
             _logger.LogInformation(
                 "Updated hour allocation used: user={UserId}, task={TaskCode}, +{Hours}h",
@@ -606,7 +638,7 @@ public class WorkflowService
         // This uses the existing TimeEntryService logic to insert into Firebird
         // We need to create a document if it doesn't exist, get urenstat, and insert the entry
 
-        var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
+        var adminisGcId = _syntess.AdminisGcId;
 
         using var connection = _firebirdRepo.GetConnection();
         await connection.OpenAsync();
@@ -642,16 +674,25 @@ public class WorkflowService
             // a previous approval committed but crashed before the Postgres status was saved -
             // do NOT insert it again. A duplicate urenregel means a duplicate payment and
             // cannot be undone. Firebird is the source of truth here, so this is crash-safe.
-            var regularHours = entry.Aantal + entry.EveningNightHours;
-            if (regularHours > 0 &&
-                await _firebirdRepo.IsDuplicateEntryAsync(
+            // The guard uses the FIRST line the insert would produce (regular hours, else travel
+            // hours, else km, else travel costs, else other expenses) so it also protects entries
+            // without regular hours (reiskosten/km/onkosten only).
+            var firstLine = GetFirstFirebirdLine(entry);
+            if (firstLine == null)
+            {
+                await transaction.CommitAsync();
+                _logger.LogWarning("Entry {Id} has no bookable amounts - nothing inserted into Firebird", entry.Id);
+                return documentGcId.Value;
+            }
+
+            if (await _firebirdRepo.IsDuplicateEntryAsync(
                     documentGcId.Value, entry.TaakGcId, entry.WerkGcId,
-                    entry.Datum, regularHours, entry.Omschrijving ?? string.Empty))
+                    entry.Datum, firstLine.Value.Aantal, firstLine.Value.Omschrijving))
             {
                 await transaction.CommitAsync();
                 _logger.LogWarning(
-                    "Idempotency: identical entry already present in Firebird (medew {Medew}, taak {Taak}, werk {Werk}, {Datum:yyyy-MM-dd}, {Hours}h) - skipping insert to prevent duplicate payment",
-                    entry.MedewGcId, entry.TaakGcId, entry.WerkGcId, entry.Datum, regularHours);
+                    "Idempotency: identical entry already present in Firebird (medew {Medew}, taak {Taak}, werk {Werk}, {Datum:yyyy-MM-dd}, {Aantal} '{Omschrijving}') - skipping insert to prevent duplicate payment",
+                    entry.MedewGcId, entry.TaakGcId, entry.WerkGcId, entry.Datum, firstLine.Value.Aantal, firstLine.Value.Omschrijving);
                 return documentGcId.Value;
             }
 
@@ -691,6 +732,21 @@ public class WorkflowService
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Mirrors the line order/descriptions of FirebirdDataRepository.InsertTimeEntryAsync so the
+    /// duplicate guard can match the first AT_URENBREG line an entry produces.
+    /// </summary>
+    private static (decimal Aantal, string Omschrijving)? GetFirstFirebirdLine(TimeEntryWorkflow entry)
+    {
+        var regularHours = entry.Aantal + entry.EveningNightHours;
+        if (regularHours > 0) return (regularHours, entry.Omschrijving ?? string.Empty);
+        if (entry.TravelHours > 0) return (entry.TravelHours, "Reisuren");
+        if (entry.DistanceKm > 0) return (entry.DistanceKm, $"{entry.DistanceKm} km");
+        if (entry.TravelCosts > 0) return (entry.TravelCosts, $"Reiskosten €{entry.TravelCosts:F2}");
+        if (entry.OtherExpenses > 0) return (entry.OtherExpenses, $"Onkosten €{entry.OtherExpenses:F2}");
+        return null;
     }
 
     /// <summary>

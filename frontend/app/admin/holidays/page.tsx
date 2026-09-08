@@ -1,309 +1,411 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Calendar, Plus, Trash2, Loader2, Shield, ShieldOff } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback, useEffect, useState } from "react";
+import { Calendar, Plus, Trash2, Shield, ShieldOff, Pencil, Wand2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { showToast } from "@/components/ui/toast";
-import {
-  getHolidays,
-  createHoliday,
-  deleteHoliday,
-  toggleWorkAllowed,
-  generateHolidaysForYear,
-} from "@/lib/api/holidaysApi";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import dayjs from "dayjs";
+import "dayjs/locale/nl";
+import {
+  AdminHoliday,
+  getHolidaysForYear,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
+  toggleHolidayWork,
+  generateHolidays,
+  getApiErrorMessage,
+} from "@/lib/api/adminUsersApi";
 
-interface Holiday {
-  id: number;
-  holidayDate: string;
-  name: string;
-  type: string;
-  isWorkAllowed: boolean;
-  createdBy?: number;
-  createdAt?: string;
-  notes?: string;
-}
+dayjs.locale("nl");
+
+const selectClass =
+  "h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100";
+const labelClass = "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1";
+
+const typeLabel = (type: string) => {
+  switch (type) {
+    case "national":
+      return "Nationale feestdag";
+    case "company":
+      return "Bedrijfsdag";
+    case "closed":
+      return "Sluitingsdag";
+    default:
+      return type;
+  }
+};
+
+const typeVariant = (type: string): "success" | "info" | "warning" | "default" => {
+  if (type === "national") return "success";
+  if (type === "company") return "info";
+  if (type === "closed") return "warning";
+  return "default";
+};
+
+const emptyForm = {
+  name: "",
+  holidayDate: "",
+  type: "company" as "company" | "closed",
+  isWorkAllowed: false,
+  notes: "",
+};
 
 export default function HolidaysPage() {
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+
+  const [holidays, setHolidays] = useState<AdminHoliday[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [formData, setFormData] = useState({
-    name: "",
-    holidayDate: "",
-    type: "company" as "company" | "closed",
-    isWorkAllowed: false,
-    notes: "",
-  });
+  const [selectedYear, setSelectedYear] = useState(currentYear);
 
-  useEffect(() => {
-    loadHolidays();
-  }, [selectedYear]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
 
-  const loadHolidays = async () => {
+  const [editing, setEditing] = useState<AdminHoliday | null>(null);
+  const [editForm, setEditForm] = useState({ isWorkAllowed: false, notes: "" });
+
+  const [pendingDelete, setPendingDelete] = useState<AdminHoliday | null>(null);
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const loadHolidays = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getHolidays(selectedYear);
-      setHolidays(Array.isArray(data) ? data : []);
-    } catch {
-      showToast("Fout bij laden feestdagen", "error");
+      setHolidays(await getHolidaysForYear(selectedYear));
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Feestdagen konden niet worden geladen"), "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    loadHolidays();
+  }, [loadHolidays]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       await createHoliday({
-        holidayDate: formData.holidayDate,
-        name: formData.name,
-        type: formData.type,
-        isWorkAllowed: formData.isWorkAllowed,
-        notes: formData.notes || undefined,
+        holidayDate: form.holidayDate,
+        name: form.name.trim(),
+        type: form.type,
+        isWorkAllowed: form.isWorkAllowed,
+        notes: form.notes.trim() || undefined,
       });
-      showToast("Feestdag succesvol toegevoegd", "success");
-      setShowModal(false);
-      resetForm();
-      loadHolidays();
-    } catch {
-      showToast("Fout bij opslaan feestdag", "error");
+      showToast(`${form.name.trim()} toegevoegd`, "success");
+      setShowCreate(false);
+      setForm(emptyForm);
+      const year = dayjs(form.holidayDate).year();
+      if (year !== selectedYear) setSelectedYear(year);
+      else await loadHolidays();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Dag kon niet worden toegevoegd"), "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Weet je zeker dat je deze dag wilt verwijderen?")) return;
+  const openEdit = (h: AdminHoliday) => {
+    setEditing(h);
+    setEditForm({ isWorkAllowed: h.isWorkAllowed, notes: h.notes ?? "" });
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    setSaving(true);
     try {
-      await deleteHoliday(id);
-      showToast("Feestdag verwijderd", "success");
-      loadHolidays();
-    } catch {
-      showToast("Fout bij verwijderen", "error");
+      await updateHoliday(editing.id, {
+        isWorkAllowed: editForm.isWorkAllowed,
+        notes: editForm.notes.trim() || null,
+      });
+      showToast(`${editing.name} bijgewerkt`, "success");
+      setEditing(null);
+      await loadHolidays();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Dag kon niet worden bijgewerkt"), "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleToggleWork = async (id: number) => {
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setSaving(true);
     try {
-      await toggleWorkAllowed(id);
-      loadHolidays();
-    } catch {
-      showToast("Fout bij wijzigen", "error");
+      await deleteHoliday(pendingDelete.id);
+      showToast(`${pendingDelete.name} verwijderd`, "success");
+      setPendingDelete(null);
+      await loadHolidays();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Dag kon niet worden verwijderd"), "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleGenerateYear = async () => {
+  const handleToggleWork = async (h: AdminHoliday) => {
+    setBusyId(h.id);
     try {
-      const result = await generateHolidaysForYear(selectedYear);
-      showToast(result?.message || `Feestdagen gegenereerd voor ${selectedYear}`, "success");
-      loadHolidays();
-    } catch {
-      showToast(`Feestdagen voor ${selectedYear} bestaan mogelijk al`, "error");
+      const result = await toggleHolidayWork(h.id);
+      setHolidays((prev) =>
+        prev.map((x) => (x.id === h.id ? { ...x, isWorkAllowed: result.isWorkAllowed } : x)),
+      );
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Werken toegestaan kon niet worden gewijzigd"), "error");
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      holidayDate: "",
-      type: "company",
-      isWorkAllowed: false,
-      notes: "",
-    });
-  };
-
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "national":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "company":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case "closed":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const confirmGenerate = async () => {
+    setSaving(true);
+    try {
+      const result = await generateHolidays(selectedYear);
+      showToast(result.message || `${result.count} feestdagen gegenereerd voor ${selectedYear}`, "success");
+      setShowGenerate(false);
+      await loadHolidays();
+    } catch (err) {
+      showToast(getApiErrorMessage(err, `Feestdagen voor ${selectedYear} konden niet worden gegenereerd`), "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "national": return "Feestdag";
-      case "company": return "Bedrijfsdag";
-      case "closed": return "Sluitingsdag";
-      default: return type;
-    }
-  };
+  const nationalCount = holidays.filter((h) => h.type === "national").length;
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <PageHeader
-        title="Feestdagen & Sluitingsdagen"
-        description="Beheer nationale en bedrijfsvrije dagen"
+        title="Feestdagen en sluitingsdagen"
+        description="Nationale feestdagen, bedrijfsdagen en sluitingsdagen per jaar"
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-sm"
+              className={selectClass}
             >
-              {[2024, 2025, 2026, 2027].map((y) => (
+              {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-            <Button variant="outline" onClick={handleGenerateYear}>
-              <Calendar className="w-4 h-4 mr-2" />
+            <Button variant="outline" onClick={() => setShowGenerate(true)} disabled={nationalCount > 0}>
+              <Wand2 className="w-4 h-4" />
               Genereer {selectedYear}
             </Button>
-            <Button onClick={() => setShowModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nieuwe Dag
+            <Button onClick={() => { setForm({ ...emptyForm, holidayDate: `${selectedYear}-01-01` }); setShowCreate(true); }}>
+              <Plus className="w-4 h-4" />
+              Nieuwe dag
             </Button>
           </div>
         }
       />
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
+        <LoadingSpinner className="w-8 h-8" />
       ) : (
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Naam</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Werken Toegestaan</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                  {holidays.map((holiday) => (
-                    <tr key={holiday.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-4 py-3 font-medium tabular-nums">
-                        {dayjs(holiday.holidayDate).format("DD-MM-YYYY")}
-                      </td>
-                      <td className="px-4 py-3 font-medium">{holiday.name}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeBadge(holiday.type)}`}>
-                          {getTypeLabel(holiday.type)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleToggleWork(holiday.id)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            holiday.isWorkAllowed
-                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                              : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300"
-                          }`}
-                        >
-                          {holiday.isWorkAllowed ? (
-                            <><Shield className="w-3 h-3" /> Ja</>
-                          ) : (
-                            <><ShieldOff className="w-3 h-3" /> Nee</>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {holiday.type !== "national" && (
-                          <button
-                            onClick={() => handleDelete(holiday.id)}
-                            className="p-1.5 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </td>
+            {holidays.length === 0 ? (
+              <EmptyState
+                icon={<Calendar className="w-10 h-10" />}
+                title={`Geen dagen voor ${selectedYear}`}
+                description="Genereer de Nederlandse nationale feestdagen of voeg zelf een bedrijfs- of sluitingsdag toe."
+                action={{ label: `Genereer feestdagen ${selectedYear}`, onClick: () => setShowGenerate(true) }}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Datum</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Naam</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Werken toegestaan</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Notities</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Acties</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {holidays.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
-                    <Calendar className="w-7 h-7 text-slate-400" />
-                  </div>
-                  <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Geen feestdagen gevonden</p>
-                  <p className="text-sm text-slate-500 mt-1">Klik op &quot;Genereer {selectedYear}&quot; om Nederlandse feestdagen toe te voegen.</p>
-                </div>
-              )}
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {holidays.map((h) => (
+                      <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <p className="font-medium tabular-nums">{dayjs(h.holidayDate).format("DD-MM-YYYY")}</p>
+                          <p className="text-xs text-slate-500 capitalize">{dayjs(h.holidayDate).format("dddd")}</p>
+                        </td>
+                        <td className="px-4 py-3 font-medium">{h.name}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={typeVariant(h.type)} size="sm">{typeLabel(h.type)}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleWork(h)}
+                            disabled={busyId === h.id}
+                            title="Klik om te wisselen"
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 ${
+                              h.isWorkAllowed
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300"
+                            }`}
+                          >
+                            {h.isWorkAllowed ? <Shield className="w-3 h-3" /> : <ShieldOff className="w-3 h-3" />}
+                            {h.isWorkAllowed ? "Ja" : "Nee"}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 max-w-xs truncate">{h.notes || "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => openEdit(h)} title="Bewerken">
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            {h.type !== "national" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => setPendingDelete(h)}
+                                title="Verwijderen"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">
-              Nieuwe Dag Toevoegen
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Naam</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Bijv. Bedrijfsuitje"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Datum</label>
-                <Input
-                  type="date"
-                  value={formData.holidayDate}
-                  onChange={(e) => setFormData({ ...formData, holidayDate: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as "company" | "closed" })}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700"
-                >
-                  <option value="company">Bedrijfsdag</option>
-                  <option value="closed">Sluitingsdag</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Notities (optioneel)</label>
-                <Input
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Extra informatie..."
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isWorkAllowed}
-                  onChange={(e) => setFormData({ ...formData, isWorkAllowed: e.target.checked })}
-                  className="mr-2"
-                />
-                <label className="text-sm">Werken toegestaan op deze dag</label>
-              </div>
-              <div className="flex gap-3 mt-6">
-                <Button type="submit" className="flex-1">
-                  Toevoegen
-                </Button>
-                <Button type="button" variant="outline" onClick={() => { setShowModal(false); resetForm(); }} className="flex-1">
-                  Annuleren
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Nieuwe dag */}
+      <Dialog open={showCreate} onOpenChange={(open) => !open && !saving && setShowCreate(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nieuwe dag toevoegen</DialogTitle>
+            <DialogDescription>Nationale feestdagen genereer je via de knop &quot;Genereer&quot;.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <label className={labelClass} htmlFor="h-name">Naam *</label>
+              <Input id="h-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Bijv. Bedrijfsuitje" required />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="h-date">Datum *</label>
+              <Input id="h-date" type="date" value={form.holidayDate} onChange={(e) => setForm({ ...form, holidayDate: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="h-type">Type</label>
+              <select
+                id="h-type"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value as "company" | "closed" })}
+                className={`${selectClass} w-full`}
+              >
+                <option value="company">Bedrijfsdag</option>
+                <option value="closed">Sluitingsdag</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="h-notes">Notities</label>
+              <Textarea id="h-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Extra informatie..." rows={2} />
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox id="h-work" checked={form.isWorkAllowed} onCheckedChange={(c) => setForm({ ...form, isWorkAllowed: c })} />
+              <label htmlFor="h-work" className="text-sm cursor-pointer">Werken toegestaan op deze dag</label>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)} disabled={saving}>Annuleren</Button>
+              <Button type="submit" isLoading={saving}>Toevoegen</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bewerken */}
+      <Dialog open={editing !== null} onOpenChange={(open) => !open && !saving && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing?.name}</DialogTitle>
+            <DialogDescription>
+              {editing ? dayjs(editing.holidayDate).format("dddd D MMMM YYYY") : ""} — alleen &quot;werken toegestaan&quot; en notities zijn aanpasbaar.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-4">
+            <div>
+              <label className={labelClass} htmlFor="e-notes">Notities</label>
+              <Textarea id="e-notes" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={3} />
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox id="e-work" checked={editForm.isWorkAllowed} onCheckedChange={(c) => setEditForm({ ...editForm, isWorkAllowed: c })} />
+              <label htmlFor="e-work" className="text-sm cursor-pointer">Werken toegestaan op deze dag</label>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)} disabled={saving}>Annuleren</Button>
+              <Button type="submit" isLoading={saving}>Opslaan</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verwijderen */}
+      <Dialog open={pendingDelete !== null} onOpenChange={(open) => !open && !saving && setPendingDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dag verwijderen</DialogTitle>
+            <DialogDescription>
+              Weet je zeker dat je &quot;{pendingDelete?.name}&quot; op{" "}
+              {pendingDelete ? dayjs(pendingDelete.holidayDate).format("D MMMM YYYY") : ""} wilt verwijderen?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDelete(null)} disabled={saving}>Annuleren</Button>
+            <Button variant="danger" onClick={confirmDelete} isLoading={saving}>Verwijderen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Genereren */}
+      <Dialog open={showGenerate} onOpenChange={(open) => !open && !saving && setShowGenerate(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Feestdagen {selectedYear} genereren</DialogTitle>
+            <DialogDescription>
+              Voegt de Nederlandse nationale feestdagen toe (Nieuwjaarsdag, Goede Vrijdag, Pasen, Koningsdag,
+              Bevrijdingsdag, Hemelvaart, Pinksteren en Kerst) met &quot;werken toegestaan: nee&quot;.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowGenerate(false)} disabled={saving}>Annuleren</Button>
+            <Button onClick={confirmGenerate} isLoading={saving}>Genereren</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

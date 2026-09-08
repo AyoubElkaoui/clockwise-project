@@ -23,9 +23,7 @@ export interface Project {
 
 // Haal alle companies op
 export async function getCompanies(): Promise<Company[]> {
-  const response = await axios.get(`${API_URL}/companies`, {
-    headers: { "ngrok-skip-browser-warning": "1" },
-  });
+  const response = await axios.get(`${API_URL}/companies`);
   return response.data;
 }
 
@@ -36,9 +34,7 @@ export async function getProjectGroups(
   const url = companyId
     ? `${API_URL}/project-groups/company/${companyId}`
     : `${API_URL}/project-groups`;
-  const response = await axios.get(url, {
-    headers: { "ngrok-skip-browser-warning": "1" },
-  });
+  const response = await axios.get(url);
   return (response.data || []).map((g: any) => ({
     id: g.gcId || g.id,
     name: g.description || g.gcCode || g.name,
@@ -51,8 +47,7 @@ export async function getProjectGroups(
 // Haal projects op voor een project group
 export async function getProjects(projectGroupId: number): Promise<Project[]> {
   const response = await axios.get(
-    `${API_URL}/projects/group/${projectGroupId}`,
-    { headers: { "ngrok-skip-browser-warning": "1" } },
+    `${API_URL}/projects?groupId=${projectGroupId}`,
   );
   return response.data.map((p: any) => ({
     id: p.gcId,

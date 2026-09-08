@@ -320,7 +320,11 @@ namespace backend.Repositories
             }
         }
 
-        public async Task UpdateStatusAsync(int id, string status, DateTime? statusChangedAt = null)
+        /// <summary>
+        /// Review-statuswijziging: slaagt alleen als de regel nog in SUBMITTED staat.
+        /// Geeft het aantal geraakte rijen terug (0 = al verwerkt door een andere reviewer/request).
+        /// </summary>
+        public async Task<int> UpdateStatusAsync(int id, string status, DateTime? statusChangedAt = null)
         {
             try
             {
@@ -340,13 +344,107 @@ namespace backend.Repositories
                     sql += ", reviewed_at = COALESCE(@StatusChangedAt, CURRENT_TIMESTAMP)";
                 }
 
-                sql += " WHERE id = @Id";
+                sql += " WHERE id = @Id AND status = 'SUBMITTED'";
 
-                await connection.ExecuteAsync(sql, new { Id = id, Status = status, StatusChangedAt = statusChangedAt });
+                return await connection.ExecuteAsync(sql, new { Id = id, Status = status, StatusChangedAt = statusChangedAt });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating status for entry {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<bool> TryClaimForApprovalAsync(int id)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                // Atomische claim: alleen één request kan een SUBMITTED-regel naar APPROVING zetten.
+                const string sql = @"
+                    UPDATE time_entries_workflow
+                    SET status = 'APPROVING',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = @Id AND status = 'SUBMITTED'
+                    RETURNING id";
+
+                var claimedId = await connection.ExecuteScalarAsync<int?>(sql, new { Id = id });
+                return claimedId.HasValue;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error claiming entry {Id} for approval", id);
+                throw;
+            }
+        }
+
+        public async Task<int> MarkApprovedAsync(int id, int reviewedBy, DateTime reviewedAt, int? firebirdGcId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                const string sql = @"
+                    UPDATE time_entries_workflow
+                    SET status = 'APPROVED',
+                        reviewed_at = @ReviewedAt,
+                        reviewed_by = @ReviewedBy,
+                        firebird_gc_id = @FirebirdGcId,
+                        rejection_reason = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = @Id AND status = 'APPROVING'";
+
+                return await connection.ExecuteAsync(sql, new { Id = id, ReviewedBy = reviewedBy, ReviewedAt = reviewedAt, FirebirdGcId = firebirdGcId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking entry {Id} as approved", id);
+                throw;
+            }
+        }
+
+        public async Task<int> ReleaseApprovalClaimAsync(int id)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                const string sql = @"
+                    UPDATE time_entries_workflow
+                    SET status = 'SUBMITTED',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = @Id AND status = 'APPROVING'";
+
+                return await connection.ExecuteAsync(sql, new { Id = id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error releasing approval claim for entry {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<int> MarkRejectedAsync(int id, int reviewedBy, DateTime reviewedAt, string? rejectionReason)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                const string sql = @"
+                    UPDATE time_entries_workflow
+                    SET status = 'REJECTED',
+                        reviewed_at = @ReviewedAt,
+                        reviewed_by = @ReviewedBy,
+                        rejection_reason = @RejectionReason,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = @Id AND status = 'SUBMITTED'";
+
+                return await connection.ExecuteAsync(sql, new { Id = id, ReviewedBy = reviewedBy, ReviewedAt = reviewedAt, RejectionReason = rejectionReason });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking entry {Id} as rejected", id);
                 throw;
             }
         }

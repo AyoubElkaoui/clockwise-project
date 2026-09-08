@@ -1,4 +1,4 @@
-using backend.Repositories;
+﻿using backend.Repositories;
 using ClockwiseProject.Backend.Repositories;
 using MailKit.Net.Smtp;
 using MimeKit;
@@ -103,10 +103,17 @@ public class EmailReminderService : IEmailReminderService
 
             // Get current period ID
             var currentPeriodId = await GetCurrentPeriodIdAsync();
+            if (currentPeriodId == null)
+            {
+                _logger.LogWarning("Manageroverzicht overgeslagen: geen huidige urenperiode gevonden");
+                return;
+            }
 
             // Get week date range
             var today = DateTime.Today;
-            var weekStart = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+            // Maandag van de huidige week (zondag telt als laatste dag van de week, niet als eerste).
+            var daysSinceMonday = ((int)today.DayOfWeek + 6) % 7;
+            var weekStart = today.AddDays(-daysSinceMonday);
             var weekEnd = weekStart.AddDays(6);
 
             // Get all users and their registration status
@@ -162,40 +169,46 @@ public class EmailReminderService : IEmailReminderService
         }
     }
 
-    private async Task<int> GetCurrentPeriodIdAsync()
+    private async Task<int?> GetCurrentPeriodIdAsync()
     {
-        // Try to get from Firebird
         try
         {
             using var connection = _firebirdRepo.GetConnection();
-            var adminisGcId = _configuration.GetValue<int>("AdminisGcId", 1);
-            var periodId = await connection.ExecuteScalarAsync<int?>(
+            return await connection.ExecuteScalarAsync<int?>(
                 @"SELECT FIRST 1 GC_ID FROM AT_URENPER
-                  WHERE ADMINIS_GC_ID = @AdminisGcId
-                  AND GC_BEGINDAT <= CURRENT_DATE
-                  AND GC_EINDDAT >= CURRENT_DATE",
-                new { AdminisGcId = adminisGcId });
-            return periodId ?? 100436; // Fallback
+                  WHERE BEGINDATUM <= CURRENT_DATE
+                  ORDER BY BEGINDATUM DESC");
         }
-        catch
+        catch (Exception ex)
         {
-            return 100436; // Fallback
+            _logger.LogError(ex, "Kon huidige urenperiode niet bepalen uit AT_URENPER");
+            return null;
         }
     }
 
+    private string AppBaseUrl => (_configuration["App:BaseUrl"] ?? "https://clockd.nl").TrimEnd('/');
+
+    private bool SmtpConfigured => !string.IsNullOrWhiteSpace(_configuration["Email:SmtpHost"]);
+
     private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody)
     {
+        if (!SmtpConfigured)
+        {
+            _logger.LogWarning("E-mail niet verstuurd naar {Email}: Email:SmtpHost is niet geconfigureerd", toEmail);
+            return;
+        }
+
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(
-            "Clockwise",
-            _configuration["Email:FromEmail"] ?? "noreply@clockwise.com"
+            _configuration["Email:FromName"] ?? "Clockd",
+            _configuration["Email:FromEmail"] ?? "noreply@clockd.nl"
         ));
         message.To.Add(new MailboxAddress(toName, toEmail));
         message.Subject = subject;
         message.Body = new TextPart("html") { Text = htmlBody };
 
         using var client = new SmtpClient();
-        var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
+        var smtpHost = _configuration["Email:SmtpHost"]!;
         var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
         var smtpUser = _configuration["Email:SmtpUser"];
         var smtpPass = _configuration["Email:SmtpPassword"];
@@ -211,7 +224,7 @@ public class EmailReminderService : IEmailReminderService
         _logger.LogInformation("Email sent to {Email}: {Subject}", toEmail, subject);
     }
 
-    private static string GetEmployeeReminderHtml(string firstName)
+    private string GetEmployeeReminderHtml(string firstName)
     {
         return $@"
 <!DOCTYPE html>
@@ -236,7 +249,7 @@ public class EmailReminderService : IEmailReminderService
             <p>Beste {firstName},</p>
             <p>Dit is een vriendelijke herinnering om je uren te registreren voor deze week.</p>
             <p>Het is belangrijk dat alle uren tijdig worden ingevoerd zodat de administratie en facturatie soepel kunnen verlopen.</p>
-            <p><a href='https://altumtechnical.clockwise.info' class='button'>Open Clockwise</a></p>
+            <p><a href='{AppBaseUrl}' class='button'>Open Clockd</a></p>
             <p>Dank je wel!</p>
         </div>
         <div class='footer'>
@@ -247,7 +260,7 @@ public class EmailReminderService : IEmailReminderService
 </html>";
     }
 
-    private static string GetManagerOverviewHtml(
+    private string GetManagerOverviewHtml(
         string firstName,
         DateTime weekStart,
         DateTime weekEnd,
@@ -314,7 +327,7 @@ public class EmailReminderService : IEmailReminderService
                 <ul>{withoutHoursList}</ul>
             </div>
 
-            <p><a href='https://altumtechnical.clockwise.info/manager/review-time' style='display: inline-block; background: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;'>Bekijk in Clockwise</a></p>
+            <p><a href='{AppBaseUrl}/manager/review-time' style='display: inline-block; background: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;'>Bekijk in Clockwise</a></p>
         </div>
         <div class='footer'>
             <p>Dit is een automatisch overzicht van Clockwise.</p>

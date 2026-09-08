@@ -1,288 +1,341 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { showToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Settings,
-  Bell,
-  Shield,
-  Database,
-  Save,
-  CheckCircle,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { API_URL } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Shield, Save, AlertTriangle, Mail, Send, RefreshCw } from "lucide-react";
+import dayjs from "dayjs";
+import "dayjs/locale/nl";
+import {
+  ReminderStatus,
+  getSystemSettings,
+  saveSystemSettings,
+  getReminderStatus,
+  sendEmployeeReminder,
+  sendManagerOverview,
+  getApiErrorMessage,
+} from "@/lib/api/adminUsersApi";
+
+dayjs.locale("nl");
+
+const labelClass = "text-sm font-medium text-slate-700 dark:text-slate-300";
+const helpClass = "text-xs text-slate-500 dark:text-slate-400";
+
+interface SettingsForm {
+  require2fa: boolean;
+  sessionTimeoutMinutes: string;
+  maxLoginAttempts: string;
+  allowPasswordReset: boolean;
+}
+
+const dayLabel = (day: string) => {
+  const map: Record<string, string> = {
+    Monday: "maandag",
+    Tuesday: "dinsdag",
+    Wednesday: "woensdag",
+    Thursday: "donderdag",
+    Friday: "vrijdag",
+    Saturday: "zaterdag",
+    Sunday: "zondag",
+  };
+  return map[day] ?? day;
+};
 
 export default function AdminSettingsPage() {
-  const { t } = useTranslation();
-
-  // Notification settings (local only for now)
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-
-  // Security settings (from database)
-  const [require2FA, setRequire2FA] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState(false);
-
-  // UI State
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [form, setForm] = useState<SettingsForm>({
+    require2fa: false,
+    sessionTimeoutMinutes: "60",
+    maxLoginAttempts: "5",
+    allowPasswordReset: true,
+  });
 
-  // Load settings
-  useEffect(() => {
-    loadSettings();
+  const [reminderStatus, setReminderStatus] = useState<ReminderStatus | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [pendingReminder, setPendingReminder] = useState<"employee" | "manager" | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const loadReminderStatus = useCallback(async () => {
+    setLoadingStatus(true);
+    try {
+      setReminderStatus(await getReminderStatus());
+    } catch (err) {
+      setReminderStatus(null);
+      showToast(getApiErrorMessage(err, "Herinneringsstatus kon niet worden geladen"), "error");
+    } finally {
+      setLoadingStatus(false);
+    }
   }, []);
 
-  const loadSettings = async () => {
-    try {
-      // Load from database
-      const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/system-settings`, {
-        headers: {
-          "X-USER-ID": userId || "",
-          "ngrok-skip-browser-warning": "1",
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRequire2FA(data.require_2fa === "true");
-        setSessionTimeout(data.session_timeout_minutes !== "0");
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const s = await getSystemSettings();
+        setForm({
+          require2fa: (s.require_2fa ?? "false").toLowerCase() === "true",
+          sessionTimeoutMinutes: s.session_timeout_minutes ?? "60",
+          maxLoginAttempts: s.max_login_attempts ?? "5",
+          allowPasswordReset: (s.allow_password_reset ?? "true").toLowerCase() === "true",
+        });
+      } catch (err) {
+        showToast(getApiErrorMessage(err, "Instellingen konden niet worden geladen"), "error");
+      } finally {
+        setLoading(false);
       }
-
-      // Load local settings
-      const localSettings = localStorage.getItem("adminSettings");
-      if (localSettings) {
-        const parsed = JSON.parse(localSettings);
-        setEmailNotifications(parsed.emailNotifications ?? true);
-        setPushNotifications(parsed.pushNotifications ?? true);
-      }
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      loadReminderStatus();
+    };
+    load();
+  }, [loadReminderStatus]);
 
   const handleSave = async () => {
+    const timeout = Number(form.sessionTimeoutMinutes);
+    const attempts = Number(form.maxLoginAttempts);
+    if (!Number.isInteger(timeout) || timeout < 0) {
+      showToast("Sessie-timeout moet een geheel getal (minuten) zijn, 0 = uit", "error");
+      return;
+    }
+    if (!Number.isInteger(attempts) || attempts < 1) {
+      showToast("Maximum aantal inlogpogingen moet minimaal 1 zijn", "error");
+      return;
+    }
     setSaving(true);
-
     try {
-      // Save to database
-      const userId = localStorage.getItem("userId");
-      const response = await fetch(`${API_URL}/system-settings`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-USER-ID": userId || "",
-          "ngrok-skip-browser-warning": "1",
-        },
-        body: JSON.stringify({
-          require_2fa: require2FA.toString(),
-          session_timeout_minutes: sessionTimeout ? "60" : "0",
-        }),
+      await saveSystemSettings({
+        require_2fa: String(form.require2fa),
+        session_timeout_minutes: String(timeout),
+        max_login_attempts: String(attempts),
+        allow_password_reset: String(form.allowPasswordReset),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to save settings");
-      }
-
-      // Save local settings
-      const localSettings = {
-        emailNotifications,
-        pushNotifications,
-        lastUpdated: new Date().toISOString(),
-      };
-      localStorage.setItem("adminSettings", JSON.stringify(localSettings));
-
-      setSaved(true);
-      showToast("Instellingen opgeslagen!", "success");
-      setTimeout(() => setSaved(false), 3000);
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      showToast("Fout bij opslaan instellingen", "error");
+      showToast("Instellingen opgeslagen", "success");
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Instellingen konden niet worden opgeslagen"), "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleBackup = () => {
-    showToast("Database backup gestart...", "info");
+  const confirmSendReminder = async () => {
+    if (!pendingReminder) return;
+    setSending(true);
+    try {
+      const result =
+        pendingReminder === "employee" ? await sendEmployeeReminder() : await sendManagerOverview();
+      showToast(
+        result?.message ||
+          (pendingReminder === "employee"
+            ? "Herinneringen aan medewerkers verstuurd"
+            : "Overzicht aan managers verstuurd"),
+        "success",
+      );
+      setPendingReminder(null);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "E-mails konden niet worden verstuurd"), "error");
+    } finally {
+      setSending(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <LoadingSpinner className="w-8 h-8 mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">Instellingen laden...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <PageHeader
-        title={t("admin.settings.title")}
-        description={t("admin.settings.subtitle")}
-      />
+      <PageHeader title="Instellingen" description="Beveiliging en e-mailherinneringen" />
 
       <div className="space-y-6 max-w-4xl">
-        {/* Security - 2FA Required */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-600" />
-              Beveiliging - Tweestapsverificatie
+              Beveiliging
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             <div className="flex items-start gap-3">
               <Checkbox
                 id="require2fa"
-                checked={require2FA}
-                onCheckedChange={(checked) => setRequire2FA(checked as boolean)}
+                checked={form.require2fa}
+                onCheckedChange={(c) => setForm({ ...form, require2fa: c })}
+                className="mt-0.5"
               />
               <div className="space-y-1">
-                <label
-                  htmlFor="require2fa"
-                  className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-                >
-                  2FA Verplicht voor alle gebruikers
+                <label htmlFor="require2fa" className={`${labelClass} cursor-pointer`}>
+                  Tweestapsverificatie verplicht voor alle gebruikers
                 </label>
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Wanneer ingeschakeld, moeten alle gebruikers tweestapsverificatie
-                  instellen voordat ze kunnen inloggen.
+                <p className={helpClass}>
+                  Gebruikers zonder 2FA moeten dit na het inloggen eerst instellen voordat ze verder kunnen.
                 </p>
               </div>
             </div>
-
-            {require2FA && (
+            {form.require2fa && (
               <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                <AlertTriangle className="w-4 h-4 text-blue-600" />
-                <AlertDescription className="text-blue-900 dark:text-blue-100">
-                  <strong>Let op:</strong> Gebruikers zonder 2FA worden na het inloggen
-                  doorgestuurd naar de 2FA setup pagina en kunnen pas verder als 2FA
-                  is ingesteld.
+                <AlertDescription className="flex items-start gap-2 text-blue-900 dark:text-blue-100">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>Dit geldt direct na opslaan, ook voor beheerders.</span>
                 </AlertDescription>
               </Alert>
             )}
 
-            <div className="flex items-start gap-3 pt-2">
+            <div className="flex items-start gap-3">
               <Checkbox
-                id="sessionTimeout"
-                checked={sessionTimeout}
-                onCheckedChange={(checked) =>
-                  setSessionTimeout(checked as boolean)
-                }
+                id="allowPasswordReset"
+                checked={form.allowPasswordReset}
+                onCheckedChange={(c) => setForm({ ...form, allowPasswordReset: c })}
+                className="mt-0.5"
               />
               <div className="space-y-1">
-                <label
-                  htmlFor="sessionTimeout"
-                  className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-                >
-                  Automatische sessie timeout (60 minuten)
+                <label htmlFor="allowPasswordReset" className={`${labelClass} cursor-pointer`}>
+                  Wachtwoord opnieuw instellen via e-mail toestaan
                 </label>
-                <p className="text-sm text-gray-600 dark:text-slate-400">
-                  Log gebruikers automatisch uit na 60 minuten inactiviteit.
-                </p>
+                <p className={helpClass}>Als dit uitstaat, kan alleen een beheerder een wachtwoord resetten.</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-purple-600" />
-              Notificaties
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="emailNotifications"
-                checked={emailNotifications}
-                onCheckedChange={(checked) =>
-                  setEmailNotifications(checked as boolean)
-                }
-              />
-              <label
-                htmlFor="emailNotifications"
-                className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
-              >
-                Email notificaties voor nieuwe aanvragen
-              </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1.5">
+                <label htmlFor="sessionTimeout" className={labelClass}>
+                  Sessie-timeout (minuten)
+                </label>
+                <Input
+                  id="sessionTimeout"
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={form.sessionTimeoutMinutes}
+                  onChange={(e) => setForm({ ...form, sessionTimeoutMinutes: e.target.value })}
+                />
+                <p className={helpClass}>Automatisch uitloggen na inactiviteit. 0 = nooit automatisch uitloggen.</p>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="maxLoginAttempts" className={labelClass}>
+                  Maximum aantal inlogpogingen
+                </label>
+                <Input
+                  id="maxLoginAttempts"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={form.maxLoginAttempts}
+                  onChange={(e) => setForm({ ...form, maxLoginAttempts: e.target.value })}
+                />
+                <p className={helpClass}>Daarna wordt het account tijdelijk geblokkeerd.</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="pushNotifications"
-                checked={pushNotifications}
-                onCheckedChange={(checked) =>
-                  setPushNotifications(checked as boolean)
-                }
-              />
-              <label
-                htmlFor="pushNotifications"
-                className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer"
-              >
-                Push notificaties inschakelen
-              </label>
+
+            <div className="pt-2">
+              <Button onClick={handleSave} isLoading={saving}>
+                {!saving && <Save className="w-4 h-4" />}
+                Instellingen opslaan
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Database */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-green-600" />
-              Database
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-violet-600" />
+                E-mailherinneringen
+              </CardTitle>
+              <Button size="sm" variant="outline" onClick={loadReminderStatus} isLoading={loadingStatus}>
+                {!loadingStatus && <RefreshCw className="w-4 h-4" />}
+                Status vernieuwen
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
-            <Button onClick={handleBackup} variant="outline">
-              <Database className="w-4 h-4 mr-2" />
-              Database Backup Maken
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex items-center gap-4">
-          <Button onClick={handleSave} disabled={saving || saved} size="lg">
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Opslaan...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Opgeslagen!
-              </>
+          <CardContent className="space-y-4">
+            {reminderStatus ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-[var(--border)] p-4 space-y-2">
+                  <p className="text-sm font-semibold text-[var(--text)]">Herinnering aan medewerkers</p>
+                  <p className={helpClass}>
+                    Elke {dayLabel(reminderStatus.schedule.employeeReminder.day)} om{" "}
+                    {reminderStatus.schedule.employeeReminder.time} aan medewerkers die hun uren nog niet hebben ingediend.
+                  </p>
+                  <p className="text-xs text-[var(--text-2)]">
+                    Volgende run: {dayjs(reminderStatus.schedule.employeeReminder.nextRun).format("dddd D MMMM YYYY HH:mm")}
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => setPendingReminder("employee")}>
+                    <Send className="w-4 h-4" />
+                    Nu versturen
+                  </Button>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] p-4 space-y-2">
+                  <p className="text-sm font-semibold text-[var(--text)]">Overzicht aan managers</p>
+                  <p className={helpClass}>
+                    Elke {dayLabel(reminderStatus.schedule.managerOverview.day)} om{" "}
+                    {reminderStatus.schedule.managerOverview.time} met de openstaande uren van hun team.
+                  </p>
+                  <p className="text-xs text-[var(--text-2)]">
+                    Volgende run: {dayjs(reminderStatus.schedule.managerOverview.nextRun).format("dddd D MMMM YYYY HH:mm")}
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => setPendingReminder("manager")}>
+                    <Send className="w-4 h-4" />
+                    Nu versturen
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <>
-                <Save className="w-5 h-5 mr-2" />
-                Instellingen Opslaan
-              </>
+              <p className={helpClass}>
+                {loadingStatus ? "Status laden..." : "Herinneringsstatus is niet beschikbaar."}
+              </p>
             )}
-          </Button>
-
-          {saved && (
-            <span className="text-sm text-green-600 dark:text-green-400">
-              ✓ Instellingen zijn succesvol opgeslagen
-            </span>
-          )}
-        </div>
+            {reminderStatus && (
+              <p className={helpClass}>
+                Servertijd: {reminderStatus.currentTime} ({dayLabel(reminderStatus.currentDay)})
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      <Dialog open={pendingReminder !== null} onOpenChange={(open) => !open && !sending && setPendingReminder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {pendingReminder === "employee" ? "Herinnering aan medewerkers versturen" : "Overzicht aan managers versturen"}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingReminder === "employee"
+                ? "Alle medewerkers die hun uren voor de huidige periode nog niet hebben ingediend, ontvangen nu een e-mail."
+                : "Alle managers ontvangen nu een e-mail met de openstaande uren van hun team."}{" "}
+              Dit staat los van de geplande verzending.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingReminder(null)} disabled={sending}>
+              Annuleren
+            </Button>
+            <Button onClick={confirmSendReminder} isLoading={sending}>
+              {!sending && <Send className="w-4 h-4" />}
+              Versturen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

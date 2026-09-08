@@ -56,13 +56,12 @@ const allPages: SearchResult[] = [
 const managerPages: SearchResult[] = [
   { type: "page", label: "Manager Dashboard", href: "/manager/dashboard", icon: Shield },
   { type: "page", label: "Mijn Team", href: "/manager/team", icon: Users },
-  { type: "page", label: "Goedkeuringen", href: "/manager/approve", icon: CheckCircle2 },
+  { type: "page", label: "Uren beoordelen", href: "/manager/review-time", icon: CheckCircle2 },
   { type: "page", label: "Team Uren", href: "/manager/hours", icon: Clock },
-  { type: "page", label: "Vakantie Aanvragen", href: "/manager/vacation", icon: Plane },
+  { type: "page", label: "Vakantie beoordelen", href: "/manager/vacation-review", icon: Plane },
   { type: "page", label: "Jaarkalender", href: "/manager/jaarkalender", icon: Calendar },
   { type: "page", label: "Project Toewijzing", href: "/manager/project-toewijzing", icon: FolderPlus },
   { type: "page", label: "Uurcodes", href: "/manager/uurcodes", icon: ListChecks },
-  { type: "page", label: "Instellingen", href: "/manager/settings", icon: Settings },
 ];
 
 export default function Navbar(): JSX.Element {
@@ -102,9 +101,7 @@ export default function Navbar(): JSX.Element {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
-        const res = await axios.get(`${API_URL}/users`, {
-          headers: { "ngrok-skip-browser-warning": "1" },
-        });
+        const res = await axios.get(`${API_URL}/users`);
         const users = (res.data || [])
           .filter((u: any) => u.isActive !== false && u.rank !== "inactive")
           .map((u: any) => ({

@@ -1,4 +1,4 @@
-using OtpNet;
+﻿using OtpNet;
 using QRCoder;
 using System.Security.Cryptography;
 using System.Text;
@@ -84,8 +84,7 @@ namespace backend.Services
         
         public string GenerateEmailCode()
         {
-            var random = new Random();
-            return random.Next(100000, 999999).ToString();
+            return System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         }
 
         public async Task SendEmailCodeAsync(string email, string code)
@@ -156,13 +155,14 @@ namespace backend.Services
         public List<string> GenerateBackupCodes(int count = 10)
         {
             var codes = new List<string>();
-            var random = new Random();
-            
+            var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
             for (int i = 0; i < count; i++)
             {
-                var code = $"{random.Next(1000, 9999)}-{random.Next(1000, 9999)}";
-                codes.Add(code);
+                var a = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 10000);
+                var b = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 10000);
+                codes.Add($"{a}-{b}");
             }
+            rng.Dispose();
             
             return codes;
         }

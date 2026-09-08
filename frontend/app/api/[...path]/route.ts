@@ -34,7 +34,6 @@ async function proxy(req: NextRequest, params: { path: string[] } | Promise<{ pa
 
   // Build upstream headers (forward only what you need)
   const headers = new Headers();
-  headers.set("ngrok-skip-browser-warning", "1");
 
   const medew = req.headers.get("x-medew-gc-id");
   if (medew) headers.set("X-MEDEW-GC-ID", medew);

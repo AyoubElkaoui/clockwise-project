@@ -20,7 +20,6 @@ export async function getHolidays(year?: number): Promise<Holiday[]> {
     const response = await fetch(`${API_URL}/holidays?year=${targetYear}`, {
       headers: {
         "X-User-ID": userId?.toString() || "",
-        "ngrok-skip-browser-warning": "1",
       },
     });
 
@@ -42,7 +41,6 @@ export async function getHolidayByDate(date: string): Promise<Holiday | null> {
   const response = await fetch(`${API_URL}/holidays/${date}`, {
     headers: {
       "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
     },
   });
 
@@ -71,7 +69,6 @@ export async function createHoliday(data: {
     headers: {
       "Content-Type": "application/json",
       "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
     },
     body: JSON.stringify(data),
   });
@@ -98,7 +95,6 @@ export async function updateHoliday(
     headers: {
       "Content-Type": "application/json",
       "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
     },
     body: JSON.stringify(data),
   });
@@ -116,7 +112,6 @@ export async function deleteHoliday(id: number): Promise<void> {
     method: "DELETE",
     headers: {
       "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
     },
   });
 
@@ -133,7 +128,6 @@ export async function toggleWorkAllowed(id: number): Promise<{ isWorkAllowed: bo
     method: "POST",
     headers: {
       "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
     },
   });
 
@@ -164,7 +158,6 @@ export async function generateHolidaysForYear(year: number): Promise<{ message: 
     method: "POST",
     headers: {
       "X-User-ID": userId?.toString() || "",
-      "ngrok-skip-browser-warning": "1",
     },
   });
 

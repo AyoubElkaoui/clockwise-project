@@ -22,8 +22,8 @@ export default function AdminRoute({
 
     // Check if 2FA setup is required
     const require2FASetup = localStorage.getItem("require2FASetup");
-    if (require2FASetup === "true" && pathname !== "/admin/account/2fa") {
-      router.push("/admin/account/2fa");
+    if (require2FASetup === "true" && pathname !== "/account/2fa") {
+      router.push("/account/2fa");
       return;
     }
 

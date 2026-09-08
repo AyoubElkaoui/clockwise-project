@@ -1,5 +1,4 @@
 using backend.Models;
-using backend.Repositories;
 using ClockwiseProject.Backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -31,19 +30,16 @@ public class FavoriteProjectsController : ControllerBase
 
     /// <summary>
     /// GET /api/favorite-projects
-    /// Get all favorite projects for the current user
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<FavoriteProjectDto>>> GetFavorites()
     {
+        var userId = this.CurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
         try
         {
-            var userId = GetUserId();
-            if (userId == null)
-            {
-                return Unauthorized(new { error = "User ID required" });
-            }
-
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync();
 
@@ -52,7 +48,6 @@ public class FavoriteProjectsController : ControllerBase
                   FROM favorite_projects WHERE user_id = @UserId ORDER BY created_at DESC",
                 new { UserId = userId.Value });
 
-            // Enrich with Firebird project data
             var result = new List<FavoriteProjectDto>();
             foreach (var fav in favorites)
             {
@@ -83,53 +78,45 @@ public class FavoriteProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting favorite projects");
-            return StatusCode(500, new { error = "Failed to get favorites", details = ex.Message });
+            _logger.LogError(ex, "Error getting favorite projects for user {UserId}", userId);
+            return StatusCode(500, new { error = "Fout bij ophalen favorieten" });
         }
     }
 
     /// <summary>
     /// POST /api/favorite-projects
-    /// Add a project to favorites
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<FavoriteProjectDto>> AddFavorite([FromBody] AddFavoriteRequest request)
+    public async Task<ActionResult<FavoriteProjectDto>> AddFavorite([FromBody] AddFavoriteRequest? request)
     {
+        var userId = this.CurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
+        if (request == null || request.ProjectGcId <= 0)
+            return BadRequest(new { error = "Ongeldig project-id" });
+
         try
         {
-            var userId = GetUserId();
-            if (userId == null)
-            {
-                return Unauthorized(new { error = "User ID required" });
-            }
-
-            // Validate project exists in Firebird
             if (!await _firebirdRepo.IsValidWerkAsync(request.ProjectGcId))
-            {
-                return BadRequest(new { error = "Invalid project ID" });
-            }
+                return BadRequest(new { error = "Ongeldig project-id" });
 
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            // Check if already favorited
             var existing = await conn.QueryFirstOrDefaultAsync<int?>(
                 "SELECT id FROM favorite_projects WHERE user_id = @UserId AND project_gc_id = @ProjectGcId",
                 new { UserId = userId.Value, ProjectGcId = request.ProjectGcId });
 
             if (existing.HasValue)
-            {
-                return BadRequest(new { error = "Project is already in favorites" });
-            }
+                return BadRequest(new { error = "Project staat al in je favorieten" });
 
-            // Insert new favorite
             var id = await conn.ExecuteScalarAsync<int>(
                 @"INSERT INTO favorite_projects (user_id, project_gc_id, created_at)
                   VALUES (@UserId, @ProjectGcId, NOW())
                   RETURNING id",
                 new { UserId = userId.Value, ProjectGcId = request.ProjectGcId });
 
-            // Get enriched DTO
             var dto = new FavoriteProjectDto
             {
                 Id = id,
@@ -144,33 +131,33 @@ public class FavoriteProjectsController : ControllerBase
                 dto.ProjectCode = werkDetails.Code;
                 dto.ProjectName = werkDetails.Description;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get project details for {ProjectGcId}", request.ProjectGcId);
+            }
 
             _logger.LogInformation("User {UserId} added project {ProjectGcId} to favorites", userId.Value, request.ProjectGcId);
             return Ok(dto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding favorite project");
-            return StatusCode(500, new { error = "Failed to add favorite", details = ex.Message });
+            _logger.LogError(ex, "Error adding favorite project for user {UserId}", userId);
+            return StatusCode(500, new { error = "Fout bij toevoegen favoriet" });
         }
     }
 
     /// <summary>
     /// DELETE /api/favorite-projects/{projectGcId}
-    /// Remove a project from favorites
     /// </summary>
-    [HttpDelete("{projectGcId}")]
+    [HttpDelete("{projectGcId:int}")]
     public async Task<ActionResult> RemoveFavorite(int projectGcId)
     {
+        var userId = this.CurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
         try
         {
-            var userId = GetUserId();
-            if (userId == null)
-            {
-                return Unauthorized(new { error = "User ID required" });
-            }
-
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync();
 
@@ -179,35 +166,30 @@ public class FavoriteProjectsController : ControllerBase
                 new { UserId = userId.Value, ProjectGcId = projectGcId });
 
             if (rowsAffected == 0)
-            {
-                return NotFound(new { error = "Favorite not found" });
-            }
+                return NotFound(new { error = "Favoriet niet gevonden" });
 
             _logger.LogInformation("User {UserId} removed project {ProjectGcId} from favorites", userId.Value, projectGcId);
-            return Ok(new { success = true, message = "Favorite removed" });
+            return Ok(new { success = true, message = "Favoriet verwijderd" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error removing favorite project");
-            return StatusCode(500, new { error = "Failed to remove favorite", details = ex.Message });
+            _logger.LogError(ex, "Error removing favorite project for user {UserId}", userId);
+            return StatusCode(500, new { error = "Fout bij verwijderen favoriet" });
         }
     }
 
     /// <summary>
     /// GET /api/favorite-projects/check/{projectGcId}
-    /// Check if a project is favorited
     /// </summary>
-    [HttpGet("check/{projectGcId}")]
+    [HttpGet("check/{projectGcId:int}")]
     public async Task<ActionResult<bool>> IsFavorite(int projectGcId)
     {
+        var userId = this.CurrentUserId();
+        if (userId == null)
+            return Unauthorized(new { error = "Niet ingelogd" });
+
         try
         {
-            var userId = GetUserId();
-            if (userId == null)
-            {
-                return Unauthorized(new { error = "User ID required" });
-            }
-
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync();
 
@@ -219,26 +201,8 @@ public class FavoriteProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking favorite status");
-            return StatusCode(500, new { error = "Failed to check favorite status", details = ex.Message });
+            _logger.LogError(ex, "Error checking favorite status for user {UserId}", userId);
+            return StatusCode(500, new { error = "Fout bij controleren favoriet" });
         }
-    }
-
-    private int? GetUserId()
-    {
-        // Try X-USER-ID header first
-        if (Request.Headers.TryGetValue("X-USER-ID", out var userIdHeader) &&
-            int.TryParse(userIdHeader.ToString(), out var userId))
-        {
-            return userId;
-        }
-
-        // Fall back to HttpContext items (set by middleware)
-        if (HttpContext.Items.TryGetValue("UserId", out var userIdObj) && userIdObj is int id)
-        {
-            return id;
-        }
-
-        return null;
     }
 }

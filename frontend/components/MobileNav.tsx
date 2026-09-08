@@ -80,32 +80,30 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
     { icon: LayoutDashboard, label: t("nav.dashboard"), href: "/dashboard" },
     { icon: Clock, label: t("nav.hours"), href: "/tijd-registratie" },
     { icon: List, label: t("nav.overview"), href: "/uren-overzicht" },
+    { icon: Calendar, label: "Kalender", href: "/kalender" },
     { icon: Plane, label: t("nav.vacation"), href: "/vakantie" },
     { icon: Bell, label: t("nav.notifications"), href: "/notificaties" },
     { icon: User, label: t("nav.account"), href: "/account" },
-    { icon: Settings, label: t("nav.settings"), href: "/instellingen" },
     { icon: HelpCircle, label: t("nav.faq"), href: "/faq" },
   ], [t]);
 
   const managerMenuItems: MenuItem[] = useMemo(() => [
-    { icon: Shield, label: "Manager Dashboard", href: "/manager/dashboard" },
-    { icon: Users, label: "Mijn Team", href: "/manager/team" },
-    { icon: CheckCircle2, label: "Goedkeuringen", href: "/manager/approve" },
-    { icon: Clock, label: "Team Uren", href: "/manager/hours" },
+    { icon: Shield, label: "Manager dashboard", href: "/manager/dashboard" },
+    { icon: Users, label: "Mijn team", href: "/manager/team" },
+    { icon: CheckCircle2, label: "Uren beoordelen", href: "/manager/review-time" },
+    { icon: Clock, label: "Team uren", href: "/manager/hours" },
+    { icon: Calendar, label: "Planning", href: "/manager/planning" },
+    { icon: FolderPlus, label: "Project-toewijzing", href: "/manager/project-toewijzing" },
+    { icon: Plane, label: "Vakantie beoordelen", href: "/manager/vacation-review" },
+    { icon: Calendar, label: "Uurcodes", href: "/manager/uurcodes" },
     { icon: Calendar, label: "Jaarkalender", href: "/manager/jaarkalender" },
-    { icon: FolderPlus, label: "Project Toewijzing", href: "/manager/project-toewijzing" },
-    { icon: Plane, label: "Vakantie Aanvragen", href: "/manager/vacation" },
   ], []);
 
   const adminMenuItems: MenuItem[] = useMemo(() => [
-    { icon: Shield, label: "Admin Dashboard", href: "/admin" },
-    { icon: Users, label: "Medewerkers", href: "/admin/employees" },
-    { icon: Clock, label: "Tijd Registraties", href: "/admin/time-entries" },
-    { icon: FolderKanban, label: "Projecten", href: "/admin/projects" },
-    { icon: Building2, label: "Bedrijven", href: "/admin/companies" },
-    { icon: CheckCircle2, label: "Validaties", href: "/admin/validations" },
-    { icon: BarChart3, label: "Logs", href: "/admin/logs" },
-    { icon: Settings, label: "Systeem", href: "/admin/system" },
+    { icon: Shield, label: "Beheer dashboard", href: "/admin" },
+    { icon: Users, label: "Gebruikers", href: "/admin/users" },
+    { icon: Calendar, label: "Feestdagen", href: "/admin/holidays" },
+    { icon: Settings, label: "Instellingen", href: "/admin/settings" },
   ], []);
 
   const menuSections = useMemo((): MenuSection[] => {

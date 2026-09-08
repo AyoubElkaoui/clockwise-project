@@ -13,5 +13,12 @@ namespace ClockwiseProject.Backend.Repositories
         Task AddAsync(VacationRequest vacationRequest);
         Task UpdateAsync(VacationRequest vacationRequest);
         Task DeleteAsync(int id);
+
+        /// <summary>
+        /// Atomische statusovergang: zet de status alleen op <paramref name="toStatus"/> als de
+        /// huidige status (hoofdletterongevoelig) een van <paramref name="fromStatuses"/> is.
+        /// Geeft true terug als precies één rij is bijgewerkt.
+        /// </summary>
+        Task<bool> TryTransitionStatusAsync(int id, IEnumerable<string> fromStatuses, string toStatus);
     }
 }

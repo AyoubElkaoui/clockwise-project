@@ -1,6 +1,8 @@
 using Dapper;
 using ClockwiseProject.Domain;
 using ClockwiseProject.Backend.Data;
+using ClockwiseProject.Backend.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace ClockwiseProject.Backend.Repositories
@@ -8,12 +10,55 @@ namespace ClockwiseProject.Backend.Repositories
     public class PostgresLeaveRepository : IVacationRepository
     {
         private readonly PostgreSQLConnectionFactory _connectionFactory;
+        private readonly FirebirdConnectionFactory _firebirdConnectionFactory;
+        private readonly SyntessOptions _syntess;
         private readonly ILogger<PostgresLeaveRepository> _logger;
 
-        public PostgresLeaveRepository(PostgreSQLConnectionFactory connectionFactory, ILogger<PostgresLeaveRepository> logger)
+        public PostgresLeaveRepository(
+            PostgreSQLConnectionFactory connectionFactory,
+            FirebirdConnectionFactory firebirdConnectionFactory,
+            IConfiguration configuration,
+            ILogger<PostgresLeaveRepository> logger)
         {
             _connectionFactory = connectionFactory;
+            _firebirdConnectionFactory = firebirdConnectionFactory;
+            _syntess = SyntessOptions.FromConfiguration(configuration);
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Zoekt de AT_TAAK.GC_ID van de verlofsoort uit de aanvraag. <paramref name="vacationType"/> is
+        /// de GC_CODE (bijv. "Z03") of een numerieke GC_ID; in beide gevallen moet de code met de
+        /// geconfigureerde verlofprefix beginnen. Gooit een fout als de taak niet bestaat.
+        /// </summary>
+        private async Task<int> ResolveLeaveTaskGcIdAsync(string? vacationType)
+        {
+            var value = vacationType?.Trim();
+            if (string.IsNullOrEmpty(value))
+                throw new InvalidOperationException("Verlofsoort (vacationType) ontbreekt in de aanvraag");
+
+            using var fb = _firebirdConnectionFactory.CreateConnection();
+            await fb.OpenAsync();
+
+            int? gcId;
+            if (int.TryParse(value, out var numericId))
+            {
+                gcId = await fb.ExecuteScalarAsync<int?>(
+                    "SELECT GC_ID FROM AT_TAAK WHERE GC_ID = @GcId AND GC_CODE STARTING WITH @Prefix",
+                    new { GcId = numericId, Prefix = _syntess.LeaveTaskPrefix });
+            }
+            else
+            {
+                gcId = await fb.ExecuteScalarAsync<int?>(
+                    "SELECT FIRST 1 GC_ID FROM AT_TAAK WHERE UPPER(TRIM(GC_CODE)) = UPPER(@Code) AND GC_CODE STARTING WITH @Prefix ORDER BY GC_ID",
+                    new { Code = value, Prefix = _syntess.LeaveTaskPrefix });
+            }
+
+            if (!gcId.HasValue)
+                throw new InvalidOperationException(
+                    $"Verloftaak '{value}' niet gevonden in Syntess (AT_TAAK met GC_CODE-prefix '{_syntess.LeaveTaskPrefix}')");
+
+            return gcId.Value;
         }
 
         public async Task<IEnumerable<VacationRequest>> GetAllAsync()
@@ -213,6 +258,9 @@ namespace ClockwiseProject.Backend.Repositories
         {
             try
             {
+                // Verlof wordt op de verloftaak (Z-code) geboekt, nooit op een werktaak.
+                var taakGcId = await ResolveLeaveTaskGcIdAsync(vacationRequest.VacationType);
+
                 using var connection = _connectionFactory.CreateConnection();
 
                 var sql = @"
@@ -229,10 +277,10 @@ namespace ClockwiseProject.Backend.Repositories
                     ) VALUES (
                         (SELECT medew_gc_id FROM users WHERE id = @UserId),
                         @UserId,
-                        100256,
+                        @TaakGcId,
                         @StartDate,
                         @EndDate,
-                        @TotalDays * 8.0,
+                        @TotalDays * @HoursPerDay,
                         @Notes,
                         'SUBMITTED',
                         NOW()
@@ -242,9 +290,11 @@ namespace ClockwiseProject.Backend.Repositories
                 var id = await connection.ExecuteScalarAsync<int>(sql, new
                 {
                     vacationRequest.UserId,
+                    TaakGcId = taakGcId,
                     vacationRequest.StartDate,
                     vacationRequest.EndDate,
                     vacationRequest.TotalDays,
+                    HoursPerDay = _syntess.HoursPerDay,
                     vacationRequest.Notes
                 });
 
@@ -293,6 +343,30 @@ namespace ClockwiseProject.Backend.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating vacation request {Id}", vacationRequest.Id);
+                throw;
+            }
+        }
+
+        public async Task<bool> TryTransitionStatusAsync(int id, IEnumerable<string> fromStatuses, string toStatus)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                var from = fromStatuses.Select(s => s.ToUpperInvariant()).ToArray();
+                var sql = @"
+                    UPDATE leave_requests_workflow
+                    SET status = @ToStatus,
+                        updated_at = NOW()
+                    WHERE id = @Id
+                      AND UPPER(COALESCE(status, '')) = ANY(@FromStatuses)";
+
+                var rows = await connection.ExecuteAsync(sql, new { Id = id, ToStatus = toStatus, FromStatuses = from });
+                return rows == 1;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error transitioning vacation request {Id} to {Status}", id, toStatus);
                 throw;
             }
         }
