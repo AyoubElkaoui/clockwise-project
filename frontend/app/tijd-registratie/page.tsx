@@ -11,7 +11,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import {
-  ChevronLeft, ChevronRight, Save, Send, Search, Plus, Heart, X, Star, Info, Moon, Clock, Car, Ticket, Euro, MessageSquare, Copy, AlertTriangle,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Save, Send, Search, Plus, X, Star, Info, Moon, Clock, Car, Ticket, Euro, MessageSquare, Copy, AlertTriangle,
 } from "lucide-react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ModernLayout from "@/components/ModernLayout";
@@ -84,7 +84,7 @@ const ROWS_STORAGE = "clockd.hours.rows";
 export default function TijdRegistratiePage() {
   /* ---------- state ---------- */
   const [anchor, setAnchor] = useState<Date>(() => new Date());
-  const [view, setView] = useState<"week" | "month">("week");
+  const [view, setView] = useState<"week" | "month" | "list">("week");
   const [periods, setPeriods] = useState<Period[]>([]);
   const [config, setConfig] = useState<WorkflowConfig | null>(null);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -108,7 +108,7 @@ export default function TijdRegistratiePage() {
 
   /* ---------- derived dates ---------- */
   const days = useMemo<Date[]>(() => {
-    if (view === "week") { const m = mondayOf(anchor); return Array.from({ length: 7 }, (_, i) => addDays(m, i)); }
+    if (view !== "month") { const m = mondayOf(anchor); return Array.from({ length: 7 }, (_, i) => addDays(m, i)); }
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
     const out: Date[] = []; for (let d = first; d <= last; d = addDays(d, 1)) out.push(d); return out;
@@ -363,7 +363,7 @@ export default function TijdRegistratiePage() {
   };
 
   const copyPreviousWeek = async () => {
-    if (view !== "week") return;
+    if (view === "month") return;
     try {
       const prevFrom = iso(addDays(days[0], -7)), prevTo = iso(addDays(days[6], -7));
       const rows = await getMyEntries(prevFrom, prevTo);
@@ -386,46 +386,51 @@ export default function TijdRegistratiePage() {
   };
 
   /* ---------- navigation ---------- */
-  const step = (n: number) => setAnchor(view === "week" ? addDays(anchor, 7 * n) : new Date(anchor.getFullYear(), anchor.getMonth() + n, 1));
-  const title = view === "week" ? `Week ${isoWeek(days[0])}` : `${MONTHS[anchor.getMonth()]} ${anchor.getFullYear()}`;
-  const subtitle = view === "week" ? `${days[0].getDate()} ${MONTHS[days[0].getMonth()]} – ${days[6].getDate()} ${MONTHS[days[6].getMonth()]} ${days[6].getFullYear()}` : `${days.length} dagen`;
+  const step = (n: number) => setAnchor(view === "month" ? new Date(anchor.getFullYear(), anchor.getMonth() + n, 1) : addDays(anchor, 7 * n));
+  const subtitle = view === "month" ? `${days.length} dagen` : `${days[0].getDate()} ${MONTHS[days[0].getMonth()]} – ${days[6].getDate()} ${MONTHS[days[6].getMonth()]} ${days[6].getFullYear()}`;
 
   /* ---------- render ---------- */
-  const detailEntry = detail ? (() => { const row = allRows.find((r) => r.key === detail.rowKey); return row ? { row, e: getEntry(detail.date, row) } : null; })() : null;
-  const leftW = 280, dayW = view === "week" ? 104 : 64, totW = 84;
+  const detailRow = detail ? allRows.find((r) => r.key === detail.rowKey) : undefined;
+  const leftW = view === "month" ? 230 : 280, dayW = view === "month" ? 54 : 104, totW = 76;
   const gridCols = `${leftW}px repeat(${days.length}, ${dayW}px) ${totW}px`;
+  const cellStatus = (e: Entry): DayStatus => (isEmpty(e) ? "NONE" : e.status === "REJECTED" ? "REJECTED" : isLocked(e.status) ? (e.status === "APPROVED" ? "APPROVED" : "SUBMITTED") : "DRAFT");
+  const toggleDetail = (date: string, rowKey: string) => setDetail((d) => (d && d.date === date && d.rowKey === rowKey ? null : { date, rowKey }));
+
+  const renderDetail = (row: Row, e: Entry) => (
+    <DetailForm row={row} entry={e} allowedTasks={allowedTasks} config={config} onChange={(p) => patch(e.date, row, p)} onClose={() => setDetail(null)} />
+  );
 
   return (
     <ProtectedRoute>
       <ModernLayout>
-        <div className="p-4 md:p-6 space-y-4">
+        <div className="space-y-4" style={{ minWidth: 0 }}>
           {/* Header */}
           <div className="flex flex-wrap items-center gap-3">
             <div>
               <h1 style={{ font: "700 22px 'Geist'", letterSpacing: "-.015em", color: "var(--text)" }}>Uren registreren</h1>
               <div style={{ font: "400 12.5px 'Geist'", color: "var(--muted)", marginTop: 2 }}>{subtitle}</div>
             </div>
-            <div className="flex items-center gap-1" style={{ marginLeft: 12 }}>
+            <div className="flex flex-wrap items-center gap-1" style={{ marginLeft: 12 }}>
               <IconBtn onClick={() => step(-1)} title="Vorige"><ChevronLeft size={16} /></IconBtn>
-              <select value={view === "week" ? iso(days[0]) : iso(new Date(anchor.getFullYear(), anchor.getMonth(), 1))}
+              <select value={view === "month" ? iso(new Date(anchor.getFullYear(), anchor.getMonth(), 1)) : iso(days[0])}
                 onChange={(e) => setAnchor(new Date(e.target.value + "T00:00:00"))}
                 style={{ height: 34, minWidth: 190, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)", font: "600 13px 'Geist'" }}>
-                {view === "week"
+                {view !== "month"
                   ? weeksInMonth.map((m) => <option key={iso(m)} value={iso(m)}>Week {isoWeek(m)} ({m.getDate()} {MONTHS[m.getMonth()].slice(0, 3)} – {addDays(m, 6).getDate()} {MONTHS[addDays(m, 6).getMonth()].slice(0, 3)})</option>)
-                  : Array.from({ length: 12 }, (_, i) => new Date(anchor.getFullYear(), i, 1)).map((m) => <option key={iso(m)} value={iso(m)}>{MONTHS[i(m)]} {m.getFullYear()}</option>)}
+                  : Array.from({ length: 12 }, (_, mi) => new Date(anchor.getFullYear(), mi, 1)).map((m) => <option key={iso(m)} value={iso(m)}>{MONTHS[m.getMonth()]} {m.getFullYear()}</option>)}
               </select>
               <IconBtn onClick={() => step(1)} title="Volgende"><ChevronRight size={16} /></IconBtn>
               <Btn onClick={() => setAnchor(new Date())} variant="outline">Vandaag</Btn>
               <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", marginLeft: 6 }}>
-                {(["week", "month"] as const).map((v) => (
-                  <button key={v} type="button" onClick={() => setView(v)} style={{ padding: "0 12px", height: 32, font: "600 12.5px 'Geist'", border: "none", cursor: "pointer", background: view === v ? "var(--accent)" : "var(--panel)", color: view === v ? "#fff" : "var(--text-2)" }}>
-                    {v === "week" ? "Week" : "Maand"}
+                {([["week", "Week"], ["list", "Per dag"], ["month", "Maand"]] as const).map(([v, label]) => (
+                  <button key={v} type="button" onClick={() => { setView(v); setDetail(null); }} style={{ padding: "0 12px", height: 32, font: "600 12.5px 'Geist'", border: "none", cursor: "pointer", background: view === v ? "var(--accent)" : "var(--panel)", color: view === v ? "#fff" : "var(--text-2)" }}>
+                    {label}
                   </button>
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-2" style={{ marginLeft: "auto" }}>
-              {view === "week" && <Btn onClick={copyPreviousWeek} variant="outline" title="Projecten en uren van vorige week overnemen"><Copy size={14} /> Vorige week</Btn>}
+              {view !== "month" && <Btn onClick={copyPreviousWeek} variant="outline" title="Projecten en uren van vorige week overnemen"><Copy size={14} /> Vorige week</Btn>}
               <Btn onClick={saveAll} disabled={saving || dirtyList.length === 0} variant="primary"><Save size={14} /> Opslaan{dirtyList.length ? ` (${dirtyList.length})` : ""}</Btn>
               <Btn onClick={submitAll} disabled={saving} variant="success"><Send size={14} /> Inleveren</Btn>
             </div>
@@ -436,49 +441,77 @@ export default function TijdRegistratiePage() {
             {(["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] as DayStatus[]).map((k) => (
               <span key={k} className="flex items-center gap-1"><span style={{ width: 10, height: 10, borderRadius: 3, background: STATUS_STYLE[k].fg }} />{STATUS_STYLE[k].label}</span>
             ))}
-            <span className="flex items-center gap-1"><Info size={12} /> Klik op ⋯ in een cel voor nacht, reisuren, km, kosten en opmerking</span>
+            <span className="flex items-center gap-1"><Info size={12} /> Klik op een cel voor nacht, reisuren, km, kosten en opmerking</span>
             {dirtyList.length > 0 && <span className="flex items-center gap-1" style={{ color: "var(--amber)" }}><AlertTriangle size={12} /> Niet-opgeslagen wijzigingen</span>}
           </div>
 
-          {/* Grid */}
-          <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--panel)", overflow: "auto", position: "relative" }}>
+          {/* ===== LIST VIEW: dagen onder elkaar ===== */}
+          {view === "list" && (
+            <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--panel)", overflow: "hidden" }}>
+              <div style={{ padding: 8, display: "flex", gap: 6, borderBottom: "1px solid var(--border)", background: "var(--panel-2)" }}>
+                <RowFilter value={rowFilter} onChange={setRowFilter} />
+                <ProjectPicker open={picker} setOpen={setPicker} query={pickerQuery} setQuery={setPickerQuery} items={pickerItems} loaded={catalog.length > 0} onPick={addRow} anchorRef={pickerRef} />
+              </div>
+              {loading && <div style={{ padding: 24, font: "400 13px 'Geist'", color: "var(--muted)" }}>Uren laden…</div>}
+              {!loading && allRows.length === 0 && <EmptyRows />}
+              {!loading && days.map((d) => {
+                const info = dayInfo(d); const total = totalsPerDay[info.key] || 0; const st = statusPerDay[info.key];
+                return (
+                  <div key={info.key} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: info.today ? "var(--accent-weak)" : info.closed ? "var(--red-weak)" : info.weekend ? "var(--weekend)" : "var(--panel-2)" }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: info.today ? "var(--accent)" : "var(--panel)", color: info.today ? "#fff" : "var(--text)", border: "1px solid var(--border)" }}>
+                        <span style={{ font: "700 14px 'Geist'", lineHeight: 1 }}>{d.getDate()}</span>
+                        <span style={{ font: "600 8.5px 'Geist'", letterSpacing: ".08em", textTransform: "uppercase", opacity: .85 }}>{DAYS[(d.getDay() + 6) % 7]}</span>
+                      </div>
+                      <div style={{ flex: 1, font: "600 13px 'Geist'", color: "var(--text)" }}>
+                        {["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"][(d.getDay() + 6) % 7]} {d.getDate()} {MONTHS[d.getMonth()]}
+                        {info.holiday && <span style={{ marginLeft: 8, font: "500 11px 'Geist'", color: info.closed ? "var(--red)" : "var(--muted)" }}>{info.holiday.name}{info.closed ? " · gesloten" : ""}</span>}
+                      </div>
+                      <div style={{ font: "700 13px 'Geist Mono', monospace", color: total ? STATUS_STYLE[st]?.fg || "var(--text)" : "var(--muted)" }}>{total ? `${fmtH(total)} u` : "–"}</div>
+                    </div>
+                    {visibleRows.map((row) => {
+                      const e = getEntry(info.key, row); const locked = isLocked(e.status) || info.closed; const cs = cellStatus(e); const style = STATUS_STYLE[cs];
+                      const open = detail?.date === info.key && detail?.rowKey === row.key;
+                      return (
+                        <React.Fragment key={row.key}>
+                          <div onClick={() => toggleDetail(info.key, row.key)} style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) 90px 1fr 28px", alignItems: "center", gap: 10, padding: "6px 12px 6px 56px", cursor: "pointer", background: open ? "var(--accent-weak)" : cs !== "NONE" ? style.bg : "transparent", borderTop: "1px solid var(--border)" }}>
+                            <div style={{ minWidth: 0, font: "500 12.5px 'Geist'", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              <span style={{ color: "var(--muted)" }}>{row.kind === "task" ? "Indirect" : row.group} › </span>{row.code} {row.name}
+                            </div>
+                            <input type="text" inputMode="decimal" value={fmtH(e.hours)} disabled={locked} placeholder={info.closed ? "×" : "0"}
+                              onClick={(ev) => ev.stopPropagation()} onFocus={(ev) => ev.target.select()}
+                              onChange={(ev) => patch(info.key, row, { hours: parseNum(ev.target.value) })}
+                              style={{ width: "100%", height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${e.dirty ? "var(--amber)" : "var(--border)"}`, background: locked ? "var(--panel-2)" : "var(--panel)", color: cs !== "NONE" ? style.fg : "var(--text)", font: "600 13px 'Geist Mono', monospace" }} />
+                            <div style={{ font: "400 11.5px 'Geist'", color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{summary(e) || (cs !== "NONE" ? style.label : "")}</div>
+                            <span style={{ color: "var(--muted)", display: "flex", justifyContent: "center" }}>{open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
+                          </div>
+                          {open && <div style={{ padding: "0 12px 12px 56px", background: "var(--accent-weak)" }}>{renderDetail(row, e)}</div>}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ===== GRID VIEW: week / maand ===== */}
+          {view !== "list" && (
+          <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--panel)", overflowX: "auto", overflowY: "visible", maxWidth: "100%" }}>
             <div style={{ minWidth: leftW + days.length * dayW + totW }}>
-              {/* Week labels (month view) */}
               {view === "month" && (
                 <div style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: "1px solid var(--border)" }}>
                   <div />
-                  {days.map((d, i) => {
-                    const monday = d.getDay() === 1 || i === 0;
-                    return <div key={iso(d)} style={{ height: 20, font: "600 10px 'Geist'", letterSpacing: ".08em", color: "var(--muted)", paddingLeft: 6, borderLeft: d.getDay() === 1 ? "2px solid var(--border)" : "none", whiteSpace: "nowrap", overflow: "visible" }}>{monday ? `WEEK ${isoWeek(d)}` : ""}</div>;
-                  })}
+                  {days.map((d, i) => <div key={iso(d)} style={{ height: 20, font: "600 10px 'Geist'", letterSpacing: ".08em", color: "var(--muted)", paddingLeft: 6, borderLeft: d.getDay() === 1 ? "2px solid var(--border)" : "none", whiteSpace: "nowrap" }}>{d.getDay() === 1 || i === 0 ? `WEEK ${isoWeek(d)}` : ""}</div>)}
                   <div />
                 </div>
               )}
 
               {/* Day header */}
-              <div style={{ display: "grid", gridTemplateColumns: gridCols, position: "sticky", top: 0, zIndex: 3, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: gridCols, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ padding: 8, display: "flex", gap: 6, position: "sticky", left: 0, background: "var(--panel)", zIndex: 4 }}>
-                  <div style={{ position: "relative", flex: 1 }}>
-                    <Search size={13} style={{ position: "absolute", left: 8, top: 10, color: "var(--muted)" }} />
-                    <input value={rowFilter} onChange={(e) => setRowFilter(e.target.value)} placeholder="Rijen filteren…" style={{ width: "100%", height: 32, paddingLeft: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
-                  </div>
-                  <div ref={pickerRef} style={{ position: "relative" }}>
-                    <Btn onClick={() => setPicker((v) => !v)} variant="outline" title="Project toevoegen"><Plus size={14} /> Project</Btn>
-                    {picker && (
-                      <div style={{ position: "absolute", top: 36, left: 0, width: 380, maxHeight: 420, overflow: "auto", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,.18)", zIndex: 20 }}>
-                        <div style={{ padding: 8, position: "sticky", top: 0, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
-                          <input autoFocus value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} placeholder="Zoek op projectnummer of naam…" style={{ width: "100%", height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
-                        </div>
-                        {pickerItems.length === 0 && <div style={{ padding: 14, font: "400 12.5px 'Geist'", color: "var(--muted)" }}>{catalog.length ? "Geen projecten gevonden" : "Projecten laden…"}</div>}
-                        {pickerItems.map((c) => (
-                          <button key={c.id} type="button" onClick={() => addRow(c.id)} className="hover:bg-[var(--hover)]" style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", border: "none", background: "transparent", cursor: "pointer" }}>
-                            <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)" }}>{c.code} <span style={{ fontWeight: 500 }}>{c.name}</span></div>
-                            <div style={{ font: "400 11px 'Geist'", color: "var(--muted)" }}>{c.groupName}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <RowFilter value={rowFilter} onChange={setRowFilter} />
+                  <ProjectPicker open={picker} setOpen={setPicker} query={pickerQuery} setQuery={setPickerQuery} items={pickerItems} loaded={catalog.length > 0} onPick={addRow} anchorRef={pickerRef} compact={view === "month"} />
                 </div>
                 {days.map((d) => {
                   const info = dayInfo(d);
@@ -501,13 +534,8 @@ export default function TijdRegistratiePage() {
                 <div style={{ textAlign: "center", padding: "8px 0", font: "700 12.5px 'Geist Mono', monospace", color: "var(--accent)", borderLeft: "1px solid var(--border)" }}>{fmtH(grandTotal) || "0"}</div>
               </div>
 
-              {/* Groups + rows */}
               {loading && <div style={{ padding: 24, font: "400 13px 'Geist'", color: "var(--muted)" }}>Uren laden…</div>}
-              {!loading && allRows.length === 0 && (
-                <div style={{ padding: 32, textAlign: "center", font: "400 13px 'Geist'", color: "var(--muted)" }}>
-                  Nog geen projecten in je overzicht. Klik op <b>+ Project</b> om een project toe te voegen, of markeer projecten als favoriet zodat ze altijd klaarstaan.
-                </div>
-              )}
+              {!loading && allRows.length === 0 && <EmptyRows />}
               {groups.map(([group, rows]) => (
                 <React.Fragment key={group}>
                   <div style={{ display: "grid", gridTemplateColumns: gridCols, background: "var(--panel-2)", borderBottom: "1px solid var(--border)" }}>
@@ -518,71 +546,118 @@ export default function TijdRegistratiePage() {
                   {rows.map((row) => {
                     const total = rowTotal(row);
                     const mh = row.projectId ? maxHours[row.projectId] : undefined;
+                    const openHere = detailRow?.key === row.key && detail ? getEntry(detail.date, row) : null;
                     return (
-                      <div key={row.key} className="group/row" style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: "1px solid var(--border)" }}>
-                        <div style={{ padding: "6px 8px 6px 12px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, position: "sticky", left: 0, background: "var(--panel)", zIndex: 2 }}>
-                          {row.kind === "project" ? (
-                            <button type="button" onClick={() => toggleFavorite(row.projectId!)} title={favoriteIds.has(row.projectId!) ? "Uit favorieten" : "Favoriet: altijd in je overzicht"} style={{ border: "none", background: "transparent", cursor: "pointer", color: favoriteIds.has(row.projectId!) ? "var(--amber)" : "var(--border)", padding: 0, display: "flex" }}>
-                              <Star size={14} fill={favoriteIds.has(row.projectId!) ? "currentColor" : "none"} />
-                            </button>
-                          ) : <Clock size={14} style={{ color: "var(--muted)", flex: "none" }} />}
-                          <div style={{ minWidth: 0, flex: 1 }} title={`${row.code} ${row.name}`}>
-                            <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.kind === "project" ? row.code : row.code} <span style={{ fontWeight: 500, color: "var(--text-2)" }}>{row.name}</span></div>
-                            {row.kind === "task" && row.budget != null && <div style={{ font: "400 10.5px 'Geist'", color: (row.used || 0) >= row.budget ? "var(--red)" : "var(--muted)" }}>{fmtH(row.used || 0) || 0} / {fmtH(row.budget)} u dit jaar</div>}
-                            {mh != null && <div style={{ font: "400 10.5px 'Geist'", color: total >= mh ? "var(--red)" : "var(--muted)" }}>max {fmtH(mh)} u</div>}
-                          </div>
-                          <button type="button" onClick={() => removeRow(row)} title="Rij verwijderen" className="opacity-0 group-hover/row:opacity-100" style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--muted)", padding: 2, display: "flex" }}><X size={13} /></button>
-                        </div>
-                        {days.map((d) => {
-                          const info = dayInfo(d); const e = getEntry(info.key, row); const locked = isLocked(e.status) || info.closed;
-                          const st: DayStatus = isEmpty(e) ? "NONE" : e.status === "REJECTED" ? "REJECTED" : isLocked(e.status) ? (e.status === "APPROVED" ? "APPROVED" : "SUBMITTED") : "DRAFT";
-                          const style = STATUS_STYLE[st];
-                          const active = detail?.date === info.key && detail?.rowKey === row.key;
-                          return (
-                            <div key={info.key} style={{ borderLeft: "1px solid var(--border)", background: st !== "NONE" ? style.bg : info.weekend ? "var(--weekend)" : "transparent", padding: 3, position: "relative", outline: active ? "2px solid var(--accent)" : "none", outlineOffset: -2 }}>
-                              <input
-                                type="text" inputMode="decimal"
-                                value={fmtH(e.hours)}
-                                disabled={locked}
-                                placeholder={info.closed ? "×" : ""}
-                                onChange={(ev) => patch(info.key, row, { hours: parseNum(ev.target.value) })}
-                                onFocus={(ev) => ev.target.select()}
-                                onDoubleClick={() => setDetail({ date: info.key, rowKey: row.key })}
-                                title={info.closed ? `Gesloten: ${info.holiday?.name}` : e.status === "REJECTED" && e.rejectionReason ? `Afgekeurd: ${e.rejectionReason}` : st !== "NONE" ? style.label : "Uren"}
-                                style={{ width: "100%", height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${e.dirty ? "var(--amber)" : "transparent"}`, background: locked ? "transparent" : "var(--panel)", color: st !== "NONE" ? style.fg : "var(--text)", font: "600 13px 'Geist Mono', monospace", cursor: locked ? "not-allowed" : "text" }}
-                              />
-                              <button type="button" onClick={() => setDetail(active ? null : { date: info.key, rowKey: row.key })} title="Details (nacht, reisuren, km, kosten, opmerking)"
-                                style={{ position: "absolute", right: 4, bottom: 4, width: 14, height: 14, borderRadius: 3, border: "none", cursor: "pointer", background: hasExtras(e) ? style.fg || "var(--accent)" : "transparent", color: hasExtras(e) ? "#fff" : "var(--muted)", font: "700 9px 'Geist'", lineHeight: 1, opacity: hasExtras(e) ? 1 : 0.55 }}>⋯</button>
+                      <React.Fragment key={row.key}>
+                        <div className="group/row" style={{ display: "grid", gridTemplateColumns: gridCols, borderBottom: openHere ? "none" : "1px solid var(--border)" }}>
+                          <div style={{ padding: "6px 8px 6px 12px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, position: "sticky", left: 0, background: "var(--panel)", zIndex: 2 }}>
+                            {row.kind === "project" ? (
+                              <button type="button" onClick={() => toggleFavorite(row.projectId!)} title={favoriteIds.has(row.projectId!) ? "Uit favorieten" : "Favoriet: altijd in je overzicht"} style={{ border: "none", background: "transparent", cursor: "pointer", color: favoriteIds.has(row.projectId!) ? "var(--amber)" : "var(--border)", padding: 0, display: "flex" }}>
+                                <Star size={14} fill={favoriteIds.has(row.projectId!) ? "currentColor" : "none"} />
+                              </button>
+                            ) : <Clock size={14} style={{ color: "var(--muted)", flex: "none" }} />}
+                            <div style={{ minWidth: 0, flex: 1 }} title={`${row.code} ${row.name}`}>
+                              <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.code} <span style={{ fontWeight: 500, color: "var(--text-2)" }}>{row.name}</span></div>
+                              {row.kind === "task" && row.budget != null && <div style={{ font: "400 10.5px 'Geist'", color: (row.used || 0) >= row.budget ? "var(--red)" : "var(--muted)" }}>{fmtH(row.used || 0) || 0} / {fmtH(row.budget)} u dit jaar</div>}
+                              {mh != null && <div style={{ font: "400 10.5px 'Geist'", color: total >= mh ? "var(--red)" : "var(--muted)" }}>max {fmtH(mh)} u</div>}
                             </div>
-                          );
-                        })}
-                        <div style={{ borderLeft: "1px solid var(--border)", textAlign: "center", padding: "9px 0", font: "600 12.5px 'Geist Mono', monospace", color: total ? "var(--text)" : "var(--muted)" }}>{fmtH(total) || "–"}</div>
-                      </div>
+                            <button type="button" onClick={() => removeRow(row)} title="Rij verwijderen" className="opacity-0 group-hover/row:opacity-100" style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--muted)", padding: 2, display: "flex" }}><X size={13} /></button>
+                          </div>
+                          {days.map((d) => {
+                            const info = dayInfo(d); const e = getEntry(info.key, row); const locked = isLocked(e.status) || info.closed;
+                            const cs = cellStatus(e); const style = STATUS_STYLE[cs];
+                            const active = detail?.date === info.key && detail?.rowKey === row.key;
+                            return (
+                              <div key={info.key} onClick={() => toggleDetail(info.key, row.key)} style={{ borderLeft: "1px solid var(--border)", background: active ? "var(--accent-weak)" : cs !== "NONE" ? style.bg : info.weekend ? "var(--weekend)" : "transparent", padding: 3, position: "relative", cursor: "pointer", boxShadow: active ? "inset 0 0 0 2px var(--accent)" : "none" }}>
+                                <input
+                                  type="text" inputMode="decimal"
+                                  value={fmtH(e.hours)}
+                                  disabled={locked}
+                                  placeholder={info.closed ? "×" : ""}
+                                  onClick={(ev) => ev.stopPropagation()}
+                                  onChange={(ev) => patch(info.key, row, { hours: parseNum(ev.target.value) })}
+                                  onFocus={(ev) => { ev.target.select(); setDetail({ date: info.key, rowKey: row.key }); }}
+                                  title={info.closed ? `Gesloten: ${info.holiday?.name}` : e.status === "REJECTED" && e.rejectionReason ? `Afgekeurd: ${e.rejectionReason}` : cs !== "NONE" ? style.label : "Uren"}
+                                  style={{ width: "100%", height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${e.dirty ? "var(--amber)" : "transparent"}`, background: locked ? "transparent" : "var(--panel)", color: cs !== "NONE" ? style.fg : "var(--text)", font: "600 13px 'Geist Mono', monospace", cursor: locked ? "not-allowed" : "text" }}
+                                />
+                                {hasExtras(e) && <span title={summary(e)} style={{ position: "absolute", right: 5, top: 5, width: 7, height: 7, borderRadius: 99, background: style.fg === "var(--muted)" ? "var(--accent)" : style.fg }} />}
+                              </div>
+                            );
+                          })}
+                          <div style={{ borderLeft: "1px solid var(--border)", textAlign: "center", padding: "9px 0", font: "600 12.5px 'Geist Mono', monospace", color: total ? "var(--text)" : "var(--muted)" }}>{fmtH(total) || "–"}</div>
+                        </div>
+                        {openHere && (
+                          <div style={{ borderBottom: "1px solid var(--border)", background: "var(--accent-weak)", position: "sticky", left: 0 }}>
+                            <div style={{ padding: "10px 12px", maxWidth: "calc(100vw - 320px)", position: "sticky", left: 0 }}>{renderDetail(row, openHere)}</div>
+                          </div>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </React.Fragment>
               ))}
             </div>
           </div>
+          )}
         </div>
-
-        {/* Detail panel */}
-        {detailEntry && (
-          <DetailPanel
-            row={detailEntry.row} entry={detailEntry.e} allowedTasks={allowedTasks} config={config}
-            onChange={(p) => patch(detailEntry.e.date, detailEntry.row, p)}
-            onClose={() => setDetail(null)}
-          />
-        )}
       </ModernLayout>
     </ProtectedRoute>
   );
 }
 
-/* month index helper for the select */
-const i = (m: Date) => m.getMonth();
+/* ---------- helpers ---------- */
+function summary(e: Entry): string {
+  const parts: string[] = [];
+  if (e.night) parts.push(`nacht ${fmtH(e.night)}u`);
+  if (e.travelHours) parts.push(`reis ${fmtH(e.travelHours)}u`);
+  if (e.km) parts.push(`${fmtH(e.km)} km`);
+  if (e.travelCosts) parts.push(`€${e.travelCosts.toFixed(2).replace(".", ",")} reis`);
+  if (e.otherExpenses) parts.push(`€${e.otherExpenses.toFixed(2).replace(".", ",")} onk.`);
+  if (e.notes) parts.push(e.notes);
+  return parts.join(" · ");
+}
 
-/* ---------- small UI ---------- */
+function EmptyRows() {
+  return (
+    <div style={{ padding: 32, textAlign: "center", font: "400 13px 'Geist'", color: "var(--muted)" }}>
+      Nog geen projecten in je overzicht. Klik op <b>+ Project</b> om een project toe te voegen, of markeer projecten met een ster zodat ze altijd klaarstaan.
+    </div>
+  );
+}
+
+function RowFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+      <Search size={13} style={{ position: "absolute", left: 8, top: 10, color: "var(--muted)" }} />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Rijen filteren…" style={{ width: "100%", height: 32, paddingLeft: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
+    </div>
+  );
+}
+
+function ProjectPicker({ open, setOpen, query, setQuery, items, loaded, onPick, anchorRef, compact }: {
+  open: boolean; setOpen: (f: (v: boolean) => boolean) => void; query: string; setQuery: (q: string) => void; items: CatalogProject[]; loaded: boolean; onPick: (id: number) => void; anchorRef: React.RefObject<HTMLDivElement | null>; compact?: boolean;
+}) {
+  return (
+    <div ref={anchorRef} style={{ position: "relative" }}>
+      <Btn onClick={() => setOpen((v) => !v)} variant="outline" title="Project toevoegen"><Plus size={14} />{compact ? "" : " Project"}</Btn>
+      {open && (
+        <div style={{ position: "absolute", top: 36, left: 0, width: 380, maxHeight: 420, overflow: "auto", background: "var(--panel)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 12px 32px rgba(0,0,0,.18)", zIndex: 20 }}>
+          <div style={{ padding: 8, position: "sticky", top: 0, background: "var(--panel)", borderBottom: "1px solid var(--border)" }}>
+            <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Zoek op projectnummer of naam…" style={{ width: "100%", height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel-2)", color: "var(--text)", font: "400 12.5px 'Geist'" }} />
+          </div>
+          {items.length === 0 && <div style={{ padding: 14, font: "400 12.5px 'Geist'", color: "var(--muted)" }}>{loaded ? "Geen projecten gevonden" : "Projecten laden…"}</div>}
+          {items.map((c) => (
+            <button key={c.id} type="button" onClick={() => onPick(c.id)} className="hover:bg-[var(--hover)]" style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", border: "none", background: "transparent", cursor: "pointer" }}>
+              <div style={{ font: "600 12.5px 'Geist'", color: "var(--text)" }}>{c.code} <span style={{ fontWeight: 500 }}>{c.name}</span></div>
+              <div style={{ font: "400 11px 'Geist'", color: "var(--muted)" }}>{c.groupName}</div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IconBtn({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title?: string }) {
   return <button type="button" onClick={onClick} title={title} className="hover:bg-[var(--hover)]" style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--panel)", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>{children}</button>;
 }
@@ -592,67 +667,60 @@ function Btn({ children, onClick, variant = "outline", disabled, title }: { chil
   return <button type="button" onClick={onClick} disabled={disabled} title={title} style={{ height: 32, padding: "0 12px", borderRadius: 8, border: variant === "outline" ? "1px solid var(--border)" : "1px solid transparent", background: bg, color: fg, font: "600 12.5px 'Geist'", display: "inline-flex", alignItems: "center", gap: 6, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.55 : 1, whiteSpace: "nowrap" }}>{children}</button>;
 }
 
-function DetailPanel({ row, entry, allowedTasks, config, onChange, onClose }: {
+/** Detailblok onder een rij: alle velden van één dag/project naast elkaar. */
+function DetailForm({ row, entry, allowedTasks, config, onChange, onClose }: {
   row: Row; entry: Entry; allowedTasks: string; config: WorkflowConfig | null; onChange: (p: Partial<Entry>) => void; onClose: () => void;
 }) {
   const locked = isLocked(entry.status);
   const d = new Date(entry.date + "T00:00:00");
   const st: DayStatus = isEmpty(entry) ? "NONE" : entry.status === "REJECTED" ? "REJECTED" : locked ? (entry.status === "APPROVED" ? "APPROVED" : "SUBMITTED") : "DRAFT";
-  const Field = ({ label, icon, k, step = "0.5", suffix }: { label: string; icon: React.ReactNode; k: keyof Entry; step?: string; suffix?: string }) => (
-    <div>
+  const inputStyle: React.CSSProperties = { width: "100%", height: 34, padding: "0 28px 0 10px", borderRadius: 8, border: "1px solid var(--border)", background: locked ? "var(--panel-2)" : "var(--panel)", color: "var(--text)", font: "600 13.5px 'Geist Mono', monospace" };
+  const Field = ({ label, icon, k, suffix, width = 120 }: { label: string; icon: React.ReactNode; k: keyof Entry; suffix?: string; width?: number }) => (
+    <div style={{ width }}>
       <label className="field-label">{icon}{label}</label>
       <div style={{ position: "relative" }}>
-        <input type="text" inputMode="decimal" disabled={locked} value={fmtH(Number(entry[k]) || 0)} onChange={(e) => onChange({ [k]: parseNum(e.target.value) } as any)} onFocus={(e) => e.target.select()} placeholder="0"
-          style={{ width: "100%", height: 36, padding: "0 10px", paddingRight: suffix ? 30 : 10, borderRadius: 8, border: "1px solid var(--border)", background: locked ? "var(--panel-2)" : "var(--panel)", color: "var(--text)", font: "600 14px 'Geist Mono', monospace" }} />
-        {suffix && <span style={{ position: "absolute", right: 10, top: 10, font: "500 11px 'Geist'", color: "var(--muted)" }}>{suffix}</span>}
+        <input type="text" inputMode="decimal" disabled={locked} value={fmtH(Number(entry[k]) || 0)} onChange={(e) => onChange({ [k]: parseNum(e.target.value) } as any)} onFocus={(e) => e.target.select()} placeholder="0" style={inputStyle} />
+        {suffix && <span style={{ position: "absolute", right: 10, top: 9, font: "500 11px 'Geist'", color: "var(--muted)" }}>{suffix}</span>}
       </div>
-      <span style={{ font: "400 10px 'Geist'", color: "var(--muted)" }}>stap {step.replace(".", ",")}</span>
     </div>
   );
   return (
-    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 340, zIndex: 60, background: "var(--panel)", borderLeft: "1px solid var(--border)", boxShadow: "-12px 0 32px rgba(0,0,0,.15)", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: "600 10.5px 'Geist'", letterSpacing: ".1em", color: "var(--muted)", textTransform: "uppercase" }}>{DAYS[(d.getDay() + 6) % 7]} {d.getDate()} {MONTHS[d.getMonth()]}</div>
-          <div style={{ font: "700 14px 'Geist'", color: "var(--text)", marginTop: 2 }}>{row.code} {row.name}</div>
-          {st !== "NONE" && <span style={{ display: "inline-block", marginTop: 6, padding: "2px 8px", borderRadius: 99, background: STATUS_STYLE[st].bg, color: STATUS_STYLE[st].fg, font: "600 11px 'Geist'" }}>{STATUS_STYLE[st].label}</span>}
-        </div>
-        <button type="button" onClick={onClose} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--muted)" }}><X size={18} /></button>
+    <div style={{ background: "var(--panel)", border: "1px solid var(--accent-border)", borderRadius: 10, padding: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{ font: "600 10.5px 'Geist'", letterSpacing: ".1em", color: "var(--muted)", textTransform: "uppercase" }}>{DAYS[(d.getDay() + 6) % 7]} {d.getDate()} {MONTHS[d.getMonth()]}</div>
+        <div style={{ font: "700 13px 'Geist'", color: "var(--text)" }}>{row.code} {row.name}</div>
+        {st !== "NONE" && <span style={{ padding: "2px 8px", borderRadius: 99, background: STATUS_STYLE[st].bg, color: STATUS_STYLE[st].fg, font: "600 11px 'Geist'" }}>{STATUS_STYLE[st].label}</span>}
+        {locked && <span style={{ font: "400 11.5px 'Geist'", color: "var(--muted)" }}>Ingeleverd, niet meer te wijzigen</span>}
+        <button type="button" onClick={onClose} title="Sluiten" style={{ marginLeft: "auto", border: "none", background: "transparent", cursor: "pointer", color: "var(--muted)", display: "flex" }}><X size={16} /></button>
       </div>
-      <div style={{ padding: 16, overflow: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-        {entry.status === "REJECTED" && entry.rejectionReason && (
-          <div style={{ padding: 10, borderRadius: 8, background: "var(--red-weak)", color: "var(--red)", font: "500 12px 'Geist'" }}><b>Afgekeurd:</b> {entry.rejectionReason}<br /><span style={{ opacity: .8 }}>Pas aan en lever opnieuw in.</span></div>
-        )}
-        {locked && <div style={{ padding: 10, borderRadius: 8, background: "var(--panel-2)", color: "var(--text-2)", font: "400 12px 'Geist'" }}>Deze regel is ingeleverd en kan niet meer gewijzigd worden.</div>}
-        <Field label="Uren" icon={<Clock size={11} />} k="hours" suffix="u" />
+      {entry.status === "REJECTED" && entry.rejectionReason && (
+        <div style={{ marginBottom: 10, padding: 8, borderRadius: 8, background: "var(--red-weak)", color: "var(--red)", font: "500 12px 'Geist'" }}><b>Afgekeurd:</b> {entry.rejectionReason} — pas aan en lever opnieuw in.</div>
+      )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}>
+        <Field label="Uren" icon={<Clock size={11} />} k="hours" suffix="u" width={100} />
         {row.kind === "project" && allowedTasks === "BOTH" && config && (
           <div>
             <label className="field-label">Taaktype</label>
-            <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", height: 34 }}>
               {(["MONTAGE", "TEKENKAMER"] as TaskType[]).map((t) => (
-                <button key={t} type="button" disabled={locked} onClick={() => onChange({ taskType: t })} style={{ flex: 1, height: 32, border: "none", cursor: "pointer", font: "600 12px 'Geist'", background: entry.taskType === t ? "var(--accent)" : "var(--panel)", color: entry.taskType === t ? "#fff" : "var(--text-2)" }}>{t === "MONTAGE" ? "Montage" : "Tekenkamer"}</button>
+                <button key={t} type="button" disabled={locked} onClick={() => onChange({ taskType: t })} style={{ padding: "0 12px", border: "none", cursor: "pointer", font: "600 12px 'Geist'", background: entry.taskType === t ? "var(--accent)" : "var(--panel)", color: entry.taskType === t ? "#fff" : "var(--text-2)" }}>{t === "MONTAGE" ? "Montage" : "Tekenkamer"}</button>
               ))}
             </div>
           </div>
         )}
         {row.kind === "project" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Field label="Avond / nacht" icon={<Moon size={11} />} k="night" suffix="u" />
-              <Field label="Reisuren" icon={<Clock size={11} />} k="travelHours" suffix="u" />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Field label="Kilometers" icon={<Car size={11} />} k="km" step="1" suffix="km" />
-              <Field label="Reiskosten" icon={<Ticket size={11} />} k="travelCosts" step="0.01" suffix="€" />
-            </div>
-            <Field label="Overige onkosten" icon={<Euro size={11} />} k="otherExpenses" step="0.01" suffix="€" />
+            <Field label="Avond / nacht" icon={<Moon size={11} />} k="night" suffix="u" width={110} />
+            <Field label="Reisuren" icon={<Clock size={11} />} k="travelHours" suffix="u" width={100} />
+            <Field label="Kilometers" icon={<Car size={11} />} k="km" suffix="km" width={100} />
+            <Field label="Reiskosten" icon={<Ticket size={11} />} k="travelCosts" suffix="€" width={110} />
+            <Field label="Onkosten" icon={<Euro size={11} />} k="otherExpenses" suffix="€" width={110} />
           </>
         )}
-        <div>
+        <div style={{ flex: 1, minWidth: 220 }}>
           <label className="field-label"><MessageSquare size={11} />Opmerking</label>
-          <textarea disabled={locked} value={entry.notes} onChange={(e) => onChange({ notes: e.target.value })} rows={4} placeholder="Wat heb je gedaan?" style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: locked ? "var(--panel-2)" : "var(--panel)", color: "var(--text)", font: "400 13px 'Geist'", resize: "vertical" }} />
+          <input type="text" disabled={locked} value={entry.notes} onChange={(e) => onChange({ notes: e.target.value })} placeholder="Wat heb je gedaan?" style={{ ...inputStyle, padding: "0 10px", font: "400 13px 'Geist'" }} />
         </div>
-        <div style={{ font: "400 11px 'Geist'", color: "var(--muted)" }}>Wijzigingen staan in het raster als niet-opgeslagen totdat je op <b>Opslaan</b> klikt.</div>
       </div>
     </div>
   );
