@@ -1,5 +1,5 @@
-import { showToast } from "@/components/ui/toast";
 'use client';
+import { showToast } from "@/components/ui/toast";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
