@@ -12,11 +12,17 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+// ContentRoot = map van de exe, zodat appsettings.json ook gevonden wordt als Windows-service (cwd = system32).
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory });
+builder.Host.UseWindowsService(o => o.ServiceName = "Clockd.Backend");
+
+// Faalt hard met een duidelijke melding als connection strings of sleutels ontbreken/placeholders zijn.
+backend.Services.StartupConfigValidator.Validate(builder.Configuration);
 
 // Configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+if (OperatingSystem.IsWindows()) builder.Logging.AddEventLog(o => o.SourceName = "Clockd.Backend");
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 // Configure URLs: ASPNETCORE_URLS / config "Urls" win, otherwise fall back to localhost:5000
@@ -123,6 +129,8 @@ builder.Services.AddScoped<backend.Services.WorkflowService>();
 // Email reminder services
 builder.Services.AddScoped<backend.Services.IEmailReminderService, backend.Services.EmailReminderService>();
 builder.Services.AddHostedService<backend.Services.ReminderSchedulerService>();
+builder.Services.AddSingleton<backend.Services.DependencyStatus>();
+builder.Services.AddHostedService<backend.Services.StartupHealthService>();
 
 var app = builder.Build();
 
@@ -193,35 +201,6 @@ app.MapGet("/api/projects/group/{groupId}", async (string groupId, IFirebirdData
         return Results.Ok(allProjects);
     }
 });
-
-// One-time-safe generator alignment on startup: the app now allocates GC_ID via the Atrium
-// generators (GEN_ID), but historical MAX+1 inserts may have left a generator BEHIND the
-// table's MAX id. Bump each generator UP to at least MAX so GEN_ID never returns an existing
-// id (which would collide on a payroll row). Bump-up-only + idempotent, so it is safe to run
-// on every boot (it is a no-op once aligned). Never lowers a generator, so it cannot disturb
-// Syntess if Syntess has already advanced it.
-try
-{
-    var fbFactory = app.Services.GetRequiredService<FirebirdConnectionFactory>();
-    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
-    using var alignConn = fbFactory.CreateConnection();
-    await alignConn.OpenAsync();
-    foreach (var (table, generator) in new[] { ("AT_URENBREG", "AG_URENBREG"), ("AT_DOCUMENT", "AG_DOCUMENT") })
-    {
-        // table/generator are fixed literals (no user input) - safe to interpolate.
-        var maxId = await alignConn.ExecuteScalarAsync<long>($"SELECT COALESCE(MAX(GC_ID), 0) FROM {table}");
-        var current = await alignConn.ExecuteScalarAsync<long>($"SELECT GEN_ID({generator}, 0) FROM RDB$DATABASE");
-        if (maxId > current)
-        {
-            await alignConn.ExecuteScalarAsync<long>($"SELECT GEN_ID({generator}, {maxId - current}) FROM RDB$DATABASE");
-            startupLogger.LogWarning("Generator {Generator} was behind ({Current}) - bumped up to table MAX ({Max})", generator, current, maxId);
-        }
-    }
-}
-catch (Exception ex)
-{
-    app.Services.GetRequiredService<ILogger<Program>>().LogError(ex, "Startup generator alignment failed - check Firebird connectivity");
-}
 
 app.Run();
 
