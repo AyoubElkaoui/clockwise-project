@@ -1,4 +1,4 @@
-using backend.Models;
+﻿using backend.Models;
 using backend.Services;
 using backend.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -53,6 +53,43 @@ public class WorkflowController : ControllerBase
             _logger.LogError(ex, "Error saving draft for {MedewGcId}", medewGcId);
             return StatusCode(500, new { error = "Fout bij opslaan concept" });
         }
+    }
+
+    /// <summary>
+    /// GET /api/workflow/mine?from=yyyy-MM-dd&amp;to=yyyy-MM-dd - alle eigen regels (alle statussen) in het bereik.
+    /// </summary>
+    [HttpGet("mine")]
+    public async Task<ActionResult<WorkflowEntriesResponse>> GetMine([FromQuery] string? from, [FromQuery] string? to)
+    {
+        var medewGcId = this.CurrentMedewGcId();
+        if (medewGcId == null) return Unauthorized(new { error = NoIdentityMessage });
+        if (!DateTime.TryParse(from, out var fromDate) || !DateTime.TryParse(to, out var toDate) || toDate < fromDate)
+            return BadRequest(new { error = "Ongeldig datumbereik (from/to als yyyy-MM-dd)" });
+        if ((toDate - fromDate).TotalDays > 62)
+            return BadRequest(new { error = "Bereik maximaal 62 dagen" });
+        try
+        {
+            return Ok(await _workflowService.GetMineAsync(medewGcId.Value, fromDate, toDate));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching own entries for {MedewGcId}", medewGcId);
+            return StatusCode(500, new { error = "Fout bij ophalen uren" });
+        }
+    }
+
+    /// <summary>
+    /// GET /api/workflow/config - Atrium-sleutels die de invoer nodig heeft (geen hardcoded ID's in de frontend).
+    /// </summary>
+    [HttpGet("config")]
+    public IActionResult GetConfig([FromServices] ClockwiseProject.Backend.Models.SyntessOptions syntess)
+    {
+        return Ok(new
+        {
+            montageTaakGcId = syntess.MontageTaakGcId,
+            tekenkamerTaakGcId = syntess.TekenkamerTaakGcId,
+            hoursPerDay = syntess.HoursPerDay
+        });
     }
 
     /// <summary>

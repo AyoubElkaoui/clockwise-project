@@ -1,4 +1,4 @@
-using backend.Models;
+﻿using backend.Models;
 
 namespace backend.Repositories;
 
@@ -16,6 +16,9 @@ public interface IWorkflowRepository
     /// Get draft entries for an employee
     /// </summary>
     Task<List<TimeEntryWorkflow>> GetDraftsByEmployeeAsync(int medewGcId, int urenperGcId);
+
+    /// <summary>Alle regels (alle statussen) van een medewerker in een datumbereik, voor week-/maandweergave en kalender.</summary>
+    Task<List<TimeEntryWorkflow>> GetByEmployeeAndDateRangeAsync(int medewGcId, DateTime from, DateTime to);
 
     /// <summary>
     /// Get submitted entries for an employee

@@ -201,6 +201,14 @@ public class WorkflowService
     /// <summary>
     /// Get all drafts for an employee
     /// </summary>
+    /// <summary>Alle regels van de medewerker in een datumbereik, verrijkt met taak/werk-info.</summary>
+    public async Task<WorkflowEntriesResponse> GetMineAsync(int medewGcId, DateTime from, DateTime to)
+    {
+        var entries = await _workflowRepo.GetByEmployeeAndDateRangeAsync(medewGcId, from, to);
+        var dtos = await MapToDtos(entries);
+        return new WorkflowEntriesResponse { Entries = dtos, TotalCount = dtos.Count, TotalHours = dtos.Sum(e => e.Aantal) };
+    }
+
     public async Task<WorkflowEntriesResponse> GetDraftsAsync(int medewGcId, int urenperGcId)
     {
         var entries = await _workflowRepo.GetDraftsByEmployeeAsync(medewGcId, urenperGcId);

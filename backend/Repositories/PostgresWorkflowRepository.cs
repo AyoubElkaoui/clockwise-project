@@ -1,4 +1,4 @@
-using backend.Models;
+﻿using backend.Models;
 using ClockwiseProject.Backend.Data;
 using Dapper;
 
@@ -503,6 +503,19 @@ namespace backend.Repositories
         }
 
         // Helper method
+        public async Task<List<TimeEntryWorkflow>> GetByEmployeeAndDateRangeAsync(int medewGcId, DateTime from, DateTime to)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var sql = $@"
+                SELECT {SelectColumns}
+                FROM time_entries_workflow
+                WHERE medew_gc_id = @MedewGcId
+                  AND datum >= @From AND datum <= @To
+                ORDER BY datum, created_at";
+            var result = await connection.QueryAsync<TimeEntryWorkflow>(sql, new { MedewGcId = medewGcId, From = from.Date, To = to.Date });
+            return result.ToList();
+        }
+
         private async Task<List<TimeEntryWorkflow>> GetEntriesByStatusAsync(int medewGcId, int urenperGcId, string status)
         {
             try

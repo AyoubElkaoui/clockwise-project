@@ -95,6 +95,24 @@ export async function saveDraft(data: SaveDraftRequest): Promise<DraftResponse> 
   return response.data;
 }
 
+// All own entries (every status) in a date range - used by week/month view and the calendar
+export async function getMyEntries(from: string, to: string): Promise<WorkflowEntry[]> {
+  const response = await axios.get(`${API_URL}/workflow/mine?from=${from}&to=${to}`);
+  return response.data.entries || [];
+}
+
+export interface WorkflowConfig {
+  montageTaakGcId: number;
+  tekenkamerTaakGcId: number;
+  hoursPerDay: number;
+}
+
+// Atrium keys the entry form needs (no hardcoded ids in the frontend)
+export async function getWorkflowConfig(): Promise<WorkflowConfig> {
+  const response = await axios.get(`${API_URL}/workflow/config`);
+  return response.data;
+}
+
 // Get all drafts for current user and period
 export async function getDrafts(urenperGcId: number): Promise<WorkflowEntry[]> {
   const response = await axios.get(`${API_URL}/workflow/drafts?urenperGcId=${urenperGcId}`);
